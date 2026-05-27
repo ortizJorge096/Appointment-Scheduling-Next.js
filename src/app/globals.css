@@ -1,0 +1,102 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --gold:        #B8932A;
+  --gold-light:  #D4AD5A;
+  --gold-pale:   #F5EDDA;
+  --gold-dark:   #8A6E1E;
+  --beige:       #F2EBD9;
+  --beige-dark:  #E8DCC4;
+  --ink:         #111111;
+  --ink-soft:    #1E1E1E;
+  --ink-mid:     #4A4035;
+  --ink-muted:   #7A7060;
+}
+
+@layer base {
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+  body { @apply bg-beige text-ink font-sans; }
+  h1, h2, h3, h4 { @apply font-serif; }
+}
+
+@layer components {
+
+  /* ── Botones ── */
+  .btn-primary {
+    @apply bg-gold text-white px-8 py-3.5 text-xs font-medium
+           tracking-widest uppercase transition-all duration-200
+           hover:bg-gold-dark hover:-translate-y-px
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+    @apply bg-transparent text-ink border border-ink
+           px-8 py-3.5 text-xs font-medium tracking-widest uppercase
+           transition-all duration-200 hover:bg-ink hover:text-white
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-outline-gold {
+    @apply bg-transparent text-gold border border-gold
+           px-8 py-3.5 text-xs font-medium tracking-widest uppercase
+           transition-all duration-200 hover:bg-gold hover:text-white;
+  }
+  .btn-ghost {
+    @apply bg-transparent text-ink-muted px-4 py-2 text-sm
+           transition-colors duration-150
+           hover:bg-beige-dark hover:text-ink;
+  }
+
+  /* ── Inputs ── */
+  .input-field {
+    @apply w-full bg-white border border-beige-dark text-ink
+           px-4 py-3 text-sm font-sans
+           placeholder:text-ink-muted/50
+           focus:outline-none focus:border-gold focus:ring-0
+           transition-colors duration-150
+           disabled:bg-beige disabled:cursor-not-allowed;
+  }
+  .input-dark {
+    @apply w-full bg-white/5 border border-white/10 text-white
+           px-4 py-3 text-sm font-sans placeholder:text-white/30
+           focus:outline-none focus:border-gold focus:ring-0
+           transition-colors duration-150;
+  }
+  .select-field {
+    @apply input-field appearance-none cursor-pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%237A7060' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    padding-right: 2.5rem;
+  }
+  .form-label {
+    @apply block text-xs font-medium tracking-widest uppercase text-ink-muted mb-2;
+  }
+
+  /* ── Badges ── */
+  .badge-pending   { @apply bg-amber-50   text-amber-700   text-xs px-2.5 py-1 font-medium; }
+  .badge-confirmed { @apply bg-emerald-50 text-emerald-700 text-xs px-2.5 py-1 font-medium; }
+  .badge-completed { @apply bg-blue-50    text-blue-700    text-xs px-2.5 py-1 font-medium; }
+  .badge-cancelled { @apply bg-red-50     text-red-600     text-xs px-2.5 py-1 font-medium; }
+  .badge-no_show   { @apply bg-gray-100   text-gray-500    text-xs px-2.5 py-1 font-medium; }
+
+  /* ── Decorativos ── */
+  .section-tag {
+    @apply text-xs font-medium tracking-widest uppercase text-gold
+           flex items-center gap-2
+           before:content-[''] before:block before:w-5 before:h-px before:bg-gold;
+  }
+  .card { @apply bg-white border border-beige-dark p-6; }
+  .divider { @apply border-t border-beige-dark my-8; }
+}
+
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+  .animation-delay-100 { animation-delay: 100ms; }
+  .animation-delay-200 { animation-delay: 200ms; }
+  .animation-delay-300 { animation-delay: 300ms; }
+  .animation-delay-400 { animation-delay: 400ms; }
+}

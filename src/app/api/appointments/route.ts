@@ -1,0 +1,197 @@
+// src/app/api/appointments/route.ts
+// GET  /api/appointments   → listar citas (admin, con filtros)
+// POST /api/appointments   → crear nueva cita (público, con rate limit)
+
+import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
+import { createAppointmentSchema } from '@/lib/validations'
+import { isSlotAvailable, timeToMinutes, minutesToTime } from '@/lib/availability'
+import { sendConfirmationEmail } from '@/lib/email'
+import type { ApiResponse, AppointmentWithService } from '@/types'
+
+// ─────────────────────────────────────────
+// RATE LIMITING simple en memoria
+// (en producción usar Redis o Upstash)
+// ─────────────────────────────────────────
+
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
+
+export const dynamic = 'force-dynamic'
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now()
+  const windowMs = 60 * 60 * 1000  // 1 hora
+  const maxRequests = 5             // máximo 5 citas por IP por hora
+
+  const entry = rateLimitMap.get(ip)
+
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + windowMs })
+    return true
+  }
+
+  if (entry.count >= maxRequests) return false
+
+  entry.count++
+  return true
+}
+
+// ─────────────────────────────────────────
+// GET — listar citas (solo admin)
+// ─────────────────────────────────────────
+
+export async function GET(
+  request: NextRequest
+): Promise<NextResponse> {
+  const session = await getServerSession(authOptions)
+  if (!session) {
+    return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 })
+  }
+
+  const { searchParams } = new URL(request.url)
+  const status = searchParams.get('status')
+  const dateFrom = searchParams.get('dateFrom')
+  const dateTo = searchParams.get('dateTo')
+  const page = Math.max(1, parseInt(searchParams.get('page') ?? '1'))
+  const limit = Math.min(50, parseInt(searchParams.get('limit') ?? '20'))
+
+  const where: Record<string, unknown> = {}
+
+  if (status) where.status = status
+
+  if (dateFrom || dateTo) {
+    where.date = {
+      ...(dateFrom ? { gte: new Date(`${dateFrom}T00:00:00`) } : {}),
+      ...(dateTo ? { lte: new Date(`${dateTo}T23:59:59`) } : {}),
+    }
+  }
+
+  const [appointments, total] = await Promise.all([
+    prisma.appointment.findMany({
+      where,
+      include: {
+        service: {
+          select: { id: true, name: true, price: true, durationMinutes: true },
+        },
+      },
+      orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.appointment.count({ where }),
+  ])
+
+  return NextResponse.json({
+    success: true,
+    data: {
+      appointments,
+      pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
+    },
+  })
+}
+
+// ─────────────────────────────────────────
+// POST — crear cita (público)
+// ─────────────────────────────────────────
+
+export async function POST(
+  request: NextRequest
+): Promise<NextResponse<ApiResponse<AppointmentWithService>>> {
+  // Rate limiting por IP
+  const ip =
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+    request.headers.get('x-real-ip') ??
+    'unknown'
+
+  if (!checkRateLimit(ip)) {
+    return NextResponse.json(
+      { success: false, error: 'Demasiados intentos. Inténtalo en 1 hora.' },
+      { status: 429 }
+    )
+  }
+
+  // Parsear y validar body
+  let body: unknown
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json(
+      { success: false, error: 'Body inválido' },
+      { status: 400 }
+    )
+  }
+
+  const parsed = createAppointmentSchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json(
+      { success: false, error: parsed.error.errors[0].message },
+      { status: 400 }
+    )
+  }
+
+  const { clientName, clientEmail, clientPhone, serviceId, date, startTime, notes } =
+    parsed.data
+
+  // Verificar que el servicio existe
+  const service = await prisma.service.findUnique({
+    where: { id: serviceId, isActive: true },
+    select: { id: true, name: true, price: true, durationMinutes: true },
+  })
+
+  if (!service) {
+    return NextResponse.json(
+      { success: false, error: 'Servicio no disponible' },
+      { status: 404 }
+    )
+  }
+
+  // Verificar disponibilidad en tiempo real (evita doble booking)
+  const available = await isSlotAvailable(date, startTime, serviceId)
+  if (!available) {
+    return NextResponse.json(
+      { success: false, error: 'Este horario ya no está disponible. Por favor elige otro.' },
+      { status: 409 }
+    )
+  }
+
+  // Calcular hora de fin
+  const startMinutes = timeToMinutes(startTime)
+  const endTime = minutesToTime(startMinutes + service.durationMinutes)
+
+  // Crear la cita en BD
+  const appointment = await prisma.appointment.create({
+    data: {
+      clientName: clientName.trim(),
+      clientEmail: clientEmail.toLowerCase().trim(),
+      clientPhone: clientPhone.trim(),
+      serviceId,
+      date: new Date(`${date}T00:00:00`),
+      startTime,
+      endTime,
+      status: 'PENDING',
+      notes: notes?.trim() ?? null,
+    },
+    include: {
+      service: {
+        select: { id: true, name: true, price: true, durationMinutes: true },
+      },
+    },
+  })
+
+  // Enviar email de confirmación (no bloqueante)
+  sendConfirmationEmail(appointment as AppointmentWithService)
+    .then(async () => {
+      await prisma.appointment.update({
+        where: { id: appointment.id },
+        data: { confirmationSentAt: new Date() },
+      })
+    })
+    .catch((err) => console.error('Error enviando confirmación:', err))
+
+  return NextResponse.json(
+    { success: true, data: appointment as AppointmentWithService },
+    { status: 201 }
+  )
+}

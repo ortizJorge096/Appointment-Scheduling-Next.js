@@ -1,0 +1,50 @@
+// src/components/ui/Card.tsx
+import { cn } from '@/lib/utils'
+
+interface CardProps {
+  children:   React.ReactNode
+  className?: string
+  padding?:   'sm' | 'md' | 'lg'
+}
+
+const paddings = { sm: 'p-4', md: 'p-6', lg: 'p-8 lg:p-10' }
+
+export function Card({ children, className, padding = 'md' }: CardProps) {
+  return (
+    <div className={cn('bg-white border border-beige-dark', paddings[padding], className)}>
+      {children}
+    </div>
+  )
+}
+
+// Card oscura para secciones sobre fondo dark
+export function DarkCard({ children, className }: Omit<CardProps, 'padding'>) {
+  return (
+    <div className={cn('bg-white/[0.04] border border-white/10 p-6', className)}>
+      {children}
+    </div>
+  )
+}
+
+// Stat card para métricas del dashboard
+interface StatCardProps {
+  label:     string
+  value:     string | number
+  accent?:   boolean
+  className?: string
+}
+
+export function StatCard({ label, value, accent = false, className }: StatCardProps) {
+  return (
+    <div className={cn(
+      'bg-white border p-5',
+      accent ? 'border-gold' : 'border-beige-dark',
+      className
+    )}>
+      <p className="text-xs text-ink-muted tracking-wide uppercase mb-2">{label}</p>
+      <p className={cn('font-serif text-2xl font-light', accent ? 'text-gold' : 'text-ink')}>
+        {value}
+      </p>
+    </div>
+  )
+}

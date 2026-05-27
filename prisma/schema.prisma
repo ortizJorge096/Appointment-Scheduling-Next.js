@@ -1,0 +1,99 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      Role     @default(ADMIN)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@map("users")
+}
+
+enum Role {
+  ADMIN
+  SUPER_ADMIN
+}
+
+model Service {
+  id              String        @id @default(cuid())
+  name            String        @unique
+  description     String?
+  price           Int
+  durationMinutes Int
+  isActive        Boolean       @default(true)
+  order           Int           @default(0)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  appointments    Appointment[]
+  @@map("services")
+}
+
+model Appointment {
+  id                 String            @id @default(cuid())
+  clientName         String
+  clientEmail        String
+  clientPhone        String
+  serviceId          String
+  service            Service           @relation(fields: [serviceId], references: [id])
+  date               DateTime
+  startTime          String
+  endTime            String
+  status             AppointmentStatus @default(PENDING)
+  notes              String?
+  confirmationSentAt DateTime?
+  reminderSentAt     DateTime?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  @@index([date])
+  @@index([clientEmail])
+  @@index([status])
+  @@map("appointments")
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+model Schedule {
+  id        String    @id @default(cuid())
+  dayOfWeek DayOfWeek @unique
+  startTime String
+  endTime   String
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  @@map("schedules")
+}
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+model BlockedDate {
+  id        String   @id @default(cuid())
+  date      DateTime @unique
+  reason    String?
+  createdAt DateTime @default(now())
+  @@index([date])
+  @@map("blocked_dates")
+}

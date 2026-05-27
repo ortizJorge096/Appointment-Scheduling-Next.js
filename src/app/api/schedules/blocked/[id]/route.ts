@@ -1,0 +1,33 @@
+// src/app/api/schedules/blocked/[id]/route.ts
+// DELETE /api/schedules/blocked/:id
+
+import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
+
+
+
+export async function DELETE(
+  _req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  const { id } = await context.params
+
+  const session = await getServerSession(authOptions)
+  if (!session) {
+    return NextResponse.json(
+      { success: false, error: 'No autorizado' },
+      { status: 401 }
+    )
+  }
+
+  await prisma.blockedDate.delete({
+    where: { id },
+  })
+
+  return NextResponse.json({
+    success: true,
+    data: { id },
+  })
+}

@@ -1,0 +1,72 @@
+# docker-compose.yml
+# Entorno local completo: Next.js + PostgreSQL
+# Uso: docker compose up --build
+
+services:
+
+  # ── Base de datos PostgreSQL ──────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: valentinajimenez-db
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: valentinajimenez
+      POSTGRES_USER: valentinajimenez
+      POSTGRES_PASSWORD: valentinajimenez123
+
+    ports:
+      - "5432:5432" # expuesto para conectar con Prisma Studio
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U valentinajimenez -d valentinajimenez"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Aplicación Next.js ────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: valentinajimenez-app
+    restart: unless-stopped
+
+    ports:
+      - "3000:3000"
+
+    env_file:
+      - .env.local
+
+    environment:
+      # Sobreescribir DATABASE_URL para apuntar al contenedor db
+      DATABASE_URL: postgresql://valentinajimenez:valentinajimenez123@db:5432/valentinajimenez
+
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # ── Migraciones (se ejecuta una vez y sale) ───────────
+  # migrate:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.migrate
+
+  #   container_name: valentinajimenez-migrate
+
+  #   env_file:
+  #     - .env.local
+
+    # environment:
+    #   DATABASE_URL: postgresql://valentinajimenez:valentinajimenez123@db:5432/valentinajimenez
+
+    # depends_on:
+    #   db:
+    #     condition: service_healthy
+
+volumes:
+  postgres_data:

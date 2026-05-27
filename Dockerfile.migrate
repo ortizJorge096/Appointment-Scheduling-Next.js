@@ -1,0 +1,20 @@
+# Dockerfile.migrate
+# Contenedor liviano solo para correr migraciones de Prisma y seed
+# Se ejecuta una vez y termina
+
+FROM node:20-alpine
+WORKDIR /app
+
+RUN apk add --no-cache openssl
+
+COPY package.json package-lock.json* ./
+RUN npm ci
+
+COPY prisma ./prisma
+COPY src/lib/prisma.ts ./src/lib/prisma.ts
+COPY tsconfig.json ./
+
+RUN npx prisma generate
+
+# Script que espera la DB, migra y hace seed
+CMD ["sh", "-c", "npx prisma migrate deploy && npx ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts"]
