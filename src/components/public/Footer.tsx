@@ -12,7 +12,7 @@ export default function Footer() {
             <em className="text-gold italic font-light">{STUDIO.tagline}</em>
           </Link>
           <p className="text-white/30 text-xs mt-3 leading-relaxed">
-            Manicure profesional en {STUDIO.city}.<br />Agenda tu cita en línea.
+            Uñas, pestañas y cejas en {STUDIO.city}.<br />Agenda tu cita en línea.
           </p>
         </div>
 

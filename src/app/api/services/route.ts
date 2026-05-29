@@ -18,6 +18,7 @@ export async function GET(): Promise<NextResponse> {
       id: true,
       name: true,
       description: true,
+      category: true,
       price: true,
       durationMinutes: true,
       order: true,

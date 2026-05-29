@@ -3,11 +3,13 @@
 // CRUD de servicios — crear, editar, activar/desactivar
 
 import { useState, useEffect } from 'react'
+import { CATEGORY_ORDER, categoryLabel } from '@/lib/config'
 
 interface Service {
   id: string
   name: string
   description: string | null
+  category: string
   price: number
   durationMinutes: number
   isActive: boolean
@@ -15,7 +17,7 @@ interface Service {
 }
 
 const EMPTY: Omit<Service, 'id' | 'isActive'> = {
-  name: '', description: '', price: 0, durationMinutes: 45, order: 0,
+  name: '', description: '', category: 'UNAS', price: 0, durationMinutes: 45, order: 0,
 }
 
 function formatPrice(p: number) {
@@ -59,6 +61,7 @@ export default function ServiciosPage() {
     setForm({
       name: svc.name,
       description: svc.description ?? '',
+      category: svc.category ?? 'UNAS',
       price: svc.price,
       durationMinutes: svc.durationMinutes,
       order: svc.order,
@@ -151,6 +154,17 @@ export default function ServiciosPage() {
               />
             </div>
 
+            <div className="sm:col-span-2">
+              <label className="form-label">Categoría *</label>
+              <select className="select-field"
+                value={form.category}
+                onChange={(e) => setForm({ ...form, category: e.target.value })}>
+                {CATEGORY_ORDER.map((cat) => (
+                  <option key={cat} value={cat}>{categoryLabel(cat)}</option>
+                ))}
+              </select>
+            </div>
+
             <div>
               <label className="form-label">Precio (COP) *</label>
               <input type="number" className="input-field" min={0} step={1000}
@@ -205,6 +219,9 @@ export default function ServiciosPage() {
               <div className="flex-1 min-w-0 mr-4">
                 <div className="flex items-center gap-2">
                   <p className="font-medium text-ink">{svc.name}</p>
+                  <span className="text-[10px] tracking-widest uppercase bg-gold-pale text-gold-dark px-2 py-0.5">
+                    {categoryLabel(svc.category)}
+                  </span>
                   {!svc.isActive && (
                     <span className="text-[10px] tracking-widest uppercase bg-gray-100 text-gray-400 px-2 py-0.5">
                       Inactivo

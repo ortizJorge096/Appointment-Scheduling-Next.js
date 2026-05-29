@@ -7,7 +7,7 @@ import Footer from '@/components/public/Footer'
 import { STUDIO, WHATSAPP_URL, MAILTO_URL } from '@/lib/config'
 
 export const dynamic = 'force-dynamic'
-export const metadata: Metadata = { title: `Manicure profesional en ${STUDIO.city}` }
+export const metadata: Metadata = { title: `Uñas, pestañas y cejas en ${STUDIO.city}` }
 
 export default function HomePage() {
   return (
@@ -28,12 +28,12 @@ export default function HomePage() {
 
 function GaleriaSection() {
   const items = [
-    { id: 1, label: 'Nail art floral',     sub: 'Gel · 60 min'      },
-    { id: 2, label: 'Gel nude clásico',    sub: 'Gel · 60 min'      },
-    { id: 3, label: 'Acrílico french',     sub: 'Acrílico · 90 min' },
-    { id: 4, label: 'Nail art geométrico', sub: 'Nail art · 60 min' },
-    { id: 5, label: 'Gel holográfico',     sub: 'Gel · 60 min'      },
-    { id: 6, label: 'Manicure clásica',    sub: 'Clásica · 45 min'  },
+    { id: 1, label: 'Volumen brasilero',       sub: 'Pestañas · 120 min' },
+    { id: 2, label: 'Acrílico esculpido',      sub: 'Uñas · 120 min'     },
+    { id: 3, label: 'Cejas laminadas',         sub: 'Cejas · 60 min'     },
+    { id: 4, label: 'Lifting de pestañas',     sub: 'Pestañas · 60 min'  },
+    { id: 5, label: 'Manicura semipermanente', sub: 'Uñas · 60 min'      },
+    { id: 6, label: 'Cejas con henna',         sub: 'Cejas · 45 min'     },
   ]
   const grads = [
     'linear-gradient(145deg,#F2EBD9 0%,#B8932A 60%,#111111 100%)',
@@ -88,12 +88,12 @@ function NosotrosSection() {
           <div>
             <span className="section-tag mb-6">Quiénes somos</span>
             <h2 className="text-4xl lg:text-5xl font-serif font-light text-ink mb-6">
-              Pasión por el arte<br />en tus <em className="text-gold italic">manos</em>
+              Pasión por<br />realzar tu <em className="text-gold italic">belleza</em>
             </h2>
             <p className="text-ink-muted text-base leading-relaxed mb-4">
-              Somos un beauty studio especializado en manicure profesional en {STUDIO.city}.
-              Más de 3 años dedicados al cuidado y embellecimiento de las manos con
-              productos de alta calidad y técnicas actualizadas.
+              Somos un beauty studio especializado en uñas, pestañas y cejas en {STUDIO.city}.
+              Más de 3 años dedicados al cuidado y embellecimiento de manos, mirada y rostro
+              con productos de alta calidad y técnicas actualizadas.
             </p>
             <p className="text-ink-muted text-base leading-relaxed mb-8">
               Nuestro compromiso es ofrecerte una experiencia premium, higiénica y con
@@ -103,7 +103,7 @@ function NosotrosSection() {
               {[
                 { value: '+3',   label: 'Años de experiencia'  },
                 { value: '+200', label: 'Clientas satisfechas'  },
-                { value: '6',    label: 'Servicios disponibles' },
+                { value: '+25',  label: 'Servicios disponibles' },
               ].map((s) => (
                 <div key={s.label}>
                   <p className="font-serif text-3xl text-gold font-light">{s.value}</p>
@@ -116,8 +116,8 @@ function NosotrosSection() {
             <div className="w-full aspect-[4/5]"
               style={{ background: 'linear-gradient(160deg,#F2EBD9 0%,#B8932A 50%,#111111 100%)' }} />
             <div className="absolute -bottom-6 -left-6 bg-ink border border-gold/30 p-5 shadow-lg">
-              <p className="text-xs text-gold/60 tracking-widest uppercase mb-1">Certificadas en</p>
-              <p className="font-serif text-lg text-white">Nail art · Gel · Acrílico</p>
+              <p className="text-xs text-gold/60 tracking-widest uppercase mb-1">Especialistas en</p>
+              <p className="font-serif text-lg text-white">Uñas · Pestañas · Cejas</p>
             </div>
           </div>
         </div>

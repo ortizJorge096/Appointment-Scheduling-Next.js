@@ -18,7 +18,7 @@ export default function Hero() {
           </div>
           <h1 className="font-serif text-5xl lg:text-7xl font-light text-white
                          leading-[1.06] mb-6 animate-fade-up animation-delay-100">
-            El arte que<br />tus <em className="text-gold italic">manos</em><br />merecen
+            Realza tu<br /><em className="text-gold italic">belleza</em><br />natural
           </h1>
           <p className="text-white/55 text-base leading-relaxed max-w-md mb-10
                         animate-fade-up animation-delay-200">
@@ -33,7 +33,7 @@ export default function Hero() {
             {[
               { value: '+2.400', label: 'Citas realizadas' },
               { value: '5★',     label: 'Calificación'     },
-              { value: '6',      label: 'Servicios'        },
+              { value: '+25',    label: 'Servicios'        },
             ].map((s) => (
               <div key={s.label}>
                 <p className="font-serif text-2xl text-gold font-light">{s.value}</p>
@@ -50,16 +50,16 @@ export default function Hero() {
               <p className="text-xs text-white/40 tracking-widest uppercase">Próxima disponibilidad</p>
             </div>
             <p className="font-serif text-3xl text-white font-light mb-1">Hoy · 3:00 PM</p>
-            <p className="text-white/50 text-sm">Manicure en gel</p>
+            <p className="text-white/50 text-sm">Manicura semipermanente</p>
             <div className="mt-5 pt-5 border-t border-white/10 flex items-center justify-between">
-              <span className="text-gold font-medium text-lg">$45.000</span>
+              <span className="text-gold font-medium text-lg">$40.000</span>
               <span className="text-xs text-white/30">60 min · Confirmación inmediata</span>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             {[
-              { label: 'Nail art elaborado', price: '$30.000', dur: '60 min' },
-              { label: 'Uñas acrílicas',     price: '$70.000', dur: '90 min' },
+              { label: 'Lifting de pestañas', price: '$70.000', dur: '60 min' },
+              { label: 'Cejas laminadas',     price: '$50.000', dur: '60 min' },
             ].map((s) => (
               <div key={s.label} className="bg-white/[0.04] border border-white/10 p-4">
                 <p className="text-white/70 text-sm font-medium mb-3">{s.label}</p>

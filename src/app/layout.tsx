@@ -5,7 +5,7 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: {
-    default: `${STUDIO.name} — Manicure profesional en ${STUDIO.city}`,
+    default: `${STUDIO.name} — Uñas, pestañas y cejas en ${STUDIO.city}`,
     template: `%s · ${STUDIO.name}`,
   },
   description: STUDIO.description,
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website', locale: 'es_CO',
     url: STUDIO.url, siteName: STUDIO.name,
-    title: `${STUDIO.name} — Manicure profesional en ${STUDIO.city}`,
+    title: `${STUDIO.name} — Uñas, pestañas y cejas en ${STUDIO.city}`,
     description: STUDIO.description,
   },
   robots: { index: true, follow: true },

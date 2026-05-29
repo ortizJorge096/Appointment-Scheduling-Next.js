@@ -22,7 +22,7 @@ export default function BookingSection() {
           </p>
           <div className="space-y-6 mb-10">
             {[
-              { n: '1', title: 'Elige tu servicio',       desc: 'Gel, acrílico, nail art y más' },
+              { n: '1', title: 'Elige tu servicio',       desc: 'Uñas, pestañas, cejas y más' },
               { n: '2', title: 'Selecciona fecha y hora', desc: 'Disponibilidad en tiempo real' },
               { n: '3', title: 'Confirma tus datos',      desc: 'Email inmediato de confirmación' },
             ].map((s) => (
