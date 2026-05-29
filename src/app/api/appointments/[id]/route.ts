@@ -25,14 +25,6 @@ export async function GET(
 ): Promise<NextResponse> {
   const { id } = await context.params
 
-  const session = await getServerSession(authOptions)
-  if (!session) {
-    return NextResponse.json(
-      { success: false, error: 'No autorizado' },
-      { status: 401 }
-    )
-  }
-
   const appointment = await prisma.appointment.findUnique({
     where: { id },
     include: {
@@ -49,7 +41,18 @@ export async function GET(
     )
   }
 
-  return NextResponse.json({ success: true, data: appointment })
+  // El admin ve todo; el público (página de confirmación / cancelación)
+  // recibe solo campos no sensibles. El id es un cuid no adivinable.
+  const session = await getServerSession(authOptions)
+  if (session) {
+    return NextResponse.json({ success: true, data: appointment })
+  }
+
+  const { clientName, clientEmail, service, date, startTime, endTime, status } = appointment
+  return NextResponse.json({
+    success: true,
+    data: { id, clientName, clientEmail, service, date, startTime, endTime, status },
+  })
 }
 
 // ─────────────────────────────────────────
