@@ -2,22 +2,25 @@
 // src/components/public/BookingForm.tsx
 
 import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import DateTimePicker from './DateTimePicker'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { CATEGORY_ORDER, categoryLabel } from '@/lib/config'
 
 interface Service {
   id: string
   name: string
   description: string | null
+  category: string
   price: number
   durationMinutes: number
 }
 
-type FormStep = 'service' | 'datetime' | 'info' | 'confirm'
+type FormStep = 'category' | 'service' | 'datetime' | 'info' | 'confirm'
 
 interface FormData {
+  category:    string
   serviceId:   string
   date:        string
   startTime:   string
@@ -25,6 +28,14 @@ interface FormData {
   clientEmail: string
   clientPhone: string
   notes:       string
+}
+
+// Pequeña descripción para cada categoría en las tarjetas del paso 1
+const CATEGORY_BLURBS: Record<string, string> = {
+  UNAS:     'Manicura, pedicura, polygel y acrílico',
+  PESTANAS: 'Lifting, clásicas, volumen e híbridas',
+  CEJAS:    'Diseño, henna y laminado',
+  PROMOS:   'Combos con precio especial',
 }
 
 interface FieldErrors {
@@ -41,20 +52,23 @@ function formatPrice(price: number): string {
   }).format(price)
 }
 
-const STEPS: FormStep[]                     = ['service', 'datetime', 'info', 'confirm']
+const STEPS: FormStep[] = ['category', 'service', 'datetime', 'info', 'confirm']
 const STEP_LABELS: Record<FormStep, string> = {
-  service: 'Servicio', datetime: 'Fecha y hora', info: 'Tus datos', confirm: 'Confirmar',
+  category: 'Categoría', service: 'Servicio', datetime: 'Fecha y hora', info: 'Tus datos', confirm: 'Confirmar',
 }
 
 export default function BookingForm() {
-  const router      = useRouter()
-  const continueRef = useRef<HTMLButtonElement>(null)
+  const router       = useRouter()
+  const searchParams = useSearchParams()
+  const continueRef  = useRef<HTMLButtonElement>(null)
+  const formTopRef   = useRef<HTMLDivElement>(null)
 
   // mounted evita mismatch de hidratación SSR vs cliente
-  const [mounted, setMounted]         = useState(false)
-  const [hasSavedData, setHasSavedData] = useState(false)
+  const [mounted, setMounted]               = useState(false)
+  const [hasSavedData, setHasSavedData]     = useState(false)
+  const [appliedPreselect, setAppliedPreselect] = useState(false)
 
-  const [step, setStep]               = useState<FormStep>('service')
+  const [step, setStep]               = useState<FormStep>('category')
   const [services, setServices]       = useState<Service[]>([])
   const [loadingSvc, setLoadingSvc]   = useState(true)
   const [submitting, setSubmitting]   = useState(false)
@@ -64,6 +78,7 @@ export default function BookingForm() {
   const [attempted,   setAttempted]   = useState(false)
 
   const [form, setForm] = useState<FormData>({
+    category:    '',
     serviceId:   '',
     date:        format(new Date(), 'yyyy-MM-dd'),
     startTime:   '',
@@ -112,11 +127,38 @@ export default function BookingForm() {
       .finally(() => setLoadingSvc(false))
   }, [])
 
-  // Limpiar errores al cambiar de paso
+  // 5. Pre-selección por URL: /agendar?service=ID o /agendar?categoria=UNAS
+  // Permite que las tarjetas de la home lleven directo al paso correcto.
+  useEffect(() => {
+    if (appliedPreselect || services.length === 0) return
+
+    const preService = searchParams.get('service')
+    if (preService) {
+      const svc = services.find((s) => s.id === preService)
+      if (svc) {
+        setForm((prev) => ({ ...prev, category: svc.category, serviceId: svc.id }))
+        setStep('datetime')
+        setAppliedPreselect(true)
+        return
+      }
+    }
+
+    const preCat = searchParams.get('categoria')
+    if (preCat && ['UNAS', 'PESTANAS', 'CEJAS', 'PROMOS'].includes(preCat)) {
+      setForm((prev) => ({ ...prev, category: preCat }))
+      setStep('service')
+      setAppliedPreselect(true)
+    }
+  }, [services, searchParams, appliedPreselect])
+
+  // Limpiar errores y hacer scroll al top al cambiar de paso
   useEffect(() => {
     setStepError(null)
     setFieldErrors({})
     setAttempted(false)
+    setTimeout(() => {
+      formTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 50)
   }, [step])
 
   const selectedService = services.find((s) => s.id === form.serviceId)
@@ -136,13 +178,26 @@ export default function BookingForm() {
   function selectService(id: string) {
     updateForm('serviceId', id)
     setStepError(null)
-    setTimeout(() => {
-      continueRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    }, 80)
+    // Auto-avance: tras un breve momento (para que la clienta vea su selección
+    // marcada) saltamos al siguiente paso. Solo el paso de servicio se comporta
+    // así; los demás siguen requiriendo el botón "Continuar".
+    setTimeout(() => setStep('datetime'), 280)
+  }
+
+  function selectCategory(cat: string) {
+    // Si cambia de categoría, limpiar el servicio previamente elegido
+    if (form.category !== cat) {
+      setForm((prev) => ({ ...prev, category: cat, serviceId: '' }))
+    }
+    setStepError(null)
   }
 
   function validate(): boolean {
     setAttempted(true)
+    if (step === 'category') {
+      if (!form.category) { setStepError('Por favor selecciona una categoría.'); return false }
+      return true
+    }
     if (step === 'service') {
       if (!form.serviceId) { setStepError('Por favor selecciona un servicio para continuar.'); return false }
       return true
@@ -194,7 +249,19 @@ export default function BookingForm() {
         }),
       })
       const json = await res.json()
-      if (!json.success) { setSubmitError(json.error ?? 'Ocurrió un error. Intenta de nuevo.'); return }
+      if (!json.success) {
+        // 409 = el horario fue tomado entre que ella eligió y confirmó.
+        // La regresamos al paso de fecha y hora con la hora limpiada para
+        // que pueda elegir otra de inmediato.
+        if (res.status === 409) {
+          setForm((prev) => ({ ...prev, startTime: '' }))
+          setStep('datetime')
+          setSubmitError(json.error ?? 'Este horario acaba de ser reservado. Por favor elige otro.')
+          return
+        }
+        setSubmitError(json.error ?? 'Ocurrió un error. Intenta de nuevo.')
+        return
+      }
       router.push(`/confirmacion?id=${json.data.id}`)
     } catch {
       setSubmitError('Error de conexión. Por favor intenta de nuevo.')
@@ -208,7 +275,7 @@ export default function BookingForm() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div ref={formTopRef} className="max-w-2xl mx-auto">
 
       {/* Indicador de pasos */}
       <div className="flex items-center mb-10">
@@ -241,11 +308,65 @@ export default function BookingForm() {
         </div>
       )}
 
-      {/* PASO 1 — Servicio */}
+      {/* PASO 1 — Categoría */}
+      {step === 'category' && (
+        <div className="animate-fade-in">
+          <div className="mb-6">
+            <h2 className="font-serif text-2xl text-ink">¿Qué te quieres hacer?</h2>
+            <p className="text-sm text-ink-muted mt-1">Elige la categoría que mejor describe tu servicio. <span className="text-red-500">*</span></p>
+          </div>
+          {stepError && (
+            <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 border border-red-200 px-4 py-3 mb-4">
+              <span>⚠</span> {stepError}
+            </div>
+          )}
+          {loadingSvc ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {[1,2,3,4].map((n) => <div key={n} className="h-28 bg-beige-dark animate-pulse" />)}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {CATEGORY_ORDER
+                .map((cat) => ({ cat, count: services.filter((s) => s.category === cat).length }))
+                .filter((g) => g.count > 0)
+                .map(({ cat, count }) => {
+                  const isSelected = form.category === cat
+                  return (
+                    <button key={cat} type="button" onClick={() => selectCategory(cat)}
+                      className={`text-left p-5 border transition-all duration-150
+                        ${isSelected ? 'border-gold bg-gold-pale ring-1 ring-gold'
+                        : attempted && !form.category ? 'border-red-300 bg-white hover:border-gold/50'
+                        : 'border-beige-dark bg-white hover:border-gold/50'}`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="font-serif text-xl text-ink">{categoryLabel(cat)}</p>
+                        <span className="text-[10px] tracking-widest uppercase text-gold">
+                          {count} servicio{count === 1 ? '' : 's'}
+                        </span>
+                      </div>
+                      <p className="text-sm text-ink-muted leading-snug">
+                        {CATEGORY_BLURBS[cat] ?? ''}
+                      </p>
+                    </button>
+                  )
+                })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* PASO 2 — Servicio (filtrado por la categoría elegida) */}
       {step === 'service' && (
         <div className="space-y-3 animate-fade-in">
           <div className="mb-6">
-            <h2 className="font-serif text-2xl text-ink">¿Qué servicio deseas?</h2>
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <h2 className="font-serif text-2xl text-ink">
+                Servicios de <em className="text-gold italic">{categoryLabel(form.category).toLowerCase()}</em>
+              </h2>
+              <button type="button" onClick={() => setStep('category')}
+                className="text-xs tracking-widest uppercase text-ink-muted hover:text-gold transition-colors">
+                ← Cambiar categoría
+              </button>
+            </div>
             <p className="text-sm text-ink-muted mt-1">Selecciona uno de los servicios disponibles. <span className="text-red-500">*</span></p>
           </div>
           {stepError && (
@@ -256,44 +377,67 @@ export default function BookingForm() {
           {loadingSvc ? (
             <div className="space-y-3">{[1,2,3].map((n) => <div key={n} className="h-20 bg-beige-dark animate-pulse" />)}</div>
           ) : (
-            services.map((svc) => {
-              const isSelected = form.serviceId === svc.id
-              return (
-                <button key={svc.id} type="button" onClick={() => selectService(svc.id)}
-                  className={`w-full text-left p-5 border transition-all duration-150
-                    ${isSelected ? 'border-gold bg-gold-pale ring-1 ring-gold'
-                    : attempted && !form.serviceId ? 'border-red-300 bg-white hover:border-gold/50'
-                    : 'border-beige-dark bg-white hover:border-gold/50'}`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors
-                        ${isSelected ? 'border-gold' : 'border-beige-deeper'}`}>
-                        {isSelected && <div className="w-2 h-2 rounded-full bg-gold" />}
+            services
+              .filter((svc) => svc.category === form.category)
+              .map((svc) => {
+                const isSelected = form.serviceId === svc.id
+                return (
+                  <button key={svc.id} type="button" onClick={() => selectService(svc.id)}
+                    className={`w-full text-left p-5 border transition-all duration-150
+                      ${isSelected ? 'border-gold bg-gold-pale ring-1 ring-gold'
+                      : attempted && !form.serviceId ? 'border-red-300 bg-white hover:border-gold/50'
+                      : 'border-beige-dark bg-white hover:border-gold/50'}`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors
+                          ${isSelected ? 'border-gold' : 'border-beige-deeper'}`}>
+                          {isSelected && <div className="w-2 h-2 rounded-full bg-gold" />}
+                        </div>
+                        <div>
+                          <p className="font-medium text-ink">{svc.name}</p>
+                          {svc.description && <p className="text-sm text-ink-muted mt-0.5">{svc.description}</p>}
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium text-ink">{svc.name}</p>
-                        {svc.description && <p className="text-sm text-ink-muted mt-0.5">{svc.description}</p>}
+                      <div className="text-right ml-4 shrink-0">
+                        <p className="text-gold font-medium">{formatPrice(svc.price)}</p>
+                        <p className="text-xs text-ink-muted">{svc.durationMinutes} min</p>
                       </div>
                     </div>
-                    <div className="text-right ml-4 shrink-0">
-                      <p className="text-gold font-medium">{formatPrice(svc.price)}</p>
-                      <p className="text-xs text-ink-muted">{svc.durationMinutes} min</p>
-                    </div>
-                  </div>
-                </button>
-              )
-            })
+                  </button>
+                )
+              })
           )}
         </div>
       )}
 
-      {/* PASO 2 — Fecha y hora */}
+      {/* PASO 3 — Fecha y hora */}
       {step === 'datetime' && (
         <div className="animate-fade-in">
           <div className="mb-6">
             <h2 className="font-serif text-2xl text-ink">Elige fecha y hora</h2>
             <p className="text-sm text-ink-muted mt-1">Selecciona el día y un horario disponible. <span className="text-red-500">*</span></p>
           </div>
+
+          {/* Servicio seleccionado — visible como referencia, con opción de cambiar */}
+          {selectedService && (
+            <div className="flex items-center justify-between bg-gold-pale/60 border border-gold/20
+                            px-4 py-3 mb-6">
+              <div className="min-w-0">
+                <p className="text-[10px] tracking-widest uppercase text-gold-dark mb-0.5">
+                  Servicio elegido
+                </p>
+                <p className="text-sm text-ink font-medium truncate">
+                  {selectedService.name}
+                  <span className="text-ink-muted font-normal"> · {selectedService.durationMinutes} min</span>
+                </p>
+              </div>
+              <button type="button" onClick={() => setStep('service')}
+                className="shrink-0 text-xs tracking-widest uppercase text-ink-muted hover:text-gold transition-colors">
+                Cambiar
+              </button>
+            </div>
+          )}
+
           {stepError && (
             <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 border border-red-200 px-4 py-3 mb-4">
               <span>⚠</span> {stepError}
@@ -304,7 +448,7 @@ export default function BookingForm() {
             selectedDate={form.date}
             selectedTime={form.startTime}
             onDateChange={(d) => updateForm('date', d)}
-            onTimeChange={(t) => { updateForm('startTime', t); setStepError(null) }}
+            onTimeChange={(t) => { updateForm('startTime', t); setStepError(null); setSubmitError(null) }}
           />
         </div>
       )}

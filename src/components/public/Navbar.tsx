@@ -14,8 +14,9 @@ const SECTIONS = [
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
-  const pathname = usePathname()
-  const isHome   = pathname === '/'
+  const pathname    = usePathname()
+  const isHome      = pathname === '/'
+  const isOnBooking = pathname === '/agendar'
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 20)
@@ -53,7 +54,9 @@ export default function Navbar() {
         </ul>
 
         <div className="hidden md:block">
-          <Link href="/agendar" className="btn-primary">Agendar cita</Link>
+          {!isOnBooking && (
+            <Link href="/agendar" className="btn-primary">Agendar cita</Link>
+          )}
         </div>
 
         <button className="md:hidden flex flex-col gap-1.5 p-2"
@@ -73,10 +76,12 @@ export default function Navbar() {
               {s.label}
             </Link>
           ))}
-          <Link href="/agendar" className="btn-primary text-center mt-2"
-            onClick={() => setMenuOpen(false)}>
-            Agendar cita
-          </Link>
+          {!isOnBooking && (
+            <Link href="/agendar" className="btn-primary text-center mt-2"
+              onClick={() => setMenuOpen(false)}>
+              Agendar cita
+            </Link>
+          )}
         </div>
       )}
     </nav>

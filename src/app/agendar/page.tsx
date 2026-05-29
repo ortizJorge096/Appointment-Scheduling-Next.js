@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 import Navbar from '@/components/public/Navbar'
 import BookingForm from '@/components/public/BookingForm'
 import Footer from '@/components/public/Footer'
@@ -21,7 +22,13 @@ export default function AgendarPage() {
         </div>
         <div className="max-w-3xl mx-auto px-6">
           <div className="bg-white border border-beige-dark p-8 lg:p-12 shadow-sm">
-            <BookingForm />
+            <Suspense fallback={
+              <div className="py-10 text-center text-ink-muted text-sm">
+                Cargando...
+              </div>
+            }>
+              <BookingForm />
+            </Suspense>
           </div>
         </div>
       </main>
