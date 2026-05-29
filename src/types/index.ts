@@ -1,12 +1,12 @@
 // src/types/index.ts
 // Tipos del dominio — valentinajimenez
 
-import type { AppointmentStatus, DayOfWeek } from '@prisma/client'
+import type { AppointmentStatus, DayOfWeek, ServiceCategory } from '@prisma/client'
 
 // ─────────────────────────────────────────
 // RE-EXPORT de enums de Prisma
 // ─────────────────────────────────────────
-export type { AppointmentStatus, DayOfWeek }
+export type { AppointmentStatus, DayOfWeek, ServiceCategory }
 
 // ─────────────────────────────────────────
 // DISPONIBILIDAD
@@ -53,6 +53,7 @@ export interface AppointmentWithService {
   endTime: string
   status: AppointmentStatus
   notes: string | null
+  cancelToken?: string | null
   confirmationSentAt: Date | null
   reminderSentAt: Date | null
   createdAt: Date
@@ -78,9 +79,21 @@ export interface UpdateAppointmentInput {
 export interface CreateServiceInput {
   name: string
   description?: string
+  category?: ServiceCategory
   price: number
   durationMinutes: number
   order?: number
+}
+
+// Servicio tal como lo consume la UI pública (catálogo)
+export interface PublicService {
+  id: string
+  name: string
+  description: string | null
+  category: ServiceCategory
+  price: number
+  durationMinutes: number
+  order: number
 }
 
 export interface UpdateServiceInput extends Partial<CreateServiceInput> {

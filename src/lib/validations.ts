@@ -91,6 +91,10 @@ export const createServiceSchema = z.object({
     .max(300)
     .optional(),
 
+  category: z
+    .enum(['UNAS', 'PESTANAS', 'CEJAS', 'PROMOS'])
+    .optional(),
+
   price: z
     .number()
     .int('El precio debe ser un número entero')
