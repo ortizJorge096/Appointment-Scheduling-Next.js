@@ -256,6 +256,7 @@ pm2 restart valentinajimenez
 | `/`                   | Landing page                       | Público   |
 | `/agendar`            | Formulario de agendamiento         | Público   |
 | `/confirmacion?id=xx` | Confirmación post-cita             | Público   |
+| `/cancelar?id=xx&token=yy` | Cancelación de cita vía enlace | Público   |
 | `/admin`              | Dashboard de administración        | Solo admin|
 | `/admin/citas`        | Lista y gestión de citas           | Solo admin|
 | `/admin/citas/[id]`   | Detalle de cita con acciones       | Solo admin|

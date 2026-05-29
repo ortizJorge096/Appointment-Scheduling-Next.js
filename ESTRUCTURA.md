@@ -1,13 +1,14 @@
 # Estructura del Proyecto — valentinajimenez
 
 ## Stack
-- **Framework**: Next.js 14 (App Router) + TypeScript
+- **Framework**: Next.js 16 (App Router) + TypeScript
 - **Estilos**: Tailwind CSS
 - **Base de datos**: PostgreSQL (AWS RDS)
 - **ORM**: Prisma
 - **Auth**: NextAuth.js
-- **Email**: AWS SES (via nodemailer)
-- **Deploy**: AWS EC2 + RDS + S3 + Route53
+- **Email**: AWS SES (@aws-sdk/client-ses)
+- **Zona horaria**: America/Bogota (date-fns-tz)
+- **Deploy**: AWS EC2 + RDS + Route53
 
 ---
 
@@ -30,6 +31,10 @@ valentinajimenez/
 │   │   │
 │   │   ├── confirmacion/
 │   │   │   └── page.tsx       # Confirmación post-agendamiento
+│   │   │
+│   │   ├── cancelar/          # Cancelación pública vía token del email
+│   │   │   ├── page.tsx
+│   │   │   └── CancelarClient.tsx
 │   │   │
 │   │   ├── admin/             # Panel de administración (protegido)
 │   │   │   ├── layout.tsx     # Layout del admin (sidebar, auth check)
@@ -101,13 +106,7 @@ valentinajimenez/
 │       ├── useAvailability.ts    # Hook para consultar slots libres
 │       └── useAppointments.ts    # Hook para gestión de citas (admin)
 │
-├── public/
-│   ├── images/
-│   └── favicon.ico
-│
-├── emails/                       # Templates de email (HTML)
-│   ├── confirmation.html
-│   └── reminder.html
+│   (Las plantillas de email viven en código, en src/lib/email.ts)
 │
 ├── scripts/
 │   └── send-reminders.ts         # Script cron para recordatorios 24h antes

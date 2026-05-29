@@ -11,7 +11,9 @@
     "db:push": "prisma db push",
     "db:seed": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts",
     "db:studio": "prisma studio",
-    "reminders": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/send-reminders.ts"
+    "reminders": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/send-reminders.ts",
+    "fill-day": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/fill-day.ts",
+    "clear-demo": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/clear-demo.ts"
   },
   "dependencies": {
     "@aws-sdk/client-ses": "^3.600.0",
