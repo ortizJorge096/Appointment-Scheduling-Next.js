@@ -18,6 +18,9 @@ import type { ApiResponse, AppointmentWithService } from '@/types'
 
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
 
+// Error interno para abortar la transacción cuando el slot ya está tomado
+class SlotTakenError extends Error {}
+
 export const dynamic = 'force-dynamic'
 
 function checkRateLimit(ip: string): boolean {
@@ -147,7 +150,7 @@ export async function POST(
     )
   }
 
-  // Verificar disponibilidad en tiempo real (evita doble booking)
+  // Verificación previa (horario válido, no pasado, día abierto, no bloqueado)
   const available = await isSlotAvailable(date, startTime, serviceId)
   if (!available) {
     return NextResponse.json(
@@ -160,25 +163,62 @@ export async function POST(
   const startMinutes = timeToMinutes(startTime)
   const endTime = minutesToTime(startMinutes + service.durationMinutes)
 
-  // Crear la cita en BD
-  const appointment = await prisma.appointment.create({
-    data: {
-      clientName: clientName.trim(),
-      clientEmail: clientEmail.toLowerCase().trim(),
-      clientPhone: clientPhone.trim(),
-      serviceId,
-      date: new Date(`${date}T00:00:00`),
-      startTime,
-      endTime,
-      status: 'PENDING',
-      notes: notes?.trim() ?? null,
-    },
-    include: {
-      service: {
-        select: { id: true, name: true, price: true, durationMinutes: true },
-      },
-    },
-  })
+  const dayStart = new Date(`${date}T00:00:00`)
+  const dayEnd = new Date(`${date}T23:59:59`)
+
+  // Crear la cita dentro de una transacción serializable con re-chequeo de
+  // solapamiento, para evitar doble reserva ante peticiones concurrentes.
+  // Comparación de "HH:MM" en formato 24h con cero a la izquierda es
+  // equivalente a comparar cronológicamente.
+  let appointment: AppointmentWithService
+  try {
+    appointment = await prisma.$transaction(async (tx) => {
+      const conflict = await tx.appointment.findFirst({
+        where: {
+          date: { gte: dayStart, lt: dayEnd },
+          status: { in: ['PENDING', 'CONFIRMED'] },
+          startTime: { lt: endTime },
+          endTime: { gt: startTime },
+        },
+        select: { id: true },
+      })
+
+      if (conflict) {
+        throw new SlotTakenError()
+      }
+
+      return tx.appointment.create({
+        data: {
+          clientName: clientName.trim(),
+          clientEmail: clientEmail.toLowerCase().trim(),
+          clientPhone: clientPhone.trim(),
+          serviceId,
+          date: dayStart,
+          startTime,
+          endTime,
+          status: 'CONFIRMED', // auto-confirmada: el recordatorio 24h se envía solo
+          notes: notes?.trim() ?? null,
+        },
+        include: {
+          service: {
+            select: { id: true, name: true, price: true, durationMinutes: true },
+          },
+        },
+      }) as unknown as Promise<AppointmentWithService>
+    }, { isolationLevel: 'Serializable' })
+  } catch (err) {
+    if (err instanceof SlotTakenError) {
+      return NextResponse.json(
+        { success: false, error: 'Este horario acaba de ser reservado. Por favor elige otro.' },
+        { status: 409 }
+      )
+    }
+    console.error('Error creando cita:', err)
+    return NextResponse.json(
+      { success: false, error: 'No se pudo crear la cita. Intenta de nuevo.' },
+      { status: 500 }
+    )
+  }
 
   // Enviar email de confirmación (no bloqueante)
   sendConfirmationEmail(appointment as AppointmentWithService)

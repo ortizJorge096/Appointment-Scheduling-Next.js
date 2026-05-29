@@ -3,27 +3,34 @@
 // Para apagar/prender: ENABLE_EMAILS=false en .env.local
 
 import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses'
-import { STUDIO } from '@/lib/config'
-import type { AppointmentWithService } from '@/types'
+import { STUDIO } from './config'
+import type { AppointmentWithService } from '../types'
 
 // ─────────────────────────────────────────────────────────────
-// FLAG DE CONTROL — cambiar en .env.local sin recompilar
-// ENABLE_EMAILS=true  → envía emails normalmente
-// ENABLE_EMAILS=false → omite el envío, solo loguea en consola
+// Las variables de entorno se leen de forma LAZY (dentro de las
+// funciones) para que este módulo funcione tanto en Next.js como
+// en scripts (cron) donde dotenv se carga antes de usarse.
+// ENABLE_EMAILS=false → omite el envío, solo loguea en consola.
 // ─────────────────────────────────────────────────────────────
-const EMAILS_ENABLED = process.env.ENABLE_EMAILS !== 'false'
 
-// ─── Cliente SES ──────────────────────────────────────────────
-const ses = new SESClient({
-  region: process.env.AWS_REGION ?? 'us-east-1',
-  credentials: {
-    accessKeyId:     process.env.AWS_ACCESS_KEY_ID     ?? '',
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY ?? '',
-  },
-})
+// Cliente SES memoizado — se crea en el primer envío real
+let _ses: SESClient | null = null
+function getSes(): SESClient {
+  if (!_ses) {
+    _ses = new SESClient({
+      region: process.env.AWS_REGION ?? 'us-east-1',
+      credentials: {
+        accessKeyId:     process.env.AWS_ACCESS_KEY_ID     ?? '',
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY ?? '',
+      },
+    })
+  }
+  return _ses
+}
 
-const FROM_EMAIL = process.env.SES_FROM_EMAIL ?? STUDIO.email
-const APP_URL    = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+const emailsEnabled = () => process.env.ENABLE_EMAILS !== 'false'
+const fromEmail     = () => process.env.SES_FROM_EMAIL ?? STUDIO.email
+const appUrl        = () => process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
 
 // ─── Helpers ──────────────────────────────────────────────────
 function formatDate(date: Date, startTime: string): string {
@@ -68,7 +75,7 @@ function baseTemplate(content: string): string {
           <td style="padding:24px 40px;border-top:1px solid #E8DCC4;text-align:center;">
             <p style="margin:0;color:#7A7060;font-size:12px;line-height:1.6;">
               ${STUDIO.name} · ${STUDIO.city}, ${STUDIO.country}<br/>
-              <a href="${APP_URL}" style="color:#B8932A;">${APP_URL.replace('https://', '')}</a>
+              <a href="${appUrl()}" style="color:#B8932A;">${appUrl().replace('https://', '')}</a>
             </p>
           </td>
         </tr>
@@ -83,7 +90,10 @@ function baseTemplate(content: string): string {
 export async function sendConfirmationEmail(
   appointment: AppointmentWithService
 ): Promise<void> {
-  const { clientName, clientEmail, service, date, startTime, id } = appointment
+  const { clientName, clientEmail, service, date, startTime, id, cancelToken } = appointment
+  const cancelUrl = cancelToken
+    ? `${appUrl()}/cancelar?id=${id}&token=${cancelToken}`
+    : null
 
   const content = `
     <h1 style="margin:0 0 8px;font-size:28px;font-weight:300;color:#111111;">
@@ -114,9 +124,16 @@ export async function sendConfirmationEmail(
       </tr>
     </table>
     <p style="color:#7A7060;font-size:14px;line-height:1.8;">
-      Si necesitas cancelar, contáctanos con al menos <strong>24 horas de anticipación</strong>.
+      Si necesitas cancelar, hazlo con al menos <strong>24 horas de anticipación</strong>.
     </p>
-    <p style="color:#7A7060;font-size:13px;margin-top:8px;">
+    ${cancelUrl ? `
+    <p style="margin:8px 0 0;">
+      <a href="${cancelUrl}"
+         style="display:inline-block;color:#B8932A;font-size:13px;text-decoration:underline;">
+        Cancelar mi cita
+      </a>
+    </p>` : ''}
+    <p style="color:#7A7060;font-size:13px;margin-top:16px;">
       Código: <code style="background:#F2EBD9;padding:2px 6px;color:#111111;">
         ${id.slice(0, 8).toUpperCase()}
       </code>
@@ -175,14 +192,14 @@ async function sendEmail({
   html: string
 }): Promise<void> {
   // ── EMAILS APAGADOS ──
-  if (!EMAILS_ENABLED) {
+  if (!emailsEnabled()) {
     console.log(`📭 [EMAILS DESACTIVADOS] Se habría enviado a ${to}: "${subject}"`)
     return  // sale sin enviar nada ni lanzar error
   }
 
   // ── EMAILS ENCENDIDOS ──
   const command = new SendEmailCommand({
-    Source:      `${STUDIO.name} <${FROM_EMAIL}>`,
+    Source:      `${STUDIO.name} <${fromEmail()}>`,
     Destination: { ToAddresses: [to] },
     Message: {
       Subject: { Data: subject,  Charset: 'UTF-8' },
@@ -191,7 +208,7 @@ async function sendEmail({
   })
 
   try {
-    await ses.send(command)
+    await getSes().send(command)
     console.log(`📧 Email enviado a ${to}: "${subject}"`)
   } catch (error) {
     console.error(`❌ Error enviando email a ${to}:`, error)

@@ -3,12 +3,23 @@
 // valentinajimenez
 
 import { prisma } from './prisma'
+import { STUDIO } from './config'
+import { toZonedTime } from 'date-fns-tz'
+import { format } from 'date-fns'
 import type { TimeSlot } from '@/types'
 
-export const dynamic = 'force-dynamic'
 // ─────────────────────────────────────────
 // HELPERS DE TIEMPO
 // ─────────────────────────────────────────
+
+/**
+ * Día de la semana (0=domingo … 6=sábado) de una fecha "YYYY-MM-DD".
+ * Independiente de la zona horaria del servidor.
+ */
+function weekdayFromDateStr(dateStr: string): number {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  return new Date(y, m - 1, d).getDay()
+}
 
 /**
  * Convierte "HH:MM" a minutos desde medianoche
@@ -91,12 +102,11 @@ export async function getAvailableSlots(
 
   const { durationMinutes } = service
 
-  // 2. Parsear fecha y verificar que no sea pasada
-  const targetDate = new Date(`${dateStr}T00:00:00`)
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  // 2. Calcular "hoy" en la zona horaria del negocio y descartar fechas pasadas
+  const nowBogota = toZonedTime(new Date(), STUDIO.timezone)
+  const todayStr  = format(nowBogota, 'yyyy-MM-dd')
 
-  if (targetDate < today) {
+  if (dateStr < todayStr) {
     return { slots: [], durationMinutes }
   }
 
@@ -115,7 +125,7 @@ export async function getAvailableSlots(
   }
 
   // 4. Obtener horario del día de la semana
-  const dayOfWeek = jsDayToDayOfWeek(targetDate.getDay())
+  const dayOfWeek = jsDayToDayOfWeek(weekdayFromDateStr(dateStr))
   const schedule = await prisma.schedule.findUnique({
     where: { dayOfWeek: dayOfWeek as any },
   })
@@ -136,22 +146,22 @@ export async function getAvailableSlots(
     select: { startTime: true, endTime: true },
   })
 
-  // 6. Generar slots cada [durationMinutes] dentro del horario
+  // 6. Generar slots cada [slotGranularityMin] dentro del horario
   const scheduleStart = timeToMinutes(schedule.startTime)
   const scheduleEnd = timeToMinutes(schedule.endTime)
+  const step = STUDIO.slotGranularityMin
   const slots: TimeSlot[] = []
 
-  // Hora actual en minutos (para no generar slots pasados hoy)
-  const now = new Date()
-  const isToday = targetDate.getTime() === today.getTime()
+  // Hora actual en minutos, en zona horaria del negocio (para no ofrecer slots pasados hoy)
+  const isToday = dateStr === todayStr
   const currentMinutes = isToday
-    ? now.getHours() * 60 + now.getMinutes() + 30 // buffer de 30 min
+    ? nowBogota.getHours() * 60 + nowBogota.getMinutes() + STUDIO.bookingBufferMin
     : 0
 
   for (
     let slotStart = scheduleStart;
     slotStart + durationMinutes <= scheduleEnd;
-    slotStart += durationMinutes
+    slotStart += step
   ) {
     const slotEnd = slotStart + durationMinutes
     const startTimeStr = minutesToTime(slotStart)
