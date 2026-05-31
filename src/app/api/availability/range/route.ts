@@ -108,7 +108,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       if (blockedSet.has(dateStr)) return { date: dateStr, open: false }
       // Día de la semana cerrado
       const wd = weekdayFromDateStr(dateStr)
-      const schedule = scheduleByDay.get(DAYS_OF_WEEK[wd] as any)
+      const schedule = scheduleByDay.get(DAYS_OF_WEEK[wd as keyof typeof DAYS_OF_WEEK])
       if (!schedule || !schedule.isActive) return { date: dateStr, open: false }
 
       const scheduleStart = timeToMinutes(schedule.startTime)

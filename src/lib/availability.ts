@@ -7,6 +7,7 @@ import { STUDIO } from './config'
 import { toZonedTime } from 'date-fns-tz'
 import { format } from 'date-fns'
 import type { TimeSlot } from '@/types'
+import type { DayOfWeek } from '@prisma/client'
 
 // ─────────────────────────────────────────
 // HELPERS DE TIEMPO
@@ -127,7 +128,7 @@ export async function getAvailableSlots(
   // 4. Obtener horario del día de la semana
   const dayOfWeek = jsDayToDayOfWeek(weekdayFromDateStr(dateStr))
   const schedule = await prisma.schedule.findUnique({
-    where: { dayOfWeek: dayOfWeek as any },
+    where: { dayOfWeek: dayOfWeek as DayOfWeek },
   })
 
   if (!schedule || !schedule.isActive) {

@@ -26,11 +26,9 @@ export function useAvailability(
   const refetch = useCallback(() => setTrigger((n) => n + 1), [])
 
   useEffect(() => {
-    if (!serviceId || !date) { setSlots([]); return }
+    if (!serviceId || !date) return
 
     const controller = new AbortController()
-    setLoading(true)
-    setError(null)
 
     fetch(`/api/availability?date=${date}&serviceId=${serviceId}`, {
       signal: controller.signal,

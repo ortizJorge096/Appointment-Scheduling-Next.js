@@ -46,7 +46,6 @@ export function useAppointments(filters: Filters = {}): UseAppointmentsResult {
     if (filters.page)     params.set('page',      String(filters.page))
     if (filters.limit)    params.set('limit',     String(filters.limit))
 
-    setLoading(true)
     fetch(`/api/appointments?${params}`)
       .then((r) => r.json())
       .then((json) => {

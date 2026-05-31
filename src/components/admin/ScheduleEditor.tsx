@@ -2,7 +2,6 @@
 // src/components/admin/ScheduleEditor.tsx
 
 import { useState } from 'react'
-import { Button } from '@/components/ui/Button'
 
 const DAYS = [
   { key: 'MONDAY',    label: 'Lunes'     },

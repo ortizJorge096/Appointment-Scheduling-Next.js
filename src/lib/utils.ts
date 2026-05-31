@@ -1,7 +1,7 @@
 // src/lib/utils.ts
 // Helpers generales — valentinajimenez
 
-import { type ClassValue, clsx } from 'clsx'
+type ClassValue = string | undefined | null | false
 
 /** Combina clases de Tailwind de forma segura (similar a cn de shadcn) */
 export function cn(...inputs: ClassValue[]) {

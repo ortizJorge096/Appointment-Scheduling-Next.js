@@ -39,7 +39,6 @@ export default function ServiciosPage() {
   const [form, setForm]         = useState(EMPTY)
 
   function load() {
-    setLoading(true)
     fetch('/api/services')
       .then((r) => r.json())
       .then((json) => { if (json.success) setServices(json.data) })
@@ -47,6 +46,7 @@ export default function ServiciosPage() {
       .finally(() => setLoading(false))
   }
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load() }, [])
 
   function openNew() {

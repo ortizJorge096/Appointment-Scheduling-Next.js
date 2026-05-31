@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -78,9 +79,9 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center mt-6">
-          <a href="/" className="text-xs text-white/20 hover:text-white/50 transition-colors">
+          <Link href="/" className="text-xs text-white/20 hover:text-white/50 transition-colors">
             ← Volver al sitio
-          </a>
+          </Link>
         </p>
       </div>
     </main>

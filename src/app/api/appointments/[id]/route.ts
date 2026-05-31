@@ -8,11 +8,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { updateAppointmentSchema } from '@/lib/validations'
-import { sendReminderEmail } from '@/lib/email'
 import { timeToMinutes, minutesToTime } from '@/lib/availability'
-import type { AppointmentWithService } from '@/types'
-
-type Params = { params: { id: string } }
 
 export const dynamic = 'force-dynamic'
 // ─────────────────────────────────────────

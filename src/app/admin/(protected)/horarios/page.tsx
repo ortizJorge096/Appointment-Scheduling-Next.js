@@ -45,7 +45,6 @@ export default function HorariosPage() {
   }
 
   async function load() {
-    setLoading(true)
     const [schRes, blkRes] = await Promise.all([
       fetch('/api/schedules'),
       fetch('/api/schedules/blocked'),
@@ -65,6 +64,7 @@ export default function HorariosPage() {
     setLoading(false)
   }
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load() }, [])
 
   // Actualizar un campo de un horario localmente

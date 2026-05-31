@@ -7,6 +7,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { scheduleSchema } from '@/lib/validations'
+import type { DayOfWeek } from '@prisma/client'
 
 export async function GET() {
   const schedules = await prisma.schedule.findMany({ orderBy: { dayOfWeek: 'asc' } })
@@ -24,7 +25,7 @@ export async function POST(request: NextRequest) {
   }
 
   const schedule = await prisma.schedule.upsert({
-    where:  { dayOfWeek: parsed.data.dayOfWeek as any },
+    where:  { dayOfWeek: parsed.data.dayOfWeek as DayOfWeek },
     update: parsed.data,
     create: parsed.data,
   })

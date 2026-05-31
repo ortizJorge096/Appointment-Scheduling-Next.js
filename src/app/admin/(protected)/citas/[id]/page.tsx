@@ -3,7 +3,7 @@
 // Detalle de cita con acciones: confirmar, completar, cancelar
 
 import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -49,7 +49,6 @@ const ACTIONS: Record<string, { label: string; status: AppointmentStatus; style:
 
 export default function CitaDetailPage() {
   const { id }    = useParams<{ id: string }>()
-  const router    = useRouter()
 
   const [appt, setAppt]         = useState<AppointmentWithService | null>(null)
   const [loading, setLoading]   = useState(true)
