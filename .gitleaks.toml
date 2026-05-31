@@ -4,8 +4,8 @@ title = "gitleaks config for appointment-scheduling"
 useDefault = true
 
 # Permitir el .env.example y los stubs de docs (sin secretos reales).
-[[allowlist]]
-description = "env example y placeholders de docs"
+[allowlist]
+description = "env example, placeholders de docs y fake secrets"
 paths = [
   '''^\.env\.example$''',
   '''^infra/k8s/.*\.yaml$''',
@@ -13,9 +13,6 @@ paths = [
   '''^infra/terraform/.*\.tfvars\.example$''',
   '''^infra/k8s/overlays/local/local-secret\.yaml$''',
 ]
-
-[[allowlist]]
-description = "fake secrets en docs"
 regexes = [
   '''Admin123!''',
   '''local-dev-secret-change-me''',
