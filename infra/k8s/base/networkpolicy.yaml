@@ -42,4 +42,4 @@ spec:
             cidr: 0.0.0.0/0
             except:
               # Bloquear acceso a la metadata service de EC2.
-              - 169.254.169.254/32
+              # - 169.254.169.254/32
