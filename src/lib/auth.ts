@@ -54,7 +54,7 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (session.user) {
-        const s = session as { user: { id: string; role: string } }
+        const s = session as unknown as { user: { id: string; role: string } }
         const t = token as JWT & { id: string; role: string }
         s.user.id = t.id
         s.user.role = t.role
