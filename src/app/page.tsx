@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Navbar from '@/components/public/Navbar'
 import Hero from '@/components/public/Hero'
 import ServicesGrid from '@/components/public/ServicesGrid'
+import Galeria from '@/components/public/Galeria'
 import BookingSection from '@/components/public/BookingSection'
 import Footer from '@/components/public/Footer'
 import { STUDIO, WHATSAPP_URL, MAILTO_URL } from '@/lib/config'
@@ -16,67 +17,13 @@ export default function HomePage() {
       <main>
         <Hero />
         <ServicesGrid />
-        <GaleriaSection />
+        <Galeria />
         <NosotrosSection />
         <BookingSection />
         <ContactoSection />
       </main>
       <Footer />
     </>
-  )
-}
-
-function GaleriaSection() {
-  const items = [
-    { id: 1, label: 'Volumen brasilero',       sub: 'Pestañas · 120 min' },
-    { id: 2, label: 'Acrílico esculpido',      sub: 'Uñas · 120 min'     },
-    { id: 3, label: 'Cejas laminadas',         sub: 'Cejas · 60 min'     },
-    { id: 4, label: 'Lifting de pestañas',     sub: 'Pestañas · 60 min'  },
-    { id: 5, label: 'Manicura semipermanente', sub: 'Uñas · 60 min'      },
-    { id: 6, label: 'Cejas con henna',         sub: 'Cejas · 45 min'     },
-  ]
-  const grads = [
-    'linear-gradient(145deg,#F2EBD9 0%,#B8932A 60%,#111111 100%)',
-    'linear-gradient(145deg,#E8DCC4 0%,#D4AD5A 70%,#1E1E1E 100%)',
-    'linear-gradient(145deg,#111111 0%,#B8932A 50%,#F2EBD9 100%)',
-    'linear-gradient(145deg,#1E1E1E 0%,#D4AD5A 40%,#E8DCC4 100%)',
-    'linear-gradient(145deg,#F5EDDA 0%,#8A6E1E 50%,#111111 100%)',
-    'linear-gradient(145deg,#111111 30%,#B8932A 100%)',
-  ]
-  return (
-    <section id="galeria" className="py-24 bg-beige">
-      <div className="max-w-7xl mx-auto px-6 lg:px-10">
-        <div className="text-center mb-14">
-          <span className="section-tag justify-center mb-4">Nuestro trabajo</span>
-          <h2 className="text-4xl lg:text-5xl font-serif font-light text-ink">
-            Galería de <em className="text-gold italic">diseños</em>
-          </h2>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {items.map((item, i) => (
-            <div key={item.id}
-              className="aspect-square relative overflow-hidden group cursor-pointer">
-              <div className="w-full h-full transition-transform duration-500 group-hover:scale-105"
-                style={{ background: grads[i] }} />
-              <div className="absolute inset-0 bg-ink/50 opacity-0 group-hover:opacity-100
-                              transition-opacity duration-300 flex flex-col justify-end p-5">
-                <p className="text-white text-sm font-medium">{item.label}</p>
-                <p className="text-gold text-xs mt-0.5">{item.sub}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-        <p className="text-center text-xs text-ink-muted mt-8 italic">
-          Síguenos en Instagram{' '}
-          <a href={`https://instagram.com/${STUDIO.instagram}`}
-            target="_blank" rel="noreferrer"
-            className="text-gold hover:underline">
-            @{STUDIO.instagram}
-          </a>
-          {' '}para ver todos nuestros trabajos
-        </p>
-      </div>
-    </section>
   )
 }
 

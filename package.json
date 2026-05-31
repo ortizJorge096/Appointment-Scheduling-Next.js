@@ -1,5 +1,5 @@
 {
-  "name": "valentinajimenez",
+  "name": "appointment-scheduling-nextjs",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -16,7 +16,9 @@
     "clear-demo": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/clear-demo.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.600.0",
     "@aws-sdk/client-ses": "^3.600.0",
+    "@aws-sdk/s3-request-presigner": "^3.600.0",
     "@prisma/client": "^5.14.0",
     "bcryptjs": "^2.4.3",
     "clsx": "^2.1.1",

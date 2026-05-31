@@ -141,6 +141,34 @@ export const blockedDateSchema = z.object({
 })
 
 // ─────────────────────────────────────────
+// GALERÍA (admin)
+// ─────────────────────────────────────────
+
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const
+
+export const galleryUploadUrlSchema = z.object({
+  filename:    z.string().min(1).max(200),
+  contentType: z.enum(ALLOWED_IMAGE_TYPES, {
+    errorMap: () => ({ message: 'Solo JPG, PNG o WebP' }),
+  }),
+})
+
+export const galleryCreateSchema = z.object({
+  s3Key:    z.string().min(1).max(300),
+  title:    z.string().max(120).optional(),
+  category: z.enum(['UNAS', 'PESTANAS', 'CEJAS', 'PROMOS']).optional(),
+  width:    z.number().int().positive().optional(),
+  height:   z.number().int().positive().optional(),
+})
+
+export const galleryUpdateSchema = z.object({
+  title:    z.string().max(120).nullable().optional(),
+  category: z.enum(['UNAS', 'PESTANAS', 'CEJAS', 'PROMOS']).nullable().optional(),
+  order:    z.number().int().min(0).optional(),
+  isActive: z.boolean().optional(),
+})
+
+// ─────────────────────────────────────────
 // LOGIN (admin)
 // ─────────────────────────────────────────
 
