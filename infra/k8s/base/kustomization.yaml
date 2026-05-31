@@ -3,9 +3,10 @@ kind: Kustomization
 
 namespace: appointment-scheduling
 
-commonLabels:
-  app.kubernetes.io/name: appointment-scheduling
-  app.kubernetes.io/part-of: appointment-scheduling
+labels:
+  - pairs:
+      app.kubernetes.io/name: appointment-scheduling
+      app.kubernetes.io/part-of: appointment-scheduling
 
 resources:
   - namespace.yaml
