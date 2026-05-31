@@ -235,6 +235,14 @@ jobs:
           kustomize edit set image appointment-scheduling="$IMG"
           cd "$GITHUB_WORKSPACE"
           kustomize build infra/k8s/overlays/dev | kubectl apply -f -
+          # kustomize sobrescribe el secret con un placeholder — restaurar valores reales
+          DATABASE_URL=$(aws ssm get-parameter --region us-east-1 --name /appointment-scheduling-dev/db/url --with-decryption --query Parameter.Value --output text)
+          NEXTAUTH_SECRET=$(aws ssm get-parameter --region us-east-1 --name /appointment-scheduling-dev/nextauth/secret --with-decryption --query Parameter.Value --output text)
+          kubectl -n appointment-scheduling-dev create secret generic appointment-scheduling-secret \
+            --from-literal=DATABASE_URL="$DATABASE_URL" \
+            --from-literal=NEXTAUTH_SECRET="$NEXTAUTH_SECRET" \
+            --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n appointment-scheduling-dev rollout restart deployment/appointment-scheduling
           kubectl -n appointment-scheduling-dev rollout status deployment/appointment-scheduling --timeout=600s
 
       - name: Print cluster state (audit)

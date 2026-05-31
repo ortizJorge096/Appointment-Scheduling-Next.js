@@ -5,7 +5,6 @@ namespace: appointment-scheduling-local
 
 resources:
   - ../../base
-  - ../../base/secret.yaml
 
 patchesStrategicMerge:
   - local-secret.yaml

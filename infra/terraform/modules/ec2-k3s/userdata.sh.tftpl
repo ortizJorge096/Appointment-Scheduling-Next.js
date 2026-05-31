@@ -226,7 +226,7 @@ spec:
 ISSUERS_EOF
 %{ endif ~}
 
-# ─── (6) Leer Secrets desde SSM + crear el Secret de K8s ─────────────────
+# ─── (6) Leer Secrets desde SSM ───────────────────────────────────────────
 echo "── [6] Reading runtime secrets from SSM ──"
 DATABASE_URL=$(aws ssm get-parameter \
   --region "${aws_region}" \
@@ -246,23 +246,15 @@ if [ -z "$${DATABASE_URL}" ] || [ -z "$${NEXTAUTH_SECRET}" ]; then
   echo "ERROR: faltó algún SSM secret"; exit 1
 fi
 
-# Asegurar el namespace existe antes del Secret.
-kubectl --kubeconfig $${KUBECONFIG} create namespace "${app_namespace}" \
-  --dry-run=client -o yaml | kubectl --kubeconfig $${KUBECONFIG} apply -f -
-
-kubectl --kubeconfig $${KUBECONFIG} -n "${app_namespace}" \
-  create secret generic appointment-scheduling-secret \
-    --from-literal=DATABASE_URL="$${DATABASE_URL}" \
-    --from-literal=NEXTAUTH_SECRET="$${NEXTAUTH_SECRET}" \
-    --dry-run=client -o yaml \
-  | kubectl --kubeconfig $${KUBECONFIG} apply -f -
-
 # ─── (7) Clonar repo + aplicar overlay ────────────────────────────────────
 mkdir -p /opt/app
 cd /opt/app
 git clone --depth 1 --branch "${git_branch}" \
   https://github.com/${github_owner}/${github_repo}.git repo
 cd repo
+
+kubectl --kubeconfig $${KUBECONFIG} create namespace "${app_namespace}" \
+  --dry-run=client -o yaml | kubectl --kubeconfig $${KUBECONFIG} apply -f -
 
 OVERLAY_DIR="${kustomize_overlay_path}/${kustomize_overlay}"
 
@@ -276,6 +268,18 @@ kustomize edit set image appointment-scheduling=${image_ref}
 cd /opt/app/repo
 
 kustomize build "$${OVERLAY_DIR}" | kubectl --kubeconfig $${KUBECONFIG} apply -f -
+
+# El base incluye un secret stub — sobrescribirlo con valores reales de SSM.
+kubectl --kubeconfig $${KUBECONFIG} -n "${app_namespace}" \
+  create secret generic appointment-scheduling-secret \
+    --from-literal=DATABASE_URL="$${DATABASE_URL}" \
+    --from-literal=NEXTAUTH_SECRET="$${NEXTAUTH_SECRET}" \
+    --dry-run=client -o yaml \
+  | kubectl --kubeconfig $${KUBECONFIG} apply -f -
+
+# Reiniciar para que pods usen el secret real (init container prisma migrate).
+kubectl --kubeconfig $${KUBECONFIG} -n "${app_namespace}" \
+  rollout restart deployment/appointment-scheduling
 
 kubectl --kubeconfig $${KUBECONFIG} -n "${app_namespace}" \
   rollout status deployment/appointment-scheduling --timeout=300s || true
