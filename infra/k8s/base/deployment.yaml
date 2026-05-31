@@ -87,6 +87,9 @@ spec:
                 name: appointment-scheduling-config
             - secretRef:
                 name: appointment-scheduling-secret
+          env:
+            - name: AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE
+              value: IPv4
           resources:
             requests:
               cpu: "100m"

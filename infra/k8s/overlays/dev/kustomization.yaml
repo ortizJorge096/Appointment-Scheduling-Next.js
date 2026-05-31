@@ -34,6 +34,11 @@ patches:
         path: /spec/rules/0/host
         value: appointment-scheduling.example.com   # rewritten by user-data / deploy
 
+  - path: tls-patch.yaml
+    target:
+      kind: Ingress
+      name: appointment-scheduling
+
   - target:
       kind: PodDisruptionBudget
       name: appointment-scheduling

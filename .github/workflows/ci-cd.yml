@@ -244,7 +244,8 @@ jobs:
         run: |
           set -euxo pipefail
           sed -i "s|appointment-scheduling.example.com|${DEV_HOST}|g" \
-            infra/k8s/overlays/dev/kustomization.yaml
+            infra/k8s/overlays/dev/kustomization.yaml \
+            infra/k8s/overlays/dev/tls-patch.yaml
 
           cd infra/k8s/overlays/dev
           kustomize edit set image appointment-scheduling="$IMG"
