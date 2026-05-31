@@ -1,0 +1,16 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: appointment-scheduling
+spec:
+  rules:
+    - host: appointment-scheduling.example.com   # reemplazado por overlay/CI
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: appointment-scheduling
+                port:
+                  number: 80

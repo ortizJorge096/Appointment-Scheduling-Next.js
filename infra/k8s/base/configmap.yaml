@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: appointment-scheduling-config
+data:
+  # Variables NO sensibles consumidas vía envFrom.
+  # El overlay (local/dev/prod) ajusta los valores que cambian por entorno.
+  NODE_ENV: "production"
+  PORT: "3000"
+  HOSTNAME: "0.0.0.0"
+  NEXT_TELEMETRY_DISABLED: "1"
+
+  # Zona horaria del negocio — Bogotá.
+  TZ: "America/Bogota"
+
+  # AWS — el SDK usa el Instance Profile, no necesita keys.
+  AWS_REGION: "us-east-1"
+  AWS_S3_BUCKET: "appointment-scheduling-assets"
+
+  # SES
+  SES_FROM_EMAIL: "noreply@example.com"
+  ENABLE_EMAILS: "false"
+
+  # NextAuth — URL pública (overlay lo reemplaza por el host real).
+  NEXTAUTH_URL: "http://appointment-scheduling.example.com"
+  NEXT_PUBLIC_APP_URL: "http://appointment-scheduling.example.com"
+  NEXT_PUBLIC_APP_NAME: "Valentina Jimenez Beauty Studio"

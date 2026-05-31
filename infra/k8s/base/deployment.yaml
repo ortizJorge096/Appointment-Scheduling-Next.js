@@ -1,0 +1,140 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: appointment-scheduling
+  labels:
+    app.kubernetes.io/name: appointment-scheduling
+    app.kubernetes.io/component: web
+    app.kubernetes.io/managed-by: kustomize
+spec:
+  # ≥ 2 réplicas. La HPA puede subirlo dentro del rango configurado en el overlay.
+  replicas: 2
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: appointment-scheduling
+      app.kubernetes.io/component: web
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: appointment-scheduling
+        app.kubernetes.io/component: web
+      annotations:
+        prometheus.io/scrape: "false"
+    spec:
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: appointment-scheduling
+              app.kubernetes.io/component: web
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
+      # ── Init container — Prisma migrate deploy ───────────────────────────
+      # Usa la misma imagen que la app. Lee DATABASE_URL del Secret.
+      # Idempotente; las migraciones ya aplicadas se saltan solas.
+      initContainers:
+        - name: prisma-migrate
+          image: appointment-scheduling:placeholder
+          imagePullPolicy: IfNotPresent
+          command: ["sh", "-c"]
+          args:
+            - |
+              set -e
+              echo "── Running prisma migrate deploy ──"
+              npx --no-install prisma migrate deploy --schema=./prisma/schema.prisma
+              echo "── Migrations applied ──"
+          envFrom:
+            - secretRef:
+                name: appointment-scheduling-secret
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            runAsNonRoot: true
+            runAsUser: 1001
+            capabilities:
+              drop: ["ALL"]
+      containers:
+        - name: web
+          # Placeholder reemplazado por kustomize set image desde overlay/CI.
+          image: appointment-scheduling:placeholder
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: appointment-scheduling-config
+            - secretRef:
+                name: appointment-scheduling-secret
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 30   # hasta 150s para que Next.js cargue
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1001
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: next-cache
+              mountPath: /app/.next/cache
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 100Mi
+        - name: next-cache
+          emptyDir:
+            sizeLimit: 200Mi
+      terminationGracePeriodSeconds: 30

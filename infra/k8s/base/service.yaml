@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: appointment-scheduling
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: appointment-scheduling
+    app.kubernetes.io/component: web
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
