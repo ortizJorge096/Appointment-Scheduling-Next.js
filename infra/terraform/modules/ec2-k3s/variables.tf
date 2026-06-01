@@ -107,6 +107,12 @@ variable "public_host" {
   default     = ""
 }
 
+variable "public_host_prefix" {
+  description = "Prefijo del hostname nip.io. Ej: appointment-scheduling-dev"
+  type        = string
+  default     = "appointment-scheduling"
+}
+
 # ─── App ENV inyectado al Secret/ConfigMap ────────────────────────────────
 variable "database_url_ssm_parameter" {
   description = "Path en SSM (SecureString) donde vive la DATABASE_URL — la lee user-data y la escribe al Secret de K8s."

@@ -176,7 +176,7 @@ resource "aws_eip" "this" {
 
 # ─── User-data ────────────────────────────────────────────────────────────
 locals {
-  effective_public_host = var.public_host != "" ? var.public_host : "appointment-scheduling.${replace(aws_eip.this.public_ip, ".", "-")}.nip.io"
+  effective_public_host = var.public_host != "" ? var.public_host : "${var.public_host_prefix}.${replace(aws_eip.this.public_ip, ".", "-")}.nip.io"
 
   userdata = templatefile("${path.module}/userdata.sh.tftpl", {
     github_owner               = var.github_owner

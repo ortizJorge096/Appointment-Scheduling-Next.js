@@ -65,7 +65,8 @@ module "s3_assets" {
   bucket_name = "${var.name_prefix}-assets"
   allowed_origins = [
     "http://localhost:3000",
-    "http://${var.name_prefix}.example.com",  # placeholder; sustituye por tu host real cuando lo tengas
+    "http://appointment-scheduling-dev.54-157-5-72.nip.io",
+    "https://appointment-scheduling-dev.54-157-5-72.nip.io"
   ]
   tags = { Component = "storage" }
 }
@@ -130,7 +131,8 @@ module "k3s" {
 
   image_ref     = var.image_ref != "" ? var.image_ref : "${module.ecr.repository_url}:latest"
   aws_region    = var.region
-  public_host   = ""
+  public_host          = ""
+  public_host_prefix   = var.name_prefix
   app_namespace = "appointment-scheduling-dev"
 
   database_url_ssm_parameter    = module.rds.database_url_ssm_parameter
