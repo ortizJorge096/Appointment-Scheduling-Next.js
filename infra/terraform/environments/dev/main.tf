@@ -147,6 +147,7 @@ module "k3s" {
     module.s3_assets.app_access_policy_arn,
   ]
 
+  ami_id                  = var.ec2_ami
   cloudwatch_agent_config = true
   enable_letsencrypt      = var.enable_letsencrypt
   letsencrypt_email       = coalesce(

@@ -173,3 +173,9 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "ami_id" {
+  description = "AMI ID to use. If empty, the latest Amazon Linux 2023 AMI is used."
+  type        = string
+  default     = ""
+}

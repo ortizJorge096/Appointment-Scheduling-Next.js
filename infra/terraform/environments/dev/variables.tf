@@ -122,3 +122,9 @@ variable "enable_emails" {
   type        = bool
   default     = false
 }
+
+variable "ec2_ami" {
+  description = "AMI ID fijo para el launch template. Vacío = usa el AL2023 más reciente."
+  type        = string
+  default     = ""
+}

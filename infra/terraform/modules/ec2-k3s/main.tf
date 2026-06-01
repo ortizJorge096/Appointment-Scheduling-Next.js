@@ -206,7 +206,7 @@ locals {
 # ─── Launch Template ──────────────────────────────────────────────────────
 resource "aws_launch_template" "this" {
   name_prefix   = "${var.name}-lt-"
-  image_id      = data.aws_ami.al2023.id
+  image_id      = var.ami_id != "" ? var.ami_id : data.aws_ami.al2023.id
   instance_type = var.instance_type
 
   iam_instance_profile {
