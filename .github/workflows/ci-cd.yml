@@ -234,7 +234,7 @@ jobs:
             -H "X-aws-ec2-metadata-token-ttl-seconds: 60")
           IP=$(curl -fsSL -H "X-aws-ec2-metadata-token: $TOKEN" \
             http://169.254.169.254/latest/meta-data/public-ipv4)
-          HOST="appointment-scheduling.${IP//./-}.nip.io"
+          HOST="appointment-scheduling-dev.${IP//./-}.nip.io"
           echo "host=$HOST" >> "$GITHUB_OUTPUT"
 
       - name: Set image tag, host and apply
