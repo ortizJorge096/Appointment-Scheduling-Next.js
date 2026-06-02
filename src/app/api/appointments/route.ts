@@ -16,6 +16,8 @@ import type { ApiResponse, AppointmentWithService } from '@/types'
 // (en producción usar Redis o Upstash)
 // ─────────────────────────────────────────
 
+// In-memory rate limiter (single-pod k3s). Resets on restart — acceptable for small studio.
+// Migrate to Redis/DB if horizontal scaling is needed.
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
 
 // Error interno para abortar la transacción cuando el slot ya está tomado

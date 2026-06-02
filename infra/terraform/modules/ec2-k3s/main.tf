@@ -316,7 +316,7 @@ resource "aws_autoscaling_group" "this" {
       min_healthy_percentage = 0
       instance_warmup        = 300
     }
-    triggers = ["tag", "launch_template"]
+    triggers = ["tag"]
   }
 
   lifecycle {

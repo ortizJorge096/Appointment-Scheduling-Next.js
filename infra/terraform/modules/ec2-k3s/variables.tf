@@ -16,13 +16,13 @@ variable "subnet_id" {
 variable "instance_type" {
   description = "Tipo principal para la Launch Template."
   type        = string
-  default     = "t3.micro"
+  default     = "t3.medium"
 }
 
 variable "spot_instance_types" {
   description = "Tipos que la ASG puede lanzar como Spot."
   type        = list(string)
-  default     = ["t3.micro", "t3a.micro", "t3.small"]
+  default     = ["t3.medium", "t3a.medium", "t3.large"]
 }
 
 variable "on_demand_base_capacity" {
