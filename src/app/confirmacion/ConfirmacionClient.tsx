@@ -24,7 +24,6 @@ export default function ConfirmacionClient() {
   const [error, setError]             = useState(false)
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!id) { setError(true); setLoading(false); return }
     fetch(`/api/appointments/${id}`)
       .then((r) => r.json())

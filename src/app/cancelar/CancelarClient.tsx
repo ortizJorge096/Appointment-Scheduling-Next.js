@@ -28,7 +28,6 @@ export default function CancelarClient() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!id || !token) { setPhase('notfound'); return }
     fetch(`/api/appointments/${id}`)
       .then((r) => r.json())

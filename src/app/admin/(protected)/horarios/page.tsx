@@ -64,7 +64,6 @@ export default function HorariosPage() {
     setLoading(false)
   }
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load() }, [])
 
   // Actualizar un campo de un horario localmente
