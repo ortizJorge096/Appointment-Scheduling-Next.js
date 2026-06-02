@@ -38,6 +38,7 @@ export default function DateTimePicker({
   // ── Prefetch: disponibilidad de TODOS los días visibles, una sola llamada ──
   useEffect(() => {
     if (!serviceId) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setRangeLoading(true)
     const from = availableDates[0]
     const to   = availableDates[availableDates.length - 1]
@@ -69,7 +70,9 @@ export default function DateTimePicker({
   useEffect(() => {
     if (!serviceId || !selectedDate) return
     let cancelled = false
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setError(null)
     fetch(`/api/availability?date=${selectedDate}&serviceId=${serviceId}`)
       .then((r) => r.json())

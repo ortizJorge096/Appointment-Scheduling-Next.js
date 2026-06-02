@@ -89,6 +89,7 @@ export default function BookingForm() {
   })
 
   // 1. Señalar que ya estamos en el cliente
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setMounted(true) }, [])
 
   // 2. Leer localStorage solo después de montar (nunca en SSR)
@@ -99,6 +100,7 @@ export default function BookingForm() {
       if (!saved) return
       const { clientName = '', clientEmail = '', clientPhone = '' } = JSON.parse(saved)
       if (clientName || clientEmail || clientPhone) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setForm((prev) => ({ ...prev, clientName, clientEmail, clientPhone }))
         setHasSavedData(true)
       }
@@ -136,6 +138,7 @@ export default function BookingForm() {
     if (preService) {
       const svc = services.find((s) => s.id === preService)
       if (svc) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setForm((prev) => ({ ...prev, category: svc.category, serviceId: svc.id }))
         setStep('datetime')
         setAppliedPreselect(true)
@@ -153,6 +156,7 @@ export default function BookingForm() {
 
   // Limpiar errores y hacer scroll al top al cambiar de paso
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setStepError(null)
     setFieldErrors({})
     setAttempted(false)

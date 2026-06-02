@@ -12,6 +12,12 @@ vi.mock('@/lib/prisma', () => ({
 
 const { prisma } = await import('@/lib/prisma')
 
+interface MockAppointment {
+  id: string
+  cancelToken: string
+  status: string
+}
+
 function makeRequest(body?: unknown): NextRequest {
   return {
     json: () => Promise.resolve(body),
@@ -51,7 +57,7 @@ describe('POST /api/appointments/[id]/cancel', () => {
       id: '1',
       cancelToken: 'correct-token',
       status: 'PENDING',
-    } as any)
+    } satisfies MockAppointment)
     const res = await POST(makeRequest({ token: 'wrong-token' }), { params: Promise.resolve({ id: '1' }) })
     expect(res.status).toBe(403)
     const json = await res.json()
@@ -63,7 +69,7 @@ describe('POST /api/appointments/[id]/cancel', () => {
       id: '1',
       cancelToken: 'tok',
       status: 'CANCELLED',
-    } as any)
+    } satisfies MockAppointment)
     const res = await POST(makeRequest({ token: 'tok' }), { params: Promise.resolve({ id: '1' }) })
     expect(res.status).toBe(200)
     const json = await res.json()
@@ -75,8 +81,8 @@ describe('POST /api/appointments/[id]/cancel', () => {
       id: '1',
       cancelToken: 'tok',
       status: 'PENDING',
-    } as any)
-    vi.mocked(prisma.appointment.update).mockResolvedValue({} as any)
+    } satisfies MockAppointment)
+    vi.mocked(prisma.appointment.update).mockResolvedValue({} satisfies Record<string, never>)
     const res = await POST(makeRequest({ token: 'tok' }), { params: Promise.resolve({ id: '1' }) })
     expect(res.status).toBe(200)
     expect(prisma.appointment.update).toHaveBeenCalledWith({
