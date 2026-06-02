@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic'
 export async function PATCH(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
-) {
+): Promise<NextResponse> {
   const { id } = await context.params
 
   const session = await getServerSession(authOptions)
@@ -20,7 +20,13 @@ export async function PATCH(
     )
   }
 
-  const body = await request.json()
+  let body: unknown
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ success: false, error: 'Body inválido' }, { status: 400 })
+  }
+
   const parsed = updateServiceSchema.safeParse(body)
 
   if (!parsed.success) {
@@ -41,7 +47,7 @@ export async function PATCH(
 export async function DELETE(
   _req: NextRequest,
   context: { params: Promise<{ id: string }> }
-) {
+): Promise<NextResponse> {
   const { id } = await context.params
 
   const session = await getServerSession(authOptions)

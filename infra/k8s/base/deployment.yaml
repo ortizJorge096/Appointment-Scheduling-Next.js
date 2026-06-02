@@ -131,13 +131,8 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
-            - name: next-cache
-              mountPath: /app/.next/cache
       volumes:
         - name: tmp
           emptyDir:
             sizeLimit: 100Mi
-        - name: next-cache
-          emptyDir:
-            sizeLimit: 200Mi
       terminationGracePeriodSeconds: 30

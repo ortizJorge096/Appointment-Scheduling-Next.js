@@ -14,8 +14,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       await prisma.$queryRaw`SELECT 1`
       await prisma.$disconnect()
       return NextResponse.json({ status: 'ok', db: 'reachable', uptime: Math.round((Date.now() - startedAt) / 1000), timestamp: new Date().toISOString() })
-    } catch (err) {
-      return NextResponse.json({ status: 'error', db: (err as Error).message }, { status: 503 })
+    } catch {
+      return NextResponse.json({ status: 'error', db: 'unreachable' }, { status: 503 })
     }
   }
 

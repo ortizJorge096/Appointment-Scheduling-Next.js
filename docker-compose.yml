@@ -43,6 +43,7 @@ services:
       - .env.local
 
     environment:
+      TZ: America/Bogota
       # Sobreescribir DATABASE_URL para apuntar al contenedor db
       DATABASE_URL: postgresql://valentinajimenez:valentinajimenez123@db:5432/valentinajimenez
 

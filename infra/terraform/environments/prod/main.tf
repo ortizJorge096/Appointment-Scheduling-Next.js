@@ -89,7 +89,7 @@ module "rds" {
   instance_class       = "db.t3.micro"
   allocated_storage_gb = 20
   max_allocated_storage_gb = 100  # autoscaling hasta 100 GB
-  storage_type         = "gp2"
+  storage_type         = "gp3"
 
   db_name             = "appointment_scheduling"
   db_username         = "appsched"

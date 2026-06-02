@@ -68,7 +68,8 @@ export const CATEGORY_ORDER = (Object.keys(SERVICE_CATEGORIES) as ServiceCategor
   .sort((a, b) => SERVICE_CATEGORIES[a].order - SERVICE_CATEGORIES[b].order)
 
 export function categoryLabel(key: string): string {
-  return (SERVICE_CATEGORIES as Record<string, { label: string }>)[key]?.label ?? key
+  const cat = SERVICE_CATEGORIES[key as keyof typeof SERVICE_CATEGORIES]
+  return cat?.label ?? key
 }
 
 // Helpers derivados

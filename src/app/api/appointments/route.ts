@@ -206,7 +206,7 @@ export async function POST(
             select: { id: true, name: true, price: true, durationMinutes: true },
           },
         },
-      }) as unknown as Promise<AppointmentWithService>
+      }) as unknown as AppointmentWithService
     }, { isolationLevel: 'Serializable' })
   } catch (err) {
     if (err instanceof SlotTakenError) {

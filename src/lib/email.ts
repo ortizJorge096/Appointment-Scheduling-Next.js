@@ -33,7 +33,7 @@ const fromEmail     = () => process.env.SES_FROM_EMAIL ?? STUDIO.email
 const appUrl        = () => process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
 
 // ─── Helpers ──────────────────────────────────────────────────
-function formatDate(date: Date, startTime: string): string {
+function formatDate(date: string | Date, startTime: string): string {
   return `${new Date(date).toLocaleDateString('es-CO', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
     timeZone: 'America/Bogota',

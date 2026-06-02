@@ -23,4 +23,4 @@ if (!parsed.success) {
   }
 }
 
-export const env = parsed.data ?? envSchema.parse({})
+export const env = parsed.data ?? ({} as Record<string, unknown>)

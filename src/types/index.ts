@@ -48,15 +48,15 @@ export interface AppointmentWithService {
   clientName: string
   clientEmail: string
   clientPhone: string
-  date: Date
+  date: string
   startTime: string
   endTime: string
   status: AppointmentStatus
   notes: string | null
   cancelToken?: string | null
-  confirmationSentAt: Date | null
-  reminderSentAt: Date | null
-  createdAt: Date
+  confirmationSentAt: string | null
+  reminderSentAt: string | null
+  createdAt: string
   service: {
     id: string
     name: string

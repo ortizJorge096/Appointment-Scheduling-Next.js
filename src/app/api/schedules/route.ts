@@ -9,16 +9,22 @@ import { prisma } from '@/lib/prisma'
 import { scheduleSchema } from '@/lib/validations'
 import type { DayOfWeek } from '@prisma/client'
 
-export async function GET() {
+export async function GET(): Promise<NextResponse> {
   const schedules = await prisma.schedule.findMany({ orderBy: { dayOfWeek: 'asc' } })
   return NextResponse.json({ success: true, data: schedules })
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 })
 
-  const body   = await request.json()
+  let body: unknown
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ success: false, error: 'Body inválido' }, { status: 400 })
+  }
+
   const parsed = scheduleSchema.safeParse(body)
   if (!parsed.success) {
     return NextResponse.json({ success: false, error: parsed.error.errors[0].message }, { status: 400 })
