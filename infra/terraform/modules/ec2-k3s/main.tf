@@ -101,9 +101,9 @@ resource "aws_iam_role_policy_attachment" "cw_agent" {
 
 # Permisos extra (S3 gallery + SES) vienen del environment.
 resource "aws_iam_role_policy_attachment" "extra" {
-  for_each   = { for arn in var.extra_managed_policy_arns : arn => arn }
+  count      = length(var.extra_managed_policy_arns)
   role       = aws_iam_role.node.name
-  policy_arn = each.value
+  policy_arn = var.extra_managed_policy_arns[count.index]
 }
 
 # Lectura de los SSM SecureString que tienen DATABASE_URL y NEXTAUTH_SECRET.

@@ -275,6 +275,8 @@ jobs:
           kubectl -n appointment-scheduling-dev create secret generic appointment-scheduling-secret \
             --from-literal=DATABASE_URL="$DATABASE_URL" \
             --from-literal=NEXTAUTH_SECRET="$NEXTAUTH_SECRET" \
+            --from-literal=SES_FROM_EMAIL="${{ vars.SES_FROM_EMAIL }}" \
+            --from-literal=ENABLE_EMAILS="${{ vars.ENABLE_EMAILS }}" \
             --dry-run=client -o yaml | kubectl apply -f -
           kubectl -n appointment-scheduling-dev rollout restart deployment/appointment-scheduling
           kubectl -n appointment-scheduling-dev rollout status deployment/appointment-scheduling --timeout=600s
