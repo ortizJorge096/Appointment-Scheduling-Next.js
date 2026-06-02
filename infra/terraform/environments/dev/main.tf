@@ -60,6 +60,13 @@ module "github_oidc" {
   tags = { Component = "ci" }
 }
 
+module "ses" {
+  source = "../../modules/ses"
+
+  name_prefix = var.name_prefix
+  tags        = { Component = "email" }
+}
+
 module "s3_assets" {
   source      = "../../modules/s3-assets"
   bucket_name = "${var.name_prefix}-assets"
@@ -145,6 +152,7 @@ module "k3s" {
   # (SES se puede sumar después con AmazonSESFullAccess o una policy custom.)
   extra_managed_policy_arns = [
     module.s3_assets.app_access_policy_arn,
+    module.ses.send_policy_arn,
   ]
 
   ami_id                  = var.ec2_ami
