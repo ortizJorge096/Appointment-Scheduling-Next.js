@@ -64,8 +64,8 @@ export default function BookingForm() {
   const formTopRef   = useRef<HTMLDivElement>(null)
 
   // mounted evita mismatch de hidratación SSR vs cliente
-  const [mounted, setMounted]               = useState(false)
-  const [hasSavedData, setHasSavedData]     = useState(false)
+  const [mounted, setMounted]                 = useState(false)
+  const [savedClientData, setSavedClientData] = useState({ clientName: '', clientEmail: '', clientPhone: '' })
   const [appliedPreselect, setAppliedPreselect] = useState(false)
 
   const [step, setStep]               = useState<FormStep>('category')
@@ -92,22 +92,24 @@ export default function BookingForm() {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setMounted(true) }, [])
 
-  // 2. Leer localStorage solo después de montar (nunca en SSR)
+  // 2. Leer localStorage solo después de montar (nunca en SSR).
+  //    Los datos alimentan el <datalist> de cada campo — aparecen como
+  //    sugerencias desplegables al hacer clic, pero el campo arranca vacío.
   useEffect(() => {
     if (!mounted) return
     try {
       const saved = localStorage.getItem(STORAGE_KEY)
       if (!saved) return
-      const { clientName = '', clientEmail = '', clientPhone = '' } = JSON.parse(saved)
-      if (clientName || clientEmail || clientPhone) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setForm((prev) => ({ ...prev, clientName, clientEmail, clientPhone }))
-        setHasSavedData(true)
-      }
+      const data = JSON.parse(saved)
+      setSavedClientData({
+        clientName:  data.clientName  || '',
+        clientEmail: data.clientEmail || '',
+        clientPhone: data.clientPhone || '',
+      })
     } catch { /* localStorage no disponible */ }
   }, [mounted])
 
-  // 3. Guardar datos del cliente al escribir
+  // 3. Guardar datos del cliente en localStorage al escribir
   useEffect(() => {
     if (!mounted) return
     if (!form.clientName && !form.clientEmail && !form.clientPhone) return
@@ -130,7 +132,6 @@ export default function BookingForm() {
   }, [])
 
   // 5. Pre-selección por URL: /agendar?service=ID o /agendar?categoria=UNAS
-  // Permite que las tarjetas de la home lleven directo al paso correcto.
   useEffect(() => {
     if (appliedPreselect || services.length === 0) return
 
@@ -173,23 +174,14 @@ export default function BookingForm() {
     setStepError(null)
   }
 
-  function clearSavedData() {
-    setForm((p) => ({ ...p, clientName: '', clientEmail: '', clientPhone: '' }))
-    setHasSavedData(false)
-    try { localStorage.removeItem(STORAGE_KEY) } catch { /* ok */ }
-  }
-
   function selectService(id: string) {
     updateForm('serviceId', id)
     setStepError(null)
-    // Auto-avance: tras un breve momento (para que la clienta vea su selección
-    // marcada) saltamos al siguiente paso. Solo el paso de servicio se comporta
-    // así; los demás siguen requiriendo el botón "Continuar".
+    // Auto-avance con breve delay para que la usuaria vea la selección marcada
     setTimeout(() => setStep('datetime'), 280)
   }
 
   function selectCategory(cat: string) {
-    // Si cambia de categoría, limpiar el servicio previamente elegido
     if (form.category !== cat) {
       setForm((prev) => ({ ...prev, category: cat, serviceId: '' }))
     }
@@ -254,9 +246,6 @@ export default function BookingForm() {
       })
       const json = await res.json()
       if (!json.success) {
-        // 409 = el horario fue tomado entre que ella eligió y confirmó.
-        // La regresamos al paso de fecha y hora con la hora limpiada para
-        // que pueda elegir otra de inmediato.
         if (res.status === 409) {
           setForm((prev) => ({ ...prev, startTime: '' }))
           setStep('datetime')
@@ -422,10 +411,8 @@ export default function BookingForm() {
             <p className="text-sm text-ink-muted mt-1">Selecciona el día y un horario disponible. <span className="text-red-500">*</span></p>
           </div>
 
-          {/* Servicio seleccionado — visible como referencia, con opción de cambiar */}
           {selectedService && (
-            <div className="flex items-center justify-between bg-gold-pale/60 border border-gold/20
-                            px-4 py-3 mb-6">
+            <div className="flex items-center justify-between bg-gold-pale/60 border border-gold/20 px-4 py-3 mb-6">
               <div className="min-w-0">
                 <p className="text-[10px] tracking-widest uppercase text-gold-dark mb-0.5">
                   Servicio elegido
@@ -457,7 +444,7 @@ export default function BookingForm() {
         </div>
       )}
 
-      {/* PASO 3 — Datos */}
+      {/* PASO 4 — Datos del cliente */}
       {step === 'info' && (
         <div className="animate-fade-in space-y-5">
           <div className="mb-2">
@@ -467,22 +454,33 @@ export default function BookingForm() {
             </p>
           </div>
 
-          {/* Banner datos recordados — solo tras montar en cliente */}
-          {mounted && hasSavedData && (
-            <div className="flex items-center justify-between bg-gold-pale border border-gold/30 px-4 py-2.5 text-xs text-ink-mid">
-              <span>✦ Datos cargados de tu visita anterior</span>
-              <button type="button" onClick={clearSavedData}
-                className="text-ink-muted hover:text-red-500 transition-colors underline">
-                Borrar
-              </button>
-            </div>
+          {/* datalists: alimentan las sugerencias desplegables de cada campo.
+              El campo arranca vacío — el usuario elige si usa el valor guardado. */}
+          {mounted && (
+            <>
+              <datalist id="dl-name">
+                {savedClientData.clientName  && <option value={savedClientData.clientName} />}
+              </datalist>
+              <datalist id="dl-email">
+                {savedClientData.clientEmail && <option value={savedClientData.clientEmail} />}
+              </datalist>
+              <datalist id="dl-phone">
+                {savedClientData.clientPhone && <option value={savedClientData.clientPhone} />}
+              </datalist>
+            </>
           )}
 
           <div>
             <label className="form-label">Nombre completo <span className="text-red-500">*</span></label>
-            <input type="text" className={inputClass(fieldErrors.clientName)}
-              placeholder="Tu nombre y apellido" value={form.clientName}
-              onChange={(e) => updateForm('clientName', e.target.value)} autoComplete="name" />
+            <input
+              type="text"
+              list="dl-name"
+              className={inputClass(fieldErrors.clientName)}
+              placeholder="Tu nombre y apellido"
+              value={form.clientName}
+              onChange={(e) => updateForm('clientName', e.target.value)}
+              autoComplete="name"
+            />
             {fieldErrors.clientName && (
               <p className="flex items-center gap-1.5 text-red-500 text-xs mt-1.5"><span>⚠</span> {fieldErrors.clientName}</p>
             )}
@@ -491,18 +489,30 @@ export default function BookingForm() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="form-label">Email <span className="text-red-500">*</span></label>
-              <input type="email" className={inputClass(fieldErrors.clientEmail)}
-                placeholder="tu@email.com" value={form.clientEmail}
-                onChange={(e) => updateForm('clientEmail', e.target.value)} autoComplete="email" />
+              <input
+                type="email"
+                list="dl-email"
+                className={inputClass(fieldErrors.clientEmail)}
+                placeholder="tu@email.com"
+                value={form.clientEmail}
+                onChange={(e) => updateForm('clientEmail', e.target.value)}
+                autoComplete="email"
+              />
               {fieldErrors.clientEmail && (
                 <p className="flex items-center gap-1.5 text-red-500 text-xs mt-1.5"><span>⚠</span> {fieldErrors.clientEmail}</p>
               )}
             </div>
             <div>
               <label className="form-label">Teléfono / WhatsApp <span className="text-red-500">*</span></label>
-              <input type="tel" className={inputClass(fieldErrors.clientPhone)}
-                placeholder="300 000 0000" value={form.clientPhone}
-                onChange={(e) => updateForm('clientPhone', e.target.value)} autoComplete="tel" />
+              <input
+                type="tel"
+                list="dl-phone"
+                className={inputClass(fieldErrors.clientPhone)}
+                placeholder="300 000 0000"
+                value={form.clientPhone}
+                onChange={(e) => updateForm('clientPhone', e.target.value)}
+                autoComplete="tel"
+              />
               {fieldErrors.clientPhone && (
                 <p className="flex items-center gap-1.5 text-red-500 text-xs mt-1.5"><span>⚠</span> {fieldErrors.clientPhone}</p>
               )}
@@ -514,15 +524,20 @@ export default function BookingForm() {
               Notas adicionales{' '}
               <span className="text-ink-muted/60 normal-case font-normal tracking-normal">(opcional)</span>
             </label>
-            <textarea className="input-field resize-none" rows={3}
+            <textarea
+              className="input-field resize-none"
+              rows={3}
               placeholder="Ej: prefiero esmalte nude, tengo uñas acrílicas previas..."
-              value={form.notes} onChange={(e) => updateForm('notes', e.target.value)} maxLength={500} />
+              value={form.notes}
+              onChange={(e) => updateForm('notes', e.target.value)}
+              maxLength={500}
+            />
             <p className="text-xs text-ink-muted/50 mt-1 text-right">{form.notes.length}/500</p>
           </div>
         </div>
       )}
 
-      {/* PASO 4 — Confirmar */}
+      {/* PASO 5 — Confirmar */}
       {step === 'confirm' && selectedService && (
         <div className="animate-fade-in">
           <div className="mb-6">
@@ -575,3 +590,4 @@ export default function BookingForm() {
     </div>
   )
 }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
