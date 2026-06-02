@@ -51,7 +51,7 @@ async function main() {
 
   for (const appt of appointments) {
     try {
-      await sendReminderEmail(appt as AppointmentWithService)
+      await sendReminderEmail(appt as unknown as AppointmentWithService)
 
       // Registrar que el recordatorio fue enviado
       await prisma.appointment.update({
