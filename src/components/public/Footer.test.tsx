@@ -1,6 +1,12 @@
 import { render, screen } from '@testing-library/react'
 import Footer from './Footer'
 
+vi.mock('next/link', () => ({
+  default: ({ href, children, className }: { href: string; children: React.ReactNode; className?: string }) => (
+    <a href={href} className={className}>{children}</a>
+  ),
+}))
+
 vi.mock('@/lib/config', () => ({
   STUDIO: {
     shortName: 'VJ',
@@ -18,7 +24,7 @@ vi.mock('@/lib/config', () => ({
 }))
 
 describe('Footer', () => {
-  beforeAll(() => {
+  beforeEach(() => {
     render(<Footer />)
   })
 
