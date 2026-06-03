@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { STUDIO } from '@/lib/config'
+import NextAvailability from './NextAvailability'
 
 export default function Hero() {
   return (
@@ -44,30 +45,7 @@ export default function Hero() {
         </div>
 
         <div className="hidden lg:flex flex-col gap-3">
-          <div className="bg-white/[0.06] border border-white/10 p-7">
-            <div className="flex items-center gap-2.5 mb-5">
-              <div className="w-2 h-2 rounded-full bg-gold" />
-              <p className="text-xs text-white/40 tracking-widest uppercase">Próxima disponibilidad</p>
-            </div>
-            <p className="font-serif text-3xl text-white font-light mb-1">Hoy · 3:00 PM</p>
-            <p className="text-white/50 text-sm">Manicura semipermanente</p>
-            <div className="mt-5 pt-5 border-t border-white/10 flex items-center justify-between">
-              <span className="text-gold font-medium text-lg">$40.000</span>
-              <span className="text-xs text-white/30">60 min · Confirmación inmediata</span>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { label: 'Lifting de pestañas', price: '$70.000', dur: '60 min' },
-              { label: 'Cejas laminadas',     price: '$50.000', dur: '60 min' },
-            ].map((s) => (
-              <div key={s.label} className="bg-white/[0.04] border border-white/10 p-4">
-                <p className="text-white/70 text-sm font-medium mb-3">{s.label}</p>
-                <p className="text-gold font-medium">{s.price}</p>
-                <p className="text-xs text-white/30 mt-0.5">{s.dur}</p>
-              </div>
-            ))}
-          </div>
+          <NextAvailability />
           <div className="border-l-2 border-gold bg-white/[0.04] px-4 py-3">
             <p className="text-xs text-white/35">Incluye</p>
             <p className="text-white/70 text-sm mt-0.5">
