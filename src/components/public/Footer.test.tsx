@@ -13,12 +13,12 @@ vi.mock('@/lib/config', () => ({
   },
   WHATSAPP_URL: 'https://wa.me/573001234567',
   MAILTO_URL: 'mailto:hola@valentinajimenez.com',
-  INSTAGRAM_URL: 'https://instagram.com/_valebeautystudio_', 
+  INSTAGRAM_URL: 'https://instagram.com/_valebeautystudio_',
   TIKTOK_URL: 'https://tiktok.com/valebeautystudio1',
 }))
 
 describe('Footer', () => {
-  beforeEach(() => {
+  beforeAll(() => {
     render(<Footer />)
   })
 
@@ -48,9 +48,8 @@ describe('Footer', () => {
     const wa = screen.getByText('+57 300 123 4567')
     expect(wa.closest('a')).toHaveAttribute('href', 'https://wa.me/573001234567')
   })
-})
 
-it('renders Instagram link', () => {
+  it('renders Instagram link', () => {
     const ig = screen.getByText('Instagram')
     expect(ig.closest('a')).toHaveAttribute('href', 'https://instagram.com/_valebeautystudio_')
   })
@@ -59,3 +58,4 @@ it('renders Instagram link', () => {
     const tt = screen.getByText('TikTok')
     expect(tt.closest('a')).toHaveAttribute('href', 'https://tiktok.com/valebeautystudio1')
   })
+})
