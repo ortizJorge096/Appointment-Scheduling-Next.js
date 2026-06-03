@@ -3,7 +3,7 @@
 // fallback elegante a gradientes si aún no hay nada subido.
 
 import { prisma } from '@/lib/prisma'
-import { STUDIO, categoryLabel } from '@/lib/config'
+import { STUDIO, categoryLabel, INSTAGRAM_URL, TIKTOK_URL } from '@/lib/config'
 import { getPublicUrl } from '@/lib/s3'
 
 const PLACEHOLDER_GRADIENTS = [
@@ -93,11 +93,15 @@ export default async function Galeria() {
         </div>
 
         <p className="text-center text-xs text-ink-muted mt-8 italic">
-          Síguenos en Instagram{' '}
-          <a href={`https://instagram.com/${STUDIO.instagram}`}
-            target="_blank" rel="noreferrer"
+          Síguenos en{' '}
+          <a href={INSTAGRAM_URL} target="_blank" rel="noreferrer"
             className="text-gold hover:underline">
-            @{STUDIO.instagram}
+            Instagram
+          </a>
+          {' '}y{' '}
+          <a href={TIKTOK_URL} target="_blank" rel="noreferrer"
+            className="text-gold hover:underline">
+            TikTok
           </a>
           {' '}para ver todos nuestros trabajos
         </p>

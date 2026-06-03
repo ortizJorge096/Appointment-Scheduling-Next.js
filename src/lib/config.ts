@@ -24,6 +24,7 @@ export const STUDIO = {
   email:      'hola@vjbeautystudio.com',
   adminEmail: 'admin@vjbeautystudio.com',
   instagram:  '_valebeautystudio_',
+  tiktok:     'valebeautystudio1',
 
   // Horario de atención (texto para mostrar en UI)
   hours: 'Lun–Sáb 9am–6pm',
@@ -73,5 +74,7 @@ export function categoryLabel(key: string): string {
 }
 
 // Helpers derivados
-export const WHATSAPP_URL = `https://wa.me/${STUDIO.whatsapp}`
-export const MAILTO_URL   = `mailto:${STUDIO.email}`
+export const WHATSAPP_URL  = `https://wa.me/${STUDIO.whatsapp}`
+export const MAILTO_URL    = `mailto:${STUDIO.email}`
+export const INSTAGRAM_URL = `https://www.instagram.com/${STUDIO.instagram}/`
+export const TIKTOK_URL    = `https://www.tiktok.com/@${STUDIO.tiktok}`

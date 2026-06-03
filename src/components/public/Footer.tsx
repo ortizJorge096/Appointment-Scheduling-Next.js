@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { STUDIO, WHATSAPP_URL, MAILTO_URL } from '@/lib/config'
+import { STUDIO, WHATSAPP_URL, MAILTO_URL, INSTAGRAM_URL, TIKTOK_URL } from '@/lib/config'
 
 export default function Footer() {
   return (
@@ -55,10 +55,20 @@ export default function Footer() {
         </div>
       </div>
 
-      <div className="border-t border-white/[0.06] px-6 py-4 text-center">
+      <div className="border-t border-white/[0.06] px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
         <p className="text-xs text-white/20">
           © {new Date().getFullYear()} {STUDIO.name}
         </p>
+        <div className="flex items-center gap-4">
+          <a href={INSTAGRAM_URL} target="_blank" rel="noreferrer"
+            className="text-white/30 hover:text-gold transition-colors text-xs tracking-widest uppercase">
+            Instagram
+          </a>
+          <a href={TIKTOK_URL} target="_blank" rel="noreferrer"
+            className="text-white/30 hover:text-gold transition-colors text-xs tracking-widest uppercase">
+            TikTok
+          </a>
+        </div>
       </div>
     </footer>
   )
