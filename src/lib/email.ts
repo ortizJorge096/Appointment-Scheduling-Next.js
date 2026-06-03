@@ -17,12 +17,10 @@ import type { AppointmentWithService } from '../types'
 let _ses: SESClient | null = null
 function getSes(): SESClient {
   if (!_ses) {
+    // Sin `credentials` explícitas: el SDK usa la cadena por defecto
+    // (Instance Profile en EC2, variables de entorno en local).
     _ses = new SESClient({
       region: process.env.AWS_REGION ?? 'us-east-1',
-      credentials: {
-        accessKeyId:     process.env.AWS_ACCESS_KEY_ID     ?? '',
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY ?? '',
-      },
     })
   }
   return _ses
