@@ -27,7 +27,7 @@ const PLACEHOLDER_ITEMS = [
 export default async function Galeria() {
   // Tolerante a errores: si el bucket no está configurado o la tabla está vacía,
   // mostramos los gradientes placeholder sin romper la página.
-  let realImages: Array<{ url: string; title: string | null; category: string | null }> = []
+  let realImages: Array<{ url: string; title: string | null; description: string | null; category: string | null }> = []
   try {
     const rows = await prisma.galleryImage.findMany({
       where: { isActive: true },
@@ -37,6 +37,7 @@ export default async function Galeria() {
     realImages = rows.map((r) => ({
       url: getPublicUrl(r.s3Key),
       title: r.title,
+      description: r.description,
       category: r.category,
     }))
   } catch {
@@ -78,11 +79,12 @@ export default async function Galeria() {
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     loading="lazy"
                   />
-                  {(img.title || img.category) && (
-                    <div className="absolute inset-0 bg-ink/50 opacity-0 group-hover:opacity-100
+                  {(img.title || img.description || img.category) && (
+                    <div className="absolute inset-0 bg-ink/60 opacity-0 group-hover:opacity-100
                                     transition-opacity duration-300 flex flex-col justify-end p-5">
-                      {img.title && <p className="text-white text-sm font-medium">{img.title}</p>}
-                      {img.category && <p className="text-gold text-xs mt-0.5">{categoryLabel(img.category)}</p>}
+                      {img.title && <p className="text-white text-sm font-medium leading-snug">{img.title}</p>}
+                      {img.description && <p className="text-white/80 text-xs mt-1 leading-snug">{img.description}</p>}
+                      {img.category && <p className="text-gold text-xs mt-1.5 tracking-wide uppercase">{categoryLabel(img.category)}</p>}
                     </div>
                   )}
                 </div>

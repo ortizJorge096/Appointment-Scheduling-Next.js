@@ -23,6 +23,7 @@ export async function GET(): Promise<NextResponse> {
   const withUrl = images.map((i) => ({
     id: i.id,
     title: i.title,
+    description: i.description,
     category: i.category,
     width: i.width,
     height: i.height,

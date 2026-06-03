@@ -8,6 +8,7 @@ import { CATEGORY_ORDER, categoryLabel } from '@/lib/config'
 interface GalleryImage {
   id: string
   title: string | null
+  description: string | null
   category: string | null
   width: number | null
   height: number | null
@@ -31,7 +32,7 @@ export default function GaleriaAdminPage() {
 
   // Estado de edición inline
   const [editing, setEditing] = useState<string | null>(null)
-  const [editForm, setEditForm] = useState<{ title: string; category: string }>({ title: '', category: '' })
+  const [editForm, setEditForm] = useState<{ title: string; description: string; category: string }>({ title: '', description: '', category: '' })
 
   function load() {
     setLoading(true)
@@ -109,6 +110,7 @@ export default function GaleriaAdminPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         title: editForm.title.trim() || null,
+        description: editForm.description.trim() || null,
         category: editForm.category || null,
       }),
     })
@@ -190,6 +192,12 @@ export default function GaleriaAdminPage() {
                       value={editForm.title}
                       onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
                     />
+                    <textarea className="input-field resize-none text-sm" rows={2}
+                      placeholder="Descripción corta (opcional)"
+                      maxLength={300}
+                      value={editForm.description}
+                      onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                    />
                     <select className="select-field"
                       value={editForm.category}
                       onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}>
@@ -219,7 +227,7 @@ export default function GaleriaAdminPage() {
                           className="text-xs text-ink-muted hover:text-gold disabled:opacity-20 px-1">↓</button>
                       </div>
                       <div className="flex items-center gap-3 text-xs">
-                        <button onClick={() => { setEditing(img.id); setEditForm({ title: img.title ?? '', category: img.category ?? '' }) }}
+                        <button onClick={() => { setEditing(img.id); setEditForm({ title: img.title ?? '', description: img.description ?? '', category: img.category ?? '' }) }}
                           className="text-ink-muted hover:text-gold">Editar</button>
                         <button onClick={() => toggleActive(img)}
                           className={img.isActive ? 'text-ink-muted hover:text-red-500' : 'text-green-600 hover:text-green-700'}>

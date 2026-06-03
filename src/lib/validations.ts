@@ -154,18 +154,20 @@ export const galleryUploadUrlSchema = z.object({
 })
 
 export const galleryCreateSchema = z.object({
-  s3Key:    z.string().min(1).max(300),
-  title:    z.string().max(120).optional(),
-  category: z.enum(['UNAS', 'PESTANAS', 'CEJAS', 'PROMOS']).optional(),
-  width:    z.number().int().positive().optional(),
-  height:   z.number().int().positive().optional(),
+  s3Key:       z.string().min(1).max(300),
+  title:       z.string().max(120).optional(),
+  description: z.string().max(300).optional(),
+  category:    z.enum(['UNAS', 'PESTANAS', 'CEJAS', 'PROMOS']).optional(),
+  width:       z.number().int().positive().optional(),
+  height:      z.number().int().positive().optional(),
 })
 
 export const galleryUpdateSchema = z.object({
-  title:    z.string().max(120).nullable().optional(),
-  category: z.enum(['UNAS', 'PESTANAS', 'CEJAS', 'PROMOS']).nullable().optional(),
-  order:    z.number().int().min(0).optional(),
-  isActive: z.boolean().optional(),
+  title:       z.string().max(120).nullable().optional(),
+  description: z.string().max(300).nullable().optional(),
+  category:    z.enum(['UNAS', 'PESTANAS', 'CEJAS', 'PROMOS']).nullable().optional(),
+  order:       z.number().int().min(0).optional(),
+  isActive:    z.boolean().optional(),
 })
 
 // ─────────────────────────────────────────

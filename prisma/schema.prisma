@@ -109,16 +109,17 @@ model BlockedDate {
 }
 
 model GalleryImage {
-  id        String           @id @default(cuid())
-  title     String?
-  category  ServiceCategory?
-  s3Key     String           @unique
-  width     Int?
-  height    Int?
-  order     Int              @default(0)
-  isActive  Boolean          @default(true)
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
+  id          String           @id @default(cuid())
+  title       String?
+  description String?
+  category    ServiceCategory?
+  s3Key       String           @unique
+  width       Int?
+  height      Int?
+  order       Int              @default(0)
+  isActive    Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
   @@index([isActive])
   @@index([category])
   @@map("gallery_images")
