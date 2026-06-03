@@ -4,25 +4,25 @@ import type { NextConfig } from 'next'
 const nextConfig: NextConfig = {
   // Necesario para Docker — genera un build autónomo sin node_modules completo
   output: 'standalone',
-  // Permite imágenes desde S3
+
+  // Permite imágenes desde S3.
+  // Usamos wildcard de hostname para no depender de AWS_S3_BUCKET en build-time
+  // (la variable llega en runtime desde el ConfigMap, no durante el docker build).
   images: {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: `${process.env.AWS_S3_BUCKET}.s3.amazonaws.com`,
-      },
-      {
-        protocol: 'https',
-        hostname: `${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com`,
+        hostname: '**.amazonaws.com',
       },
     ],
   },
 
   // Headers de seguridad
   async headers() {
+    // En runtime sí existe la variable — úsala para la CSP
     const s3Host = process.env.AWS_S3_BUCKET
       ? `${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION ?? 'us-east-1'}.amazonaws.com`
-      : ''
+      : '*.amazonaws.com'
     return [
       {
         source: '/(.*)',
@@ -38,7 +38,8 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline'",
               `img-src 'self' data: blob: https://${s3Host}`,
               "font-src 'self' data:",
-              "connect-src 'self'",
+              // connect-src debe incluir S3 para el PUT presignado del admin
+              `connect-src 'self' https://${s3Host}`,
               "base-uri 'self'",
               "form-action 'self'",
             ].join('; '),
