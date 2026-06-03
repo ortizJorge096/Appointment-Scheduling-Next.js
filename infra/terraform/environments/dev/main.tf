@@ -185,3 +185,29 @@ module "monitoring" {
 
   tags = { Component = "observability" }
 }
+
+# ── RDS Scheduler — apaga a las 22:00 COL, enciende a las 07:00 COL ──────
+# Activa con: enable_rds_scheduler = true en terraform.tfvars
+module "rds_scheduler" {
+  count  = var.enable_rds_scheduler ? 1 : 0
+  source = "../../modules/rds-scheduler"
+
+  name_prefix            = var.name_prefix
+  db_instance_identifier = module.rds.db_instance_identifier
+  db_instance_arn        = module.rds.db_instance_arn
+
+  tags = { Component = "cost-optimization" }
+}
+
+# ── RDS Scheduler — apaga la BD cada hora (solo dev) ─────────────────────
+# Activa con: enable_rds_scheduler = true en terraform.tfvars
+module "rds_scheduler" {
+  count  = var.enable_rds_scheduler ? 1 : 0
+  source = "../../modules/rds-scheduler"
+
+  name_prefix            = var.name_prefix
+  db_instance_identifier = module.rds.db_instance_identifier
+  db_instance_arn        = module.rds.db_instance_arn
+
+  tags = { Component = "cost-optimization" }
+}

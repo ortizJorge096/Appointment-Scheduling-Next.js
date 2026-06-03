@@ -37,3 +37,13 @@ output "db_password_ssm_parameter" {
   description = "Path en SSM del password master (SecureString)."
   value       = aws_ssm_parameter.db_password.name
 }
+
+output "db_instance_identifier" {
+  description = "Identifier de la instancia RDS — para usar con el módulo rds-scheduler."
+  value       = aws_db_instance.this.identifier
+}
+
+output "db_instance_arn" {
+  description = "ARN de la instancia RDS — para políticas IAM del rds-scheduler."
+  value       = aws_db_instance.this.arn
+}

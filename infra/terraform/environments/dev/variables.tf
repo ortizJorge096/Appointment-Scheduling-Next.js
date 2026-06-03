@@ -128,3 +128,9 @@ variable "ec2_ami" {
   type        = string
   default     = ""
 }
+
+variable "enable_rds_scheduler" {
+  description = "Apagar/encender RDS automáticamente en horario de negocio. Recomendado en dev para ahorrar costos."
+  type        = bool
+  default     = false
+}

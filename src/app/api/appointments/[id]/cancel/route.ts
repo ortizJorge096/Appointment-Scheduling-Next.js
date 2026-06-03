@@ -48,6 +48,22 @@ export async function POST(
     )
   }
 
+  // Solo se puede cancelar con al menos 24 horas de anticipación
+  const CANCEL_LIMIT_HOURS = 24
+  const appointmentAt = new Date(
+    `${appointment.date.toISOString().split('T')[0]}T${appointment.startTime}:00`
+  )
+  const hoursUntil = (appointmentAt.getTime() - Date.now()) / (1000 * 60 * 60)
+  if (hoursUntil < CANCEL_LIMIT_HOURS) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: `Solo puedes cancelar con al menos ${CANCEL_LIMIT_HOURS} horas de anticipación.`,
+      },
+      { status: 409 }
+    )
+  }
+
   await prisma.appointment.update({
     where: { id },
     data: { status: 'CANCELLED' },

@@ -45,3 +45,7 @@ letsencrypt_email  = ""
 # Emails de la app (SES). Vacíos hasta que verifiques un remitente.
 ses_from_email = ""
 enable_emails  = false
+
+# RDS Scheduler — apaga la BD a las 22:00 COL y la enciende a las 07:00 COL.
+# Activa para ahorrar ~65% del costo de RDS en dev. NO usar en prod.
+enable_rds_scheduler = false

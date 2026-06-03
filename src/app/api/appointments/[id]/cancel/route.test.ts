@@ -16,6 +16,25 @@ interface MockAppointment {
   id: string
   cancelToken: string
   status: string
+  date: Date
+  startTime: string
+}
+
+// Fecha futura con más de 12h de margen
+function futureDate(hoursFromNow: number): Date {
+  return new Date(Date.now() + hoursFromNow * 60 * 60 * 1000)
+}
+
+function makeAppointment(hoursFromNow: number, overrides: Partial<MockAppointment> = {}): MockAppointment {
+  const d = futureDate(hoursFromNow)
+  return {
+    id: '1',
+    cancelToken: 'tok',
+    status: 'CONFIRMED',
+    date: d,
+    startTime: `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`,
+    ...overrides,
+  }
 }
 
 function makeRequest(body?: unknown): NextRequest {
@@ -53,11 +72,9 @@ describe('POST /api/appointments/[id]/cancel', () => {
   })
 
   it('returns 403 when token does not match', async () => {
-    vi.mocked(prisma.appointment.findUnique).mockResolvedValue({
-      id: '1',
-      cancelToken: 'correct-token',
-      status: 'PENDING',
-    } satisfies MockAppointment)
+    vi.mocked(prisma.appointment.findUnique).mockResolvedValue(
+      makeAppointment(24, { cancelToken: 'correct-token' }) satisfies MockAppointment
+    )
     const res = await POST(makeRequest({ token: 'wrong-token' }), { params: Promise.resolve({ id: '1' }) })
     expect(res.status).toBe(403)
     const json = await res.json()
@@ -65,23 +82,29 @@ describe('POST /api/appointments/[id]/cancel', () => {
   })
 
   it('returns already cancelled when status is CANCELLED', async () => {
-    vi.mocked(prisma.appointment.findUnique).mockResolvedValue({
-      id: '1',
-      cancelToken: 'tok',
-      status: 'CANCELLED',
-    } satisfies MockAppointment)
+    vi.mocked(prisma.appointment.findUnique).mockResolvedValue(
+      makeAppointment(24, { status: 'CANCELLED' }) satisfies MockAppointment
+    )
     const res = await POST(makeRequest({ token: 'tok' }), { params: Promise.resolve({ id: '1' }) })
     expect(res.status).toBe(200)
     const json = await res.json()
     expect(json.data.alreadyCancelled).toBe(true)
   })
 
-  it('cancels appointment when token matches', async () => {
-    vi.mocked(prisma.appointment.findUnique).mockResolvedValue({
-      id: '1',
-      cancelToken: 'tok',
-      status: 'PENDING',
-    } satisfies MockAppointment)
+  it('returns 409 when less than 12 hours remain', async () => {
+    vi.mocked(prisma.appointment.findUnique).mockResolvedValue(
+      makeAppointment(6) satisfies MockAppointment
+    )
+    const res = await POST(makeRequest({ token: 'tok' }), { params: Promise.resolve({ id: '1' }) })
+    expect(res.status).toBe(409)
+    const json = await res.json()
+    expect(json.error).toContain('12 horas')
+  })
+
+  it('cancels appointment when token matches and more than 12h remain', async () => {
+    vi.mocked(prisma.appointment.findUnique).mockResolvedValue(
+      makeAppointment(24) satisfies MockAppointment
+    )
     vi.mocked(prisma.appointment.update).mockResolvedValue({} satisfies Record<string, never>)
     const res = await POST(makeRequest({ token: 'tok' }), { params: Promise.resolve({ id: '1' }) })
     expect(res.status).toBe(200)
