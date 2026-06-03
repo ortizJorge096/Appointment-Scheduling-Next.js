@@ -27,12 +27,13 @@ function formatPrice(p: number) {
 
 interface SearchParams { status?: string; dateFrom?: string; dateTo?: string; page?: string }
 
-export default async function CitasPage({ searchParams }: { searchParams: SearchParams }) {
-  const page     = Math.max(1, parseInt(searchParams.page ?? '1'))
+export default async function CitasPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  const sp       = await searchParams
+  const page     = Math.max(1, parseInt(sp.page ?? '1'))
   const limit    = 20
-  const status   = searchParams.status
-  const dateFrom = searchParams.dateFrom
-  const dateTo   = searchParams.dateTo
+  const status   = sp.status
+  const dateFrom = sp.dateFrom
+  const dateTo   = sp.dateTo
 
   const where: Record<string, unknown> = {}
   if (status && status !== 'ALL') where.status = status
