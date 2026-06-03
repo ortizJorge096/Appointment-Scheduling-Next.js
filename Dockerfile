@@ -8,7 +8,7 @@ WORKDIR /app
 # Instalar dependencias del sistema necesarias para Prisma
 RUN apk add --no-cache libc6-compat openssl
 
-COPY package.json package-lock.json* ./
+COPY .npmrc package.json package-lock.json* ./
 RUN npm ci
 
 # ── Etapa 2: build ─────────────────────────────────────
