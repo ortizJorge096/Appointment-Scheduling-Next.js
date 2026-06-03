@@ -436,7 +436,12 @@ export default function BookingForm() {
             selectedDate={form.date}
             selectedTime={form.startTime}
             onDateChange={(d) => updateForm('date', d)}
-            onTimeChange={(t) => { updateForm('startTime', t); setStepError(null); setSubmitError(null) }}
+            onTimeChange={(t) => {
+              updateForm('startTime', t)
+              setStepError(null)
+              setSubmitError(null)
+              setTimeout(() => continueRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 80)
+            }}
           />
         </div>
       )}
