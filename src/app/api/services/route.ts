@@ -11,8 +11,11 @@ import { createServiceSchema } from '@/lib/validations'
 export const dynamic = 'force-dynamic'
 
 export async function GET(): Promise<NextResponse> {
+  const session = await getServerSession(authOptions)
+
   const services = await prisma.service.findMany({
-    where: { isActive: true },
+    // Admin ve todos (activos e inactivos); público solo activos
+    where: session ? {} : { isActive: true },
     orderBy: { order: 'asc' },
     select: {
       id: true,
@@ -21,6 +24,7 @@ export async function GET(): Promise<NextResponse> {
       category: true,
       price: true,
       durationMinutes: true,
+      isActive: true,
       order: true,
     },
   })
