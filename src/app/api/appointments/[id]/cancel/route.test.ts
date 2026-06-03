@@ -98,12 +98,12 @@ describe('POST /api/appointments/[id]/cancel', () => {
     const res = await POST(makeRequest({ token: 'tok' }), { params: Promise.resolve({ id: '1' }) })
     expect(res.status).toBe(409)
     const json = await res.json()
-    expect(json.error).toContain('12 horas')
+    expect(json.error).toContain('24 horas')
   })
 
-  it('cancels appointment when token matches and more than 12h remain', async () => {
+  it('cancels appointment when token matches and more than 24h remain', async () => {
     vi.mocked(prisma.appointment.findUnique).mockResolvedValue(
-      makeAppointment(24) satisfies MockAppointment
+      makeAppointment(48) satisfies MockAppointment
     )
     vi.mocked(prisma.appointment.update).mockResolvedValue({} satisfies Record<string, never>)
     const res = await POST(makeRequest({ token: 'tok' }), { params: Promise.resolve({ id: '1' }) })
