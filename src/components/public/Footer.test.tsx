@@ -13,6 +13,7 @@ vi.mock('@/lib/config', () => ({
   },
   WHATSAPP_URL: 'https://wa.me/573001234567',
   MAILTO_URL: 'mailto:hola@valentinajimenez.com',
+  INSTAGRAM_URL: 'https://instagram.com/test', 
 }))
 
 describe('Footer', () => {
