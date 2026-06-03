@@ -67,7 +67,10 @@ patches:
         value: "appointment-scheduling-dev-assets"
       - op: replace
         path: /data/ENABLE_EMAILS
-        value: "false"
+        value: "true"
+      - op: replace
+        path: /data/SES_FROM_EMAIL
+        value: "valentinajimenezbeautystudio@gmail.com"
 
 images:
   - name: appointment-scheduling
