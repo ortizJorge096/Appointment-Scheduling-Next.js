@@ -125,7 +125,13 @@ export default function GaleriaAdminPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ isActive: !img.isActive }),
     })
-    if ((await r.json()).success) load()
+    const j = await r.json()
+    if (j.success) {
+      flashSuccess(img.isActive ? 'Imagen ocultada' : 'Imagen activada')
+      load()
+    } else {
+      setError(j.error ?? 'No se pudo actualizar')
+    }
   }
 
   async function deleteImage(img: GalleryImage) {
