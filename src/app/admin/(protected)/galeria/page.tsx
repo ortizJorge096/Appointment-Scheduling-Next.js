@@ -21,11 +21,14 @@ interface GalleryImage {
 const MAX_BYTES = 5 * 1024 * 1024  // 5 MB
 
 export default function GaleriaAdminPage() {
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const fileInputRef    = useRef<HTMLInputElement>(null)
+  const replaceInputRef = useRef<HTMLInputElement>(null)
+  const replacingImgRef = useRef<GalleryImage | null>(null)
 
   const [images, setImages]   = useState<GalleryImage[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
+  const [replacingId, setReplacingId] = useState<string | null>(null)
   const [progress, setProgress]   = useState(0)
   const [error, setError]         = useState<string | null>(null)
   const [success, setSuccess]     = useState<string | null>(null)
@@ -104,6 +107,59 @@ export default function GaleriaAdminPage() {
     }
   }
 
+  async function replaceImage(img: GalleryImage, file: File) {
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setError('Solo se permiten JPG, PNG o WebP'); return
+    }
+    if (file.size > MAX_BYTES) {
+      setError('La imagen supera los 5 MB'); return
+    }
+    setReplacingId(img.id)
+    setProgress(0)
+    setError(null)
+    try {
+      // 1. URL firmada para la nueva imagen
+      const r1 = await fetch('/api/gallery/upload-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: file.name, contentType: file.type }),
+      })
+      const j1 = await r1.json()
+      if (!j1.success) { setError(j1.error ?? 'No se pudo iniciar la subida'); return }
+
+      // 2. PUT directo a S3
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest()
+        xhr.open('PUT', j1.data.uploadUrl)
+        xhr.setRequestHeader('Content-Type', file.type)
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) setProgress(Math.round((e.loaded / e.total) * 100))
+        }
+        xhr.onload  = () => xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(`S3 PUT ${xhr.status}`))
+        xhr.onerror = () => reject(new Error('Error de red al subir a S3'))
+        xhr.send(file)
+      })
+
+      // 3. Actualizar la BD con la nueva s3Key (el API borra la anterior en S3)
+      const r2 = await fetch(`/api/gallery/${img.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ s3Key: j1.data.key }),
+      })
+      const j2 = await r2.json()
+      if (!j2.success) { setError(j2.error ?? 'Imagen subida pero no actualizada en BD'); return }
+
+      flashSuccess('Imagen reemplazada')
+      load()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error al reemplazar')
+    } finally {
+      setReplacingId(null)
+      setProgress(0)
+      if (replaceInputRef.current) replaceInputRef.current.value = ''
+    }
+  }
+
   async function saveEdit(id: string) {
     const r = await fetch(`/api/gallery/${id}`, {
       method: 'PATCH',
@@ -169,6 +225,17 @@ export default function GaleriaAdminPage() {
             disabled={uploading}
             onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
           />
+          <input
+            ref={replaceInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              const img = replacingImgRef.current
+              if (file && img) { replacingImgRef.current = null; replaceImage(img, file) }
+            }}
+          />
         </label>
       </div>
 
@@ -233,6 +300,12 @@ export default function GaleriaAdminPage() {
                           className="text-xs text-ink-muted hover:text-gold disabled:opacity-20 px-1">↓</button>
                       </div>
                       <div className="flex items-center gap-3 text-xs">
+                        <button
+                          onClick={() => { replacingImgRef.current = img; replaceInputRef.current?.click() }}
+                          disabled={replacingId === img.id}
+                          className="text-ink-muted hover:text-gold disabled:opacity-40">
+                          {replacingId === img.id ? `${progress}%` : 'Imagen'}
+                        </button>
                         <button onClick={() => { setEditing(img.id); setEditForm({ title: img.title ?? '', description: img.description ?? '', category: img.category ?? '' }) }}
                           className="text-ink-muted hover:text-gold">Editar</button>
                         <button onClick={() => toggleActive(img)}
