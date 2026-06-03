@@ -163,6 +163,7 @@ export const galleryCreateSchema = z.object({
 })
 
 export const galleryUpdateSchema = z.object({
+  s3Key:       z.string().min(1).max(300).optional(),
   title:       z.string().max(120).nullable().optional(),
   description: z.string().max(300).nullable().optional(),
   category:    z.enum(['UNAS', 'PESTANAS', 'CEJAS', 'PROMOS']).nullable().optional(),

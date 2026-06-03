@@ -44,6 +44,17 @@ export async function PATCH(
   }
 
   try {
+    // Si se reemplaza la imagen, borrar el objeto anterior de S3
+    if (parsed.data.s3Key) {
+      const current = await prisma.galleryImage.findUnique({
+        where: { id },
+        select: { s3Key: true },
+      })
+      if (current && current.s3Key !== parsed.data.s3Key) {
+        await deleteObject(current.s3Key)
+      }
+    }
+
     const updated = await prisma.galleryImage.update({
       where: { id },
       data: parsed.data,

@@ -71,6 +71,12 @@ patches:
       - op: replace
         path: /data/SES_FROM_EMAIL
         value: "valentinajimenezbeautystudio@gmail.com"
+      - op: replace
+        path: /data/NEXT_PUBLIC_APP_URL
+        value: "https://appointment-scheduling.example.com"
+      - op: replace
+        path: /data/NEXTAUTH_URL
+        value: "https://appointment-scheduling.example.com"
 
 images:
   - name: appointment-scheduling
