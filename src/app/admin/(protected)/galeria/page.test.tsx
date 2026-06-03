@@ -1,5 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { render, screen } from '@testing-library/react'
 import GaleriaAdminPage from './page'
 
 const MOCK_IMAGES = [
@@ -71,17 +70,28 @@ describe('GaleriaAdminPage', () => {
     expect(screen.getByText('Uñas')).toBeInTheDocument()
   })
 
-  it('renderiza botón "Imagen" para reemplazar', async () => {
+  it('renderiza botón "Imagen" para reemplazar en cada imagen', async () => {
     render(<GaleriaAdminPage />)
     const replaceBtns = await screen.findAllByText('Imagen')
     expect(replaceBtns).toHaveLength(2)
   })
 
-  it('renderiza botones de editar, ocultar/mostrar y borrar', async () => {
+  it('renderiza botón Editar en cada imagen', async () => {
     render(<GaleriaAdminPage />)
     await screen.findByText('Manicura')
-    expect(screen.getByText('Editar')).toBeInTheDocument()
+    expect(screen.getAllByText('Editar')).toHaveLength(2)
+  })
+
+  it('renderiza Ocultar para imagen activa y Mostrar para inactiva', async () => {
+    render(<GaleriaAdminPage />)
+    await screen.findByText('Manicura')
     expect(screen.getByText('Ocultar')).toBeInTheDocument()
-    expect(screen.getByText('Borrar')).toBeInTheDocument()
+    expect(screen.getByText('Mostrar')).toBeInTheDocument()
+  })
+
+  it('renderiza botón Borrar en cada imagen', async () => {
+    render(<GaleriaAdminPage />)
+    await screen.findByText('Manicura')
+    expect(screen.getAllByText('Borrar')).toHaveLength(2)
   })
 })
