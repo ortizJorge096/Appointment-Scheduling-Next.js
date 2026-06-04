@@ -23,6 +23,7 @@ export default function Footer() {
               { label: 'Servicios',    href: '/#servicios' },
               { label: 'Galería',     href: '/#galeria'   },
               { label: 'Nosotros',    href: '/#nosotros'  },
+              { label: 'FAQ',         href: '/#faq'       },
               { label: 'Agendar cita',href: '/agendar'   },
             ].map((l) => (
               <li key={l.href}>

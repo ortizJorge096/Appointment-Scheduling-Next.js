@@ -16,9 +16,11 @@ export default function GlobalError({
             <p className="text-ink-muted mb-2">
               No pudimos cargar la aplicación. Recarga la página.
             </p>
-            <p className="text-xs text-ink-muted mb-8 font-mono">
-              {error.digest ?? error.message}
-            </p>
+            {error.digest && (
+              <p className="text-xs text-ink-muted mb-8 font-mono">
+                Ref: {error.digest}
+              </p>
+            )}
             <button onClick={reset} className="btn-primary">
               Recargar
             </button>

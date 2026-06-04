@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { STUDIO } from '@/lib/config'
-import { toZonedTime } from 'date-fns-tz'
+import { toZonedTime, fromZonedTime } from 'date-fns-tz'
 import { format } from 'date-fns'
 
 export async function POST(
@@ -52,13 +52,12 @@ export async function POST(
   }
 
   // Solo se puede cancelar con al menos 24 horas de anticipación.
-  // La fecha se almacena en UTC pero el startTime está en hora Colombia (UTC-5).
-  // Convertimos la fecha al timezone del negocio antes de construir el datetime.
+  // appointment.date está en UTC; startTime está en hora Colombia (UTC-5).
+  // Usamos fromZonedTime para construir el timestamp UTC correcto del inicio de la cita.
   const CANCEL_LIMIT_HOURS = 24
-  const dateInBogota = toZonedTime(appointment.date, STUDIO.timezone)
-  const dateStr = format(dateInBogota, 'yyyy-MM-dd')
-  const appointmentAt = toZonedTime(
-    new Date(`${dateStr}T${appointment.startTime}:00`),
+  const dateStr = format(toZonedTime(appointment.date, STUDIO.timezone), 'yyyy-MM-dd')
+  const appointmentAt = fromZonedTime(
+    `${dateStr}T${appointment.startTime}:00`,
     STUDIO.timezone
   )
   const hoursUntil = (appointmentAt.getTime() - Date.now()) / (1000 * 60 * 60)
