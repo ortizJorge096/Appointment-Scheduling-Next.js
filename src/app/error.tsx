@@ -16,9 +16,12 @@ export default function ErrorPage({
         <p className="text-ink-muted mb-2">
           Ocurrió un error inesperado. Ya lo registramos.
         </p>
-        <p className="text-xs text-ink-muted mb-8 font-mono">
-          {error.digest ?? error.message}
-        </p>
+        {/* Solo mostramos el digest (opaco) — nunca el mensaje interno en producción */}
+        {error.digest && (
+          <p className="text-xs text-ink-muted mb-8 font-mono">
+            Ref: {error.digest}
+          </p>
+        )}
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <button onClick={reset} className="btn-primary">
             Intentar de nuevo

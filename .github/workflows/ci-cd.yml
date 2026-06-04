@@ -341,6 +341,20 @@ jobs:
           cd "$GITHUB_WORKSPACE"
 
           kustomize build infra/k8s/overlays/prod | kubectl apply -f -
+
+          # Refrescar Secret con valores actuales de SSM (por si rotaron)
+          DATABASE_URL=$(aws ssm get-parameter --region us-east-1 \
+            --name /appointment-scheduling-prod/db/url \
+            --with-decryption --query Parameter.Value --output text)
+          NEXTAUTH_SECRET=$(aws ssm get-parameter --region us-east-1 \
+            --name /appointment-scheduling-prod/nextauth/secret \
+            --with-decryption --query Parameter.Value --output text)
+          kubectl -n appointment-scheduling create secret generic appointment-scheduling-secret \
+            --from-literal=DATABASE_URL="$DATABASE_URL" \
+            --from-literal=NEXTAUTH_SECRET="$NEXTAUTH_SECRET" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+          kubectl -n appointment-scheduling rollout restart deployment/appointment-scheduling
           kubectl -n appointment-scheduling rollout status deployment/appointment-scheduling --timeout=600s
 
       - name: Print cluster state (audit)

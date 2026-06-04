@@ -15,15 +15,35 @@ interface NextSlot {
   }
 }
 
+interface ServicePreview {
+  id: string
+  name: string
+  price: number
+  durationMinutes: number
+}
+
+function formatPrice(price: number): string {
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency', currency: 'COP', minimumFractionDigits: 0,
+  }).format(price)
+}
+
 export default function NextAvailability() {
-  const [slot, setSlot] = useState<NextSlot | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [slot, setSlot]         = useState<NextSlot | null>(null)
+  const [preview, setPreview]   = useState<ServicePreview[]>([])
+  const [loading, setLoading]   = useState(true)
 
   useEffect(() => {
-    fetch('/api/availability/next')
-      .then((r) => r.json())
-      .then((json) => {
-        if (json.success && json.data) setSlot(json.data)
+    // Cargar siguiente slot disponible y primeros 2 servicios activos en paralelo
+    Promise.all([
+      fetch('/api/availability/next').then((r) => r.json()),
+      fetch('/api/services').then((r) => r.json()),
+    ])
+      .then(([nextJson, svcJson]) => {
+        if (nextJson.success && nextJson.data) setSlot(nextJson.data)
+        if (svcJson.success && Array.isArray(svcJson.data)) {
+          setPreview(svcJson.data.slice(0, 2))
+        }
       })
       .catch(() => {})
       .finally(() => setLoading(false))
@@ -81,18 +101,17 @@ export default function NextAvailability() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
-        {[
-          { label: 'Lifting de pestañas', price: '$70.000', dur: '60 min' },
-          { label: 'Cejas laminadas',     price: '$50.000', dur: '60 min' },
-        ].map((s) => (
-          <div key={s.label} className="bg-white/[0.04] border border-white/10 p-4">
-            <p className="text-white/70 text-sm font-medium mb-3">{s.label}</p>
-            <p className="text-gold font-medium">{s.price}</p>
-            <p className="text-xs text-white/30 mt-0.5">{s.dur}</p>
-          </div>
-        ))}
-      </div>
+      {preview.length > 0 && (
+        <div className="grid grid-cols-2 gap-3">
+          {preview.map((s) => (
+            <div key={s.id} className="bg-white/[0.04] border border-white/10 p-4">
+              <p className="text-white/70 text-sm font-medium mb-3 leading-snug">{s.name}</p>
+              <p className="text-gold font-medium">{formatPrice(s.price)}</p>
+              <p className="text-xs text-white/30 mt-0.5">{s.durationMinutes} min</p>
+            </div>
+          ))}
+        </div>
+      )}
     </>
   )
 }
