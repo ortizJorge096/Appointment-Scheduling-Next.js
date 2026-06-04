@@ -4,6 +4,7 @@ import Hero from '@/components/public/Hero'
 import ServicesGrid from '@/components/public/ServicesGrid'
 import Galeria from '@/components/public/Galeria'
 import BookingSection from '@/components/public/BookingSection'
+import FAQ from '@/components/public/FAQ'
 import Footer from '@/components/public/Footer'
 import { STUDIO, WHATSAPP_URL, MAILTO_URL } from '@/lib/config'
 
@@ -21,6 +22,7 @@ export default function HomePage() {
         <NosotrosSection />
         <BookingSection />
         <ContactoSection />
+        <FAQ />
       </main>
       <Footer />
     </>

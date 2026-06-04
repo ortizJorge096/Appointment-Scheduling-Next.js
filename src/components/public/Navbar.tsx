@@ -8,6 +8,7 @@ const SECTIONS = [
   { label: 'Servicios', anchor: 'servicios' },
   { label: 'Galería',   anchor: 'galeria'   },
   { label: 'Nosotros',  anchor: 'nosotros'  },
+  { label: 'FAQ',       anchor: 'faq'       },
   { label: 'Contacto',  anchor: 'contacto'  },
 ]
 
