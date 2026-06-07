@@ -174,8 +174,7 @@ export default function BookingForm() {
   function selectService(id: string) {
     updateForm('serviceId', id)
     setStepError(null)
-    // Auto-avance con breve delay para que la usuaria vea la selección marcada
-    setTimeout(() => setStep('datetime'), 280)
+    setTimeout(() => continueRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 80)
   }
 
   function selectCategory(cat: string) {
