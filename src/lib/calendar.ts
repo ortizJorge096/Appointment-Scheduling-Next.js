@@ -8,6 +8,8 @@
 // GOOGLE_CALENDAR_ID   → ID del calendario (ConfigMap)
 
 import { google } from 'googleapis'
+import { format } from 'date-fns'
+import { toZonedTime } from 'date-fns-tz'
 import { STUDIO } from './config'
 import type { AppointmentWithService } from '@/types'
 
@@ -42,9 +44,6 @@ const calendarEnabled = () =>
  * appointment.date es UTC medianoche del día; startTime/endTime son "HH:MM" en hora Colombia.
  */
 function buildEventDateTime(dateUtc: Date | string, time: string) {
-  const { format } = require('date-fns')
-  const { toZonedTime } = require('date-fns-tz')
-
   const dateStr = format(toZonedTime(new Date(dateUtc), STUDIO.timezone), 'yyyy-MM-dd')
   return {
     dateTime: `${dateStr}T${time}:00`,

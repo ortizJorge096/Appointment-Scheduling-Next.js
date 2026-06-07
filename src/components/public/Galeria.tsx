@@ -3,7 +3,7 @@
 // fallback elegante a gradientes si aún no hay nada subido.
 
 import { prisma } from '@/lib/prisma'
-import { STUDIO, categoryLabel, INSTAGRAM_URL, TIKTOK_URL } from '@/lib/config'
+import { categoryLabel, INSTAGRAM_URL, TIKTOK_URL } from '@/lib/config'
 import { getPublicUrl } from '@/lib/s3'
 
 const PLACEHOLDER_GRADIENTS = [
