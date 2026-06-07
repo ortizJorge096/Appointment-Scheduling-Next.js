@@ -46,9 +46,10 @@ async function navigateToInfoStep(user: ReturnType<typeof userEvent.setup>) {
   await user.click(catBtn)
   await user.click(screen.getByText(/Continuar/))
 
-  // Step 2 — service: click Manicura, component auto-advances after 280ms
+  // Step 2 — service: click Manicura then Continuar (no auto-advance)
   const svcBtn = await screen.findByText('Manicura')
   await user.click(svcBtn)
+  await user.click(screen.getByText(/Continuar/))
 
   // Step 3 — datetime: click time slot then Continuar
   const timeBtn = await screen.findByText('10:00')
