@@ -24,6 +24,19 @@ resource "aws_ssm_parameter" "nextauth_secret" {
   }
 }
 
+resource "aws_ssm_parameter" "google_calendar_key" {
+  name        = "/${var.name_prefix}/google/calendar-private-key"
+  description = "Google Calendar Service Account private key para ${var.name_prefix}"
+  type        = "SecureString"
+  value       = "PLACEHOLDER — reemplazar con la private_key del JSON de la Service Account"
+  tags = {
+    Component = "secrets"
+  }
+  lifecycle {
+    ignore_changes = [value]
+  }
+}
+
 module "network" {
   source = "../../modules/network"
 

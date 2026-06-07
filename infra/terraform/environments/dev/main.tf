@@ -23,6 +23,24 @@ resource "aws_ssm_parameter" "nextauth_secret" {
   }
 }
 
+# Google Calendar Service Account private key.
+# Terraform crea el parámetro con un placeholder; actualiza el valor real
+# una sola vez vía AWS Console o CLI después del primer terraform apply:
+#   aws ssm put-parameter --name /${var.name_prefix}/google/calendar-private-key \
+#     --type SecureString --value "$(cat key.json | jq -r .private_key)" --overwrite
+resource "aws_ssm_parameter" "google_calendar_key" {
+  name        = "/${var.name_prefix}/google/calendar-private-key"
+  description = "Google Calendar Service Account private key para ${var.name_prefix}"
+  type        = "SecureString"
+  value       = "PLACEHOLDER — reemplazar con la private_key del JSON de la Service Account"
+  tags = {
+    Component = "secrets"
+  }
+  lifecycle {
+    ignore_changes = [value]
+  }
+}
+
 # ─── Módulos ──────────────────────────────────────────────────────────────
 module "network" {
   source = "../../modules/network"
@@ -184,19 +202,6 @@ module "monitoring" {
   enable_memory_disk_alarms = true
 
   tags = { Component = "observability" }
-}
-
-# ── RDS Scheduler — apaga a las 22:00 COL, enciende a las 07:00 COL ──────
-# Activa con: enable_rds_scheduler = true en terraform.tfvars
-module "rds_scheduler" {
-  count  = var.enable_rds_scheduler ? 1 : 0
-  source = "../../modules/rds-scheduler"
-
-  name_prefix            = var.name_prefix
-  db_instance_identifier = module.rds.db_instance_identifier
-  db_instance_arn        = module.rds.db_instance_arn
-
-  tags = { Component = "cost-optimization" }
 }
 
 # ── RDS Scheduler — apaga la BD cada hora (solo dev) ─────────────────────
