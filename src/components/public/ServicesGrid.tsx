@@ -52,7 +52,7 @@ export default async function ServicesGrid() {
           </h2>
           <p className="text-ink-muted text-sm mt-5 max-w-md mx-auto leading-relaxed">
             Cada servicio se reserva en línea con confirmación inmediata.
-            Toca una tarjeta para agendar.
+            Pasa el cursor sobre una tarjeta para ver precio y reservar.
           </p>
         </div>
 
@@ -87,22 +87,12 @@ export default async function ServicesGrid() {
               {/* Tarjetas de servicios */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {items.map((svc) => (
-                  <Link
+                  <div
                     key={svc.id}
-                    href={`/agendar?service=${svc.id}`}
                     className="group relative bg-white border border-beige-dark
-                               hover:border-gold/60
-                               transition-all duration-300
-                               p-7 flex flex-col gap-3
-                               hover:-translate-y-1
-                               hover:shadow-[0_8px_30px_rgba(184,147,42,0.12)]"
+                               transition-all duration-300 p-7 flex flex-col gap-3"
                   >
-                    {/* Acento gold lateral en hover */}
-                    <span className="absolute left-0 top-6 bottom-6 w-[2px] bg-gold
-                                     scale-y-0 group-hover:scale-y-100
-                                     origin-center transition-transform duration-300" />
-
-                    {/* Ornamento + categoría — diminuto, decorativo */}
+                    {/* Ornamento + categoría */}
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-gold/40 text-xs">{CATEGORY_ORNAMENTS[cat] ?? '✦'}</span>
                       <span className="text-[10px] tracking-widest uppercase text-ink-muted/60">
@@ -111,8 +101,7 @@ export default async function ServicesGrid() {
                     </div>
 
                     {/* Nombre */}
-                    <h4 className="font-serif text-xl text-ink leading-tight
-                                   group-hover:text-gold-dark transition-colors duration-300">
+                    <h4 className="font-serif text-xl text-ink leading-tight">
                       {svc.name}
                     </h4>
 
@@ -123,12 +112,13 @@ export default async function ServicesGrid() {
                       </p>
                     )}
 
-                    {/* Pie: precio (anclaje visual) + duración + CTA */}
+                    {/* Pie: precio + duración + botón Reservar — visible solo en hover */}
                     <div className="flex items-end justify-between pt-4 mt-2
-                                    border-t border-beige-dark/60">
+                                    border-t border-beige-dark/60
+                                    opacity-0 group-hover:opacity-100
+                                    transition-opacity duration-300">
                       <div>
-                        <p className="text-gold font-medium text-base leading-none
-                                      group-hover:text-gold-dark transition-colors">
+                        <p className="text-gold font-medium text-base leading-none">
                           {formatPrice(svc.price)}
                         </p>
                         <p className="flex items-center gap-1.5 text-[11px] text-ink-muted mt-1">
@@ -136,14 +126,17 @@ export default async function ServicesGrid() {
                           {svc.durationMinutes} min
                         </p>
                       </div>
-                      <span className="text-xs tracking-widest uppercase font-medium
-                                       text-gold/70 group-hover:text-gold transition-colors">
-                        Reservar
-                        <span className="inline-block ml-1.5 transition-transform duration-300
-                                         group-hover:translate-x-1">→</span>
-                      </span>
+                      <Link
+                        href={`/agendar?service=${svc.id}`}
+                        className="text-xs tracking-widest uppercase font-medium px-4 py-2
+                                   border border-gold text-gold
+                                   hover:bg-gold hover:text-white
+                                   transition-all duration-200"
+                      >
+                        Reservar →
+                      </Link>
                     </div>
-                  </Link>
+                  </div>
                 ))}
               </div>
             </div>
