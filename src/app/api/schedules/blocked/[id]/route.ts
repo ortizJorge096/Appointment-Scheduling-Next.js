@@ -22,9 +22,14 @@ export async function DELETE(
     )
   }
 
-  await prisma.blockedDate.delete({
-    where: { id },
-  })
+  try {
+    await prisma.blockedDate.delete({ where: { id } })
+  } catch {
+    return NextResponse.json(
+      { success: false, error: 'Fecha bloqueada no encontrada' },
+      { status: 404 }
+    )
+  }
 
   return NextResponse.json({
     success: true,

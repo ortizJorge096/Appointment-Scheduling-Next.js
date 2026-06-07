@@ -36,7 +36,7 @@ export default async function ServicesGrid() {
     .filter((g) => g.items.length > 0)
 
   return (
-    <section id="servicios" className="py-24 bg-white relative overflow-hidden">
+    <section id="servicios" className="py-24 bg-beige/20 relative overflow-hidden">
       {/* Decoración sutil de fondo */}
       <div
         className="absolute -top-40 -right-40 w-[480px] h-[480px] rounded-full pointer-events-none opacity-[0.04]"
@@ -90,6 +90,7 @@ export default async function ServicesGrid() {
                   <div
                     key={svc.id}
                     className="group relative bg-white border border-beige-dark
+                               hover:border-gold/50 hover:shadow-sm
                                transition-all duration-300 p-7 flex flex-col gap-3"
                   >
                     {/* Ornamento + categoría */}
@@ -112,29 +113,30 @@ export default async function ServicesGrid() {
                       </p>
                     )}
 
-                    {/* Pie: precio + duración + botón Reservar — visible solo en hover */}
-                    <div className="flex items-end justify-between pt-4 mt-2
-                                    border-t border-beige-dark/60
-                                    opacity-0 group-hover:opacity-100
-                                    transition-opacity duration-300">
-                      <div>
-                        <p className="text-gold font-medium text-base leading-none">
-                          {formatPrice(svc.price)}
-                        </p>
-                        <p className="flex items-center gap-1.5 text-[11px] text-ink-muted mt-1">
-                          <span className="w-1 h-1 rounded-full bg-gold/40" />
-                          {svc.durationMinutes} min
-                        </p>
+                    {/* Pie: precio + duración + botón Reservar — se despliega en hover */}
+                    <div className="overflow-hidden max-h-0 group-hover:max-h-32
+                                    transition-all duration-300 ease-in-out">
+                      <div className="flex items-end justify-between pt-4 mt-2
+                                      border-t border-beige-dark/60">
+                        <div>
+                          <p className="text-gold font-medium text-base leading-none">
+                            {formatPrice(svc.price)}
+                          </p>
+                          <p className="flex items-center gap-1.5 text-[11px] text-ink-muted mt-1">
+                            <span className="w-1 h-1 rounded-full bg-gold/40" />
+                            {svc.durationMinutes} min
+                          </p>
+                        </div>
+                        <Link
+                          href={`/agendar?service=${svc.id}`}
+                          className="text-xs tracking-widest uppercase font-medium px-4 py-2
+                                     border border-gold text-gold
+                                     hover:bg-gold hover:text-white
+                                     transition-all duration-200"
+                        >
+                          Reservar →
+                        </Link>
                       </div>
-                      <Link
-                        href={`/agendar?service=${svc.id}`}
-                        className="text-xs tracking-widest uppercase font-medium px-4 py-2
-                                   border border-gold text-gold
-                                   hover:bg-gold hover:text-white
-                                   transition-all duration-200"
-                      >
-                        Reservar →
-                      </Link>
                     </div>
                   </div>
                 ))}

@@ -41,5 +41,6 @@ spec:
         - ipBlock:
             cidr: 0.0.0.0/0
             except:
-              # Bloquear acceso a la metadata service de EC2.
+              # El SDK de AWS necesita 169.254.169.254 para obtener credenciales
+              # temporales vía Instance Profile (S3, SES, ECR). No bloquear.
               # - 169.254.169.254/32

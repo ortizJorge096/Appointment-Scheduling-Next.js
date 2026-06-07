@@ -20,7 +20,12 @@ export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 })
 
-  const body   = await request.json()
+  let body: unknown
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ success: false, error: 'Body inválido' }, { status: 400 })
+  }
   const parsed = blockedDateSchema.safeParse(body)
   if (!parsed.success) {
     return NextResponse.json({ success: false, error: parsed.error.errors[0].message }, { status: 400 })
