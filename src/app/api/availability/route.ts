@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAvailableSlots } from '@/lib/availability'
 import { availabilityQuerySchema } from '@/lib/validations'
+import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
 import type { ApiResponse, AvailabilityResponse } from '@/types'
 
 export async function GET(
@@ -34,6 +35,7 @@ export async function GET(
       data: { date, slots, serviceDuration: durationMinutes },
     })
   } catch (error) {
+    if (isDbUnavailable(error)) return dbUnavailableResponse()
     const message = error instanceof Error ? error.message : 'Error interno'
     return NextResponse.json(
       { success: false, error: message },

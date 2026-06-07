@@ -10,6 +10,7 @@ import { createAppointmentSchema } from '@/lib/validations'
 import { isSlotAvailable, timeToMinutes, minutesToTime } from '@/lib/availability'
 import { sendConfirmationEmail } from '@/lib/email'
 import { createCalendarEvent } from '@/lib/calendar'
+import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
 import type { ApiResponse, AppointmentWithService } from '@/types'
 
 // ─────────────────────────────────────────
@@ -74,20 +75,27 @@ export async function GET(
     }
   }
 
-  const [appointments, total] = await Promise.all([
-    prisma.appointment.findMany({
-      where,
-      include: {
-        service: {
-          select: { id: true, name: true, price: true, durationMinutes: true },
+  let appointments, total
+  try {
+    ;[appointments, total] = await Promise.all([
+      prisma.appointment.findMany({
+        where,
+        include: {
+          service: {
+            select: { id: true, name: true, price: true, durationMinutes: true },
+          },
         },
-      },
-      orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
-      skip: (page - 1) * limit,
-      take: limit,
-    }),
-    prisma.appointment.count({ where }),
-  ])
+        orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.appointment.count({ where }),
+    ])
+  } catch (err) {
+    if (isDbUnavailable(err)) return dbUnavailableResponse()
+    console.error('Error listando citas:', err)
+    return NextResponse.json({ success: false, error: 'Error interno' }, { status: 500 })
+  }
 
   return NextResponse.json({
     success: true,
@@ -141,10 +149,16 @@ export async function POST(
     parsed.data
 
   // Verificar que el servicio existe
-  const service = await prisma.service.findUnique({
-    where: { id: serviceId, isActive: true },
-    select: { id: true, name: true, price: true, durationMinutes: true },
-  })
+  let service
+  try {
+    service = await prisma.service.findUnique({
+      where: { id: serviceId, isActive: true },
+      select: { id: true, name: true, price: true, durationMinutes: true },
+    })
+  } catch (err) {
+    if (isDbUnavailable(err)) return dbUnavailableResponse()
+    return NextResponse.json({ success: false, error: 'Error interno' }, { status: 500 })
+  }
 
   if (!service) {
     return NextResponse.json(
@@ -154,7 +168,13 @@ export async function POST(
   }
 
   // Verificación previa (horario válido, no pasado, día abierto, no bloqueado)
-  const available = await isSlotAvailable(date, startTime, serviceId)
+  let available
+  try {
+    available = await isSlotAvailable(date, startTime, serviceId)
+  } catch (err) {
+    if (isDbUnavailable(err)) return dbUnavailableResponse()
+    return NextResponse.json({ success: false, error: 'Error interno' }, { status: 500 })
+  }
   if (!available) {
     return NextResponse.json(
       { success: false, error: 'Este horario ya no está disponible. Por favor elige otro.' },
@@ -216,6 +236,7 @@ export async function POST(
         { status: 409 }
       )
     }
+    if (isDbUnavailable(err)) return dbUnavailableResponse()
     console.error('Error creando cita:', err)
     return NextResponse.json(
       { success: false, error: 'No se pudo crear la cita. Intenta de nuevo.' },

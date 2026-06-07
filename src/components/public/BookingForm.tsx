@@ -226,10 +226,15 @@ export default function BookingForm() {
   async function handleSubmit() {
     setSubmitting(true)
     setSubmitError(null)
+
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 12_000) // 12s máximo
+
     try {
       const res = await fetch('/api/appointments', {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal:  controller.signal,
         body: JSON.stringify({
           serviceId:   form.serviceId,
           date:        form.date,
@@ -240,7 +245,10 @@ export default function BookingForm() {
           notes:       form.notes.trim() || undefined,
         }),
       })
+
+      clearTimeout(timeout)
       const json = await res.json()
+
       if (!json.success) {
         if (res.status === 409) {
           setForm((prev) => ({ ...prev, startTime: '' }))
@@ -248,12 +256,21 @@ export default function BookingForm() {
           setSubmitError(json.error ?? 'Este horario acaba de ser reservado. Por favor elige otro.')
           return
         }
+        if (res.status === 503) {
+          setSubmitError('El sistema está en mantenimiento. Por favor intenta en unos minutos.')
+          return
+        }
         setSubmitError(json.error ?? 'Ocurrió un error. Intenta de nuevo.')
         return
       }
       router.push(`/confirmacion?id=${json.data.id}`)
-    } catch {
-      setSubmitError('Error de conexión. Por favor intenta de nuevo.')
+    } catch (err) {
+      clearTimeout(timeout)
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        setSubmitError('La solicitud tardó demasiado. Verifica tu conexión e intenta de nuevo.')
+      } else {
+        setSubmitError('Error de conexión. Por favor intenta de nuevo.')
+      }
     } finally {
       setSubmitting(false)
     }
