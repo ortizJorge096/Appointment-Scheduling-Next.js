@@ -9,6 +9,9 @@ const envSchema = z.object({
   SES_FROM_EMAIL: z.string().email().optional(),
   ENABLE_EMAILS: z.string().optional(),
   NEXT_PUBLIC_APP_URL: z.string().optional(),
+  GOOGLE_CLIENT_EMAIL: z.string().email().optional(),
+  GOOGLE_PRIVATE_KEY: z.string().optional(),
+  GOOGLE_CALENDAR_ID: z.string().optional(),
 })
 
 const parsed = envSchema.safeParse(process.env)

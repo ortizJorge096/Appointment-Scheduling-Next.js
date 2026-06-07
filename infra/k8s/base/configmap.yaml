@@ -25,3 +25,7 @@ data:
   NEXTAUTH_URL: "http://appointment-scheduling.example.com"
   NEXT_PUBLIC_APP_URL: "http://appointment-scheduling.example.com"
   NEXT_PUBLIC_APP_NAME: "Valentina Jimenez Beauty Studio"
+
+  # Google Calendar — la private key va en el Secret (SSM), no aquí.
+  GOOGLE_CLIENT_EMAIL: ""
+  GOOGLE_CALENDAR_ID: ""

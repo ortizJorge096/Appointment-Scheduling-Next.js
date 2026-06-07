@@ -9,6 +9,7 @@ import { prisma } from '@/lib/prisma'
 import { createAppointmentSchema } from '@/lib/validations'
 import { isSlotAvailable, timeToMinutes, minutesToTime } from '@/lib/availability'
 import { sendConfirmationEmail } from '@/lib/email'
+import { createCalendarEvent } from '@/lib/calendar'
 import type { ApiResponse, AppointmentWithService } from '@/types'
 
 // ─────────────────────────────────────────
@@ -222,15 +223,26 @@ export async function POST(
     )
   }
 
-  // Enviar email de confirmación (no bloqueante)
-  sendConfirmationEmail(appointment as AppointmentWithService)
-    .then(async () => {
-      await prisma.appointment.update({
+  // Tareas no bloqueantes: email de confirmación + evento en Google Calendar
+  Promise.all([
+    sendConfirmationEmail(appointment as AppointmentWithService)
+      .then(() => prisma.appointment.update({
         where: { id: appointment.id },
-        data: { confirmationSentAt: new Date() },
+        data:  { confirmationSentAt: new Date() },
+      }))
+      .catch((err) => console.error('Error enviando confirmación:', err)),
+
+    createCalendarEvent(appointment as AppointmentWithService)
+      .then((eventId) => {
+        if (eventId) {
+          return prisma.appointment.update({
+            where: { id: appointment.id },
+            data:  { calendarEventId: eventId },
+          })
+        }
       })
-    })
-    .catch((err) => console.error('Error enviando confirmación:', err))
+      .catch((err) => console.error('Error creando evento de calendario:', err)),
+  ])
 
   return NextResponse.json(
     { success: true, data: appointment as AppointmentWithService },

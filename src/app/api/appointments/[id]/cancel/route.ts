@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { STUDIO } from '@/lib/config'
 import { toZonedTime, fromZonedTime } from 'date-fns-tz'
 import { format } from 'date-fns'
+import { deleteCalendarEvent } from '@/lib/calendar'
 
 export async function POST(
   _request: NextRequest,
@@ -71,10 +72,16 @@ export async function POST(
     )
   }
 
-  await prisma.appointment.update({
+  const updated = await prisma.appointment.update({
     where: { id },
     data: { status: 'CANCELLED' },
   })
+
+  // Eliminar el evento del calendario (no bloqueante)
+  if (updated.calendarEventId) {
+    deleteCalendarEvent(updated.calendarEventId)
+      .catch((err) => console.error('Error eliminando evento de calendario:', err))
+  }
 
   return NextResponse.json({ success: true, data: { id } })
 }

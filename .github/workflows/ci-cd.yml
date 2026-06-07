@@ -272,10 +272,12 @@ jobs:
           # kustomize sobrescribe el secret con un placeholder — restaurar valores reales
           DATABASE_URL=$(aws ssm get-parameter --region us-east-1 --name /appointment-scheduling-dev/db/url --with-decryption --query Parameter.Value --output text)
           NEXTAUTH_SECRET=$(aws ssm get-parameter --region us-east-1 --name /appointment-scheduling-dev/nextauth/secret --with-decryption --query Parameter.Value --output text)
+          GOOGLE_PRIVATE_KEY=$(aws ssm get-parameter --region us-east-1 --name /appointment-scheduling-dev/google/calendar-private-key --with-decryption --query Parameter.Value --output text)
           # Solo valores SENSIBLES en el Secret — el resto va en el ConfigMap (kustomize overlay)
           kubectl -n appointment-scheduling-dev create secret generic appointment-scheduling-secret \
             --from-literal=DATABASE_URL="$DATABASE_URL" \
             --from-literal=NEXTAUTH_SECRET="$NEXTAUTH_SECRET" \
+            --from-literal=GOOGLE_PRIVATE_KEY="$GOOGLE_PRIVATE_KEY" \
             --dry-run=client -o yaml | kubectl apply -f -
           kubectl -n appointment-scheduling-dev rollout restart deployment/appointment-scheduling
           kubectl -n appointment-scheduling-dev rollout status deployment/appointment-scheduling --timeout=600s
@@ -349,9 +351,13 @@ jobs:
           NEXTAUTH_SECRET=$(aws ssm get-parameter --region us-east-1 \
             --name /appointment-scheduling-prod/nextauth/secret \
             --with-decryption --query Parameter.Value --output text)
+          GOOGLE_PRIVATE_KEY=$(aws ssm get-parameter --region us-east-1 \
+            --name /appointment-scheduling-prod/google/calendar-private-key \
+            --with-decryption --query Parameter.Value --output text)
           kubectl -n appointment-scheduling create secret generic appointment-scheduling-secret \
             --from-literal=DATABASE_URL="$DATABASE_URL" \
             --from-literal=NEXTAUTH_SECRET="$NEXTAUTH_SECRET" \
+            --from-literal=GOOGLE_PRIVATE_KEY="$GOOGLE_PRIVATE_KEY" \
             --dry-run=client -o yaml | kubectl apply -f -
 
           kubectl -n appointment-scheduling rollout restart deployment/appointment-scheduling

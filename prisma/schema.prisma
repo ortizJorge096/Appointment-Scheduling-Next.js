@@ -60,6 +60,7 @@ model Appointment {
   status             AppointmentStatus @default(PENDING)
   notes              String?
   cancelToken        String            @unique @default(cuid())
+  calendarEventId    String?
   confirmationSentAt DateTime?
   reminderSentAt     DateTime?
   createdAt          DateTime          @default(now())
