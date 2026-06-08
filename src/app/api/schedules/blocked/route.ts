@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
   const blocked = await prisma.blockedDate.create({
     data: {
       date:   new Date(`${parsed.data.date}T12:00:00`),
-      reason: parsed.data.reason ?? null,
+            reason: parsed.data.reason ?? null,
     },
   })
 

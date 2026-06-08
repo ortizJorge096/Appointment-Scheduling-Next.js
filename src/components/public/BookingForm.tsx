@@ -593,7 +593,7 @@ export default function BookingForm() {
 
       {/* Navegación */}
       <div className="flex justify-between mt-10 pt-6 border-t border-beige-dark">
-        {step !== 'service' ? (
+             {step !== 'service' ? (
           <button type="button" onClick={handlePrev} className="btn-secondary" disabled={submitting}>← Atrás</button>
         ) : <span />}
         {step !== 'confirm' ? (

@@ -244,7 +244,7 @@ export async function POST(
     )
   }
 
-  // Tareas no bloqueantes: email de confirmación + evento en Google Calendar
+  // Tareas no bloqueantes: email de confirmación + evento en Google Cale  // Tareas no bloqueantes: email de confirmación + evento en Google Calendar
   Promise.all([
     sendConfirmationEmail(appointment as AppointmentWithService)
       .then(() => prisma.appointment.update({
