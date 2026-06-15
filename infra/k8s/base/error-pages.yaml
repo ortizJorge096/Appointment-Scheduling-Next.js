@@ -1,0 +1,297 @@
+# infra/k8s/base/error-pages.yaml
+# Sirve una página de mantenimiento con branding cuando el backend está caído.
+# nginx-ingress la usa como default-backend para los códigos 502/503/504.
+
+# ─── ConfigMap: HTML + nginx config ──────────────────────────────────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: error-pages-html
+data:
+  503.html: |
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>Mantenimiento — Valentina Jiménez Beauty Studio</title>
+      <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          background-color: #111111;
+          color: #F2EBD9;
+          font-family: Georgia, 'Times New Roman', serif;
+          padding: 2rem;
+          text-align: center;
+        }
+
+        /* fondo sutil con gradiente radial */
+        body::before {
+          content: '';
+          position: fixed;
+          inset: 0;
+          background: radial-gradient(ellipse 80% 60% at 50% 0%, #1E1A10 0%, #111111 70%);
+          z-index: 0;
+        }
+
+        .container {
+          position: relative;
+          z-index: 1;
+          max-width: 480px;
+          width: 100%;
+        }
+
+        /* monograma */
+        .monogram {
+          display: inline-block;
+          width: 80px;
+          height: 80px;
+          border: 1.5px solid #B8932A;
+          border-radius: 50%;
+          line-height: 78px;
+          font-size: 1.75rem;
+          letter-spacing: 0.12em;
+          color: #D4AD5A;
+          margin-bottom: 2rem;
+          font-family: Georgia, serif;
+        }
+
+        /* línea dorada decorativa */
+        .divider {
+          width: 48px;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, #B8932A, transparent);
+          margin: 1.75rem auto;
+        }
+
+        .studio-label {
+          font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+          font-size: 0.65rem;
+          letter-spacing: 0.3em;
+          text-transform: uppercase;
+          color: #B8932A;
+          margin-bottom: 0.75rem;
+        }
+
+        h1 {
+          font-size: clamp(1.6rem, 5vw, 2.2rem);
+          font-weight: 300;
+          letter-spacing: 0.04em;
+          color: #F2EBD9;
+          line-height: 1.25;
+          margin-bottom: 0.5rem;
+        }
+
+        .tagline {
+          font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+          font-size: 0.78rem;
+          letter-spacing: 0.22em;
+          text-transform: uppercase;
+          color: #7A7060;
+        }
+
+        .message {
+          font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+          font-size: 0.95rem;
+          line-height: 1.7;
+          color: #A09888;
+          margin-top: 0;
+        }
+
+        .dot {
+          display: inline-block;
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          background: #B8932A;
+          margin: 0 0.35rem;
+          vertical-align: middle;
+          animation: pulse 2s ease-in-out infinite;
+        }
+        .dot:nth-child(2) { animation-delay: 0.3s; }
+        .dot:nth-child(3) { animation-delay: 0.6s; }
+
+        @keyframes pulse {
+          0%, 100% { opacity: 0.3; transform: scale(0.8); }
+          50%       { opacity: 1;   transform: scale(1.2); }
+        }
+
+        .dots-row {
+          margin: 1.5rem 0 1.25rem;
+        }
+
+        .footer {
+          margin-top: 3rem;
+          font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+          font-size: 0.7rem;
+          letter-spacing: 0.15em;
+          color: #4A4035;
+          text-transform: uppercase;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="monogram">VJ</div>
+
+        <p class="studio-label">Valentina Jiménez</p>
+        <h1>Beauty Studio</h1>
+        <p class="tagline">Uñas · Pestañas · Cejas</p>
+
+        <div class="divider"></div>
+
+        <p class="message">
+          Estamos realizando mantenimiento.<br />
+          Regresamos muy pronto.
+        </p>
+
+        <div class="dots-row">
+          <span class="dot"></span>
+          <span class="dot"></span>
+          <span class="dot"></span>
+        </div>
+
+        <p class="message" style="font-size:0.82rem;">
+          Para agendar tu cita escríbenos<br />
+          directamente por WhatsApp.
+        </p>
+
+        <div class="footer">© Valentina Jiménez Beauty Studio</div>
+      </div>
+    </body>
+    </html>
+  nginx.conf: |
+    worker_processes auto;
+    error_log  /dev/stderr warn;
+    pid        /tmp/nginx.pid;
+
+    events { worker_connections 512; }
+
+    http {
+      access_log         /dev/stdout;
+      client_body_temp_path /tmp/client_body;
+      proxy_temp_path       /tmp/proxy;
+      fastcgi_temp_path     /tmp/fastcgi;
+      uwsgi_temp_path       /tmp/uwsgi;
+      scgi_temp_path        /tmp/scgi;
+
+      server {
+        listen      8080;
+        server_name _;
+        root        /usr/share/nginx/html;
+
+        location /healthz {
+          access_log off;
+          add_header Content-Type text/plain;
+          return 200 "ok\n";
+        }
+
+        location / {
+          add_header Content-Type text/html;
+          try_files /503.html =503;
+        }
+      }
+    }
+---
+# ─── Deployment ──────────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: error-pages
+  labels:
+    app.kubernetes.io/name: error-pages
+    app.kubernetes.io/component: error-pages
+    app.kubernetes.io/managed-by: kustomize
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: error-pages
+      app.kubernetes.io/component: error-pages
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: error-pages
+        app.kubernetes.io/component: error-pages
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        runAsGroup: 101
+        fsGroup: 101
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: error-pages
+          # nginx-unprivileged escucha en 8080 y corre sin root
+          image: nginxinc/nginx-unprivileged:1.25-alpine
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          resources:
+            requests:
+              cpu: "10m"
+              memory: "16Mi"
+            limits:
+              cpu: "50m"
+              memory: "32Mi"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            runAsNonRoot: true
+            runAsUser: 101
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: html
+              mountPath: /usr/share/nginx/html
+            - name: nginx-conf
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+      volumes:
+        - name: html
+          configMap:
+            name: error-pages-html
+            items:
+              - key: 503.html
+                path: 503.html
+        - name: nginx-conf
+          configMap:
+            name: error-pages-html
+            items:
+              - key: nginx.conf
+                path: nginx.conf
+---
+# ─── Service ─────────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: error-pages
+spec:
+  selector:
+    app.kubernetes.io/name: error-pages
+    app.kubernetes.io/component: error-pages
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+      protocol: TCP

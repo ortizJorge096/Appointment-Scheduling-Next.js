@@ -44,3 +44,30 @@ spec:
               # El SDK de AWS necesita 169.254.169.254 para obtener credenciales
               # temporales vía Instance Profile (S3, SES, ECR). No bloquear.
               # - 169.254.169.254/32
+---
+# ─── NetworkPolicy para error-pages ──────────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: error-pages
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: error-pages
+      app.kubernetes.io/component: error-pages
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Tráfico desde el ingress controller (nginx-ingress y kube-system)
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress: []  # error-pages no necesita salida a internet

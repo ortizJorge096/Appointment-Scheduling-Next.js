@@ -2,6 +2,12 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: appointment-scheduling
+  annotations:
+    # Cuando el backend no tiene pods listos (DB apagada = pods NotReady),
+    # nginx-ingress redirige 502/503/504 al servicio error-pages,
+    # que sirve la pagina de mantenimiento con branding.
+    nginx.ingress.kubernetes.io/custom-http-errors: "502,503,504"
+    nginx.ingress.kubernetes.io/default-backend: error-pages
 spec:
   rules:
     - host: appointment-scheduling.example.com   # reemplazado por overlay/CI
