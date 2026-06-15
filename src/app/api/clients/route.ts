@@ -8,6 +8,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createClientSchema } from '@/lib/validations'
 import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
+import { audit, getClientIp } from '@/lib/audit'
 import type { ApiResponse, ClientSummary } from '@/types'
 
 export const dynamic = 'force-dynamic'
@@ -91,6 +92,15 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
     console.error('Error creando cliente:', err)
     return NextResponse.json({ success: false, error: 'Error interno' }, { status: 500 })
   }
+
+  await audit({
+    action:    'CREATE',
+    entity:    'CLIENT',
+    entityId:  client.id,
+    userEmail: session.user?.email ?? undefined,
+    ip:        getClientIp(request),
+    metadata:  { name: client.name, email: client.email },
+  })
 
   return NextResponse.json({ success: true, data: client as unknown as ClientSummary }, { status: 201 })
 }

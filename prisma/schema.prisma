@@ -223,3 +223,38 @@ model GalleryImage {
   @@index([category])
   @@map("gallery_images")
 }
+
+// ─────────────────────────────────────────
+// AUDITORÍA
+// ─────────────────────────────────────────
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  action    AuditAction
+  entity    AuditEntity
+  entityId  String
+  userEmail String?          // admin que ejecutó la acción
+  metadata  Json?            // campos relevantes: {before, after, notes...}
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+  @@index([userEmail])
+  @@map("audit_logs")
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  STATUS_CHANGE
+}
+
+enum AuditEntity {
+  APPOINTMENT
+  CLIENT
+  EXPENSE
+  SERVICE
+  GALLERY
+}

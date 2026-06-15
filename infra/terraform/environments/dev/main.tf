@@ -111,12 +111,13 @@ module "rds" {
   allocated_storage_gb = 20
   storage_type         = "gp3"
 
-  db_name             = "appointment_scheduling"
-  db_username         = "appsched"
-  deletion_protection = false
-  skip_final_snapshot = true
-  multi_az            = false
-  publicly_accessible = false
+  db_name               = "appointment_scheduling"
+  db_username           = "appsched"
+  deletion_protection   = false
+  skip_final_snapshot   = true
+  multi_az              = false
+  publicly_accessible   = false
+  backup_retention_days = 7  # 7 dias en dev (Free Tier: 20 GB de backups gratis)
 
   tags = { Component = "database" }
 }

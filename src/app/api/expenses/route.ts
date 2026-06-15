@@ -8,6 +8,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createExpenseSchema } from '@/lib/validations'
 import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
+import { audit, getClientIp } from '@/lib/audit'
 
 export const dynamic = 'force-dynamic'
 
@@ -86,6 +87,20 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     console.error('Error creando gasto:', err)
     return NextResponse.json({ success: false, error: 'Error interno' }, { status: 500 })
   }
+
+  await audit({
+    action:    'CREATE',
+    entity:    'EXPENSE',
+    entityId:  expense.id,
+    userEmail: session.user?.email ?? undefined,
+    ip:        getClientIp(request),
+    metadata:  {
+      description: expense.description,
+      amount:      expense.amount,
+      category:    expense.category,
+      date:        parsed.data.date,
+    },
+  })
 
   return NextResponse.json({ success: true, data: expense }, { status: 201 })
 }

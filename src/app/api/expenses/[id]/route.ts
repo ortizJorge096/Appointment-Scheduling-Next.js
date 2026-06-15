@@ -8,6 +8,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { updateExpenseSchema } from '@/lib/validations'
 import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
+import { audit, getClientIp } from '@/lib/audit'
 
 export const dynamic = 'force-dynamic'
 
@@ -48,6 +49,15 @@ export async function PATCH(request: NextRequest, { params }: Ctx): Promise<Next
     return NextResponse.json({ success: false, error: 'Error interno' }, { status: 500 })
   }
 
+  await audit({
+    action:    'UPDATE',
+    entity:    'EXPENSE',
+    entityId:  id,
+    userEmail: session.user?.email ?? undefined,
+    ip:        getClientIp(request),
+    metadata:  parsed.data,
+  })
+
   return NextResponse.json({ success: true, data: expense })
 }
 
@@ -66,6 +76,14 @@ export async function DELETE(_req: NextRequest, { params }: Ctx): Promise<NextRe
     }
     return NextResponse.json({ success: false, error: 'Error interno' }, { status: 500 })
   }
+
+  await audit({
+    action:    'DELETE',
+    entity:    'EXPENSE',
+    entityId:  id,
+    userEmail: session.user?.email ?? undefined,
+    ip:        getClientIp(_req),
+  })
 
   return NextResponse.json({ success: true, data: { id } })
 }

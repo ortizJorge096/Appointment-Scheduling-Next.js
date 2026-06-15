@@ -9,6 +9,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { updateAppointmentSchema } from '@/lib/validations'
 import { timeToMinutes, minutesToTime } from '@/lib/availability'
+import { audit, getClientIp } from '@/lib/audit'
 
 export const dynamic = 'force-dynamic'
 // ─────────────────────────────────────────
@@ -137,6 +138,19 @@ export async function PATCH(
     console.log(`✅ Cita ${id} confirmada. El cron enviará recordatorio 24h antes.`)
   }
 
+  await audit({
+    action:    status !== undefined ? 'STATUS_CHANGE' : 'UPDATE',
+    entity:    'APPOINTMENT',
+    entityId:  id,
+    userEmail: session.user?.email ?? undefined,
+    ip:        getClientIp(request),
+    metadata:  {
+      ...(status !== undefined ? { statusFrom: appointment.status, statusTo: status } : {}),
+      ...(paymentStatus !== undefined ? { paymentStatus } : {}),
+      ...(notes !== undefined ? { notes } : {}),
+    },
+  })
+
   return NextResponse.json({ success: true, data: updated })
 }
 
@@ -173,6 +187,15 @@ export async function DELETE(
   await prisma.appointment.update({
     where: { id },
     data: { status: 'CANCELLED' },
+  })
+
+  await audit({
+    action:    'STATUS_CHANGE',
+    entity:    'APPOINTMENT',
+    entityId:  id,
+    userEmail: session.user?.email ?? undefined,
+    ip:        getClientIp(_request),
+    metadata:  { statusFrom: appointment.status, statusTo: 'CANCELLED', via: 'DELETE' },
   })
 
   return NextResponse.json({

@@ -99,19 +99,37 @@ module "rds" {
   # Ingress k3s→db se crea abajo a nivel de environment (evita ciclo).
   allowed_security_group_ids = []
 
-  instance_class       = "db.t3.micro"
-  allocated_storage_gb = 20
+  instance_class           = "db.t3.micro"
+  allocated_storage_gb     = 20
   max_allocated_storage_gb = 100  # autoscaling hasta 100 GB
-  storage_type         = "gp3"
+  storage_type             = "gp3"
 
-  db_name             = "appointment_scheduling"
-  db_username         = "appsched"
-  deletion_protection = var.db_deletion_protection
-  skip_final_snapshot = var.db_skip_final_snapshot
-  multi_az            = false  # cámbialo a true cuando salgas del Free Tier
-  publicly_accessible = false
+  db_name               = "appointment_scheduling"
+  db_username           = "appsched"
+  deletion_protection   = var.db_deletion_protection
+  skip_final_snapshot   = var.db_skip_final_snapshot
+  multi_az              = false  # cambiar a true al salir del Free Tier
+  publicly_accessible   = false
+  backup_retention_days = 14    # 14 dias de automated backups en prod
 
   tags = { Component = "database" }
+}
+
+# ─── Backups con AWS Backup (vault + plan diario/semanal/mensual) ─────────
+module "rds_backup" {
+  source = "../../modules/rds-backup"
+
+  name_prefix     = var.name_prefix
+  db_instance_arn = module.rds.db_instance_arn
+
+  # Bogota UTC-5: 03:00 local = 08:00 UTC
+  backup_window_utc = "0 8 * * ? *"
+
+  daily_retention_days   = 30
+  weekly_retention_days  = 90
+  monthly_retention_days = 365
+
+  tags = { Component = "backup" }
 }
 
 # ─── Ingress k3s → RDS (regla en el environment para evitar ciclo) ───────

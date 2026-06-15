@@ -11,6 +11,7 @@ import { prisma } from '@/lib/prisma'
 import { createManualAppointmentSchema } from '@/lib/validations'
 import { isSlotAvailable, timeToMinutes, minutesToTime } from '@/lib/availability'
 import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
+import { audit, getClientIp } from '@/lib/audit'
 import type { ApiResponse, AppointmentWithService } from '@/types'
 
 export const dynamic = 'force-dynamic'
@@ -131,6 +132,22 @@ export async function POST(
     console.error('Error creando cita manual:', err)
     return NextResponse.json({ success: false, error: 'No se pudo crear la cita.' }, { status: 500 })
   }
+
+  await audit({
+    action:    'CREATE',
+    entity:    'APPOINTMENT',
+    entityId:  appointment.id,
+    userEmail: session.user?.email ?? undefined,
+    ip:        getClientIp(request),
+    metadata:  {
+      clientName:  appointment.clientName,
+      clientEmail: appointment.clientEmail,
+      service:     appointment.service.name,
+      date:        parsed.data.date,
+      startTime:   appointment.startTime,
+      source:      appointment.source,
+    },
+  })
 
   return NextResponse.json({ success: true, data: appointment }, { status: 201 })
 }

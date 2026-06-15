@@ -8,6 +8,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { updateClientSchema } from '@/lib/validations'
 import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
+import { audit, getClientIp } from '@/lib/audit'
 
 export const dynamic = 'force-dynamic'
 
@@ -80,6 +81,15 @@ export async function PATCH(request: NextRequest, { params }: Ctx): Promise<Next
     }
     return NextResponse.json({ success: false, error: 'Error interno' }, { status: 500 })
   }
+
+  await audit({
+    action:    'UPDATE',
+    entity:    'CLIENT',
+    entityId:  id,
+    userEmail: session.user?.email ?? undefined,
+    ip:        getClientIp(request),
+    metadata:  parsed.data,
+  })
 
   return NextResponse.json({ success: true, data: client })
 }
