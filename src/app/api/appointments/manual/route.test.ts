@@ -76,7 +76,7 @@ describe('POST /api/appointments/manual', () => {
   it('returns 409 when slot is unavailable (without skip)', async () => {
     vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
     vi.mocked(prisma.service.findUnique).mockResolvedValue(MOCK_SERVICE as never)
-    vi.mocked(isSlotAvailable).mockResolvedValue(false)
+    vi.mocked(prisma.appointment.findFirst).mockResolvedValue({ id: 'conflict-1' } as never)
 
     const res = await POST(makeRequest(VALID_BODY))
     expect(res.status).toBe(409)
@@ -85,7 +85,7 @@ describe('POST /api/appointments/manual', () => {
   it('creates appointment and upserts client', async () => {
     vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
     vi.mocked(prisma.service.findUnique).mockResolvedValue(MOCK_SERVICE as never)
-    vi.mocked(isSlotAvailable).mockResolvedValue(true)
+    vi.mocked(prisma.appointment.findFirst).mockResolvedValue(null)
     vi.mocked(prisma.$transaction).mockImplementation(async (fn) => {
       return fn({
         appointment: { findFirst: vi.fn().mockResolvedValue(null), create: vi.fn().mockResolvedValue(MOCK_APPOINTMENT) },

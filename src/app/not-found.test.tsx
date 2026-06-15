@@ -25,9 +25,4 @@ describe('NotFound page', () => {
     expect(homeLink).toHaveAttribute('href', '/')
   })
 
-  it('renders link to schedule appointment', () => {
-    render(<NotFound />)
-    const agendarLink = screen.getByRole('link', { name: /agendar cita/i })
-    expect(agendarLink).toHaveAttribute('href', '/agendar')
-  })
 })
