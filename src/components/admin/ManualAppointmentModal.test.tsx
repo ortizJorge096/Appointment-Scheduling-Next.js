@@ -62,10 +62,10 @@ describe('ManualAppointmentModal', () => {
     fireEvent.click(screen.getByRole('button', { name: /cita manual/i }))
 
     await waitFor(() => {
-      expect(screen.getByText('Presencial')).toBeInTheDocument()
-      expect(screen.getByText('WhatsApp')).toBeInTheDocument()
-      expect(screen.getByText(/Teléfono/)).toBeInTheDocument()
-      expect(screen.getByText('Online')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Presencial' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'WhatsApp' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Teléfono' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Online' })).toBeInTheDocument()
     })
   })
 
@@ -81,9 +81,9 @@ describe('ManualAppointmentModal', () => {
     await waitFor(() => screen.getByText(/Manicura/))
 
     // Fill required fields
-    fireEvent.change(screen.getByPlaceholderText(/nombre completo/i), { target: { value: 'Ana López' } })
-    fireEvent.change(screen.getByPlaceholderText(/email/i),           { target: { value: 'ana@test.com' } })
-    fireEvent.change(screen.getByPlaceholderText(/teléfono/i),        { target: { value: '3001234567' } })
+    fireEvent.change(screen.getByPlaceholderText('Ana García'),       { target: { value: 'Ana López' } })
+    fireEvent.change(screen.getByPlaceholderText('ana@ejemplo.com'),  { target: { value: 'ana@test.com' } })
+    fireEvent.change(screen.getByPlaceholderText('3001234567'),       { target: { value: '3001234567' } })
 
     const select = screen.getByRole('combobox')
     fireEvent.change(select, { target: { value: 's1' } })
