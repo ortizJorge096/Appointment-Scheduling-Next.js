@@ -52,7 +52,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   return NextResponse.json({
     success: true,
     data: {
-      clients: clients as ClientSummary[],
+      clients: clients as unknown as ClientSummary[],
       pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
     },
   })
@@ -92,5 +92,5 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
     return NextResponse.json({ success: false, error: 'Error interno' }, { status: 500 })
   }
 
-  return NextResponse.json({ success: true, data: client as ClientSummary }, { status: 201 })
+  return NextResponse.json({ success: true, data: client as unknown as ClientSummary }, { status: 201 })
 }
