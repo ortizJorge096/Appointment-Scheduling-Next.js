@@ -9,7 +9,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createManualAppointmentSchema } from '@/lib/validations'
-import { isSlotAvailable, timeToMinutes, minutesToTime } from '@/lib/availability'
+import { timeToMinutes, minutesToTime } from '@/lib/availability'
 import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
 import { audit, getClientIp } from '@/lib/audit'
 import type { ApiResponse, AppointmentWithService } from '@/types'
@@ -57,25 +57,35 @@ export async function POST(
     return NextResponse.json({ success: false, error: 'Servicio no encontrado' }, { status: 404 })
   }
 
-  // Verificar disponibilidad (opcional para admin)
+  const startMinutes = timeToMinutes(startTime)
+  const endTime      = minutesToTime(startMinutes + service.durationMinutes)
+
+  // Verificar conflicto real de citas (solo si admin no forzó el horario).
+  // Usamos query directa en lugar de isSlotAvailable para evitar falsos positivos
+  // cuando no existe Schedule para ese día (ej. fechas pasadas o días sin horario configurado).
   if (!skipAvailabilityCheck) {
-    let available
+    let conflict
     try {
-      available = await isSlotAvailable(date, startTime, serviceId)
+      conflict = await prisma.appointment.findFirst({
+        where: {
+          date:      new Date(`${date}T00:00:00`),
+          status:    { notIn: ['CANCELLED', 'NO_SHOW'] },
+          startTime: { lt: endTime },
+          endTime:   { gt: startTime },
+        },
+        select: { id: true },
+      })
     } catch (err) {
       if (isDbUnavailable(err)) return dbUnavailableResponse()
       return NextResponse.json({ success: false, error: 'Error interno' }, { status: 500 })
     }
-    if (!available) {
+    if (conflict) {
       return NextResponse.json(
         { success: false, error: 'Este horario ya está ocupado.' },
         { status: 409 }
       )
     }
   }
-
-  const startMinutes = timeToMinutes(startTime)
-  const endTime      = minutesToTime(startMinutes + service.durationMinutes)
   const dayStart     = new Date(`${date}T00:00:00`)
   const dayEnd       = new Date(`${date}T23:59:59`)
   const emailNorm    = clientEmail.toLowerCase().trim()
