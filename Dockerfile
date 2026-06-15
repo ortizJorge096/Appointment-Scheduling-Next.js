@@ -44,8 +44,10 @@ RUN adduser  --system --uid 1001 nextjs
 COPY --from=builder /app/prisma          ./prisma
 COPY --from=builder /app/node_modules    ./node_modules
 COPY --from=builder /app/package.json    ./package.json
-COPY --from=builder /app/.next/standalone ./ 
+COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static    ./.next/static
+# public/ no esta incluido en standalone — copiarlo explicitamente
+COPY --from=builder /app/public          ./public
 
 USER nextjs
 
