@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import CitasFilters from './CitasFilters'
+import ManualAppointmentModal from '@/components/admin/ManualAppointmentModal'
 
 export const metadata: Metadata = { title: 'Citas' }
 export const dynamic = 'force-dynamic'
@@ -68,9 +69,12 @@ export default async function CitasPage({ searchParams }: { searchParams: Promis
 
   return (
     <div className="p-8 max-w-6xl">
-      <div className="mb-8">
-        <p className="text-xs text-ink-muted tracking-widest uppercase mb-1">Gestión</p>
-        <h1 className="font-serif text-3xl text-ink font-light">Citas</h1>
+      <div className="mb-8 flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs text-ink-muted tracking-widest uppercase mb-1">Gestión</p>
+          <h1 className="font-serif text-3xl text-ink font-light">Citas</h1>
+        </div>
+        <ManualAppointmentModal />
       </div>
 
       {/* Filtros — Client Component (sin bug) */}

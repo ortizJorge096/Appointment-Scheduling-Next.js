@@ -4,9 +4,18 @@
 import type { AppointmentStatus, DayOfWeek, ServiceCategory } from '@prisma/client'
 
 // ─────────────────────────────────────────
-// RE-EXPORT de enums de Prisma
+// RE-EXPORT de enums existentes de Prisma
 // ─────────────────────────────────────────
 export type { AppointmentStatus, DayOfWeek, ServiceCategory }
+
+// ─────────────────────────────────────────
+// NUEVOS ENUMS (string unions hasta que corra prisma generate)
+// Prisma genera los tipos reales; estos sirven de contrato en TS.
+// ─────────────────────────────────────────
+export type AppointmentSource = 'ONLINE' | 'WHATSAPP' | 'TELEFONO' | 'PRESENCIAL'
+export type PaymentStatus     = 'PENDING' | 'PAID' | 'PARTIAL' | 'WAIVED'
+export type PaymentMethod     = 'EFECTIVO' | 'TRANSFERENCIA' | 'TARJETA' | 'NEQUI' | 'DAVIPLATA'
+export type ExpenseCategory   = 'INSUMOS' | 'EQUIPOS' | 'SERVICIOS' | 'ARRIENDO' | 'MARKETING' | 'OTROS'
 
 // ─────────────────────────────────────────
 // DISPONIBILIDAD
@@ -30,6 +39,30 @@ export interface AvailabilityResponse {
 }
 
 // ─────────────────────────────────────────
+// CLIENTES
+// ─────────────────────────────────────────
+
+export interface ClientSummary {
+  id: string
+  name: string
+  email: string
+  phone: string | null
+  notes: string | null
+  createdAt: string
+  _count: { appointments: number }
+}
+
+export interface ClientWithHistory {
+  id: string
+  name: string
+  email: string
+  phone: string | null
+  notes: string | null
+  createdAt: string
+  appointments: AppointmentWithService[]
+}
+
+// ─────────────────────────────────────────
 // CITAS
 // ─────────────────────────────────────────
 
@@ -41,6 +74,8 @@ export interface CreateAppointmentInput {
   date: string        // "YYYY-MM-DD"
   startTime: string   // "HH:MM"
   notes?: string
+  source?: AppointmentSource
+  skipAvailabilityCheck?: boolean
 }
 
 export interface AppointmentWithService {
@@ -48,12 +83,18 @@ export interface AppointmentWithService {
   clientName: string
   clientEmail: string
   clientPhone: string
+  clientId: string | null
   date: string
   startTime: string
   endTime: string
   status: AppointmentStatus
+  source: AppointmentSource
+  paymentStatus: PaymentStatus
+  paymentMethod: PaymentMethod | null
+  amountPaid: number | null
   notes: string | null
   cancelToken?: string | null
+  calendarEventId?: string | null
   confirmationSentAt: string | null
   reminderSentAt: string | null
   createdAt: string
@@ -67,6 +108,9 @@ export interface AppointmentWithService {
 
 export interface UpdateAppointmentInput {
   status?: AppointmentStatus
+  paymentStatus?: PaymentStatus
+  paymentMethod?: PaymentMethod | null
+  amountPaid?: number | null
   notes?: string
   date?: string
   startTime?: string
@@ -85,7 +129,6 @@ export interface CreateServiceInput {
   order?: number
 }
 
-// Servicio tal como lo consume la UI pública (catálogo)
 export interface PublicService {
   id: string
   name: string
@@ -109,6 +152,41 @@ export interface ScheduleInput {
   startTime: string   // "HH:MM"
   endTime: string     // "HH:MM"
   isActive: boolean
+}
+
+// ─────────────────────────────────────────
+// GASTOS
+// ─────────────────────────────────────────
+
+export interface ExpenseSummary {
+  id: string
+  description: string
+  amount: number
+  date: string
+  category: ExpenseCategory
+  notes: string | null
+  createdAt: string
+}
+
+export interface CreateExpenseInput {
+  description: string
+  amount: number
+  date: string        // "YYYY-MM-DD"
+  category?: ExpenseCategory
+  notes?: string
+}
+
+// ─────────────────────────────────────────
+// CONTABILIDAD
+// ─────────────────────────────────────────
+
+export interface AccountingSummary {
+  totalIncome: number
+  totalExpenses: number
+  netProfit: number
+  appointmentCount: number
+  paidCount: number
+  pendingCount: number
 }
 
 // ─────────────────────────────────────────

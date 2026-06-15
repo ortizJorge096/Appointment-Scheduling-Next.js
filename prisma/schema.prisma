@@ -8,6 +8,10 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ─────────────────────────────────────────
+// USUARIOS (admin)
+// ─────────────────────────────────────────
+
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
@@ -23,6 +27,27 @@ enum Role {
   ADMIN
   SUPER_ADMIN
 }
+
+// ─────────────────────────────────────────
+// CLIENTES
+// ─────────────────────────────────────────
+
+model Client {
+  id           String        @id @default(cuid())
+  name         String
+  email        String        @unique
+  phone        String?
+  notes        String?       // alergias, preferencias, observaciones internas
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  appointments Appointment[]
+  @@index([email])
+  @@map("clients")
+}
+
+// ─────────────────────────────────────────
+// SERVICIOS
+// ─────────────────────────────────────────
 
 model Service {
   id              String          @id @default(cuid())
@@ -47,17 +72,31 @@ enum ServiceCategory {
   PROMOS
 }
 
+// ─────────────────────────────────────────
+// CITAS
+// ─────────────────────────────────────────
+
 model Appointment {
   id                 String            @id @default(cuid())
+  // Datos del cliente (desnormalizados para no perder info si el cliente cambia)
   clientName         String
   clientEmail        String
   clientPhone        String
+  // Referencia al perfil de cliente (opcional: se une automáticamente si existe)
+  clientId           String?
+  client             Client?           @relation(fields: [clientId], references: [id], onDelete: SetNull)
   serviceId          String
   service            Service           @relation(fields: [serviceId], references: [id])
   date               DateTime
   startTime          String
   endTime            String
   status             AppointmentStatus @default(PENDING)
+  // Origen de la cita
+  source             AppointmentSource @default(ONLINE)
+  // Pago
+  paymentStatus      PaymentStatus     @default(PENDING)
+  paymentMethod      PaymentMethod?
+  amountPaid         Int?              // en pesos colombianos
   notes              String?
   cancelToken        String            @unique @default(cuid())
   calendarEventId    String?
@@ -67,7 +106,9 @@ model Appointment {
   updatedAt          DateTime          @updatedAt
   @@index([date])
   @@index([clientEmail])
+  @@index([clientId])
   @@index([status])
+  @@index([paymentStatus])
   @@map("appointments")
 }
 
@@ -78,6 +119,32 @@ enum AppointmentStatus {
   CANCELLED
   NO_SHOW
 }
+
+enum AppointmentSource {
+  ONLINE
+  WHATSAPP
+  TELEFONO
+  PRESENCIAL
+}
+
+enum PaymentStatus {
+  PENDING   // sin registrar pago
+  PAID      // pagado completo
+  PARTIAL   // pago parcial / abono
+  WAIVED    // cortesía / sin cobro
+}
+
+enum PaymentMethod {
+  EFECTIVO
+  TRANSFERENCIA
+  TARJETA
+  NEQUI
+  DAVIPLATA
+}
+
+// ─────────────────────────────────────────
+// HORARIOS Y FECHAS BLOQUEADAS
+// ─────────────────────────────────────────
 
 model Schedule {
   id        String    @id @default(cuid())
@@ -108,6 +175,37 @@ model BlockedDate {
   @@index([date])
   @@map("blocked_dates")
 }
+
+// ─────────────────────────────────────────
+// GASTOS
+// ─────────────────────────────────────────
+
+model Expense {
+  id          String          @id @default(cuid())
+  description String
+  amount      Int             // en pesos colombianos
+  date        DateTime
+  category    ExpenseCategory @default(OTROS)
+  notes       String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  @@index([date])
+  @@index([category])
+  @@map("expenses")
+}
+
+enum ExpenseCategory {
+  INSUMOS     // esmaltes, geles, adhesivos, etc.
+  EQUIPOS     // herramientas, lámparas, etc.
+  SERVICIOS   // luz, internet, plataformas
+  ARRIENDO
+  MARKETING
+  OTROS
+}
+
+// ─────────────────────────────────────────
+// GALERÍA
+// ─────────────────────────────────────────
 
 model GalleryImage {
   id          String           @id @default(cuid())

@@ -103,11 +103,16 @@ export async function PATCH(
     )
   }
 
-  const { status, notes, date, startTime } = parsed.data
+  const { status, notes, date, startTime, paymentStatus, paymentMethod, amountPaid } = parsed.data
   const updateData: Record<string, unknown> = {}
 
-  if (status) updateData.status = status
-  if (notes !== undefined) updateData.notes = notes
+  if (status !== undefined) updateData.status = status
+  if (notes  !== undefined) updateData.notes  = notes
+
+  // Pago
+  if (paymentStatus !== undefined) updateData.paymentStatus = paymentStatus
+  if (paymentMethod !== undefined) updateData.paymentMethod = paymentMethod
+  if (amountPaid    !== undefined) updateData.amountPaid    = amountPaid
 
   // Si se cambia fecha/hora, recalcular endTime
   if (date) updateData.date = new Date(`${date}T00:00:00`)

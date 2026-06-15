@@ -69,6 +69,17 @@ export const updateAppointmentSchema = z.object({
     .enum(['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'NO_SHOW'])
     .optional(),
 
+  paymentStatus: z
+    .enum(['PENDING', 'PAID', 'PARTIAL', 'WAIVED'])
+    .optional(),
+
+  paymentMethod: z
+    .enum(['EFECTIVO', 'TRANSFERENCIA', 'TARJETA', 'NEQUI', 'DAVIPLATA'])
+    .nullable()
+    .optional(),
+
+  amountPaid: z.number().int().min(0).nullable().optional(),
+
   notes: z.string().max(500).optional(),
 
   date: dateString.optional(),
@@ -179,3 +190,52 @@ export const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
 })
+
+// ─────────────────────────────────────────
+// ACTUALIZAR PAGO DE CITA (admin)
+// ─────────────────────────────────────────
+
+export const updateAppointmentPaymentSchema = updateAppointmentSchema
+
+// ─────────────────────────────────────────
+// CITA MANUAL (admin)
+// ─────────────────────────────────────────
+
+export const createManualAppointmentSchema = z.object({
+  clientName:  z.string().min(2).max(100),
+  clientEmail: z.string().email('Email inválido'),
+  clientPhone: z.string().min(7).max(15).regex(/^[0-9+\s-]+$/, 'Teléfono inválido'),
+  serviceId:   z.string().cuid('ID de servicio inválido'),
+  date:        dateString,
+  startTime:   timeString,
+  source:      z.enum(['ONLINE','WHATSAPP','TELEFONO','PRESENCIAL']).default('PRESENCIAL'),
+  notes:       z.string().max(500).optional(),
+  skipAvailabilityCheck: z.boolean().optional().default(false),
+})
+
+// ─────────────────────────────────────────
+// CLIENTES (admin)
+// ─────────────────────────────────────────
+
+export const createClientSchema = z.object({
+  name:  z.string().min(2).max(100),
+  email: z.string().email('Email inválido'),
+  phone: z.string().min(7).max(15).regex(/^[0-9+\s-]+$/, 'Teléfono inválido').optional(),
+  notes: z.string().max(1000).optional(),
+})
+
+export const updateClientSchema = createClientSchema.partial()
+
+// ─────────────────────────────────────────
+// GASTOS (admin)
+// ─────────────────────────────────────────
+
+export const createExpenseSchema = z.object({
+  description: z.string().min(2).max(200),
+  amount:      z.number().int().positive('El monto debe ser mayor a 0'),
+  date:        dateString,
+  category:    z.enum(['INSUMOS','EQUIPOS','SERVICIOS','ARRIENDO','MARKETING','OTROS']).optional(),
+  notes:       z.string().max(500).optional(),
+})
+
+export const updateExpenseSchema = createExpenseSchema.partial()

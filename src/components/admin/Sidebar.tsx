@@ -4,11 +4,13 @@ import { usePathname } from 'next/navigation'
 import { signOut, useSession } from 'next-auth/react'
 
 const NAV = [
-  { href: '/admin',           label: 'Dashboard', icon: '▦' },
-  { href: '/admin/citas',     label: 'Citas',     icon: '◷' },
-  { href: '/admin/servicios', label: 'Servicios', icon: '✦' },
-  { href: '/admin/galeria',   label: 'Galería',   icon: '◫' },
-  { href: '/admin/horarios',  label: 'Horarios',  icon: '◻' },
+  { href: '/admin',              label: 'Dashboard',    icon: '▦' },
+  { href: '/admin/citas',        label: 'Citas',        icon: '◷' },
+  { href: '/admin/clientes',     label: 'Clientes',     icon: '◉' },
+  { href: '/admin/contabilidad', label: 'Contabilidad', icon: '◈' },
+  { href: '/admin/servicios',    label: 'Servicios',    icon: '✦' },
+  { href: '/admin/galeria',      label: 'Galeriía', icon: '◫' },
+  { href: '/admin/horarios',     label: 'Horarios',     icon: '◻' },
 ]
 
 export default function AdminSidebar() {
@@ -29,15 +31,19 @@ export default function AdminSidebar() {
 
       <nav className="flex-1 px-3 py-4 space-y-0.5">
         {NAV.map((item) => {
-          const active = pathname === item.href ||
+          const active =
+            pathname === item.href ||
             (item.href !== '/admin' && pathname.startsWith(item.href))
           return (
-            <Link key={item.href} href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 text-sm transition-colors
-                border-l-2 pl-[10px]
-                ${active
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex items-center gap-3 px-3 py-2.5 text-sm transition-colors border-l-2 pl-[10px] ${
+                active
                   ? 'bg-gold/10 text-gold border-gold'
-                  : 'text-white/40 hover:text-white hover:bg-white/5 border-transparent'}`}>
+                  : 'text-white/40 hover:text-white hover:bg-white/5 border-transparent'
+              }`}
+            >
               <span className="w-4 text-center">{item.icon}</span>
               {item.label}
             </Link>
@@ -47,9 +53,11 @@ export default function AdminSidebar() {
 
       <div className="px-4 py-5 border-t border-white/10">
         <p className="text-xs text-white/30 truncate mb-3">{session?.user?.email}</p>
-        <button onClick={() => signOut({ callbackUrl: '/admin/login' })}
-          className="text-xs text-white/30 hover:text-gold transition-colors">
-          Cerrar sesión →
+        <button
+          onClick={() => signOut({ callbackUrl: '/admin/login' })}
+          className="text-xs text-white/30 hover:text-gold transition-colors"
+        >
+          Cerrar sesi&oacute;n &rarr;
         </button>
       </div>
     </aside>
