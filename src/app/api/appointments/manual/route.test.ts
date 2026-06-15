@@ -26,6 +26,8 @@ const { prisma }           = await import('@/lib/prisma')
 const { isSlotAvailable }  = await import('@/lib/availability')
 const { POST }             = await import('./route')
 
+beforeEach(() => { vi.clearAllMocks() })
+
 const MOCK_SESSION = { user: { email: 'admin@test.com' } }
 const MOCK_SERVICE = { id: 's1', name: 'Manicura', price: 35000, durationMinutes: 45 }
 const MOCK_CLIENT  = { id: 'c1', name: 'Ana López', email: 'ana@test.com', phone: '3001234567' }

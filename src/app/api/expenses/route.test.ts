@@ -22,6 +22,9 @@ const { prisma }           = await import('@/lib/prisma')
 const { GET, POST }        = await import('./route')
 
 const MOCK_SESSION = { user: { email: 'admin@test.com' } }
+
+beforeEach(() => { vi.clearAllMocks() })
+
 const MOCK_EXPENSE = {
   id: 'e1', description: 'Esmaltes UV', amount: 80000,
   date: new Date('2026-06-01'), category: 'INSUMOS', notes: null,

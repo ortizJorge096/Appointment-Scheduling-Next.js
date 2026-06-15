@@ -23,6 +23,8 @@ const { GET, POST }        = await import('./route')
 
 const MOCK_SESSION = { user: { email: 'admin@test.com' } }
 
+beforeEach(() => { vi.clearAllMocks() })
+
 const MOCK_CLIENT = {
   id: 'c1', name: 'Ana López', email: 'ana@test.com',
   phone: '3001234567', notes: null,

@@ -20,6 +20,8 @@ const { GET }              = await import('./route')
 
 const MOCK_SESSION = { user: { email: 'admin@test.com' } }
 
+beforeEach(() => { vi.clearAllMocks() })
+
 function makeGetRequest(params: Record<string, string> = {}): NextRequest {
   const url = new URL('http://localhost/api/accounting')
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v))
