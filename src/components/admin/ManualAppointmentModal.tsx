@@ -1,6 +1,5 @@
 'use client'
 // src/components/admin/ManualAppointmentModal.tsx
-// Modal para crear una cita manual desde el panel admin
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
@@ -9,9 +8,9 @@ interface Service { id: string; name: string; price: number; durationMinutes: nu
 
 const SOURCE_OPTIONS = [
   { value: 'PRESENCIAL', label: 'Presencial' },
-  { value: 'WHATSAPP',   label: 'WhatsApp' },
-  { value: 'TELEFONO',   label: 'Teléfono' },
-  { value: 'ONLINE',     label: 'Online' },
+  { value: 'WHATSAPP',   label: 'WhatsApp'   },
+  { value: 'TELEFONO',   label: 'Teléfono'   },
+  { value: 'ONLINE',     label: 'Online'     },
 ]
 
 const EMPTY = {
@@ -21,53 +20,80 @@ const EMPTY = {
   skipAvailabilityCheck: false,
 }
 
+type FieldErrors = Partial<Record<keyof typeof EMPTY, string>>
+
+// Hoy en formato YYYY-MM-DD (zona local del navegador)
+function today() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 export default function ManualAppointmentModal() {
   const router = useRouter()
-  const [open, setOpen]       = useState(false)
+  const [open, setOpen]         = useState(false)
   const [services, setServices] = useState<Service[]>([])
-  const [form, setForm]       = useState(EMPTY)
-  const [saving, setSaving]   = useState(false)
-  const [error, setError]     = useState('')
-  const [success, setSuccess] = useState('')
+  const [form, setForm]         = useState(EMPTY)
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
+  const [saving, setSaving]     = useState(false)
+  const [apiError, setApiError] = useState('')
+  const [success, setSuccess]   = useState('')
 
   const loadServices = useCallback(async () => {
     const res = await fetch('/api/services')
-    const j = await res.json()
+    const j   = await res.json()
     if (j.success) setServices(j.data)
   }, [])
 
-  useEffect(() => { if (open) loadServices() }, [open, loadServices])
+  useEffect(() => {
+    if (open) { loadServices(); setFieldErrors({}); setApiError(''); setSuccess('') }
+  }, [open, loadServices])
 
   function field(key: keyof typeof EMPTY) {
-    return (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
+    return (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
       setForm(f => ({ ...f, [key]: e.target.value }))
+      // Limpiar error del campo al editar
+      if (fieldErrors[key]) setFieldErrors(fe => ({ ...fe, [key]: undefined }))
+    }
+  }
+
+  function validate(): boolean {
+    const errs: FieldErrors = {}
+    if (!form.clientName.trim()) errs.clientName  = 'El nombre es requerido'
+    if (!form.clientEmail.trim()) errs.clientEmail = 'El email es requerido'
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.clientEmail))
+      errs.clientEmail = 'Email inválido'
+    if (!form.clientPhone.trim()) errs.clientPhone = 'El teléfono es requerido'
+    if (!form.serviceId)          errs.serviceId   = 'Selecciona un servicio'
+    if (!form.date)               errs.date        = 'La fecha es requerida'
+    else if (form.date < today()) errs.date        = 'No se pueden agendar citas en fechas pasadas'
+    if (!form.startTime)          errs.startTime   = 'La hora es requerida'
+    setFieldErrors(errs)
+    return Object.keys(errs).length === 0
   }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
-    setSaving(true); setError(''); setSuccess('')
+    if (!validate()) return
+
+    setSaving(true); setApiError(''); setSuccess('')
 
     const res = await fetch('/api/appointments/manual', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...form,
-        skipAvailabilityCheck: form.skipAvailabilityCheck,
-      }),
+      body: JSON.stringify(form),
     })
     const j = await res.json()
     setSaving(false)
 
-    if (!j.success) { setError(j.error ?? 'Error al crear la cita'); return }
+    if (!j.success) { setApiError(j.error ?? 'Error al crear la cita'); return }
 
     setSuccess('Cita creada correctamente ✓')
     setForm(EMPTY)
-    setTimeout(() => {
-      setOpen(false)
-      setSuccess('')
-      router.refresh()
-    }, 1200)
+    setTimeout(() => { setOpen(false); setSuccess(''); router.refresh() }, 1200)
   }
+
+  const Err = ({ k }: { k: keyof typeof EMPTY }) =>
+    fieldErrors[k] ? <p className="text-xs text-red-500 mt-0.5">{fieldErrors[k]}</p> : null
 
   return (
     <>
@@ -78,54 +104,104 @@ export default function ManualAppointmentModal() {
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+
+            {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-beige-dark">
               <h2 className="font-serif text-xl text-ink">Nueva cita manual</h2>
-              <button onClick={() => setOpen(false)} className="text-ink-muted hover:text-ink text-xl leading-none">×</button>
+              <button onClick={() => setOpen(false)}
+                className="text-ink-muted hover:text-ink text-xl leading-none">×</button>
             </div>
 
-            <form onSubmit={submit} className="px-6 py-5 space-y-4">
-              {/* Datos del cliente */}
-              <div>
-                <p className="text-xs font-medium text-ink-mid uppercase tracking-wider mb-2">Cliente</p>
-                <div className="space-y-2">
-                  <input required value={form.clientName} onChange={field('clientName')}
-                    placeholder="Nombre completo *"
-                    className="input-field w-full" />
-                  <input required type="email" value={form.clientEmail} onChange={field('clientEmail')}
-                    placeholder="Email *"
-                    className="input-field w-full" />
-                  <input required value={form.clientPhone} onChange={field('clientPhone')}
-                    placeholder="Teléfono *"
-                    className="input-field w-full" />
-                </div>
-              </div>
+            <form onSubmit={submit} noValidate className="px-6 py-5 space-y-5">
 
-              {/* Servicio + fecha + hora */}
-              <div>
-                <p className="text-xs font-medium text-ink-mid uppercase tracking-wider mb-2">Cita</p>
-                <div className="space-y-2">
-                  <select required value={form.serviceId} onChange={field('serviceId')}
-                    className="input-field w-full bg-white">
-                    <option value="">Selecciona un servicio *</option>
-                    {services.map(s => (
-                      <option key={s.id} value={s.id}>
-                        {s.name} — {s.durationMinutes} min
-                      </option>
-                    ))}
-                  </select>
-                  <div className="grid grid-cols-2 gap-2">
-                    <input required type="date" value={form.date} onChange={field('date')}
-                      className="input-field w-full" />
-                    <input required type="time" value={form.startTime}
-                      onChange={e => setForm(f => ({ ...f, startTime: e.target.value.slice(0,5) }))}
-                      className="input-field w-full" />
+              {/* Datos del cliente */}
+              <fieldset>
+                <p className="text-xs font-medium text-ink-mid uppercase tracking-wider mb-3">
+                  Datos del cliente
+                </p>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm text-ink-mid mb-1">
+                      Nombre completo <span className="text-red-500">*</span>
+                    </label>
+                    <input value={form.clientName} onChange={field('clientName')}
+                      placeholder="Ana García"
+                      className={`input-field w-full ${fieldErrors.clientName ? 'border-red-400 focus:ring-red-300' : ''}`} />
+                    <Err k="clientName" />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-ink-mid mb-1">
+                      Email <span className="text-red-500">*</span>
+                    </label>
+                    <input type="email" value={form.clientEmail} onChange={field('clientEmail')}
+                      placeholder="ana@ejemplo.com"
+                      className={`input-field w-full ${fieldErrors.clientEmail ? 'border-red-400 focus:ring-red-300' : ''}`} />
+                    <Err k="clientEmail" />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-ink-mid mb-1">
+                      Teléfono <span className="text-red-500">*</span>
+                    </label>
+                    <input value={form.clientPhone} onChange={field('clientPhone')}
+                      placeholder="3001234567"
+                      className={`input-field w-full ${fieldErrors.clientPhone ? 'border-red-400 focus:ring-red-300' : ''}`} />
+                    <Err k="clientPhone" />
                   </div>
                 </div>
-              </div>
+              </fieldset>
+
+              {/* Servicio + fecha + hora */}
+              <fieldset>
+                <p className="text-xs font-medium text-ink-mid uppercase tracking-wider mb-3">
+                  Cita
+                </p>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm text-ink-mid mb-1">
+                      Servicio <span className="text-red-500">*</span>
+                    </label>
+                    <select value={form.serviceId} onChange={field('serviceId')}
+                      className={`input-field w-full bg-white ${fieldErrors.serviceId ? 'border-red-400' : ''}`}>
+                      <option value="">— Selecciona un servicio —</option>
+                      {services.map(s => (
+                        <option key={s.id} value={s.id}>
+                          {s.name} — {s.durationMinutes} min
+                        </option>
+                      ))}
+                    </select>
+                    <Err k="serviceId" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm text-ink-mid mb-1">
+                        Fecha <span className="text-red-500">*</span>
+                      </label>
+                      <input type="date" value={form.date} onChange={field('date')}
+                        min={today()}
+                        className={`input-field w-full ${fieldErrors.date ? 'border-red-400' : ''}`} />
+                      <Err k="date" />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-ink-mid mb-1">
+                        Hora <span className="text-red-500">*</span>
+                      </label>
+                      <input type="time" value={form.startTime}
+                        onChange={e => {
+                          setForm(f => ({ ...f, startTime: e.target.value.slice(0, 5) }))
+                          if (fieldErrors.startTime) setFieldErrors(fe => ({ ...fe, startTime: undefined }))
+                        }}
+                        className={`input-field w-full ${fieldErrors.startTime ? 'border-red-400' : ''}`} />
+                      <Err k="startTime" />
+                    </div>
+                  </div>
+                </div>
+              </fieldset>
 
               {/* Origen */}
-              <div>
-                <p className="text-xs font-medium text-ink-mid uppercase tracking-wider mb-2">Origen</p>
+              <fieldset>
+                <p className="text-xs font-medium text-ink-mid uppercase tracking-wider mb-2">
+                  Origen de la cita
+                </p>
                 <div className="flex flex-wrap gap-2">
                   {SOURCE_OPTIONS.map(opt => (
                     <button key={opt.value} type="button"
@@ -139,31 +215,38 @@ export default function ManualAppointmentModal() {
                     </button>
                   ))}
                 </div>
-              </div>
+              </fieldset>
 
               {/* Notas */}
               <div>
+                <label className="block text-sm text-ink-mid mb-1">Notas internas</label>
                 <textarea value={form.notes} onChange={field('notes')}
-                  placeholder="Notas internas (opcional)"
-                  rows={2}
-                  className="input-field w-full resize-none" />
+                  placeholder="Preferencias, alergias, observaciones..."
+                  rows={2} className="input-field w-full resize-none" />
               </div>
 
-              {/* Saltar validación */}
-              <label className="flex items-center gap-2 text-sm text-ink-muted cursor-pointer">
-                <input type="checkbox"
-                  checked={form.skipAvailabilityCheck}
+              {/* Forzar horario */}
+              <label className="flex items-start gap-2 text-sm text-ink-muted cursor-pointer">
+                <input type="checkbox" checked={form.skipAvailabilityCheck}
                   onChange={e => setForm(f => ({ ...f, skipAvailabilityCheck: e.target.checked }))}
-                  className="rounded border-beige-dark text-gold focus:ring-gold/40" />
-                Forzar aunque el horario esté ocupado
+                  className="mt-0.5 rounded border-beige-dark text-gold focus:ring-gold/40" />
+                <span>Forzar aunque el horario esté ocupado</span>
               </label>
 
-              {error   && <p className="text-sm text-red-600">{error}</p>}
-              {success && <p className="text-sm text-green-600">{success}</p>}
+              {apiError && (
+                <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-3 py-2 rounded-lg">
+                  {apiError}
+                </div>
+              )}
+              {success && (
+                <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-3 py-2 rounded-lg">
+                  {success}
+                </div>
+              )}
 
               <div className="flex gap-3 pt-1">
                 <button type="button" onClick={() => setOpen(false)}
-                  className="btn-outline flex-1">
+                  className="btn-secondary flex-1">
                   Cancelar
                 </button>
                 <button type="submit" disabled={saving} className="btn-primary flex-1 disabled:opacity-50">

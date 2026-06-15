@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
-import Image from 'next/image'
 import Navbar from '@/components/public/Navbar'
+import NosotrosImage from '@/components/public/NosotrosImage'
 import Hero from '@/components/public/Hero'
 import ServicesGrid from '@/components/public/ServicesGrid'
 import Galeria from '@/components/public/Galeria'
@@ -62,25 +62,7 @@ function NosotrosSection() {
               ))}
             </div>
           </div>
-          <div className="relative">
-            {/* Fondo decorativo detrás de la imagen */}
-            <div className="absolute inset-0 translate-x-4 translate-y-4 rounded-2xl"
-              style={{ background: 'linear-gradient(160deg,#F2EBD9 0%,#D4AD5A 60%,#8A6E1E 100%)' }} />
-            <div className="relative w-full aspect-[4/5] rounded-2xl overflow-hidden shadow-xl">
-              <Image
-                src="/muneca-nosotros.png"
-                alt="Valentina Jimenez Beauty Studio"
-                fill
-                className="object-cover object-top"
-                sizes="(max-width: 1024px) 100vw, 50vw"
-                priority
-              />
-            </div>
-            <div className="absolute -bottom-6 -left-6 bg-ink border border-gold/30 p-5 shadow-lg rounded-xl">
-              <p className="text-xs text-gold/60 tracking-widest uppercase mb-1">Especialistas en</p>
-              <p className="font-serif text-lg text-white">Unas · Pestanas · Cejas</p>
-            </div>
-          </div>
+          <NosotrosImage />
         </div>
       </div>
     </section>
