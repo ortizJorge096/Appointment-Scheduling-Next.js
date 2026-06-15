@@ -65,7 +65,6 @@ export default function ManualAppointmentModal() {
     if (!form.clientPhone.trim()) errs.clientPhone = 'El teléfono es requerido'
     if (!form.serviceId)          errs.serviceId   = 'Selecciona un servicio'
     if (!form.date)               errs.date        = 'La fecha es requerida'
-    else if (form.date < today()) errs.date        = 'No se pueden agendar citas en fechas pasadas'
     if (!form.startTime)          errs.startTime   = 'La hora es requerida'
     setFieldErrors(errs)
     return Object.keys(errs).length === 0
@@ -177,7 +176,6 @@ export default function ManualAppointmentModal() {
                         Fecha <span className="text-red-500">*</span>
                       </label>
                       <input type="date" value={form.date} onChange={field('date')}
-                        min={today()}
                         className={`input-field w-full ${fieldErrors.date ? 'border-red-400' : ''}`} />
                       <Err k="date" />
                     </div>
