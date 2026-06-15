@@ -1,0 +1,111 @@
+// src/app/api/accounting/route.test.ts
+import { NextRequest } from 'next/server'
+
+vi.mock('next-auth', () => ({ getServerSession: vi.fn() }))
+vi.mock('@/lib/auth',   () => ({ authOptions: {} }))
+vi.mock('@/lib/prisma', () => ({
+  prisma: {
+    appointment: { findMany: vi.fn() },
+    expense:     { findMany: vi.fn() },
+  },
+}))
+vi.mock('@/lib/db-error', () => ({
+  isDbUnavailable:      vi.fn().mockReturnValue(false),
+  dbUnavailableResponse: vi.fn(),
+}))
+
+const { getServerSession } = await import('next-auth')
+const { prisma }           = await import('@/lib/prisma')
+const { GET }              = await import('./route')
+
+const MOCK_SESSION = { user: { email: 'admin@test.com' } }
+
+function makeGetRequest(params: Record<string, string> = {}): NextRequest {
+  const url = new URL('http://localhost/api/accounting')
+  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v))
+  return { url: url.toString() } as unknown as NextRequest
+}
+
+describe('GET /api/accounting', () => {
+  it('returns 401 when unauthenticated', async () => {
+    vi.mocked(getServerSession).mockResolvedValue(null)
+    const res = await GET(makeGetRequest())
+    expect(res.status).toBe(401)
+  })
+
+  it('returns zeroed summary when no data', async () => {
+    vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
+    vi.mocked(prisma.appointment.findMany).mockResolvedValue([])
+    vi.mocked(prisma.expense.findMany).mockResolvedValue([])
+
+    const res = await GET(makeGetRequest())
+    const json = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(json.success).toBe(true)
+    expect(json.data.totalIncome).toBe(0)
+    expect(json.data.totalExpenses).toBe(0)
+    expect(json.data.netProfit).toBe(0)
+  })
+
+  it('calculates income from paid appointments', async () => {
+    vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
+    vi.mocked(prisma.appointment.findMany).mockResolvedValue([
+      { paymentStatus: 'PAID',    amountPaid: 50000, service: { price: 60000 } },
+      { paymentStatus: 'PARTIAL', amountPaid: 30000, service: { price: 60000 } },
+      { paymentStatus: 'PENDING', amountPaid: null,  service: { price: 60000 } },
+      { paymentStatus: 'WAIVED',  amountPaid: null,  service: { price: 60000 } },
+    ] as never)
+    vi.mocked(prisma.expense.findMany).mockResolvedValue([])
+
+    const res = await GET(makeGetRequest())
+    const json = await res.json()
+
+    // 50000 (PAID amountPaid) + 30000 (PARTIAL amountPaid) = 80000
+    expect(json.data.totalIncome).toBe(80000)
+    expect(json.data.paidCount).toBe(1)
+    expect(json.data.pendingCount).toBe(1)
+    expect(json.data.appointmentCount).toBe(4)
+  })
+
+  it('falls back to service price when amountPaid is null for PAID', async () => {
+    vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
+    vi.mocked(prisma.appointment.findMany).mockResolvedValue([
+      { paymentStatus: 'PAID', amountPaid: null, service: { price: 45000 } },
+    ] as never)
+    vi.mocked(prisma.expense.findMany).mockResolvedValue([])
+
+    const res = await GET(makeGetRequest())
+    const json = await res.json()
+
+    expect(json.data.totalIncome).toBe(45000)
+  })
+
+  it('subtracts expenses from income for net profit', async () => {
+    vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
+    vi.mocked(prisma.appointment.findMany).mockResolvedValue([
+      { paymentStatus: 'PAID', amountPaid: 200000, service: { price: 200000 } },
+    ] as never)
+    vi.mocked(prisma.expense.findMany).mockResolvedValue([
+      { amount: 80000 },
+      { amount: 20000 },
+    ] as never)
+
+    const res = await GET(makeGetRequest())
+    const json = await res.json()
+
+    expect(json.data.totalExpenses).toBe(100000)
+    expect(json.data.netProfit).toBe(100000)
+  })
+
+  it('accepts dateFrom/dateTo filter params', async () => {
+    vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
+    vi.mocked(prisma.appointment.findMany).mockResolvedValue([])
+    vi.mocked(prisma.expense.findMany).mockResolvedValue([])
+
+    await GET(makeGetRequest({ dateFrom: '2026-06-01', dateTo: '2026-06-30' }))
+
+    const aptCall = vi.mocked(prisma.appointment.findMany).mock.calls[0][0] as { where: { date?: unknown } }
+    expect(aptCall.where?.date).toBeDefined()
+  })
+})
