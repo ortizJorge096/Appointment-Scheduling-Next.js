@@ -22,18 +22,11 @@ export default function NotFound() {
 
           <p className="text-ink-muted text-sm leading-relaxed mb-8">
             La dirección que buscas no existe o fue movida.
-            <br />
-            Vuelve al inicio o agenda tu cita desde aquí.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link href="/" className="btn-primary">
-              Volver al inicio
-            </Link>
-            <Link href="/agendar" className="btn-outline">
-              Agendar cita
-            </Link>
-          </div>
+          <Link href="/" className="btn-primary">
+            Volver al inicio
+          </Link>
         </div>
       </main>
       <Footer />
