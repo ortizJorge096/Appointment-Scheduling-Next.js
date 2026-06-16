@@ -27,7 +27,7 @@ interface Props {
 }
 
 export function ScheduleEditor({ schedules: initial, onSave }: Props) {
-  // Estado local que mezcla los datos del servidor con ediciones locales
+  // Local state that merges server data with local edits
   const [rows, setRows] = useState<ScheduleRow[]>(() => {
     const map = Object.fromEntries(initial.map((s) => [s.dayOfWeek, s]))
     return DAYS.map((d) =>
@@ -35,8 +35,8 @@ export function ScheduleEditor({ schedules: initial, onSave }: Props) {
     )
   })
 
-  const [saving, setSaving]   = useState<string | null>(null)  // dayOfWeek que se está guardando
-  const [saved,  setSaved]    = useState<string | null>(null)  // feedback visual
+  const [saving, setSaving]   = useState<string | null>(null)  // dayOfWeek being saved
+  const [saved,  setSaved]    = useState<string | null>(null)  // visual feedback
   const [error,  setError]    = useState<string | null>(null)
 
   function updateRow(day: string, field: keyof ScheduleRow, value: string | boolean) {
@@ -81,7 +81,7 @@ export function ScheduleEditor({ schedules: initial, onSave }: Props) {
               className={`px-6 py-4 flex flex-wrap items-center gap-4 transition-opacity
                 ${row.isActive ? '' : 'opacity-50'}`}
             >
-              {/* Toggle activo */}
+              {/* Active toggle */}
               <label className="flex items-center gap-2.5 cursor-pointer min-w-[110px]">
                 <input
                   type="checkbox"
@@ -92,7 +92,7 @@ export function ScheduleEditor({ schedules: initial, onSave }: Props) {
                 <span className="text-sm font-medium text-ink">{dayLabel}</span>
               </label>
 
-              {/* Rango horario */}
+              {/* Time range */}
               <div className="flex items-center gap-2 text-sm text-ink-muted">
                 <input
                   type="time"
@@ -111,7 +111,7 @@ export function ScheduleEditor({ schedules: initial, onSave }: Props) {
                 />
               </div>
 
-              {/* Botón guardar + feedback */}
+              {/* Save button + feedback */}
               <div className="ml-auto flex items-center gap-3">
                 {isSaved && (
                   <span className="text-xs text-green-600 animate-fade-in">✓ Guardado</span>

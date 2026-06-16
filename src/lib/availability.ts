@@ -1,5 +1,5 @@
 // src/lib/availability.ts
-// Lógica de disponibilidad — genera y valida slots de tiempo
+// Availability logic — generates and validates time slots
 // valentinajimenez
 
 import { prisma } from './prisma'
@@ -10,12 +10,12 @@ import type { TimeSlot } from '@/types'
 import type { DayOfWeek } from '@prisma/client'
 
 // ─────────────────────────────────────────
-// HELPERS DE TIEMPO
+// TIME HELPERS
 // ─────────────────────────────────────────
 
 /**
- * Día de la semana (0=domingo … 6=sábado) de una fecha "YYYY-MM-DD".
- * Independiente de la zona horaria del servidor.
+ * Day of week (0=Sunday … 6=Saturday) for a "YYYY-MM-DD" date.
+ * Independent of the server timezone.
  */
 function weekdayFromDateStr(dateStr: string): number {
   const [y, m, d] = dateStr.split('-').map(Number)
@@ -23,8 +23,8 @@ function weekdayFromDateStr(dateStr: string): number {
 }
 
 /**
- * Convierte "HH:MM" a minutos desde medianoche
- * Ej: "09:30" → 570
+ * Converts "HH:MM" to minutes since midnight.
+ * E.g.: "09:30" → 570
  */
 export function timeToMinutes(time: string): number {
   const [hours, minutes] = time.split(':').map(Number)
@@ -32,8 +32,8 @@ export function timeToMinutes(time: string): number {
 }
 
 /**
- * Convierte minutos desde medianoche a "HH:MM"
- * Ej: 570 → "09:30"
+ * Converts minutes since midnight to "HH:MM".
+ * E.g.: 570 → "09:30"
  */
 export function minutesToTime(minutes: number): string {
   const h = Math.floor(minutes / 60)
@@ -42,7 +42,7 @@ export function minutesToTime(minutes: number): string {
 }
 
 /**
- * Mapea el número de día JS (0-6, domingo=0) al enum DayOfWeek de Prisma
+ * Maps the JS day number (0-6, Sunday=0) to the Prisma DayOfWeek enum.
  */
 function jsDayToDayOfWeek(day: number): string {
   const map: Record<number, string> = {
@@ -58,8 +58,8 @@ function jsDayToDayOfWeek(day: number): string {
 }
 
 /**
- * Verifica si dos rangos de tiempo se solapan
- * Todos los valores en minutos desde medianoche
+ * Checks whether two time ranges overlap.
+ * All values are in minutes since midnight.
  */
 function timesOverlap(
   startA: number, endA: number,
@@ -69,29 +69,29 @@ function timesOverlap(
 }
 
 // ─────────────────────────────────────────
-// FUNCIÓN PRINCIPAL
+// MAIN FUNCTION
 // ─────────────────────────────────────────
 
 /**
- * Genera todos los slots disponibles para una fecha y servicio dado.
+ * Generates every available slot for a given date and service.
  *
- * Flujo:
- * 1. Verifica que la fecha no esté bloqueada
- * 2. Obtiene el horario del día de la semana
- * 3. Genera slots cada [durationMinutes] dentro del horario
- * 4. Descarta slots que solapen con citas existentes
- * 5. Descarta slots en el pasado
+ * Flow:
+ * 1. Verify the date is not blocked
+ * 2. Get the weekday's schedule
+ * 3. Generate slots every [durationMinutes] within the schedule
+ * 4. Drop slots that overlap with existing appointments
+ * 5. Drop slots in the past
  *
- * @param dateStr  Fecha en formato "YYYY-MM-DD"
- * @param serviceId  ID del servicio (para obtener duración)
- * @returns Lista de slots con disponibilidad
+ * @param dateStr  Date in "YYYY-MM-DD" format
+ * @param serviceId  Service ID (used to get its duration)
+ * @returns List of slots with availability
  */
 export async function getAvailableSlots(
   dateStr: string,
   serviceId: string
 ): Promise<{ slots: TimeSlot[]; durationMinutes: number }> {
 
-  // 1. Cargar servicio
+  // 1. Load service
   const service = await prisma.service.findUnique({
     where: { id: serviceId, isActive: true },
     select: { durationMinutes: true, name: true },
@@ -103,7 +103,7 @@ export async function getAvailableSlots(
 
   const { durationMinutes } = service
 
-  // 2. Calcular "hoy" en la zona horaria del negocio y descartar fechas pasadas
+  // 2. Compute "today" in the business timezone and drop past dates
   const nowBogota = toZonedTime(new Date(), STUDIO.timezone)
   const todayStr  = format(nowBogota, 'yyyy-MM-dd')
 
@@ -111,7 +111,7 @@ export async function getAvailableSlots(
     return { slots: [], durationMinutes }
   }
 
-  // 3. Verificar que la fecha no esté bloqueada
+  // 3. Verify the date is not blocked
   const blocked = await prisma.blockedDate.findFirst({
     where: {
       date: {
@@ -125,7 +125,7 @@ export async function getAvailableSlots(
     return { slots: [], durationMinutes }
   }
 
-  // 4. Obtener horario del día de la semana
+  // 4. Get the weekday's schedule
   const dayOfWeek = jsDayToDayOfWeek(weekdayFromDateStr(dateStr))
   const schedule = await prisma.schedule.findUnique({
     where: { dayOfWeek: dayOfWeek as DayOfWeek },
@@ -135,7 +135,7 @@ export async function getAvailableSlots(
     return { slots: [], durationMinutes }
   }
 
-  // 5. Cargar citas ya confirmadas/pendientes para esa fecha
+  // 5. Load already confirmed/pending appointments for that date
   const existingAppointments = await prisma.appointment.findMany({
     where: {
       date: {
@@ -147,13 +147,13 @@ export async function getAvailableSlots(
     select: { startTime: true, endTime: true },
   })
 
-  // 6. Generar slots cada [slotGranularityMin] dentro del horario
+  // 6. Generate slots every [slotGranularityMin] within the schedule
   const scheduleStart = timeToMinutes(schedule.startTime)
   const scheduleEnd = timeToMinutes(schedule.endTime)
   const step = STUDIO.slotGranularityMin
   const slots: TimeSlot[] = []
 
-  // Hora actual en minutos, en zona horaria del negocio (para no ofrecer slots pasados hoy)
+  // Current time in minutes, in the business timezone (so we don't offer past slots today)
   const isToday = dateStr === todayStr
   const currentMinutes = isToday
     ? nowBogota.getHours() * 60 + nowBogota.getMinutes() + STUDIO.bookingBufferMin
@@ -168,12 +168,12 @@ export async function getAvailableSlots(
     const startTimeStr = minutesToTime(slotStart)
     const endTimeStr = minutesToTime(slotEnd)
 
-    // Descartar slots pasados (si es hoy)
+    // Drop past slots (when it's today)
     if (slotStart < currentMinutes) {
       continue
     }
 
-    // Verificar solapamiento con citas existentes
+    // Check overlap with existing appointments
     const hasConflict = existingAppointments.some((appt) => {
       const apptStart = timeToMinutes(appt.startTime)
       const apptEnd = timeToMinutes(appt.endTime)
@@ -191,8 +191,8 @@ export async function getAvailableSlots(
 }
 
 /**
- * Verifica si un slot específico sigue disponible.
- * Usado justo antes de confirmar una cita para evitar race conditions.
+ * Checks whether a specific slot is still available.
+ * Used right before confirming an appointment to avoid race conditions.
  */
 export async function isSlotAvailable(
   dateStr: string,

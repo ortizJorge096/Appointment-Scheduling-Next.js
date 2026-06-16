@@ -1,6 +1,6 @@
 // src/lib/audit.ts
-// Helper para registrar entradas en el log de auditoría.
-// Se llama explícitamente desde cada API route que modifique datos.
+// Helper to record entries in the audit log.
+// Called explicitly from every API route that modifies data.
 
 import { prisma } from '@/lib/prisma'
 import { AuditAction, AuditEntity } from '@prisma/client'
@@ -18,21 +18,21 @@ interface AuditParams {
 }
 
 /**
- * Crea una entrada en el log de auditoría.
- * No lanza excepción — un fallo de auditoría no debe romper la operación principal.
+ * Creates an entry in the audit log.
+ * Never throws — an audit failure must not break the main operation.
  */
 export async function audit(params: AuditParams): Promise<void> {
   try {
     await prisma.auditLog.create({ data: params as Prisma.AuditLogCreateInput })
   } catch (err) {
-    // Loguear en servidor pero no propagar — la acción ya se completó
+    // Log on the server but don't propagate — the action already completed
     console.error('[audit] Error registrando entrada de auditoría:', err)
   }
 }
 
 /**
- * Extrae la IP del cliente desde los headers de la request.
- * Respeta X-Forwarded-For (nginx-ingress / load balancer).
+ * Extracts the client IP from the request headers.
+ * Honors X-Forwarded-For (nginx-ingress / load balancer).
  */
 export function getClientIp(request: Request): string | undefined {
   const forwarded = request.headers?.get('x-forwarded-for')

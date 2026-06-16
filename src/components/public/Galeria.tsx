@@ -1,6 +1,6 @@
 // src/components/public/Galeria.tsx
-// Server component. Lee las imágenes activas de la BD y las muestra con
-// fallback elegante a gradientes si aún no hay nada subido.
+// Server component. Reads active images from the DB and displays them with
+// elegant fallback to gradients if nothing has been uploaded yet.
 
 import { prisma } from '@/lib/prisma'
 import { categoryLabel, INSTAGRAM_URL, TIKTOK_URL } from '@/lib/config'
@@ -25,8 +25,8 @@ const PLACEHOLDER_ITEMS = [
 ]
 
 export default async function Galeria() {
-  // Tolerante a errores: si el bucket no está configurado o la tabla está vacía,
-  // mostramos los gradientes placeholder sin romper la página.
+  // Error-tolerant: if the bucket is not configured or the table is empty,
+  // we show placeholder gradients without breaking the page.
   let realImages: Array<{ url: string; title: string | null; description: string | null; category: string | null }> = []
   try {
     const rows = await prisma.galleryImage.findMany({
@@ -46,7 +46,7 @@ export default async function Galeria() {
 
   const showPlaceholders = realImages.length === 0
 
-  // Patrón bento: algunas piezas ocupan más espacio para un mosaico elegante.
+  // Bento pattern: some pieces take up more space for an elegant mosaic.
   const spanFor = (i: number) => {
     const mod = i % 6
     if (mod === 0) return 'sm:col-span-2 sm:row-span-2'

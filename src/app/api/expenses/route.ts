@@ -1,6 +1,6 @@
 // src/app/api/expenses/route.ts
-// GET  /api/expenses   → listar gastos (admin)
-// POST /api/expenses   → registrar gasto (admin)
+// GET  /api/expenses   → list expenses (admin)
+// POST /api/expenses   → register expense (admin)
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'

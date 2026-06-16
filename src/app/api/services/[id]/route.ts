@@ -58,7 +58,7 @@ export async function DELETE(
     )
   }
 
-  // Verificar que no tenga citas activas
+  // Make sure it has no active appointments
   const active = await prisma.appointment.count({
     where: { serviceId: id, status: { in: ['PENDING', 'CONFIRMED'] } },
   })

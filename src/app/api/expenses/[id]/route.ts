@@ -1,6 +1,6 @@
 // src/app/api/expenses/[id]/route.ts
-// PATCH  /api/expenses/:id  → editar gasto
-// DELETE /api/expenses/:id  → eliminar gasto
+// PATCH  /api/expenses/:id  → edit expense
+// DELETE /api/expenses/:id  → delete expense
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'

@@ -1,13 +1,13 @@
 # ─────────────────────────────────────────────────────────────────────────
-# Nodo k3s sobre EC2 — ASG con Spot + on-demand fallback + EIP persistente.
+# k3s node on EC2 — ASG with Spot + on-demand fallback + persistent EIP.
 #
-# Adaptado para Next.js + Prisma:
-#   - Instance profile suma permisos para LEER SSM (DATABASE_URL y
-#     NEXTAUTH_SECRET) y para los servicios AWS que la app usa (S3 + SES,
-#     vía extra_managed_policy_arns).
-#   - User-data inyecta esos valores al Secret de Kubernetes ANTES de
-#     aplicar el overlay, así el init container de prisma migrate ya tiene
-#     la DATABASE_URL al arrancar.
+# Adapted for Next.js + Prisma:
+#   - Instance profile adds permissions to READ SSM (DATABASE_URL and
+#     NEXTAUTH_SECRET) and for the AWS services the app uses (S3 + SES,
+#     via extra_managed_policy_arns).
+#   - User-data injects those values into the Kubernetes Secret BEFORE
+#     applying the overlay, so the prisma migrate init container already has
+#     DATABASE_URL at startup.
 # ─────────────────────────────────────────────────────────────────────────
 
 data "aws_partition" "current" {}
@@ -35,7 +35,7 @@ data "aws_ami" "al2023" {
 # ─── Security Group ──────────────────────────────────────────────────────
 resource "aws_security_group" "this" {
   name        = "${var.name}-sg"
-  description = "k3s node: HTTP/HTTPS, sin SSH (acceso via SSM Session Manager)"
+  description = "k3s node: HTTP/HTTPS, no SSH (access via SSM Session Manager)"
   vpc_id      = var.vpc_id
 
   ingress {
@@ -99,14 +99,14 @@ resource "aws_iam_role_policy_attachment" "cw_agent" {
   policy_arn = "arn:${data.aws_partition.current.partition}:iam::aws:policy/CloudWatchAgentServerPolicy"
 }
 
-# Permisos extra (S3 gallery + SES) vienen del environment.
+# Extra permissions (S3 gallery + SES) come from the environment.
 resource "aws_iam_role_policy_attachment" "extra" {
   count      = length(var.extra_managed_policy_arns)
   role       = aws_iam_role.node.name
   policy_arn = var.extra_managed_policy_arns[count.index]
 }
 
-# Lectura de los SSM SecureString que tienen DATABASE_URL y NEXTAUTH_SECRET.
+# Read SSM SecureStrings containing DATABASE_URL and NEXTAUTH_SECRET.
 data "aws_iam_policy_document" "ssm_read_secrets" {
   statement {
     sid    = "ReadAppSecrets"
@@ -120,7 +120,7 @@ data "aws_iam_policy_document" "ssm_read_secrets" {
       "arn:${data.aws_partition.current.partition}:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter${var.nextauth_secret_ssm_parameter}",
     ]
   }
-  # KMS decrypt para SSM SecureString (key default de AWS managed key alias/aws/ssm)
+  # KMS decrypt for SSM SecureString (default AWS managed key alias/aws/ssm)
   statement {
     sid       = "KmsDecryptAwsSsm"
     effect    = "Allow"
@@ -140,7 +140,7 @@ resource "aws_iam_role_policy" "ssm_read_secrets" {
   policy = data.aws_iam_policy_document.ssm_read_secrets.json
 }
 
-# EIP re-associate permission (mismo razonamiento que la referencia).
+# EIP re-associate permission (same reasoning as the reference).
 data "aws_iam_policy_document" "eip_associate" {
   statement {
     sid       = "DescribeAddresses"
@@ -168,7 +168,7 @@ resource "aws_iam_instance_profile" "node" {
   tags = var.tags
 }
 
-# ─── Elastic IP persistente ──────────────────────────────────────────────
+# ─── Persistent Elastic IP ───────────────────────────────────────────────
 resource "aws_eip" "this" {
   domain = "vpc"
   tags   = merge(var.tags, { Name = "${var.name}-eip" })

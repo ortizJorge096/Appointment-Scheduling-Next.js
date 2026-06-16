@@ -1,15 +1,15 @@
 # ─────────────────────────────────────────────────────────────────────────
-# S3 assets — bucket de la galería (gestionada desde el admin).
+# S3 assets — gallery bucket (managed from the admin).
 #
-# Diseño:
-#   - Bucket privado, lectura pública SOLO en los prefijos en
-#     `public_prefixes` (por defecto `gallery/`).
-#   - CORS permite PUT desde los orígenes listados (el admin sube
-#     directo con presigned URL emitida por el server).
-#   - Versioning ON por defecto.
+# Design:
+#   - Private bucket, public read ONLY on prefixes in
+#     `public_prefixes` (default `gallery/`).
+#   - CORS allows PUT from listed origins (admin uploads
+#     directly via presigned URL issued by the server).
+#   - Versioning ON by default.
 #
-# Este módulo EXPONE la policy IAM que necesita la app para leer/escribir
-# bajo los prefijos públicos — el módulo ec2-k3s la adjunta al instance
+# This module EXPOSES the IAM policy the app needs to read/write
+# under public prefixes — the ec2-k3s module attaches it to the instance
 # profile.
 # ─────────────────────────────────────────────────────────────────────────
 
@@ -36,8 +36,8 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "assets" {
   }
 }
 
-# Bloqueamos ACLs públicas (legacy) pero permitimos policy pública para
-# poder servir las imágenes vía URL directa sin firmar.
+# We block public ACLs (legacy) but allow public policy to
+# serve images via unsigned direct URL.
 resource "aws_s3_bucket_public_access_block" "assets" {
   bucket = aws_s3_bucket.assets.id
 
@@ -47,7 +47,7 @@ resource "aws_s3_bucket_public_access_block" "assets" {
   restrict_public_buckets = false
 }
 
-# Bucket policy — GetObject público en los prefijos listados.
+# Bucket policy — public GetObject on the listed prefixes.
 data "aws_iam_policy_document" "public_read" {
   dynamic "statement" {
     for_each = var.public_prefixes
@@ -70,7 +70,7 @@ resource "aws_s3_bucket_policy" "assets" {
   depends_on = [aws_s3_bucket_public_access_block.assets]
 }
 
-# CORS — el admin sube directo a S3 vía presigned URL desde su navegador.
+# CORS — admin uploads directly to S3 via presigned URL from their browser.
 resource "aws_s3_bucket_cors_configuration" "assets" {
   bucket = aws_s3_bucket.assets.id
 
@@ -83,8 +83,8 @@ resource "aws_s3_bucket_cors_configuration" "assets" {
   }
 }
 
-# ─── Policy reutilizable: la app puede leer/escribir/borrar en prefijos ───
-# El módulo ec2-k3s adjunta esto al instance profile.
+# ─── Reusable policy: the app can read/write/delete on prefixes ──────────
+# The ec2-k3s module attaches this to the instance profile.
 data "aws_iam_policy_document" "app_access" {
   statement {
     sid    = "GalleryReadWriteDelete"
@@ -114,7 +114,7 @@ data "aws_iam_policy_document" "app_access" {
 
 resource "aws_iam_policy" "app_access" {
   name        = "${aws_s3_bucket.assets.id}-app-access"
-  description = "Acceso de la app al bucket de assets (read/write/delete en prefijos públicos)."
+  description = "App access to the assets bucket (read/write/delete on public prefixes)."
   policy      = data.aws_iam_policy_document.app_access.json
   tags        = var.tags
 }

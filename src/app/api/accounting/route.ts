@@ -1,6 +1,6 @@
 // src/app/api/accounting/route.ts
 // GET /api/accounting?dateFrom=YYYY-MM-DD&dateTo=YYYY-MM-DD
-// Resumen financiero del período: ingresos, gastos, utilidad
+// Financial summary for the period: income, expenses, net profit
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
@@ -52,7 +52,7 @@ export async function GET(
     type AptRow = { paymentStatus: string; amountPaid: number | null; service: { price: number } }
     type ExpRow = { amount: number }
 
-    // Ingresos: suma de amountPaid (PAID o PARTIAL) o precio del servicio si está PAID sin monto
+    // Income: sum of amountPaid (PAID or PARTIAL), or service price if PAID without an amount
     const totalIncome = (appointments as AptRow[]).reduce((sum: number, apt: AptRow) => {
       if (apt.paymentStatus === 'WAIVED') return sum
       if (apt.paymentStatus === 'PENDING') return sum

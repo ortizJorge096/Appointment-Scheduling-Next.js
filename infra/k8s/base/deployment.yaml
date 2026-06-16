@@ -7,7 +7,7 @@ metadata:
     app.kubernetes.io/component: web
     app.kubernetes.io/managed-by: kustomize
 spec:
-  # ≥ 2 réplicas. La HPA puede subirlo dentro del rango configurado en el overlay.
+  # ≥ 2 replicas. HPA can scale within the range configured in the overlay.
   replicas: 2
   revisionHistoryLimit: 5
   strategy:
@@ -43,8 +43,8 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       # ── Init container — Prisma migrate deploy ───────────────────────────
-      # Usa la misma imagen que la app. Lee DATABASE_URL del Secret.
-      # Idempotente; las migraciones ya aplicadas se saltan solas.
+      # Uses the same image as the app. Reads DATABASE_URL from the Secret.
+      # Idempotent; already-applied migrations are skipped automatically.
       initContainers:
         - name: prisma-migrate
           image: appointment-scheduling:placeholder
@@ -54,7 +54,7 @@ spec:
             - |
               set -e
               echo "── Running prisma migrate deploy ──"
-              npx --no-install prisma migrate deploy --schema=./prisma/schema.prisma
+              node node_modules/prisma/build/index.js migrate deploy --schema=./prisma/schema.prisma
               echo "── Migrations applied ──"
           envFrom:
             - secretRef:
@@ -75,7 +75,7 @@ spec:
               drop: ["ALL"]
       containers:
         - name: web
-          # Placeholder reemplazado por kustomize set image desde overlay/CI.
+          # Placeholder replaced by kustomize set image from overlay/CI.
           image: appointment-scheduling:placeholder
           imagePullPolicy: IfNotPresent
           ports:
@@ -120,7 +120,7 @@ spec:
             initialDelaySeconds: 5
             periodSeconds: 5
             timeoutSeconds: 3
-            failureThreshold: 30   # hasta 150s para que Next.js cargue
+            failureThreshold: 30   # up to 150s for Next.js to start
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true

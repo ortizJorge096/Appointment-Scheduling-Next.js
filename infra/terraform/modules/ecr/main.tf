@@ -1,12 +1,12 @@
 # ─────────────────────────────────────────────────────────────────────────
-# ECR — registro primario para la imagen Docker del Next.js.
+# ECR — primary registry for the Next.js Docker image.
 #
-# CI empuja vía OIDC (github-oidc); k3s en EC2 hace pull con el Instance
-# Profile (sin keys).
+# CI pushes via OIDC (github-oidc); k3s on EC2 pulls with the Instance
+# Profile (without keys).
 #
-# Free Tier: 500 MB durante 12 meses. Una imagen Next.js standalone +
-# Prisma client ~ 300-400 MB; cabe con la lifecycle policy que mantiene
-# solo las últimas N tagged.
+# Free Tier: 500 MB for 12 months. A Next.js standalone image +
+# Prisma client ~ 300-400 MB; fits within the lifecycle policy that keeps
+# only the last N tagged.
 # ─────────────────────────────────────────────────────────────────────────
 
 resource "aws_ecr_repository" "this" {
@@ -32,7 +32,7 @@ resource "aws_ecr_lifecycle_policy" "this" {
     rules = [
       {
         rulePriority = 1
-        description  = "Expirar imágenes sin tag tras 7 días"
+        description  = "Expire untagged images after 7 days"
         selection = {
           tagStatus   = "untagged"
           countType   = "sinceImagePushed"
@@ -43,7 +43,7 @@ resource "aws_ecr_lifecycle_policy" "this" {
       },
       {
         rulePriority = 2
-        description  = "Conservar solo las últimas ${var.max_image_count} tagged"
+        description  = "Keep only the last ${var.max_image_count} tagged"
         selection = {
           tagStatus   = "any"
           countType   = "imageCountMoreThan"

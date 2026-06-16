@@ -1,35 +1,35 @@
 variable "name" {
-  description = "Prefijo para nombrar recursos."
+  description = "Prefix for naming resources."
   type        = string
 }
 
 variable "vpc_cidr" {
-  description = "CIDR de la VPC."
+  description = "CIDR block for the VPC."
   type        = string
   default     = "10.0.0.0/16"
 }
 
 variable "public_subnet_cidrs" {
-  description = "CIDRs de las subredes públicas (una por AZ)."
+  description = "CIDRs for the public subnets (one per AZ)."
   type        = list(string)
   default     = ["10.0.0.0/24", "10.0.1.0/24"]
 }
 
 variable "availability_zones" {
-  description = "AZs donde crear subredes públicas."
+  description = "AZs where public subnets will be created."
   type        = list(string)
 }
 
-# Las subredes DB se usan por el subnet group de RDS — quedan en privado
-# (sin ruta a Internet) y solo se accede desde el SG del k3s.
+# The DB subnets are used by the RDS subnet group — they stay private
+# (no Internet route) and are only accessible from the k3s SG.
 variable "db_subnet_cidrs" {
-  description = "CIDRs de las subredes privadas para RDS."
+  description = "CIDRs for the private subnets used by RDS."
   type        = list(string)
   default     = ["10.0.10.0/24", "10.0.11.0/24"]
 }
 
 variable "tags" {
-  description = "Tags adicionales."
+  description = "Additional tags."
   type        = map(string)
   default     = {}
 }

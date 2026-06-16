@@ -1,9 +1,9 @@
 // scripts/clear-demo.ts
-// Borra (físicamente) todas las citas marcadas como demo por fill-day.ts.
+// Deletes (physically) all appointments marked as demo by fill-day.ts.
 //
 // Uso:
-//   npm run clear-demo                  # borra TODAS las citas con notes = "[demo]"
-//   npm run clear-demo -- --date=2026-06-15   # solo las de esa fecha
+//   npm run clear-demo                  # deletes ALL appointments with notes = "[demo]"
+//   npm run clear-demo -- --date=2026-06-15   # only those on that date
 
 import * as dotenv from 'dotenv'
 dotenv.config({ path: '.env.local' })

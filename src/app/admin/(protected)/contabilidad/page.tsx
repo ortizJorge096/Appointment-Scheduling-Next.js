@@ -1,6 +1,6 @@
 'use client'
 // src/app/admin/(protected)/contabilidad/page.tsx
-// Vista financiera: ingresos por citas + gastos + utilidad neta
+// Financial view: appointment revenue + expenses + net profit
 
 import { useState, useEffect, useCallback } from 'react'
 import type { ExpenseSummary, AccountingSummary } from '@/types'
@@ -14,7 +14,7 @@ const CAT_LABEL: Record<string, string> = {
   ARRIENDO: 'Arriendo', MARKETING: 'Marketing', OTROS: 'Otros',
 }
 
-// Obtener primer y último día del mes actual
+// Get first and last day of current month
 function currentMonthRange() {
   const now = new Date()
   const from = new Date(now.getFullYear(), now.getMonth(), 1)
@@ -35,12 +35,12 @@ export default function ContabilidadPage() {
   const [loadingSum, setLoadingSum] = useState(true)
   const [loadingExp, setLoadingExp] = useState(true)
 
-  // Formulario nuevo gasto
+  // New expense form
   const [form, setForm]           = useState(EMPTY_FORM)
   const [saving, setSaving]       = useState(false)
   const [saveError, setSaveError] = useState('')
 
-  // Modal eliminar
+  // Delete modal
   const [deleting, setDeleting]   = useState<string | null>(null)
 
   const loadSummary = useCallback(async () => {
@@ -92,7 +92,7 @@ export default function ContabilidadPage() {
       <h1 className="text-2xl font-serif text-ink mb-1">Contabilidad</h1>
       <p className="text-sm text-ink-muted mb-6">Ingresos, gastos y utilidad neta del período</p>
 
-      {/* Filtro de fechas */}
+      {/* Date filter */}
       <div className="flex flex-wrap gap-3 mb-6 items-end">
         <div>
           <label className="block text-xs text-ink-mid mb-1">Desde</label>
@@ -106,7 +106,7 @@ export default function ContabilidadPage() {
         </div>
       </div>
 
-      {/* Resumen financiero */}
+      {/* Financial summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {[
           { label: 'Ingresos', value: summary?.totalIncome ?? 0, color: 'text-green-600' },
@@ -130,7 +130,7 @@ export default function ContabilidadPage() {
       )}
 
       <div className="grid md:grid-cols-2 gap-8">
-        {/* Registrar gasto */}
+        {/* Register expense */}
         <div>
           <h2 className="text-lg font-serif text-ink mb-3">Registrar gasto</h2>
           <form onSubmit={addExpense} className="bg-white rounded-xl border border-beige-dark p-5 space-y-3">
@@ -180,7 +180,7 @@ export default function ContabilidadPage() {
           </form>
         </div>
 
-        {/* Lista de gastos del período */}
+        {/* Period expense list */}
         <div>
           <h2 className="text-lg font-serif text-ink mb-3">
             Gastos del período

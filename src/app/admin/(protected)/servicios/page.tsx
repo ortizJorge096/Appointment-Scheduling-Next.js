@@ -1,6 +1,6 @@
 'use client'
 // src/app/admin/servicios/page.tsx
-// CRUD de servicios — crear, editar, activar/desactivar
+// Services CRUD — create, edit, activate/deactivate
 
 import { useState, useEffect } from 'react'
 import { CATEGORY_ORDER, categoryLabel } from '@/lib/config'
@@ -33,8 +33,8 @@ export default function ServiciosPage() {
   const [error, setError]       = useState<string | null>(null)
   const [success, setSuccess]   = useState<string | null>(null)
 
-  // Formulario
-  const [editing, setEditing]   = useState<Service | null>(null)   // null = nuevo
+  // Form
+  const [editing, setEditing]   = useState<Service | null>(null)   // null = new
   const [showForm, setShowForm] = useState(false)
   const [form, setForm]         = useState(EMPTY)
 
@@ -127,7 +127,7 @@ export default function ServiciosPage() {
       {error   && <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 mb-5">{error}</div>}
       {success && <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 mb-5">✓ {success}</div>}
 
-      {/* Formulario (modal inline) */}
+      {/* Inline modal form */}
       {showForm && (
         <div className="bg-white border border-beige-dark p-6 mb-8 animate-fade-in">
           <h2 className="font-serif text-xl text-ink font-light mb-6">

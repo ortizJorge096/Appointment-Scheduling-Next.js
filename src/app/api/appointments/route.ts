@@ -1,6 +1,6 @@
 // src/app/api/appointments/route.ts
-// GET  /api/appointments   → listar citas (admin, con filtros)
-// POST /api/appointments   → crear nueva cita (público, con rate limit)
+// GET  /api/appointments   → list appointments (admin, with filters)
+// POST /api/appointments   → create new appointment (public, with rate limit)
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
@@ -14,23 +14,23 @@ import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
 import type { ApiResponse, AppointmentWithService } from '@/types'
 
 // ─────────────────────────────────────────
-// RATE LIMITING simple en memoria
-// (en producción usar Redis o Upstash)
+// Simple in-memory RATE LIMITING
+// (use Redis or Upstash in production)
 // ─────────────────────────────────────────
 
 // In-memory rate limiter (single-pod k3s). Resets on restart — acceptable for small studio.
 // Migrate to Redis/DB if horizontal scaling is needed.
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
 
-// Error interno para abortar la transacción cuando el slot ya está tomado
+// Internal error to abort the transaction when the slot is already taken
 class SlotTakenError extends Error {}
 
 export const dynamic = 'force-dynamic'
 
 function checkRateLimit(ip: string): boolean {
   const now = Date.now()
-  const windowMs = 60 * 60 * 1000  // 1 hora
-  const maxRequests = 5             // máximo 5 citas por IP por hora
+  const windowMs = 60 * 60 * 1000  // 1 hour
+  const maxRequests = 5             // max 5 appointments per IP per hour
 
   const entry = rateLimitMap.get(ip)
 
@@ -46,7 +46,7 @@ function checkRateLimit(ip: string): boolean {
 }
 
 // ─────────────────────────────────────────
-// GET — listar citas (solo admin)
+// GET — list appointments (admin only)
 // ─────────────────────────────────────────
 
 export async function GET(
@@ -107,13 +107,13 @@ export async function GET(
 }
 
 // ─────────────────────────────────────────
-// POST — crear cita (público)
+// POST — create appointment (public)
 // ─────────────────────────────────────────
 
 export async function POST(
   request: NextRequest
 ): Promise<NextResponse<ApiResponse<AppointmentWithService>>> {
-  // Rate limiting por IP
+  // Rate limiting by IP
   const ip =
     request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
     request.headers.get('x-real-ip') ??
@@ -126,7 +126,7 @@ export async function POST(
     )
   }
 
-  // Parsear y validar body
+  // Parse and validate body
   let body: unknown
   try {
     body = await request.json()
@@ -148,7 +148,7 @@ export async function POST(
   const { clientName, clientEmail, clientPhone, serviceId, date, startTime, notes } =
     parsed.data
 
-  // Verificar que el servicio existe
+  // Verify that the service exists
   let service
   try {
     service = await prisma.service.findUnique({
@@ -167,7 +167,7 @@ export async function POST(
     )
   }
 
-  // Verificación previa (horario válido, no pasado, día abierto, no bloqueado)
+  // Preliminary check (valid schedule, not in the past, open day, not blocked)
   let available
   try {
     available = await isSlotAvailable(date, startTime, serviceId)
@@ -182,17 +182,17 @@ export async function POST(
     )
   }
 
-  // Calcular hora de fin
+  // Calculate end time
   const startMinutes = timeToMinutes(startTime)
   const endTime = minutesToTime(startMinutes + service.durationMinutes)
 
   const dayStart = new Date(`${date}T00:00:00`)
   const dayEnd = new Date(`${date}T23:59:59`)
 
-  // Crear la cita dentro de una transacción serializable con re-chequeo de
-  // solapamiento, para evitar doble reserva ante peticiones concurrentes.
-  // Comparación de "HH:MM" en formato 24h con cero a la izquierda es
-  // equivalente a comparar cronológicamente.
+  // Create appointment inside a serializable transaction with overlap re-check,
+  // to prevent double booking under concurrent requests.
+  // Comparison of "HH:MM" in 24h format with leading zero is
+  // equivalent to chronological comparison.
   let appointment: AppointmentWithService
   try {
     appointment = await prisma.$transaction(async (tx) => {
@@ -219,7 +219,7 @@ export async function POST(
           date: dayStart,
           startTime,
           endTime,
-          status: 'CONFIRMED', // auto-confirmada: el recordatorio 24h se envía solo
+          status: 'CONFIRMED', // auto-confirmed: the 24h reminder is sent automatically
           notes: notes?.trim() ?? null,
         },
         include: {
@@ -244,7 +244,7 @@ export async function POST(
     )
   }
 
-  // Tareas no bloqueantes: email de confirmación + evento en Google Cale  // Tareas no bloqueantes: email de confirmación + evento en Google Calendar
+  // Non-blocking tasks: confirmation email + Google Calendar event
   Promise.all([
     sendConfirmationEmail(appointment as AppointmentWithService)
       .then(() => prisma.appointment.update({

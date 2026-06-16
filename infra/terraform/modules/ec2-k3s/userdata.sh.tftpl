@@ -1,27 +1,27 @@
 #!/bin/bash
-# Bootstrap del nodo k3s para appointment-scheduling.
+# k3s node bootstrap for appointment-scheduling.
 #
-# Pasos:
-#   0) Re-asociar el EIP persistente (sobrevive a Spot reclaim).
-#   1) Dependencias OS + amazon-ecr-credential-helper.
-#   2) Opcional: CloudWatch Agent.
-#   3) k3s (containerd certificado por CNCF).
-#   4) ECR auth para containerd, refrescada cada 8h por systemd timer.
-#   5) cert-manager + ClusterIssuers de Let's Encrypt (si enable_letsencrypt).
-#   6) Leer DATABASE_URL y NEXTAUTH_SECRET de SSM y escribirlos al Secret
-#      de K8s ANTES de aplicar el overlay (init container de prisma migrate
-#      los necesita).
-#   7) Clonar repo + aplicar el overlay correcto.
-#   8) Opcional: registrar self-hosted runner para el deploy job.
+# Steps:
+#   0) Re-associate the persistent EIP (survives Spot reclaim).
+#   1) OS dependencies + amazon-ecr-credential-helper.
+#   2) Optional: CloudWatch Agent.
+#   3) k3s (CNCF-certified containerd).
+#   4) ECR auth for containerd, refreshed every 8h by systemd timer.
+#   5) cert-manager + Let's Encrypt ClusterIssuers (if enable_letsencrypt).
+#   6) Read DATABASE_URL and NEXTAUTH_SECRET from SSM and write them to the
+#      K8s Secret BEFORE applying the overlay (prisma migrate init container
+#      needs them).
+#   7) Clone repo + apply the correct overlay.
+#   8) Optional: register self-hosted runner for the deploy job.
 #
-# Todo loguea a /var/log/userdata.log.
+# Everything logs to /var/log/userdata.log.
 set -euxo pipefail
 exec > /var/log/userdata.log 2>&1
 
 dnf -y update
 dnf -y install --allowerasing curl tar git jq
 
-# ─── (0) Re-asociar el EIP persistente ───────────────────────────────────
+# ─── (0) Re-associate the persistent EIP ─────────────────────────────────
 echo "── [0] Re-attaching persistent Elastic IP ──"
 IMDS_TOKEN=$(curl -fsSL -X PUT "http://169.254.169.254/latest/api/token" \
   -H "X-aws-ec2-metadata-token-ttl-seconds: 300")
@@ -98,7 +98,7 @@ systemctl enable --now amazon-cloudwatch-agent
   -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
 %{ endif ~}
 
-# ─── (3) k3s ──────────────────────────────────────────────────────────────
+# ─── (3) k3s ───────────────────────────────────────────────────────────────
 curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--write-kubeconfig-mode 644" sh -
 
 for i in {1..60}; do
@@ -108,7 +108,7 @@ for i in {1..60}; do
   sleep 5
 done
 
-# ─── (4) ECR auth para containerd ─────────────────────────────────────────
+# ─── (4) ECR auth for containerd ──────────────────────────────────────────
 ECR_HOST="$(echo "${image_ref}" | awk -F/ '{print $1}')"
 mkdir -p /etc/rancher/k3s
 
@@ -179,7 +179,7 @@ curl -sSL "https://github.com/kubernetes-sigs/kustomize/releases/download/kustom
 
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
-# ─── (5) cert-manager + Let's Encrypt ─────────────────────────────────────
+# ─── (5) cert-manager + Let's Encrypt ──────────────────────────────────────
 %{ if enable_letsencrypt ~}
 CERT_MANAGER_VERSION=v1.15.3
 echo "── Installing cert-manager $${CERT_MANAGER_VERSION} ──"
@@ -226,7 +226,7 @@ spec:
 ISSUERS_EOF
 %{ endif ~}
 
-# ─── (6) Leer Secrets desde SSM ───────────────────────────────────────────
+# ─── (6) Read Secrets from SSM ────────────────────────────────────────────
 echo "── [6] Reading runtime secrets from SSM ──"
 DATABASE_URL=$(aws ssm get-parameter \
   --region "${aws_region}" \
@@ -246,7 +246,7 @@ if [ -z "$${DATABASE_URL}" ] || [ -z "$${NEXTAUTH_SECRET}" ]; then
   echo "ERROR: faltó algún SSM secret"; exit 1
 fi
 
-# ─── (7) Clonar repo + aplicar overlay ────────────────────────────────────
+# ─── (7) Clone repo + apply overlay ───────────────────────────────────────
 mkdir -p /opt/app
 cd /opt/app
 git clone --depth 1 --branch "${git_branch}" \
@@ -258,18 +258,18 @@ kubectl --kubeconfig $${KUBECONFIG} create namespace "${app_namespace}" \
 
 OVERLAY_DIR="${kustomize_overlay_path}/${kustomize_overlay}"
 
-# Sustituir el host placeholder por el nip.io derivado del EIP.
+# Replace the placeholder host with nip.io derived from the EIP.
 find "$${OVERLAY_DIR}" -maxdepth 2 -type f \( -name '*.yaml' -o -name '*.yml' \) \
   -exec sed -i "s|appointment-scheduling.example.com|${public_host}|g" {} +
 
-# Apuntar al tag de imagen actual (CI lo actualiza después en cada deploy).
+# Point to the current image tag (CI updates it after each deploy).
 cd "$${OVERLAY_DIR}"
 kustomize edit set image appointment-scheduling=${image_ref}
 cd /opt/app/repo
 
 kustomize build "$${OVERLAY_DIR}" | kubectl --kubeconfig $${KUBECONFIG} apply -f -
 
-# El base incluye un secret stub — sobrescribirlo con valores reales de SSM.
+# The base includes a stub secret — overwrite it with real SSM values.
 kubectl --kubeconfig $${KUBECONFIG} -n "${app_namespace}" \
   create secret generic appointment-scheduling-secret \
     --from-literal=DATABASE_URL="$${DATABASE_URL}" \
@@ -279,7 +279,7 @@ kubectl --kubeconfig $${KUBECONFIG} -n "${app_namespace}" \
     --dry-run=client -o yaml \
   | kubectl --kubeconfig $${KUBECONFIG} apply -f -
 
-# Reiniciar para que pods usen el secret real (init container prisma migrate).
+# Restart so pods use the real secret (prisma migrate init container).
 kubectl --kubeconfig $${KUBECONFIG} -n "${app_namespace}" \
   rollout restart deployment/appointment-scheduling
 
@@ -288,7 +288,7 @@ kubectl --kubeconfig $${KUBECONFIG} -n "${app_namespace}" \
 kubectl --kubeconfig $${KUBECONFIG} -n "${app_namespace}" \
   get pods,svc,ingress
 
-# ─── (8) GitHub Actions self-hosted runner ────────────────────────────────
+# ─── (8) GitHub Actions self-hosted runner ─────────────────────────────────
 %{ if github_token != "" ~}
 dnf -y install libicu
 
@@ -301,7 +301,7 @@ chmod 600 /home/ghrunner/.kube/config
 
 ln -sf /usr/local/bin/k3s /usr/local/bin/kubectl 2>/dev/null || true
 
-# Limpiar runners offline de instancias previas (Spot reclaim).
+# Clean up offline runners from previous instances (Spot reclaim).
 RUNNERS_JSON=$(curl -fsS \
   -H "Accept: application/vnd.github+json" \
   -H "Authorization: Bearer ${github_token}" \
@@ -359,7 +359,7 @@ cd /home/ghrunner/actions-runner
 ./svc.sh install ghrunner
 ./svc.sh start
 
-# Scrubear token del log.
+# Scrub token from the log.
 sed -i 's|Authorization: Bearer [^"]*|Authorization: Bearer REDACTED|g' /var/log/userdata.log || true
 %{ endif ~}
 

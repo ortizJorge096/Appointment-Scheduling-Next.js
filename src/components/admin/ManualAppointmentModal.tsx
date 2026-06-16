@@ -85,7 +85,7 @@ export default function ManualAppointmentModal() {
   function field(key: keyof typeof EMPTY) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
       setForm(f => ({ ...f, [key]: e.target.value }))
-      // Limpiar error del campo al editar
+      // Clear the field error on edit
       if (fieldErrors[key]) setFieldErrors(fe => ({ ...fe, [key]: undefined }))
     }
   }

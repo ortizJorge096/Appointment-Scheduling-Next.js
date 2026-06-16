@@ -1,6 +1,6 @@
 // src/app/api/schedules/route.ts
-// GET  /api/schedules  → listar horarios
-// POST /api/schedules  → crear/actualizar horario (upsert por día)
+// GET  /api/schedules  → list schedules
+// POST /api/schedules  → create/update schedule (upsert by day)
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'

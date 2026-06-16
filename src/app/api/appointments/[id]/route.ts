@@ -1,7 +1,7 @@
 // src/app/api/appointments/[id]/route.ts
-// GET    /api/appointments/:id   → obtener cita por ID (admin)
-// PATCH  /api/appointments/:id   → actualizar estado/notas (admin)
-// DELETE /api/appointments/:id   → eliminar cita (admin)
+// GET    /api/appointments/:id   → get appointment by ID (admin)
+// PATCH  /api/appointments/:id   → update status/notes (admin)
+// DELETE /api/appointments/:id   → delete appointment (admin)
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
@@ -13,7 +13,7 @@ import { audit, getClientIp } from '@/lib/audit'
 
 export const dynamic = 'force-dynamic'
 // ─────────────────────────────────────────
-// GET — detalle de una cita
+// GET — appointment detail
 // ─────────────────────────────────────────
 
 export async function GET(
@@ -38,8 +38,8 @@ export async function GET(
     )
   }
 
-  // El admin ve todo; el público (página de confirmación / cancelación)
-  // recibe solo campos no sensibles. El id es un cuid no adivinable.
+  // Admin sees everything; the public (confirmation / cancellation page)
+  // receives only non-sensitive fields. The id is an unguessable cuid.
   const session = await getServerSession(authOptions)
   if (session) {
     return NextResponse.json({ success: true, data: appointment })
@@ -53,7 +53,7 @@ export async function GET(
 }
 
 // ─────────────────────────────────────────
-// PATCH — actualizar cita
+// PATCH — update appointment
 // ─────────────────────────────────────────
 
 export async function PATCH(
@@ -115,7 +115,7 @@ export async function PATCH(
   if (paymentMethod !== undefined) updateData.paymentMethod = paymentMethod
   if (amountPaid    !== undefined) updateData.amountPaid    = amountPaid
 
-  // Si se cambia fecha/hora, recalcular endTime
+  // If date/time changes, recalculate endTime
   if (date) updateData.date = new Date(`${date}T00:00:00`)
   if (startTime) {
     updateData.startTime = startTime
@@ -155,7 +155,7 @@ export async function PATCH(
 }
 
 // ─────────────────────────────────────────
-// DELETE — eliminar cita (soft delete via cancelación)
+// DELETE — delete appointment (soft delete via cancellation)
 // ─────────────────────────────────────────
 
 export async function DELETE(
@@ -183,7 +183,7 @@ export async function DELETE(
     )
   }
 
-  // Soft delete: marcar como cancelada en lugar de eliminar
+  // Soft delete: mark as cancelled instead of deleting
   await prisma.appointment.update({
     where: { id },
     data: { status: 'CANCELLED' },

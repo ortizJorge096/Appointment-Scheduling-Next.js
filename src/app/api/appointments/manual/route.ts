@@ -1,8 +1,8 @@
 // src/app/api/appointments/manual/route.ts
 // POST /api/appointments/manual
-// Crea una cita desde el admin (WhatsApp, teléfono, presencial).
-// Solo admins. Sin rate limit. Puede saltar validación de disponibilidad.
-// Crea o vincula automáticamente el perfil de Client.
+// Creates an appointment from admin (WhatsApp, phone, walk-in).
+// Admin only. No rate limit. Can skip availability validation.
+// Automatically creates or links a Client profile.
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
@@ -58,7 +58,7 @@ export async function POST(
     )
   }
 
-  // Verificar servicio
+  // Verify service
   let service
   try {
     service = await prisma.service.findUnique({
@@ -77,9 +77,9 @@ export async function POST(
   const startMinutes = timeToMinutes(startTime)
   const endTime      = minutesToTime(startMinutes + service.durationMinutes)
 
-  // Verificar conflicto real de citas (solo si admin no forzó el horario).
-  // Usamos query directa en lugar de isSlotAvailable para evitar falsos positivos
-  // cuando no existe Schedule para ese día (ej. fechas pasadas o días sin horario configurado).
+  // Check actual appointment conflict (only if admin didn't force the time).
+  // We use a direct query instead of isSlotAvailable to avoid false positives
+  // when no Schedule exists for that day (e.g. past dates or days without configured hours).
   if (!skipAvailabilityCheck) {
     let conflict
     try {
@@ -110,7 +110,7 @@ export async function POST(
   let appointment: AppointmentWithService
   try {
     appointment = await prisma.$transaction(async (tx) => {
-      // Conflicto de horario (siempre verificamos en la transacción)
+      // Schedule conflict (always checked inside the transaction)
       const conflict = await tx.appointment.findFirst({
         where: {
           date:      { gte: dayStart, lt: dayEnd },
@@ -122,7 +122,7 @@ export async function POST(
       })
       if (conflict && !skipAvailabilityCheck) throw new SlotTakenError()
 
-      // Crear o recuperar cliente
+      // Create or retrieve client
       const client = await tx.client.upsert({
         where:  { email: emailNorm },
         create: { name: clientName.trim(), email: emailNorm, phone: clientPhone.trim() },

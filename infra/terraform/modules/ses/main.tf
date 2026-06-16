@@ -1,8 +1,8 @@
 # ─────────────────────────────────────────────────────────────────────────
-# SES — envío de emails transaccionales (confirmaciones, recordatorios).
+# SES — transactional email sending (confirmations, reminders).
 #
-# En sandbox: solo puede enviar a emails/dominios verificados.
-# Solicitar producción en AWS Console → SES → Account Dashboard.
+# In sandbox: can only send to verified emails/domains.
+# Request production access in AWS Console → SES → Account Dashboard.
 # ─────────────────────────────────────────────────────────────────────────
 
 data "aws_iam_policy_document" "ses_send" {
@@ -19,7 +19,7 @@ data "aws_iam_policy_document" "ses_send" {
 
 resource "aws_iam_policy" "ses_send" {
   name        = "${var.name_prefix}-ses-send"
-  description = "Permite enviar emails transaccionales vía SES."
+  description = "Allows sending transactional emails via SES."
   policy      = data.aws_iam_policy_document.ses_send.json
   tags        = var.tags
 }

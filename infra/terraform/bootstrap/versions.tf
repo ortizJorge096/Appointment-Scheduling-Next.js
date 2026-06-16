@@ -1,6 +1,6 @@
 terraform {
-  # >= 1.10 desbloquea el lock nativo de S3 (use_lockfile = true),
-  # así no necesitamos DynamoDB y nos quedamos dentro de Free Tier.
+  # >= 1.10 unlocks native S3 locking (use_lockfile = true),
+  # so we do not need DynamoDB and stay within Free Tier.
   required_version = ">= 1.10.0"
 
   required_providers {

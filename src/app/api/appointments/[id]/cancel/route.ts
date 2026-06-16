@@ -52,9 +52,9 @@ export async function POST(
     )
   }
 
-  // Solo se puede cancelar con al menos 24 horas de anticipación.
-  // appointment.date está en UTC; startTime está en hora Colombia (UTC-5).
-  // Usamos fromZonedTime para construir el timestamp UTC correcto del inicio de la cita.
+  // Can only be cancelled at least 24 hours ahead.
+  // appointment.date is in UTC; startTime is Colombia time (UTC-5).
+  // We use fromZonedTime to build the correct UTC timestamp of the appointment start.
   const CANCEL_LIMIT_HOURS = 24
   const dateStr = format(toZonedTime(appointment.date, STUDIO.timezone), 'yyyy-MM-dd')
   const appointmentAt = fromZonedTime(
@@ -77,7 +77,7 @@ export async function POST(
     data: { status: 'CANCELLED' },
   })
 
-  // Eliminar el evento del calendario (no bloqueante)
+  // Delete the calendar event (non-blocking)
   if (updated.calendarEventId) {
     deleteCalendarEvent(updated.calendarEventId)
       .catch((err) => console.error('Error eliminando evento de calendario:', err))

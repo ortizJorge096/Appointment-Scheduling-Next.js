@@ -1,6 +1,6 @@
 'use client'
 // src/app/admin/(protected)/galeria/page.tsx
-// Gestión de la galería: subir, listar, editar título/categoría, ordenar, borrar.
+// Gallery management: upload, list, edit title/category, reorder, delete.
 
 import { useState, useEffect, useRef } from 'react'
 import { CATEGORY_ORDER, categoryLabel } from '@/lib/config'
@@ -33,7 +33,7 @@ export default function GaleriaAdminPage() {
   const [error, setError]         = useState<string | null>(null)
   const [success, setSuccess]     = useState<string | null>(null)
 
-  // Estado de edición inline
+  // Inline editing state
   const [editing, setEditing] = useState<string | null>(null)
   const [editForm, setEditForm] = useState<{ title: string; description: string; category: string }>({ title: '', description: '', category: '' })
 
@@ -65,7 +65,7 @@ export default function GaleriaAdminPage() {
     setUploading(true)
     setProgress(0)
     try {
-      // 1. Pedir URL firmada
+      // 1. Request signed URL
       const r1 = await fetch('/api/gallery/upload-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -74,7 +74,7 @@ export default function GaleriaAdminPage() {
       const j1 = await r1.json()
       if (!j1.success) { setError(j1.error ?? 'No se pudo iniciar la subida'); return }
 
-      // 2. PUT directo a S3, con progreso
+      // 2. Direct PUT to S3, with progress
       await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest()
         xhr.open('PUT', j1.data.uploadUrl)
@@ -87,7 +87,7 @@ export default function GaleriaAdminPage() {
         xhr.send(file)
       })
 
-      // 3. Registrar en la BD
+      // 3. Register in DB
       const r2 = await fetch('/api/gallery', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -118,7 +118,7 @@ export default function GaleriaAdminPage() {
     setProgress(0)
     setError(null)
     try {
-      // 1. URL firmada para la nueva imagen
+      // 1. Signed URL for the new image
       const r1 = await fetch('/api/gallery/upload-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -127,7 +127,7 @@ export default function GaleriaAdminPage() {
       const j1 = await r1.json()
       if (!j1.success) { setError(j1.error ?? 'No se pudo iniciar la subida'); return }
 
-      // 2. PUT directo a S3
+      // 2. Direct PUT to S3
       await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest()
         xhr.open('PUT', j1.data.uploadUrl)
@@ -140,7 +140,7 @@ export default function GaleriaAdminPage() {
         xhr.send(file)
       })
 
-      // 3. Actualizar la BD con la nueva s3Key (el API borra la anterior en S3)
+      // 3. Update DB with the new s3Key (the API deletes the old one from S3)
       const r2 = await fetch(`/api/gallery/${img.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },

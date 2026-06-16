@@ -1,18 +1,18 @@
 # ─────────────────────────────────────────────────────────────────────────
-# Network — VPC con 2 subredes públicas (AZs distintas) + 2 subredes
-# privadas para RDS.
+# Network — VPC with 2 public subnets (different AZs) + 2 private
+# subnets for RDS.
 #
-# Topología:
+# Topology:
 #   - 1 VPC (10.0.0.0/16)
-#   - 2 subredes públicas (10.0.0.0/24, 10.0.1.0/24) — k3s + EIP
-#   - 2 subredes privadas DB (10.0.10.0/24, 10.0.11.0/24) — RDS subnet group
+#   - 2 public subnets (10.0.0.0/24, 10.0.1.0/24) — k3s + EIP
+#   - 2 private DB subnets (10.0.10.0/24, 10.0.11.0/24) — RDS subnet group
 #   - 1 Internet Gateway
-#   - 1 route table pública asociada a las subredes públicas
-#   - SIN NAT Gateway: RDS no necesita salir a Internet; el k3s vive en pública.
+#   - 1 public route table associated with the public subnets
+#   - NO NAT Gateway: RDS does not need Internet access; k3s lives in public.
 #
-# Lo que NO ponemos (para mantener Free Tier):
-#   - NAT Gateway: ~$32/mo + transferencia.
-#   - VPC Flow Logs: $0.50/GB ingestados en CloudWatch.
+# What we do NOT include (to keep Free Tier):
+#   - NAT Gateway: ~$32/mo + transfer.
+#   - VPC Flow Logs: $0.50/GB ingested into CloudWatch.
 # ─────────────────────────────────────────────────────────────────────────
 
 locals {
@@ -37,7 +37,7 @@ resource "aws_internet_gateway" "this" {
   })
 }
 
-# ─── Subredes públicas (k3s) ──────────────────────────────────────────────
+# ─── Public subnets (k3s) ─────────────────────────────────────────────────
 resource "aws_subnet" "public" {
   count                   = local.az_count
   vpc_id                  = aws_vpc.this.id
@@ -70,9 +70,9 @@ resource "aws_route_table_association" "public" {
   route_table_id = aws_route_table.public.id
 }
 
-# ─── Subredes privadas DB (RDS subnet group) ──────────────────────────────
-# Sin route a Internet. El RDS subnet group exige >= 2 AZs, así que
-# proveemos dos aunque solo usemos una para la instancia (single-AZ).
+# ─── Private DB subnets (RDS subnet group) ────────────────────────────────
+# No Internet route. The RDS subnet group requires >= 2 AZs, so
+# we provide two even though we only use one for the instance (single-AZ).
 resource "aws_subnet" "db" {
   count             = local.az_count
   vpc_id            = aws_vpc.this.id
@@ -99,7 +99,7 @@ resource "aws_route_table_association" "db" {
   route_table_id = aws_route_table.db.id
 }
 
-# Default SG: vacío (best practice).
+# Default SG: empty (best practice).
 resource "aws_default_security_group" "this" {
   vpc_id = aws_vpc.this.id
 

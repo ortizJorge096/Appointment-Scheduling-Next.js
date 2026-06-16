@@ -27,7 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es">
       <head>
-        {/* Preconnect elimina la latencia de DNS/TLS antes de que el CSS pida las fuentes */}
+        {/* Preconnect removes DNS/TLS latency before CSS requests the fonts */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
       </head>

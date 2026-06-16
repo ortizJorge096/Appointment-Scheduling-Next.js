@@ -1,15 +1,15 @@
 # ─────────────────────────────────────────────────────────────────────────
-# Monitoring — alarmas CloudWatch + tópico SNS para alertas por email.
+# Monitoring — CloudWatch alarms + SNS topic for email alerts.
 #
-# Las alarmas usan la dimensión `AutoScalingGroupName` (no `InstanceId`)
-# para que SOBREVIVAN al reemplazo de instancia por Spot reclaim — el ASG
-# rota la EC2 pero el nombre del ASG es estable.
+# Alarms use the `AutoScalingGroupName` dimension (not `InstanceId`)
+# so they SURVIVE instance replacement due to Spot reclaim — the ASG
+# rotates the EC2 but the ASG name is stable.
 #
 # Free Tier:
-#   - CloudWatch alarms: 10 free/mes (creamos 3-4).
-#   - SNS: 1M publicaciones gratis, suscripciones email gratis.
-#   - CW Agent custom metrics: cuenta cada métrica como custom (~$0.30/mo
-#     cada una después del free tier de 5).
+#   - CloudWatch alarms: 10 free/month (we create 3-4).
+#   - SNS: 1M free publications, free email subscriptions.
+#   - CW Agent custom metrics: each metric counts as custom (~$0.30/mo
+#     each after the free tier of 5).
 # ─────────────────────────────────────────────────────────────────────────
 
 resource "aws_sns_topic" "alarms" {
@@ -22,7 +22,7 @@ resource "aws_sns_topic_subscription" "email" {
   topic_arn = aws_sns_topic.alarms.arn
   protocol  = "email"
   endpoint  = var.alarm_email
-  # AWS envía un email de confirmación; hay que hacer clic en el enlace.
+  # AWS sends a confirmation email; you must click the link.
 }
 
 # ─── CPU ──────────────────────────────────────────────────────────────────
@@ -35,7 +35,7 @@ resource "aws_cloudwatch_metric_alarm" "cpu_high" {
   period              = 60
   statistic           = "Average"
   threshold           = var.cpu_threshold_percent
-  alarm_description   = "CPU > ${var.cpu_threshold_percent}% durante 3 minutos"
+  alarm_description   = "CPU > ${var.cpu_threshold_percent}% for 3 minutes"
   alarm_actions       = [aws_sns_topic.alarms.arn]
   ok_actions          = [aws_sns_topic.alarms.arn]
 
@@ -57,7 +57,7 @@ resource "aws_cloudwatch_metric_alarm" "memory_high" {
   period              = 60
   statistic           = "Average"
   threshold           = var.memory_threshold_percent
-  alarm_description   = "Memoria > ${var.memory_threshold_percent}% durante 3 minutos"
+  alarm_description   = "Memory > ${var.memory_threshold_percent}% for 3 minutes"
   alarm_actions       = [aws_sns_topic.alarms.arn]
   ok_actions          = [aws_sns_topic.alarms.arn]
 
@@ -79,7 +79,7 @@ resource "aws_cloudwatch_metric_alarm" "disk_high" {
   period              = 300
   statistic           = "Average"
   threshold           = var.disk_threshold_percent
-  alarm_description   = "Uso de disco / > ${var.disk_threshold_percent}%"
+  alarm_description   = "Disk usage / > ${var.disk_threshold_percent}%"
   alarm_actions       = [aws_sns_topic.alarms.arn]
   ok_actions          = [aws_sns_topic.alarms.arn]
 
@@ -90,7 +90,7 @@ resource "aws_cloudwatch_metric_alarm" "disk_high" {
   tags = var.tags
 }
 
-# ─── Status check del sistema (transitará en Spot reclaim) ────────────────
+# ─── System status check (will transition on Spot reclaim) ────────────────
 resource "aws_cloudwatch_metric_alarm" "status_check_failed" {
   alarm_name          = "${var.name}-status-check-failed"
   comparison_operator = "GreaterThanThreshold"
@@ -100,7 +100,7 @@ resource "aws_cloudwatch_metric_alarm" "status_check_failed" {
   period              = 60
   statistic           = "Maximum"
   threshold           = 0
-  alarm_description   = "Status check del sistema EC2 falló — el ASG va a reemplazar la instancia."
+  alarm_description   = "EC2 system status check failed — ASG will replace the instance."
   alarm_actions       = [aws_sns_topic.alarms.arn]
   ok_actions          = [aws_sns_topic.alarms.arn]
 

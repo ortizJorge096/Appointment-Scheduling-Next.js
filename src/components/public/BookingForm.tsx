@@ -30,7 +30,7 @@ interface FormData {
   notes:       string
 }
 
-// Pequeña descripción para cada categoría en las tarjetas del paso 1
+// Short description for each category in step 1 cards
 const CATEGORY_BLURBS: Record<string, string> = {
   UNAS:     'Manicura, pedicura, polygel y acrílico',
   PESTANAS: 'Lifting, clásicas, volumen e híbridas',
@@ -63,7 +63,7 @@ export default function BookingForm() {
   const continueRef  = useRef<HTMLButtonElement>(null)
   const formTopRef   = useRef<HTMLDivElement>(null)
 
-  // mounted evita mismatch de hidratación SSR vs cliente
+  // mounted prevents SSR vs client hydration mismatch
   const [mounted, setMounted]                 = useState(false)
   const [savedClientData, setSavedClientData] = useState({ clientName: '', clientEmail: '', clientPhone: '' })
   const [appliedPreselect, setAppliedPreselect] = useState(false)
@@ -88,12 +88,12 @@ export default function BookingForm() {
     notes:       '',
   })
 
-  // 1. Señalar que ya estamos en el cliente
+  // 1. Signal we are already on the client
   useEffect(() => { setMounted(true) }, [])
 
-  // 2. Leer localStorage solo después de montar (nunca en SSR).
-  //    Los datos alimentan el <datalist> de cada campo — aparecen como
-  //    sugerencias desplegables al hacer clic, pero el campo arranca vacío.
+  // 2. Read localStorage only after mounting (never in SSR).
+  //    Data feeds the <datalist> of each field — they appear as
+  //    dropdown suggestions on click, but the field starts empty.
   useEffect(() => {
     if (!mounted) return
     try {
@@ -105,10 +105,10 @@ export default function BookingForm() {
         clientEmail: data.clientEmail || '',
         clientPhone: data.clientPhone || '',
       })
-    } catch { /* localStorage no disponible */ }
+    } catch { /* localStorage not available */ }
   }, [mounted])
 
-  // 3. Guardar datos del cliente en localStorage al escribir
+  // 3. Persist client data to localStorage on write
   useEffect(() => {
     if (!mounted) return
     if (!form.clientName && !form.clientEmail && !form.clientPhone) return
@@ -121,7 +121,7 @@ export default function BookingForm() {
     } catch { /* ok */ }
   }, [mounted, form.clientName, form.clientEmail, form.clientPhone])
 
-  // 4. Cargar catálogo de servicios
+  // 4. Load the service catalog
   useEffect(() => {
     fetch('/api/services')
       .then((r) => r.json())
@@ -130,7 +130,7 @@ export default function BookingForm() {
       .finally(() => setLoadingSvc(false))
   }, [])
 
-  // 5. Pre-selección por URL: /agendar?service=ID o /agendar?categoria=UNAS
+  // 5. Pre-selection via URL: /agendar?service=ID or /agendar?categoria=UNAS
   useEffect(() => {
     if (appliedPreselect || services.length === 0) return
 
@@ -153,7 +153,7 @@ export default function BookingForm() {
     }
   }, [services, searchParams, appliedPreselect])
 
-  // Limpiar errores y hacer scroll al top al cambiar de paso
+  // Clear errors and scroll to top when step changes
   useEffect(() => {
     setStepError(null)
     setFieldErrors({})
@@ -283,7 +283,7 @@ export default function BookingForm() {
   return (
     <div ref={formTopRef} className="max-w-2xl mx-auto">
 
-      {/* Indicador de pasos */}
+      {/* Step indicator */}
       <div className="flex items-center mb-10">
         {STEPS.map((s, i) => {
           const current  = STEPS.indexOf(step)
@@ -314,7 +314,7 @@ export default function BookingForm() {
         </div>
       )}
 
-      {/* PASO 1 — Categoría */}
+      {/* STEP 1 — Category */}
       {step === 'category' && (
         <div className="animate-fade-in">
           <div className="mb-6">
@@ -360,7 +360,7 @@ export default function BookingForm() {
         </div>
       )}
 
-      {/* PASO 2 — Servicio (filtrado por la categoría elegida) */}
+      {/* STEP 2 — Service (filtered by chosen category) */}
       {step === 'service' && (
         <div className="space-y-3 animate-fade-in">
           <div className="mb-6">
@@ -416,7 +416,7 @@ export default function BookingForm() {
         </div>
       )}
 
-      {/* PASO 3 — Fecha y hora */}
+      {/* STEP 3 — Date and time */}
       {step === 'datetime' && (
         <div className="animate-fade-in">
           <div className="mb-6">
@@ -462,7 +462,7 @@ export default function BookingForm() {
         </div>
       )}
 
-      {/* PASO 4 — Datos del cliente */}
+      {/* STEP 4 — Customer data */}
       {step === 'info' && (
         <div className="animate-fade-in space-y-5">
           <div className="mb-2">
@@ -472,8 +472,8 @@ export default function BookingForm() {
             </p>
           </div>
 
-          {/* datalists: alimentan las sugerencias desplegables de cada campo.
-              El campo arranca vacío — el usuario elige si usa el valor guardado. */}
+          {/* datalists: feed dropdown suggestions for each field.
+              The field starts empty — the user chooses whether to use the saved value. */}
           {mounted && (
             <>
               <datalist id="dl-name">
@@ -555,7 +555,7 @@ export default function BookingForm() {
         </div>
       )}
 
-      {/* PASO 5 — Confirmar */}
+      {/* STEP 5 — Confirm */}
       {step === 'confirm' && selectedService && (
         <div className="animate-fade-in">
           <div className="mb-6">
@@ -591,7 +591,7 @@ export default function BookingForm() {
         </div>
       )}
 
-      {/* Navegación */}
+      {/* Navigation */}
       <div className="flex justify-between mt-10 pt-6 border-t border-beige-dark">
              {step !== 'service' ? (
           <button type="button" onClick={handlePrev} className="btn-secondary" disabled={submitting}>← Atrás</button>

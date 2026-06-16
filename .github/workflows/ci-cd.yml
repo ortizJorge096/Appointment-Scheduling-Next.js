@@ -269,11 +269,11 @@ jobs:
           cd "$GITHUB_WORKSPACE"
 
           kustomize build infra/k8s/overlays/dev | kubectl apply -f -
-          # kustomize sobrescribe el secret con un placeholder — restaurar valores reales
+          # kustomize overwrites the secret with a placeholder — restore real values
           DATABASE_URL=$(aws ssm get-parameter --region us-east-1 --name /appointment-scheduling-dev/db/url --with-decryption --query Parameter.Value --output text)
           NEXTAUTH_SECRET=$(aws ssm get-parameter --region us-east-1 --name /appointment-scheduling-dev/nextauth/secret --with-decryption --query Parameter.Value --output text)
           GOOGLE_PRIVATE_KEY=$(aws ssm get-parameter --region us-east-1 --name /appointment-scheduling-dev/google/calendar-private-key --with-decryption --query Parameter.Value --output text)
-          # Solo valores SENSIBLES en el Secret — el resto va en el ConfigMap (kustomize overlay)
+          # Only SENSITIVE values in the Secret — the rest goes in the ConfigMap (kustomize overlay)
           kubectl -n appointment-scheduling-dev create secret generic appointment-scheduling-secret \
             --from-literal=DATABASE_URL="$DATABASE_URL" \
             --from-literal=NEXTAUTH_SECRET="$NEXTAUTH_SECRET" \
@@ -344,7 +344,7 @@ jobs:
 
           kustomize build infra/k8s/overlays/prod | kubectl apply -f -
 
-          # Refrescar Secret con valores actuales de SSM (por si rotaron)
+          # Refresh Secret with current SSM values (in case they rotated)
           DATABASE_URL=$(aws ssm get-parameter --region us-east-1 \
             --name /appointment-scheduling-prod/db/url \
             --with-decryption --query Parameter.Value --output text)

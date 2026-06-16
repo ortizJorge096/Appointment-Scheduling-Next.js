@@ -26,10 +26,16 @@ echo "── Building image ${IMAGE} ──"
 docker build -t "$IMAGE" .
 
 echo "── Applying overlay local ──"
-cd infra/k8s/overlays/local
-kustomize edit set image appointment-scheduling="$IMAGE"
-cd - >/dev/null
-kustomize build infra/k8s/overlays/local | kubectl apply -f -
+# Prefer standalone kustomize (honors a custom TAG); otherwise fall back to the
+# kustomize built into kubectl. The local overlay already pins the image tag to
+# ':dev' (images.newTag), so the fallback works without standalone kustomize.
+if command -v kustomize >/dev/null 2>&1; then
+  ( cd infra/k8s/overlays/local && kustomize edit set image appointment-scheduling="$IMAGE" )
+  kustomize build infra/k8s/overlays/local | kubectl apply -f -
+else
+  echo "  (kustomize not found — using built-in 'kubectl apply -k'; image pinned to ':dev')"
+  kubectl apply -k infra/k8s/overlays/local
+fi
 
 echo "── Rollout status ──"
 kubectl -n appointment-scheduling-local rollout status deployment/appointment-scheduling --timeout=300s

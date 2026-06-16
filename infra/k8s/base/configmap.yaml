@@ -3,17 +3,17 @@ kind: ConfigMap
 metadata:
   name: appointment-scheduling-config
 data:
-  # Variables NO sensibles consumidas vía envFrom.
-  # El overlay (local/dev/prod) ajusta los valores que cambian por entorno.
+  # Non-sensitive variables consumed via envFrom.
+  # The overlay (local/dev/prod) adjusts values that change per environment.
   NODE_ENV: "production"
   PORT: "3000"
   HOSTNAME: "0.0.0.0"
   NEXT_TELEMETRY_DISABLED: "1"
 
-  # Zona horaria del negocio — Bogotá.
+  # Business timezone — Bogotá.
   TZ: "America/Bogota"
 
-  # AWS — el SDK usa el Instance Profile, no necesita keys.
+  # AWS — the SDK uses the Instance Profile, no keys needed.
   AWS_REGION: "us-east-1"
   AWS_S3_BUCKET: "appointment-scheduling-assets"
 
@@ -21,11 +21,11 @@ data:
   SES_FROM_EMAIL: "noreply@example.com"
   ENABLE_EMAILS: "false"
 
-  # NextAuth — URL pública (overlay lo reemplaza por el host real).
+  # NextAuth — public URL (overlay replaces it with the real host).
   NEXTAUTH_URL: "http://appointment-scheduling.example.com"
   NEXT_PUBLIC_APP_URL: "http://appointment-scheduling.example.com"
   NEXT_PUBLIC_APP_NAME: "Valentina Jimenez Beauty Studio"
 
-  # Google Calendar — la private key va en el Secret (SSM), no aquí.
+  # Google Calendar — the private key goes in the Secret (SSM), not here.
   GOOGLE_CLIENT_EMAIL: ""
   GOOGLE_CALENDAR_ID: ""

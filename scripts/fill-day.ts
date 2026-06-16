@@ -1,15 +1,15 @@
 // scripts/fill-day.ts
 // Llena la agenda de un día con citas demo, una a una con un delay
-// configurable, para ver cómo reacciona el calendario en vivo.
+// configurable, to see how the calendar reacts live.
 //
 // Uso:
 //   npm run fill-day                                     # mañana, primer servicio 45-60 min, delay 2.5s
 //   npm run fill-day -- --date=2026-06-15                # día específico
-//   npm run fill-day -- --service=lifting                # filtra por nombre (contiene)
-//   npm run fill-day -- --delay=1000                     # acelera (ms entre inserts)
+//   npm run fill-day -- --service=lifting                # filter by name (contains match)
+//   npm run fill-day -- --delay=1000                     # speed (ms between inserts)
 //   npm run fill-day -- --date=2026-06-15 --service=manicura --delay=500
 //
-// Las citas creadas tienen `notes = "[demo]"` para poder limpiarlas con clear-demo.
+// Created appointments have `notes = "[demo]"` so they can be cleaned up with clear-demo.
 
 import * as dotenv from 'dotenv'
 dotenv.config({ path: '.env.local' })
@@ -62,7 +62,7 @@ async function main() {
   console.log(`\n📅  Llenando agenda para ${date}`)
   console.log(`⏱   Delay entre inserts: ${delayMs} ms\n`)
 
-  // 1. Servicio: filtra por nombre si --service=…, si no toma uno de 45-60 min
+  // 1. Service: filters by name if --service=…, otherwise picks a 45-60 min one
   const service = query
     ? await prisma.service.findFirst({
         where: {
@@ -81,7 +81,7 @@ async function main() {
   }
   console.log(`💅  Servicio: ${service.name} · ${service.durationMinutes} min · $${service.price.toLocaleString('es-CO')}`)
 
-  // 2. Horario del día
+  // 2. Day's schedule
   const dow = weekdayFromDateStr(date)
   const schedule = await prisma.schedule.findUnique({ where: { dayOfWeek: dow } })
   if (!schedule || !schedule.isActive) {
@@ -90,7 +90,7 @@ async function main() {
   }
   console.log(`🕘  Horario: ${schedule.startTime} – ${schedule.endTime}\n`)
 
-  // 3. Citas existentes en ese día (para saltar los huecos ya tomados)
+  // 3. Existing appointments on that day (to skip already-taken slots)
   const dayStart = new Date(`${date}T00:00:00`)
   const dayEnd   = new Date(`${date}T23:59:59`)
   const existing = await prisma.appointment.findMany({
@@ -109,7 +109,7 @@ async function main() {
     console.log(`ℹ️   Ya hay ${existing.length} cita(s) en este día, los saltamos.\n`)
   }
 
-  // 4. Insertar slot por slot, back-to-back
+  // 4. Insert slot by slot, back-to-back
   const open  = timeToMin(schedule.startTime)
   const close = timeToMin(schedule.endTime)
   const dur   = service.durationMinutes

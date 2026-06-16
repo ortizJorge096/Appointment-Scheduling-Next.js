@@ -1,6 +1,6 @@
 // src/app/api/schedules/blocked/route.ts
-// GET  → listar fechas bloqueadas
-// POST → crear fecha bloqueada
+// GET  → list blocked dates
+// POST → create blocked date
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'

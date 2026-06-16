@@ -1,6 +1,6 @@
 // src/app/api/availability/route.ts
 // GET /api/availability?date=YYYY-MM-DD&serviceId=xxx
-// Retorna los slots disponibles para una fecha y servicio
+// Returns available slots for a date and service
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getAvailableSlots } from '@/lib/availability'
@@ -18,7 +18,7 @@ export async function GET(
       serviceId: searchParams.get('serviceId') ?? '',
     }
 
-    // Validar parámetros
+    // Validate parameters
     const parsed = availabilityQuerySchema.safeParse(params)
     if (!parsed.success) {
       return NextResponse.json(

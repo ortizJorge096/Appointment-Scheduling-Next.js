@@ -1,6 +1,6 @@
 // src/app/api/clients/route.ts
-// GET  /api/clients   → listar clientes (admin)
-// POST /api/clients   → crear cliente (admin)
+// GET  /api/clients   → list clients (admin)
+// POST /api/clients   → create client (admin)
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
     })
   } catch (err) {
     if (isDbUnavailable(err)) return dbUnavailableResponse()
-    // P2002 = unique constraint (email duplicado)
+    // P2002 = unique constraint (duplicate email)
     if ((err as { code?: string }).code === 'P2002') {
       return NextResponse.json({ success: false, error: 'Ya existe un cliente con ese email' }, { status: 409 })
     }

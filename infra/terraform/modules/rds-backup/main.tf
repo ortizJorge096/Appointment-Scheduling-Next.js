@@ -1,16 +1,16 @@
 # ─────────────────────────────────────────────────────────────────────────
-# rds-backup — AWS Backup para la instancia RDS PostgreSQL.
+# rds-backup — AWS Backup for the RDS PostgreSQL instance.
 #
-# Crea tres reglas:
-#   - Diaria  : 03:00 Bogota (08:00 UTC), retencion 30 dias (var)
-#   - Semanal : domingos 03:00 Bogota,    retencion 90 dias (var)
-#   - Mensual : dia 1 03:00 Bogota,       retencion 365 dias (var)
+# Creates three rules:
+#   - Daily   : 03:00 Bogotá (08:00 UTC), 30 day retention (var)
+#   - Weekly  : Sundays 03:00 Bogotá,     90 day retention (var)
+#   - Monthly : 1st 03:00 Bogotá,         365 day retention (var)
 #
-# El vault se cifra con KMS managed key (aws/backup por defecto).
-# El IAM role usa las policies administradas de AWS Backup.
+# The vault is encrypted with KMS managed key (aws/backup by default).
+# The IAM role uses AWS Backup managed policies.
 # ─────────────────────────────────────────────────────────────────────────
 
-# ─── Vault de backups ─────────────────────────────────────────────────────
+# ─── Backup Vault ─────────────────────────────────────────────────────────
 resource "aws_backup_vault" "this" {
   name        = "${var.name_prefix}-db-vault"
   kms_key_arn = var.vault_kms_key_arn  # null = aws/backup managed key
@@ -21,7 +21,7 @@ resource "aws_backup_vault" "this" {
   })
 }
 
-# ─── IAM role que AWS Backup usara para hacer los snapshots ───────────────
+# ─── IAM role that AWS Backup will use to take snapshots ─────────────────
 data "aws_iam_policy_document" "backup_assume" {
   statement {
     effect  = "Allow"
@@ -49,11 +49,11 @@ resource "aws_iam_role_policy_attachment" "restore_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForRestores"
 }
 
-# ─── Plan con tres reglas ─────────────────────────────────────────────────
+# ─── Plan with three rules ────────────────────────────────────────────────
 resource "aws_backup_plan" "this" {
   name = "${var.name_prefix}-db-backup-plan"
 
-  # ── Diario: 03:00 Bogota (08:00 UTC) ────────────────────────────────
+  # ── Daily: 03:00 Bogotá (08:00 UTC) ─────────────────────────────────
   rule {
     rule_name         = "daily-bogota-0300"
     target_vault_name = aws_backup_vault.this.name
@@ -68,7 +68,7 @@ resource "aws_backup_plan" "this" {
     }
   }
 
-  # ── Semanal: domingos 08:00 UTC ──────────────────────────────────────
+  # ── Weekly: Sundays 08:00 UTC ───────────────────────────────────────
   rule {
     rule_name         = "weekly-sunday"
     target_vault_name = aws_backup_vault.this.name
@@ -79,7 +79,7 @@ resource "aws_backup_plan" "this" {
     }
   }
 
-  # ── Mensual: dia 1 de cada mes 08:00 UTC ─────────────────────────────
+  # ── Monthly: 1st of each month 08:00 UTC ─────────────────────────────
   rule {
     rule_name         = "monthly-first"
     target_vault_name = aws_backup_vault.this.name
@@ -96,7 +96,7 @@ resource "aws_backup_plan" "this" {
   })
 }
 
-# ─── Seleccion: apunta a la instancia RDS por ARN ─────────────────────────
+# ─── Selection: targets the RDS instance by ARN ───────────────────────────
 resource "aws_backup_selection" "rds" {
   name         = "${var.name_prefix}-rds-selection"
   plan_id      = aws_backup_plan.this.id

@@ -1,24 +1,24 @@
 # ─────────────────────────────────────────────────────────────────────────
-# GitHub Actions → AWS via OIDC (sin keys de larga duración).
+# GitHub Actions → AWS via OIDC (without long-lived keys).
 #
-# 1) Registra el OIDC provider de GitHub (uno por cuenta, idempotente).
-# 2) Crea un rol que GH Actions puede asumir SOLO desde este repo + branches.
-# 3) Adjunta política de menor privilegio: push/pull en ECR + describe EC2
-#    (CI necesita ubicar el instance id para mensajes informativos).
+# 1) Registers the GitHub OIDC provider (one per account, idempotent).
+# 2) Creates a role that GH Actions can assume ONLY from this repo + branches.
+# 3) Attaches least-privilege policy: push/pull on ECR + describe EC2
+#    (CI needs to locate the instance id for informational messages).
 #
-# Free Tier: IAM y OIDC son siempre gratis.
+# Free Tier: IAM and OIDC are always free.
 # ─────────────────────────────────────────────────────────────────────────
 
 data "aws_caller_identity" "current" {}
 data "aws_partition" "current" {}
 
-# AWS solo permite un OIDC provider de GitHub por cuenta. El primer
-# environment en aplicarse lo crea; el segundo lo busca con data.
+# AWS only allows one GitHub OIDC provider per account. The first
+# environment that applies creates it; the second looks it up with data.
 resource "aws_iam_openid_connect_provider" "github" {
   count           = var.create_oidc_provider ? 1 : 0
   url             = "https://token.actions.githubusercontent.com"
   client_id_list  = ["sts.amazonaws.com"]
-  # Thumbprint canónico que AWS recomienda para el provider de GitHub.
+  # Canonical thumbprint that AWS recommends for the GitHub provider.
   thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea1"]
   tags            = var.tags
 }
@@ -32,7 +32,7 @@ locals {
   oidc_provider_arn = var.create_oidc_provider ? aws_iam_openid_connect_provider.github[0].arn : data.aws_iam_openid_connect_provider.github[0].arn
 }
 
-# Trust policy: solo GH Actions de este repo + branches/environments listados.
+# Trust policy: only GH Actions from this repo + listed branches/environments.
 data "aws_iam_policy_document" "trust" {
   statement {
     effect  = "Allow"
@@ -58,7 +58,7 @@ data "aws_iam_policy_document" "trust" {
           for b in var.allowed_branches :
           "repo:${var.github_owner}/${var.github_repo}:ref:refs/heads/${b}"
         ],
-        # Jobs con `environment:` declarado
+        # Jobs with `environment:` declared
         [
           for e in var.allowed_environments :
           "repo:${var.github_owner}/${var.github_repo}:environment:${e}"
@@ -76,13 +76,13 @@ resource "aws_iam_role" "github" {
   tags               = var.tags
 }
 
-# Permisos de menor privilegio para CI.
+# Least-privilege permissions for CI.
 data "aws_iam_policy_document" "ecr" {
   statement {
     sid       = "EcrAuthToken"
     effect    = "Allow"
     actions   = ["ecr:GetAuthorizationToken"]
-    resources = ["*"]  # GetAuthorizationToken no se puede limitar por recurso.
+    resources = ["*"]  # GetAuthorizationToken cannot be scoped by resource.
   }
   statement {
     sid    = "EcrPushPull"

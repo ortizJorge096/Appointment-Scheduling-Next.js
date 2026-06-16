@@ -57,9 +57,9 @@ COPY --from=builder /app/prisma                   ./prisma
 COPY --from=builder /app/node_modules/.prisma     ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma     ./node_modules/@prisma
 COPY --from=builder /app/node_modules/prisma      ./node_modules/prisma
-COPY --from=builder /app/node_modules/.bin/prisma*  ./node_modules/.bin/
-# Prisma v5+ uses WASM engines — ensure they are available where the CLI expects them
-RUN find node_modules/.prisma node_modules/@prisma node_modules/prisma -name "*.wasm" -exec cp -n {} node_modules/.bin/ \; 2>/dev/null; exit 0
+# Note: the init-container invokes the CLI via `node node_modules/prisma/build/index.js`
+# (see k8s deployment), so we do NOT rely on the .bin/prisma symlink — Docker would
+# flatten it into a file and break its `require('../package.json')`.
 
 USER nextjs
 

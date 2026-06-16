@@ -1,37 +1,37 @@
 variable "github_owner" {
-  description = "Owner del repo en GitHub (usuario u organización)."
+  description = "Owner of the repo on GitHub (user or organization)."
   type        = string
 }
 
 variable "github_repo" {
-  description = "Nombre del repo en GitHub."
+  description = "Name of the repo on GitHub."
   type        = string
 }
 
 variable "allowed_branches" {
-  description = "Branches autorizadas a asumir el rol vía OIDC (push events)."
+  description = "Branches authorized to assume the role via OIDC (push events)."
   type        = list(string)
   default     = ["main", "develop"]
 }
 
 variable "allowed_environments" {
-  description = "GitHub Environments autorizados (deploy job)."
+  description = "Authorized GitHub Environments (deploy job)."
   type        = list(string)
   default     = ["dev", "production"]
 }
 
 variable "ecr_repository_arn" {
-  description = "ARN del repo ECR sobre el que el rol puede push/pull."
+  description = "ARN of the ECR repo the role can push/pull to."
   type        = string
 }
 
 variable "role_name" {
-  description = "Nombre del IAM role para GitHub Actions."
+  description = "Name of the IAM role for GitHub Actions."
   type        = string
 }
 
 variable "create_oidc_provider" {
-  description = "Crear el OIDC provider en IAM. Solo uno por cuenta; el primer environment lo crea, el segundo lo reusa."
+  description = "Create the OIDC provider in IAM. Only one per account; the first environment creates it, the second reuses it."
   type        = bool
   default     = true
 }

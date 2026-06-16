@@ -1,24 +1,24 @@
 // src/lib/email.ts
-// Envío de emails con AWS SES
-// Para apagar/prender: ENABLE_EMAILS=false en .env.local
+// Email delivery with AWS SES
+// To toggle off/on: ENABLE_EMAILS=false in .env.local
 
 import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses'
 import { STUDIO } from './config'
 import type { AppointmentWithService } from '../types'
 
 // ─────────────────────────────────────────────────────────────
-// Las variables de entorno se leen de forma LAZY (dentro de las
-// funciones) para que este módulo funcione tanto en Next.js como
-// en scripts (cron) donde dotenv se carga antes de usarse.
-// ENABLE_EMAILS=false → omite el envío, solo loguea en consola.
+// Environment variables are read LAZILY (inside the functions)
+// so this module works both in Next.js and in (cron) scripts
+// where dotenv is loaded before it's used.
+// ENABLE_EMAILS=false → skips sending, only logs to the console.
 // ─────────────────────────────────────────────────────────────
 
-// Cliente SES memoizado — se crea en el primer envío real
+// Memoized SES client — created on the first real send
 let _ses: SESClient | null = null
 function getSes(): SESClient {
   if (!_ses) {
-    // Sin `credentials` explícitas: el SDK usa la cadena por defecto
-    // (Instance Profile en EC2, variables de entorno en local).
+    // No explicit `credentials`: the SDK uses the default chain
+    // (Instance Profile on EC2, environment variables locally).
     _ses = new SESClient({
       region: process.env.AWS_REGION ?? 'us-east-1',
     })
@@ -31,6 +31,7 @@ const fromEmail     = () => process.env.SES_FROM_EMAIL ?? STUDIO.email
 const appUrl        = () => process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
 
 // ─── Helpers ──────────────────────────────────────────────────
+// (formatDate/formatPrice produce Spanish, user-facing strings)
 function formatDate(date: string | Date, startTime: string): string {
   return `${new Date(date).toLocaleDateString('es-CO', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
@@ -44,7 +45,7 @@ function formatPrice(price: number): string {
   }).format(price)
 }
 
-// ─── Template base ────────────────────────────────────────────
+// ─── Base template ────────────────────────────────────────────
 function baseTemplate(content: string): string {
   return `<!DOCTYPE html>
 <html lang="es">
@@ -66,7 +67,7 @@ function baseTemplate(content: string): string {
             </p>
           </td>
         </tr>
-        <!-- Contenido -->
+        <!-- Content -->
         <tr><td style="padding:40px;">${content}</td></tr>
         <!-- Footer -->
         <tr>
@@ -84,7 +85,7 @@ function baseTemplate(content: string): string {
 </html>`.trim()
 }
 
-// ─── Email de confirmación ────────────────────────────────────
+// ─── Confirmation email ───────────────────────────────────────
 export async function sendConfirmationEmail(
   appointment: AppointmentWithService
 ): Promise<void> {
@@ -144,7 +145,7 @@ export async function sendConfirmationEmail(
   })
 }
 
-// ─── Email de recordatorio ────────────────────────────────────
+// ─── Reminder email ───────────────────────────────────────────
 export async function sendReminderEmail(
   appointment: AppointmentWithService
 ): Promise<void> {
@@ -181,7 +182,7 @@ export async function sendReminderEmail(
   })
 }
 
-// ─── Función base — respeta el flag EMAILS_ENABLED ────────────
+// ─── Base function — respects the EMAILS_ENABLED flag ─────────
 async function sendEmail({
   to, subject, html,
 }: {
@@ -189,13 +190,13 @@ async function sendEmail({
   subject: string
   html: string
 }): Promise<void> {
-  // ── EMAILS APAGADOS ──
+  // ── EMAILS OFF ──
   if (!emailsEnabled()) {
     console.log(`📭 [EMAILS DESACTIVADOS] Se habría enviado a ${to}: "${subject}"`)
-    return  // sale sin enviar nada ni lanzar error
+    return  // returns without sending anything or throwing
   }
 
-  // ── EMAILS ENCENDIDOS ──
+  // ── EMAILS ON ──
   const command = new SendEmailCommand({
     Source:      `${STUDIO.name} <${fromEmail()}>`,
     Destination: { ToAddresses: [to] },

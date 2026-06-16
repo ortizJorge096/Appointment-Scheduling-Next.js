@@ -1,10 +1,10 @@
 output "sns_topic_arn" {
-  description = "ARN del tópico SNS que recibe las notificaciones."
+  description = "ARN of the SNS topic that receives notifications."
   value       = aws_sns_topic.alarms.arn
 }
 
 output "alarm_names" {
-  description = "Nombres de las alarmas creadas."
+  description = "Names of the created alarms."
   value = compact([
     aws_cloudwatch_metric_alarm.cpu_high.alarm_name,
     aws_cloudwatch_metric_alarm.status_check_failed.alarm_name,

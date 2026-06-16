@@ -1,10 +1,10 @@
 output "ecr_repository_url" {
-  description = "URL del repo ECR."
+  description = "URL of the ECR repo."
   value       = module.ecr.repository_url
 }
 
 output "github_actions_role_arn" {
-  description = "ARN del rol que GH Actions asume vía OIDC (secret AWS_ROLE_ARN)."
+  description = "ARN of the role GH Actions assumes via OIDC (secret AWS_ROLE_ARN)."
   value       = module.github_oidc.role_arn
 }
 
@@ -17,27 +17,27 @@ output "public_subnet_ids" {
 }
 
 output "db_endpoint" {
-  description = "Endpoint host:puerto del RDS."
+  description = "Endpoint host:port of the RDS."
   value       = module.rds.db_endpoint
 }
 
 output "database_url_ssm_parameter" {
-  description = "SSM SecureString path con la DATABASE_URL."
+  description = "SSM SecureString path with the DATABASE_URL."
   value       = module.rds.database_url_ssm_parameter
 }
 
 output "assets_bucket_name" {
-  description = "Bucket S3 de assets/galería."
+  description = "S3 bucket for assets/gallery."
   value       = module.s3_assets.bucket_name
 }
 
 output "assets_public_base_url" {
-  description = "Base URL pública de los assets."
+  description = "Public base URL of the assets."
   value       = module.s3_assets.public_base_url
 }
 
 output "app_public_ip" {
-  description = "EIP del k3s — estable a través de Spot reclaims."
+  description = "EIP of the k3s — stable across Spot reclaims."
   value       = var.enable_ec2_k3s ? module.k3s[0].public_ip : null
 }
 

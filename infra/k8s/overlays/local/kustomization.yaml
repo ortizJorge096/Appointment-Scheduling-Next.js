@@ -18,7 +18,7 @@ patches:
         path: /metadata/name
         value: appointment-scheduling-local
 
-  # Apuntar al ingress-nginx (minikube/docker-desktop).
+  # Point to ingress-nginx (minikube/docker-desktop).
   - target:
       kind: Ingress
       name: appointment-scheduling
@@ -30,8 +30,8 @@ patches:
         path: /spec/rules/0/host
         value: appointment-scheduling.local
 
-  # Apagar networkpolicy en local — ingress-nginx vive en otro namespace
-  # con labels distintas según versión de minikube.
+  # Disable networkpolicy locally — ingress-nginx lives in another namespace
+  # with different labels depending on the minikube version.
   - target:
       kind: NetworkPolicy
       name: appointment-scheduling
@@ -40,7 +40,7 @@ patches:
         path: /spec/policyTypes
         value: []
 
-  # Config local: emails apagados, Postgres del docker-compose.
+  # Local config: emails disabled, docker-compose Postgres.
   - target:
       kind: ConfigMap
       name: appointment-scheduling-config
