@@ -24,7 +24,7 @@ export default function AgendarPage() {
           </p>
         </div>
         <div className="max-w-3xl mx-auto px-6">
-          <div className="bg-white border border-beige-dark p-8 lg:p-12 shadow-sm">
+          <div className="bg-white border border-beige-dark/60 rounded-3xl p-8 lg:p-12 shadow-sm">
             <Suspense fallback={
               <div className="py-10 text-center text-ink-muted text-sm">
                 Cargando...

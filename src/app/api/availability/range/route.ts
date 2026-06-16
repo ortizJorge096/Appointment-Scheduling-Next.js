@@ -82,9 +82,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     ])
 
     const scheduleByDay = new Map(schedules.map((s) => [s.dayOfWeek, s]))
-    // Las fechas (blocked/appointment) son "date-only": se comparan como día calendario
-    // en UTC para que el resultado sea determinista e independiente de la zona horaria
-    // del runtime (servidor o runner de CI). Coincide con el día calendario del rango.
+    // blocked/appointment dates are "date-only": compare them as a UTC calendar day
+    // so the result is deterministic and independent of the runtime timezone
+    // (server or CI runner). Matches the calendar day used to build the range.
     const blockedSet = new Set(blocked.map((b) => formatInTimeZone(b.date, 'UTC', 'yyyy-MM-dd')))
 
     // Agrupar citas por día (YYYY-MM-DD)

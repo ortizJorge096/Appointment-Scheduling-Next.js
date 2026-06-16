@@ -64,6 +64,22 @@ next-env.d.ts
 coverage/
 .nyc_output/
 
+# ── Terraform ──────────────────────────────────────────────────
+# Directorios de trabajo y binarios de providers (pesados, se regeneran con `terraform init`)
+**/.terraform/*
+# Estado — NUNCA commitear (puede contener secretos)
+*.tfstate
+*.tfstate.*
+.terraform.tfstate.lock.info
+# Variables con valores reales — commitear solo *.tfvars.example
+*.tfvars
+*.tfvars.json
+# Logs de crash de Terraform
+crash.log
+crash.*.log
+# SÍ se commitea el lock de providers para builds reproducibles:
+!**/.terraform.lock.hcl
+
 # ── Misc ───────────────────────────────────────────────────────
 .vercel
 .turbo

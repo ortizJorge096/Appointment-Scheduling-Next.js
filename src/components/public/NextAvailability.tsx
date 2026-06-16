@@ -62,7 +62,7 @@ export default function NextAvailability() {
   return (
     <>
       {loading ? (
-        <div className="bg-white/[0.06] border border-white/10 p-7">
+        <div className="bg-white/[0.06] border border-white/10 rounded-2xl p-7">
           <div className="animate-pulse space-y-3">
             <div className="h-3 w-32 bg-white/10 rounded" />
             <div className="h-7 w-40 bg-white/10 rounded" />
@@ -72,7 +72,7 @@ export default function NextAvailability() {
           </div>
         </div>
       ) : slot ? (
-        <div className="bg-white/[0.06] border border-white/10 p-7">
+        <div className="bg-white/[0.06] border border-white/10 rounded-2xl p-7">
           <div className="flex items-center gap-2.5 mb-5">
             <div className="w-2 h-2 rounded-full bg-gold" />
             <p className="text-xs text-white/40 tracking-widest uppercase">Próxima disponibilidad</p>
@@ -89,7 +89,7 @@ export default function NextAvailability() {
           </div>
         </div>
       ) : (
-        <div className="bg-white/[0.06] border border-white/10 p-7">
+        <div className="bg-white/[0.06] border border-white/10 rounded-2xl p-7">
           <div className="flex items-center gap-2.5 mb-5">
             <div className="w-2 h-2 rounded-full bg-gold" />
             <p className="text-xs text-white/40 tracking-widest uppercase">Próxima disponibilidad</p>
@@ -104,7 +104,7 @@ export default function NextAvailability() {
       {preview.length > 0 && (
         <div className="grid grid-cols-2 gap-3">
           {preview.map((s) => (
-            <div key={s.id} className="bg-white/[0.04] border border-white/10 p-4">
+            <div key={s.id} className="bg-white/[0.04] border border-white/10 rounded-xl p-4">
               <p className="text-white/70 text-sm font-medium mb-3 leading-snug">{s.name}</p>
               <p className="text-gold font-medium">{formatPrice(s.price)}</p>
               <p className="text-xs text-white/30 mt-0.5">{s.durationMinutes} min</p>

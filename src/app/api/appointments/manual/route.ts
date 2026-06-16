@@ -8,13 +8,19 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { STUDIO } from '@/lib/config'
 import { createManualAppointmentSchema } from '@/lib/validations'
 import { timeToMinutes, minutesToTime } from '@/lib/availability'
 import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
 import { audit, getClientIp } from '@/lib/audit'
 import type { ApiResponse, AppointmentWithService } from '@/types'
+import { toZonedTime } from 'date-fns-tz'
+import { format, subDays } from 'date-fns'
 
 export const dynamic = 'force-dynamic'
+
+// Admins can backfill appointments up to this many days in the past.
+const PAST_LIMIT_DAYS = 15
 
 class SlotTakenError extends Error {}
 
@@ -40,6 +46,17 @@ export async function POST(
     serviceId, date, startTime, source, notes,
     skipAvailabilityCheck,
   } = parsed.data
+
+  // Backfill window: allow past dates only up to PAST_LIMIT_DAYS days ago
+  // (business timezone). Future dates are always allowed for scheduling.
+  const todayBogota = toZonedTime(new Date(), STUDIO.timezone)
+  const minDateStr  = format(subDays(todayBogota, PAST_LIMIT_DAYS), 'yyyy-MM-dd')
+  if (date < minDateStr) {
+    return NextResponse.json(
+      { success: false, error: `Solo puedes registrar citas de hasta ${PAST_LIMIT_DAYS} días atrás.` },
+      { status: 400 }
+    )
+  }
 
   // Verificar servicio
   let service

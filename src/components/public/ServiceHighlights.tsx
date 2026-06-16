@@ -1,5 +1,5 @@
 // src/components/public/ServiceHighlights.tsx
-// Franja de especialidades con iconos en aro dorado — refleja los 5 servicios del logotipo.
+// Specialty strip with gold-ring icons — mirrors the 5 services from the logo banner.
 import Link from 'next/link'
 import { SERVICE_HIGHLIGHTS } from './ServiceIcons'
 

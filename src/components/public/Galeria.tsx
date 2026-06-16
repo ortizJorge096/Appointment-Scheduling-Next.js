@@ -46,47 +46,53 @@ export default async function Galeria() {
 
   const showPlaceholders = realImages.length === 0
 
+  // Patrón bento: algunas piezas ocupan más espacio para un mosaico elegante.
+  const spanFor = (i: number) => {
+    const mod = i % 6
+    if (mod === 0) return 'sm:col-span-2 sm:row-span-2'
+    if (mod === 3) return 'sm:row-span-2'
+    return ''
+  }
+
   return (
     <section id="galeria" className="py-24 bg-beige">
       <div className="max-w-7xl mx-auto px-6 lg:px-10">
         <div className="text-center mb-14">
           <span className="section-tag justify-center mb-4">Nuestro trabajo</span>
           <h2 className="text-4xl lg:text-5xl font-serif font-light text-ink">
-            Galería de <em className="text-gold italic">diseños</em>
+            El trabajo habla <em className="text-gold italic">por sí solo</em>
           </h2>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 auto-rows-[140px] md:auto-rows-[170px] gap-3">
           {showPlaceholders
             ? PLACEHOLDER_ITEMS.map((item, i) => (
                 <div key={item.label}
-                  className="aspect-square relative overflow-hidden group cursor-pointer">
-                  <div className="w-full h-full transition-transform duration-500 group-hover:scale-105"
+                  className={`relative overflow-hidden rounded-2xl shadow-md group cursor-pointer ${spanFor(i)}`}>
+                  <div className="w-full h-full transition-transform duration-500 group-hover:scale-110"
                     style={{ background: PLACEHOLDER_GRADIENTS[i % PLACEHOLDER_GRADIENTS.length] }} />
-                  <div className="absolute inset-0 bg-ink/50 opacity-0 group-hover:opacity-100
+                  <div className="absolute inset-0 bg-gradient-to-t from-ink/80 via-ink/20 to-transparent
                                   transition-opacity duration-300 flex flex-col justify-end p-5">
-                    <p className="text-white text-sm font-medium">{item.label}</p>
-                    <p className="text-gold text-xs mt-0.5">{item.sub}</p>
+                    <p className="logo-script text-gold-light text-2xl leading-none">{item.label}</p>
+                    <p className="text-white/70 text-[10px] mt-1.5 tracking-widest uppercase">{item.sub}</p>
                   </div>
                 </div>
               ))
             : realImages.map((img, i) => (
                 <div key={i}
-                  className="aspect-square relative overflow-hidden group cursor-pointer bg-beige-dark">
+                  className={`relative overflow-hidden rounded-2xl shadow-sm group cursor-pointer bg-beige-dark ${spanFor(i)}`}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={img.url}
                     alt={img.title ?? 'Diseño'}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     loading="lazy"
                   />
-                  {(img.title || img.description || img.category) && (
-                    <div className="absolute inset-0 bg-ink/60 opacity-0 group-hover:opacity-100
-                                    transition-opacity duration-300 flex flex-col justify-end p-5">
-                      {img.title && <p className="text-white text-sm font-medium leading-snug">{img.title}</p>}
-                      {img.description && <p className="text-white/80 text-xs mt-1 leading-snug">{img.description}</p>}
-                      {img.category && <p className="text-gold text-xs mt-1.5 tracking-wide uppercase">{categoryLabel(img.category)}</p>}
-                    </div>
-                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-ink/70 via-ink/10 to-transparent
+                                  opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-5">
+                    {img.title && <p className="font-serif italic text-white text-lg leading-tight">{img.title}</p>}
+                    {img.description && <p className="text-white/80 text-xs mt-1 leading-snug">{img.description}</p>}
+                    {img.category && <p className="text-gold-light text-xs mt-1.5 tracking-widest uppercase">{categoryLabel(img.category)}</p>}
+                  </div>
                 </div>
               ))
           }

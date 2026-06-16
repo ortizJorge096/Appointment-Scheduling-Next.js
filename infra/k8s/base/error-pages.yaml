@@ -14,7 +14,7 @@ data:
     <head>
       <meta charset="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <title>Mantenimiento — Valentina Jiménez Beauty Studio</title>
+      <title>Mantenimiento — Valentina Jimenez Beauty Studio</title>
       <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -140,7 +140,7 @@ data:
       <div class="container">
         <div class="monogram">VJ</div>
 
-        <p class="studio-label">Valentina Jiménez</p>
+        <p class="studio-label">Valentina Jimenez</p>
         <h1>Beauty Studio</h1>
         <p class="tagline">Uñas · Pestañas · Cejas</p>
 
@@ -162,7 +162,7 @@ data:
           directamente por WhatsApp.
         </p>
 
-        <div class="footer">© Valentina Jiménez Beauty Studio</div>
+        <div class="footer">© Valentina Jimenez Beauty Studio</div>
       </div>
     </body>
     </html>
