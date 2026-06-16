@@ -597,9 +597,9 @@ export default function BookingForm() {
           <button type="button" onClick={handlePrev} className="btn-secondary" disabled={submitting}>← Atrás</button>
         ) : <span />}
         {step !== 'confirm' ? (
-          <button ref={continueRef} type="button" onClick={handleNext} className="btn-primary">Continuar →</button>
+          <button ref={continueRef} type="button" onClick={handleNext} className="btn-cta">Continuar →</button>
         ) : (
-          <button type="button" onClick={handleSubmit} disabled={submitting} className="btn-primary disabled:opacity-70">
+          <button type="button" onClick={handleSubmit} disabled={submitting} className="btn-cta disabled:opacity-70">
             {submitting ? 'Confirmando...' : 'Confirmar cita'}
           </button>
         )}

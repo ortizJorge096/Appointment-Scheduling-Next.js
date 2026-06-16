@@ -37,9 +37,13 @@ export default function Navbar() {
     }`}>
       <div className="max-w-7xl mx-auto px-6 lg:px-10 h-16 flex items-center justify-between">
 
-        <Link href="/" className="font-serif text-xl tracking-wide text-ink">
-          {STUDIO.shortName}{' '}
-          <em className="text-gold not-italic italic font-light">{STUDIO.tagline}</em>
+        <Link href="/" className="flex flex-col leading-none" aria-label={STUDIO.name}>
+          <span className="logo-script text-gold text-2xl sm:text-[1.7rem]">
+            {STUDIO.shortName}
+          </span>
+          <span className="logo-studio text-ink text-[0.5rem] sm:text-[0.55rem] mt-0.5">
+            {STUDIO.tagline}
+          </span>
         </Link>
 
         <ul className="hidden md:flex items-center gap-8">
@@ -56,7 +60,7 @@ export default function Navbar() {
 
         <div className="hidden md:block">
           {!isOnBooking && (
-            <Link href="/agendar" className="btn-primary">Agendar cita</Link>
+            <Link href="/agendar" className="btn-cta">Agendar cita</Link>
           )}
         </div>
 
@@ -78,7 +82,7 @@ export default function Navbar() {
             </Link>
           ))}
           {!isOnBooking && (
-            <Link href="/agendar" className="btn-primary text-center mt-2"
+            <Link href="/agendar" className="btn-cta text-center mt-2"
               onClick={() => setMenuOpen(false)}>
               Agendar cita
             </Link>

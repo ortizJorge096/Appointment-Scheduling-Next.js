@@ -37,12 +37,12 @@ interface StatCardProps {
 export function StatCard({ label, value, accent = false, className }: StatCardProps) {
   return (
     <div className={cn(
-      'bg-white border p-5',
+      'bg-white border p-5 shadow-sm hover:shadow-md transition-shadow duration-200',
       accent ? 'border-gold' : 'border-beige-dark',
       className
     )}>
-      <p className="text-xs text-ink-muted tracking-wide uppercase mb-2">{label}</p>
-      <p className={cn('font-serif text-2xl font-light', accent ? 'text-gold' : 'text-ink')}>
+      <p className="text-[11px] text-ink-muted tracking-widest uppercase mb-2 font-medium">{label}</p>
+      <p className={cn('font-serif text-3xl font-light leading-none', accent ? 'text-gold' : 'text-ink')}>
         {value}
       </p>
     </div>

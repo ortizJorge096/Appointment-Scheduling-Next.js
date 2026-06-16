@@ -7,9 +7,9 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-6 lg:px-10 py-12
                       grid grid-cols-1 sm:grid-cols-3 gap-10">
         <div>
-          <Link href="/" className="font-serif text-lg text-white font-light">
-            {STUDIO.shortName}{' '}
-            <em className="text-gold italic font-light">{STUDIO.tagline}</em>
+          <Link href="/" className="flex flex-col leading-none" aria-label={STUDIO.name}>
+            <span className="logo-script text-gold text-3xl">{STUDIO.shortName}</span>
+            <span className="logo-studio text-white/70 text-[0.55rem] mt-1">{STUDIO.tagline}</span>
           </Link>
           <p className="text-white/30 text-xs mt-3 leading-relaxed">
             Uñas, pestañas y cejas en {STUDIO.city}.<br />Agenda tu cita en línea.

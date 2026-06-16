@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&family=Great+Vibes&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -91,6 +91,43 @@
   }
   .card { @apply bg-white border border-beige-dark p-6; }
   .divider { @apply border-t border-beige-dark my-8; }
+
+  /* ── Logo (tipografía script de marca) ──
+     Placeholder con Great Vibes; reemplazar por la fuente exacta del logo cuando se tenga el .woff2. */
+  .logo-script {
+    font-family: 'Great Vibes', 'Cormorant Garamond', cursive;
+    @apply font-normal leading-none;
+    line-height: 0.9;
+  }
+  .logo-studio {
+    @apply font-serif uppercase tracking-[0.42em];
+  }
+
+  /* ── CTA premium (gradiente dorado, redondeado) ── */
+  .btn-cta {
+    @apply inline-flex items-center justify-center gap-2 rounded-full
+           px-8 py-3.5 text-xs font-semibold tracking-widest uppercase
+           text-ink transition-all duration-200
+           hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed;
+    background-image: linear-gradient(135deg, #D4AD5A 0%, #B8932A 100%);
+    box-shadow: 0 10px 30px rgba(184, 147, 42, 0.28);
+  }
+  .btn-cta:hover { box-shadow: 0 16px 40px rgba(184, 147, 42, 0.4); }
+
+  /* ── Icono circular de servicio ── */
+  .svc-icon-ring {
+    @apply inline-flex items-center justify-center rounded-full
+           border border-gold/70 text-gold;
+  }
+
+  /* ── FAB de WhatsApp ── */
+  .wa-fab {
+    @apply fixed bottom-6 right-6 z-50 flex items-center justify-center
+           w-14 h-14 rounded-full text-white shadow-lg transition-transform;
+    background-color: #25D366;
+    box-shadow: 0 10px 30px rgba(37, 211, 102, 0.45);
+  }
+  .wa-fab:hover { transform: scale(1.06); }
 }
 
 @layer utilities {
@@ -99,4 +136,16 @@
   .animation-delay-200 { animation-delay: 200ms; }
   .animation-delay-300 { animation-delay: 300ms; }
   .animation-delay-400 { animation-delay: 400ms; }
+}
+
+/* Accesibilidad: respeta la preferencia de movimiento reducido */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }

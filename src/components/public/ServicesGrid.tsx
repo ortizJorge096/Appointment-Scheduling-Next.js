@@ -2,19 +2,12 @@
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { CATEGORY_ORDER, categoryLabel } from '@/lib/config'
+import { CategoryIcon } from './ServiceIcons'
 
 function formatPrice(p: number) {
   return new Intl.NumberFormat('es-CO', {
     style: 'currency', currency: 'COP', minimumFractionDigits: 0,
   }).format(p)
-}
-
-// Ornamento sutil distinto por categoría — añade carácter sin ruido visual
-const CATEGORY_ORNAMENTS: Record<string, string> = {
-  UNAS:     '✦',
-  PESTANAS: '✧',
-  CEJAS:    '✣',
-  PROMOS:   '✺',
 }
 
 // Frase introductoria por categoría, mostrada bajo el título de la sección
@@ -62,8 +55,10 @@ export default async function ServicesGrid() {
               {/* Encabezado de categoría */}
               <div className="mb-3 flex items-end justify-between gap-4 flex-wrap">
                 <div>
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="text-gold/40 text-sm">{CATEGORY_ORNAMENTS[cat] ?? '✦'}</span>
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="svc-icon-ring w-11 h-11">
+                      <CategoryIcon category={cat} className="w-6 h-6" />
+                    </span>
                     <p className="text-xs tracking-widest uppercase text-gold font-medium">
                       Categoría
                     </p>
@@ -95,7 +90,7 @@ export default async function ServicesGrid() {
                   >
                     {/* Ornamento + categoría */}
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-gold/40 text-xs">{CATEGORY_ORNAMENTS[cat] ?? '✦'}</span>
+                      <CategoryIcon category={cat} className="w-4 h-4 text-gold/70" />
                       <span className="text-[10px] tracking-widest uppercase text-ink-muted/60">
                         {categoryLabel(cat)}
                       </span>
