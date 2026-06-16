@@ -1,6 +1,6 @@
 'use client'
 // src/components/public/FAQ.tsx
-// Sección de preguntas frecuentes — acordeón interactivo
+// Frequently asked questions section — interactive accordion
 
 import { useState } from 'react'
 

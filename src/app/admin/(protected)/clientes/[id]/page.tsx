@@ -1,6 +1,6 @@
 'use client'
 // src/app/admin/(protected)/clientes/[id]/page.tsx
-// Historial completo del cliente + edición de notas internas
+// Full client history + internal notes editing
 
 import { useState, useEffect, use } from 'react'
 import Link from 'next/link'

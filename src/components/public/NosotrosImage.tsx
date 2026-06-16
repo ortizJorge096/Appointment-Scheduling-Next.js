@@ -1,7 +1,7 @@
 'use client'
 // src/components/public/NosotrosImage.tsx
-// Muestra la ilustracion de la seccion Nosotros.
-// Si el archivo no existe aun en public/, cae graciosamente al gradiente dorado.
+// Shows the illustration for the Nosotros section.
+// If the file doesn't exist yet in public/, gracefully falls back to the gold gradient.
 
 import { useState } from 'react'
 import Image from 'next/image'
@@ -11,7 +11,7 @@ export default function NosotrosImage() {
 
   return (
     <div className="relative">
-      {/* Fondo decorativo */}
+      {/* Decorative background */}
       <div
         className="absolute inset-0 translate-x-4 translate-y-4 rounded-2xl"
         style={{ background: 'linear-gradient(160deg,#F2EBD9 0%,#D4AD5A 60%,#8A6E1E 100%)' }}
@@ -19,7 +19,7 @@ export default function NosotrosImage() {
 
       <div className="relative w-full aspect-[4/5] rounded-2xl overflow-hidden shadow-xl">
         {error ? (
-          /* Fallback: gradiente cuando la imagen no existe aun */
+          /* Fallback: gradient when the image doesn't exist yet */
           <div
             className="w-full h-full"
             style={{ background: 'linear-gradient(160deg,#F2EBD9 0%,#D4AD5A 60%,#8A6E1E 100%)' }}

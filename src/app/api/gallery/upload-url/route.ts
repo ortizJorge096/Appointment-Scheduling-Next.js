@@ -1,6 +1,6 @@
 // src/app/api/gallery/upload-url/route.ts
-// POST → Genera una URL PUT firmada para que el navegador del admin
-//        suba el archivo directamente a S3.
+// POST → Generates a signed PUT URL so the admin's browser
+//        uploads the file directly to S3.
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   const { filename, contentType } = parsed.data
-  // id corto y aleatorio para la key
+  // short random id for the key
   const id = randomBytes(9).toString('base64url')
   const key = buildGalleryKey(id, filename)
 

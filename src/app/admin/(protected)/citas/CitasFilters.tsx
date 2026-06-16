@@ -1,6 +1,6 @@
 'use client'
 // src/app/admin/(protected)/citas/CitasFilters.tsx
-// Client Component — maneja los filtros interactivos de fecha
+// Client Component — handles interactive date filters
 
 import { useRouter } from 'next/navigation'
 
@@ -31,7 +31,7 @@ export default function CitasFilters({ status, dateFrom, dateTo }: Props) {
   return (
     <div className="bg-white border border-beige-dark p-4 mb-6 flex flex-wrap gap-3 items-end">
 
-      {/* Estado */}
+      {/* Status */}
       <div>
         <label className="form-label text-[10px]">Estado</label>
         <div className="flex gap-1.5 flex-wrap">
@@ -48,7 +48,7 @@ export default function CitasFilters({ status, dateFrom, dateTo }: Props) {
         </div>
       </div>
 
-      {/* Desde */}
+      {/* From */}
       <div>
         <label className="form-label text-[10px]">Desde</label>
         <input type="date" defaultValue={dateFrom}
@@ -56,7 +56,7 @@ export default function CitasFilters({ status, dateFrom, dateTo }: Props) {
           onChange={(e) => buildUrl({ dateFrom: e.target.value })} />
       </div>
 
-      {/* Hasta */}
+      {/* To */}
       <div>
         <label className="form-label text-[10px]">Hasta</label>
         <input type="date" defaultValue={dateTo}
@@ -64,7 +64,7 @@ export default function CitasFilters({ status, dateFrom, dateTo }: Props) {
           onChange={(e) => buildUrl({ dateTo: e.target.value })} />
       </div>
 
-      {/* Limpiar */}
+      {/* Clear */}
       {(status && status !== 'ALL' || dateFrom || dateTo) && (
         <button type="button"
           onClick={() => router.push('/admin/citas')}

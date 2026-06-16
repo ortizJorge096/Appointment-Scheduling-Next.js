@@ -16,7 +16,7 @@ export default function ErrorPage({
         <p className="text-ink-muted mb-2">
           Ocurrió un error inesperado. Ya lo registramos.
         </p>
-        {/* Solo mostramos el digest (opaco) — nunca el mensaje interno en producción */}
+        {/* Only show the digest (opaque) — never the internal message in production */}
         {error.digest && (
           <p className="text-xs text-ink-muted mb-8 font-mono">
             Ref: {error.digest}

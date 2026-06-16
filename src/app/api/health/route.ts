@@ -7,7 +7,7 @@ export const runtime = 'nodejs'
 const startedAt = Date.now()
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
-  // ?readiness — verifica DB usando el singleton (no crea nuevas conexiones)
+  // ?readiness — checks DB using the singleton (does not create new connections)
   if (req.nextUrl.searchParams.has('readiness')) {
     try {
       await prisma.$queryRaw`SELECT 1`
@@ -22,7 +22,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     }
   }
 
-  // Liveness probe — sin BD para evitar reinicios en cascada
+  // Liveness probe — without DB to avoid cascading restarts
   return NextResponse.json({
     status: 'ok',
     uptime: Math.round((Date.now() - startedAt) / 1000),

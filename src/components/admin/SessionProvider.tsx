@@ -1,6 +1,6 @@
 'use client'
 // src/components/admin/SessionProvider.tsx
-// Wrapper necesario para useSession() en componentes client del admin
+// Required wrapper for useSession() in admin client components
 
 import { SessionProvider } from 'next-auth/react'
 

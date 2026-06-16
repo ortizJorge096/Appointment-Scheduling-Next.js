@@ -1,16 +1,16 @@
 // src/types/index.ts
-// Tipos del dominio — valentinajimenez
+// Domain types — valentinajimenez
 
 import type { AppointmentStatus, DayOfWeek, ServiceCategory } from '@prisma/client'
 
 // ─────────────────────────────────────────
-// RE-EXPORT de enums existentes de Prisma
+// RE-EXPORT of existing Prisma enums
 // ─────────────────────────────────────────
 export type { AppointmentStatus, DayOfWeek, ServiceCategory }
 
 // ─────────────────────────────────────────
-// NUEVOS ENUMS (string unions hasta que corra prisma generate)
-// Prisma genera los tipos reales; estos sirven de contrato en TS.
+// NEW ENUMS (string unions until prisma generate runs)
+// Prisma generates the real types; these serve as a contract in TS.
 // ─────────────────────────────────────────
 export type AppointmentSource = 'ONLINE' | 'WHATSAPP' | 'TELEFONO' | 'PRESENCIAL'
 export type PaymentStatus     = 'PENDING' | 'PAID' | 'PARTIAL' | 'WAIVED'
@@ -18,7 +18,7 @@ export type PaymentMethod     = 'EFECTIVO' | 'TRANSFERENCIA' | 'TARJETA' | 'NEQU
 export type ExpenseCategory   = 'INSUMOS' | 'EQUIPOS' | 'SERVICIOS' | 'ARRIENDO' | 'MARKETING' | 'OTROS'
 
 // ─────────────────────────────────────────
-// DISPONIBILIDAD
+// AVAILABILITY
 // ─────────────────────────────────────────
 
 export interface TimeSlot {
@@ -39,7 +39,7 @@ export interface AvailabilityResponse {
 }
 
 // ─────────────────────────────────────────
-// CLIENTES
+// CLIENTS
 // ─────────────────────────────────────────
 
 export interface ClientSummary {
@@ -63,7 +63,7 @@ export interface ClientWithHistory {
 }
 
 // ─────────────────────────────────────────
-// CITAS
+// APPOINTMENTS
 // ─────────────────────────────────────────
 
 export interface CreateAppointmentInput {
@@ -117,7 +117,7 @@ export interface UpdateAppointmentInput {
 }
 
 // ─────────────────────────────────────────
-// SERVICIOS
+// SERVICES
 // ─────────────────────────────────────────
 
 export interface CreateServiceInput {
@@ -144,7 +144,7 @@ export interface UpdateServiceInput extends Partial<CreateServiceInput> {
 }
 
 // ─────────────────────────────────────────
-// HORARIOS
+// SCHEDULES
 // ─────────────────────────────────────────
 
 export interface ScheduleInput {
@@ -155,7 +155,7 @@ export interface ScheduleInput {
 }
 
 // ─────────────────────────────────────────
-// GASTOS
+// EXPENSES
 // ─────────────────────────────────────────
 
 export interface ExpenseSummary {
@@ -177,7 +177,7 @@ export interface CreateExpenseInput {
 }
 
 // ─────────────────────────────────────────
-// CONTABILIDAD
+// ACCOUNTING
 // ─────────────────────────────────────────
 
 export interface AccountingSummary {

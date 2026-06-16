@@ -1,10 +1,10 @@
 // scripts/send-reminders.ts
-// Cron job — envía recordatorios 24h antes de cada cita confirmada
+// Cron job — sends reminders 24h before each confirmed appointment
 //
 // Configurar en EC2 con crontab:
 //   0 8 * * * cd /app && npx ts-node scripts/send-reminders.ts >> /var/log/vj-reminders.log 2>&1
 //
-// Se ejecuta cada mañana y envía recordatorios para las citas del día siguiente
+// Runs every morning and sends reminders for the next day's appointments
 // (día siguiente calculado en zona horaria America/Bogota).
 
 import * as dotenv from 'dotenv'
@@ -22,7 +22,7 @@ const TZ = 'America/Bogota'
 async function main() {
   console.log(`\n🔔 [${new Date().toISOString()}] Iniciando envío de recordatorios...`)
 
-  // "Mañana" en hora de Colombia, no en hora del servidor
+  // "Tomorrow" in Colombia time, not server time
   const nowBogota   = toZonedTime(new Date(), TZ)
   const tomorrowStr = format(addDays(nowBogota, 1), 'yyyy-MM-dd')
   const start = new Date(`${tomorrowStr}T00:00:00`)
@@ -30,7 +30,7 @@ async function main() {
 
   console.log(`📅 Buscando citas para ${tomorrowStr} (America/Bogota)`)
 
-  // Citas confirmadas de mañana sin recordatorio enviado aún
+  // Tomorrow's confirmed appointments without reminder sent yet
   const appointments = await prisma.appointment.findMany({
     where: {
       date: { gte: start, lte: end },
@@ -53,7 +53,7 @@ async function main() {
     try {
       await sendReminderEmail(appt as unknown as AppointmentWithService)
 
-      // Registrar que el recordatorio fue enviado
+      // Record that the reminder was sent
       await prisma.appointment.update({
         where: { id: appt.id },
         data: { reminderSentAt: new Date() },

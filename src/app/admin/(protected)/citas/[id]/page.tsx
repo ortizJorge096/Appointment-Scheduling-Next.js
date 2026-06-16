@@ -1,6 +1,6 @@
 'use client'
 // src/app/admin/citas/[id]/page.tsx
-// Detalle de cita con acciones: confirmar, completar, cancelar
+// Appointment detail with actions: confirm, complete, cancel
 
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
@@ -31,7 +31,7 @@ function formatPrice(p: number) {
   }).format(p)
 }
 
-// Acciones disponibles según estado actual
+// Available actions based on current status
 const ACTIONS: Record<string, { label: string; status: AppointmentStatus; style: string }[]> = {
   PENDING: [
     { label: 'Confirmar',  status: 'CONFIRMED', style: 'btn-primary' },
@@ -142,10 +142,10 @@ export default function CitaDetailPage() {
         </div>
       )}
 
-      {/* Detalles */}
+      {/* Details */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
 
-        {/* Servicio */}
+        {/* Service */}
         <div className="bg-white border border-beige-dark p-5">
           <p className="text-xs text-ink-muted uppercase tracking-widest mb-3">Servicio</p>
           <p className="font-serif text-xl text-ink mb-0.5">{appt.service.name}</p>
@@ -153,7 +153,7 @@ export default function CitaDetailPage() {
           <p className="text-xs text-ink-muted mt-0.5">{appt.service.durationMinutes} min</p>
         </div>
 
-        {/* Fecha y hora */}
+        {/* Date and time */}
         <div className="bg-white border border-beige-dark p-5">
           <p className="text-xs text-ink-muted uppercase tracking-widest mb-3">Fecha y hora</p>
           <p className="font-serif text-xl text-ink capitalize">
@@ -164,14 +164,14 @@ export default function CitaDetailPage() {
           </p>
         </div>
 
-        {/* Contacto */}
+        {/* Contact */}
         <div className="bg-white border border-beige-dark p-5">
           <p className="text-xs text-ink-muted uppercase tracking-widest mb-3">Contacto</p>
           <p className="text-ink text-sm">{appt.clientEmail}</p>
           <p className="text-ink text-sm mt-1">{appt.clientPhone}</p>
         </div>
 
-        {/* Agendamiento */}
+        {/* Scheduling */}
         <div className="bg-white border border-beige-dark p-5">
           <p className="text-xs text-ink-muted uppercase tracking-widest mb-3">Registro</p>
           <p className="text-xs text-ink-muted">
@@ -187,7 +187,7 @@ export default function CitaDetailPage() {
         </div>
       </div>
 
-      {/* Notas */}
+      {/* Notes */}
       <div className="bg-white border border-beige-dark p-5 mb-8">
         <div className="flex items-center justify-between mb-3">
           <p className="text-xs text-ink-muted uppercase tracking-widest">Notas</p>
@@ -227,7 +227,7 @@ export default function CitaDetailPage() {
         )}
       </div>
 
-      {/* Acciones de estado */}
+      {/* Status actions */}
       {actions.length > 0 && (
         <div className="flex flex-wrap gap-3">
           {actions.map((action) => (

@@ -11,7 +11,7 @@ spec:
     - Ingress
     - Egress
   ingress:
-    # Tráfico del ingress controller (traefik en k3s, ingress-nginx en local).
+    # Traffic from ingress controller (traefik on k3s, ingress-nginx locally).
     - from:
         - namespaceSelector:
             matchLabels:
@@ -19,13 +19,13 @@ spec:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: ingress-nginx
-        # Tráfico desde otros pods del mismo namespace (probes, etc).
+        # Traffic from other pods in the same namespace (probes, etc).
         - podSelector: {}
       ports:
         - protocol: TCP
           port: 3000
   egress:
-    # DNS al kube-dns/CoreDNS.
+    # DNS to kube-dns/CoreDNS.
     - to:
         - namespaceSelector:
             matchLabels:
@@ -35,17 +35,17 @@ spec:
           port: 53
         - protocol: TCP
           port: 53
-    # Salida abierta (RDS, S3, SES, ECR, etc). En prod estricto podrías
-    # listar CIDRs específicos de tu VPC / endpoints.
+    # Open egress (RDS, S3, SES, ECR, etc). In strict production you could
+    # list specific CIDRs from your VPC / endpoints.
     - to:
         - ipBlock:
             cidr: 0.0.0.0/0
             except:
-              # El SDK de AWS necesita 169.254.169.254 para obtener credenciales
-              # temporales vía Instance Profile (S3, SES, ECR). No bloquear.
+              # AWS SDK needs 169.254.169.254 to get temporary
+              # credentials via Instance Profile (S3, SES, ECR). Do not block.
               # - 169.254.169.254/32
 ---
-# ─── NetworkPolicy para error-pages ──────────────────────────────────────────
+# ─── NetworkPolicy for error-pages ───────────────────────────────────────────
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -59,7 +59,7 @@ spec:
     - Ingress
     - Egress
   ingress:
-    # Tráfico desde el ingress controller (nginx-ingress y kube-system)
+    # Traffic from the ingress controller (nginx-ingress and kube-system)
     - from:
         - namespaceSelector:
             matchLabels:
@@ -70,4 +70,4 @@ spec:
       ports:
         - protocol: TCP
           port: 8080
-  egress: []  # error-pages no necesita salida a internet
+  egress: []  # error-pages doesn't need internet egress

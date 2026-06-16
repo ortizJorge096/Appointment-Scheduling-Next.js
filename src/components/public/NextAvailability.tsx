@@ -34,7 +34,7 @@ export default function NextAvailability() {
   const [loading, setLoading]   = useState(true)
 
   useEffect(() => {
-    // Cargar siguiente slot disponible y primeros 2 servicios activos en paralelo
+    // Load next available slot and first 2 active services in parallel
     Promise.all([
       fetch('/api/availability/next').then((r) => r.json()),
       fetch('/api/services').then((r) => r.json()),

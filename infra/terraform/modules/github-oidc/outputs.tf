@@ -1,14 +1,14 @@
 output "role_arn" {
-  description = "ARN del rol que GitHub Actions asume vía OIDC."
+  description = "ARN of the role GitHub Actions assumes via OIDC."
   value       = aws_iam_role.github.arn
 }
 
 output "role_name" {
-  description = "Nombre del rol."
+  description = "Name of the role."
   value       = aws_iam_role.github.name
 }
 
 output "oidc_provider_arn" {
-  description = "ARN del OIDC provider de GitHub en IAM."
+  description = "ARN of the GitHub OIDC provider in IAM."
   value       = local.oidc_provider_arn
 }

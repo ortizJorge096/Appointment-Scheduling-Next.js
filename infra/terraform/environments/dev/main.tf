@@ -1,10 +1,10 @@
 # ─────────────────────────────────────────────────────────────────────────
-# dev environment — composición de módulos:
-#   network → ecr + github-oidc + s3-assets (paralelo)
+# dev environment — module composition:
+#   network → ecr + github-oidc + s3-assets (parallel)
 #         → rds-postgres → ec2-k3s → monitoring
 # ─────────────────────────────────────────────────────────────────────────
 
-# ─── NEXTAUTH_SECRET en SSM (generado y stored en SecureString) ───────────
+# ─── NEXTAUTH_SECRET in SSM (generated and stored as SecureString) ───────
 resource "random_password" "nextauth" {
   length  = 48
   special = false
@@ -12,7 +12,7 @@ resource "random_password" "nextauth" {
 
 resource "aws_ssm_parameter" "nextauth_secret" {
   name        = "/${var.name_prefix}/nextauth/secret"
-  description = "NEXTAUTH_SECRET para appointment-scheduling ${var.name_prefix}"
+  description = "NEXTAUTH_SECRET for appointment-scheduling ${var.name_prefix}"
   type        = "SecureString"
   value       = random_password.nextauth.result
   tags = {
@@ -24,15 +24,15 @@ resource "aws_ssm_parameter" "nextauth_secret" {
 }
 
 # Google Calendar Service Account private key.
-# Terraform crea el parámetro con un placeholder; actualiza el valor real
-# una sola vez vía AWS Console o CLI después del primer terraform apply:
+# Terraform creates the parameter with a placeholder; update the real value
+# once via AWS Console or CLI after the first terraform apply:
 #   aws ssm put-parameter --name /${var.name_prefix}/google/calendar-private-key \
 #     --type SecureString --value "$(cat key.json | jq -r .private_key)" --overwrite
 resource "aws_ssm_parameter" "google_calendar_key" {
   name        = "/${var.name_prefix}/google/calendar-private-key"
-  description = "Google Calendar Service Account private key para ${var.name_prefix}"
+  description = "Google Calendar Service Account private key for ${var.name_prefix}"
   type        = "SecureString"
-  value       = "PLACEHOLDER — reemplazar con la private_key del JSON de la Service Account"
+  value       = "PLACEHOLDER — replace with the private_key from the Service Account JSON"
   tags = {
     Component = "secrets"
   }
@@ -41,7 +41,7 @@ resource "aws_ssm_parameter" "google_calendar_key" {
   }
 }
 
-# ─── Módulos ──────────────────────────────────────────────────────────────
+# ─── Modules ─────────────────────────────────────────────────────────────
 module "network" {
   source = "../../modules/network"
 
@@ -103,8 +103,8 @@ module "rds" {
   vpc_id        = module.network.vpc_id
   db_subnet_ids = module.network.db_subnet_ids
 
-  # OJO: el ingress k3s→db NO se pasa por aquí para no crear ciclo
-  # rds ↔ k3s. La regla se crea aparte abajo, cuando ambos SGs existen.
+  # WARNING: the k3s→db ingress is NOT passed here to avoid cycle
+  # rds ↔ k3s. The rule is created separately below, when both SGs exist.
   allowed_security_group_ids = []
 
   instance_class       = "db.t3.micro"
@@ -117,19 +117,19 @@ module "rds" {
   skip_final_snapshot   = true
   multi_az              = false
   publicly_accessible   = false
-  backup_retention_days = 7  # 7 dias en dev (Free Tier: 20 GB de backups gratis)
+  backup_retention_days = 7  # 7 days in dev (Free Tier: 20 GB free backups)
 
   tags = { Component = "database" }
 }
 
-# ─── Ingress k3s → RDS (rompe el ciclo módulo a módulo) ──────────────────
-# Se crea SOLO si k3s está habilitado. Vive aquí — no en el módulo rds —
-# porque rds no debe depender de k3s y k3s ya depende de rds (via SSM).
+# ─── k3s → RDS ingress (breaks the module-to-module cycle) ──────────────
+# Created ONLY if k3s is enabled. Lives here — not in the rds module —
+# because rds should not depend on k3s and k3s already depends on rds (via SSM).
 resource "aws_security_group_rule" "k3s_to_db" {
   count = var.enable_ec2_k3s ? 1 : 0
 
   type                     = "ingress"
-  description              = "Postgres 5432 desde el SG del k3s"
+  description              = "Postgres 5432 from k3s SG"
   from_port                = 5432
   to_port                  = 5432
   protocol                 = "tcp"
@@ -167,8 +167,8 @@ module "k3s" {
   ses_from_email                = var.ses_from_email
   enable_emails                 = var.enable_emails
 
-  # Adjuntamos la policy del bucket de assets al instance profile.
-  # (SES se puede sumar después con AmazonSESFullAccess o una policy custom.)
+  # Attach the assets bucket policy to the instance profile.
+  # (SES can be added later with AmazonSESFullAccess or a custom policy.)
   extra_managed_policy_arns = [
     module.s3_assets.app_access_policy_arn,
     module.ses.send_policy_arn,
@@ -205,8 +205,8 @@ module "monitoring" {
   tags = { Component = "observability" }
 }
 
-# ── RDS Scheduler — apaga la BD cada hora (solo dev) ─────────────────────
-# Activa con: enable_rds_scheduler = true en terraform.tfvars
+# ── RDS Scheduler — shuts down DB every hour (dev only) ─────────────────
+# Enable with: enable_rds_scheduler = true in terraform.tfvars
 module "rds_scheduler" {
   count  = var.enable_rds_scheduler ? 1 : 0
   source = "../../modules/rds-scheduler"

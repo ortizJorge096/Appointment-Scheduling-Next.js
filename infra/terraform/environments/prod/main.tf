@@ -1,9 +1,9 @@
 # ─────────────────────────────────────────────────────────────────────────
-# prod environment — la misma composición que dev pero con:
-#   - Let's Encrypt habilitado (cert real)
-#   - RDS con deletion_protection y final snapshot
-#   - t3.medium (RAM suficiente para 2 réplicas + runner + cert-manager)
-#   - create_oidc_provider = false (lo creó dev)
+# prod environment — same composition as dev but with:
+#   - Let's Encrypt enabled (real cert)
+#   - RDS with deletion_protection and final snapshot
+#   - t3.medium (enough RAM for 2 replicas + runner + cert-manager)
+#   - create_oidc_provider = false (dev created it)
 # ─────────────────────────────────────────────────────────────────────────
 
 resource "random_password" "nextauth" {
@@ -13,7 +13,7 @@ resource "random_password" "nextauth" {
 
 resource "aws_ssm_parameter" "nextauth_secret" {
   name        = "/${var.name_prefix}/nextauth/secret"
-  description = "NEXTAUTH_SECRET para appointment-scheduling ${var.name_prefix}"
+  description = "NEXTAUTH_SECRET for appointment-scheduling ${var.name_prefix}"
   type        = "SecureString"
   value       = random_password.nextauth.result
   tags = {
@@ -26,9 +26,9 @@ resource "aws_ssm_parameter" "nextauth_secret" {
 
 resource "aws_ssm_parameter" "google_calendar_key" {
   name        = "/${var.name_prefix}/google/calendar-private-key"
-  description = "Google Calendar Service Account private key para ${var.name_prefix}"
+  description = "Google Calendar Service Account private key for ${var.name_prefix}"
   type        = "SecureString"
-  value       = "PLACEHOLDER — reemplazar con la private_key del JSON de la Service Account"
+  value       = "PLACEHOLDER — replace with the private_key from the Service Account JSON"
   tags = {
     Component = "secrets"
   }
@@ -84,7 +84,7 @@ module "s3_assets" {
   source      = "../../modules/s3-assets"
   bucket_name = "${var.name_prefix}-assets"
   allowed_origins = [
-    "https://${var.name_prefix}.example.com",  # placeholder: sustituir por host real
+    "https://${var.name_prefix}.example.com",  # placeholder: replace with real host
   ]
   tags = { Component = "storage" }
 }
@@ -96,7 +96,7 @@ module "rds" {
   vpc_id        = module.network.vpc_id
   db_subnet_ids = module.network.db_subnet_ids
 
-  # Ingress k3s→db se crea abajo a nivel de environment (evita ciclo).
+  # k3s→db ingress is created below at environment level (avoids cycle).
   allowed_security_group_ids = []
 
   instance_class           = "db.t3.micro"
@@ -108,21 +108,21 @@ module "rds" {
   db_username           = "appsched"
   deletion_protection   = var.db_deletion_protection
   skip_final_snapshot   = var.db_skip_final_snapshot
-  multi_az              = false  # cambiar a true al salir del Free Tier
+  multi_az              = false  # change to true when leaving Free Tier
   publicly_accessible   = false
-  backup_retention_days = 14    # 14 dias de automated backups en prod
+  backup_retention_days = 14    # 14 days of automated backups in prod
 
   tags = { Component = "database" }
 }
 
-# ─── Backups con AWS Backup (vault + plan diario/semanal/mensual) ─────────
+# ─── Backups with AWS Backup (vault + daily/weekly/monthly plan) ─────────
 module "rds_backup" {
   source = "../../modules/rds-backup"
 
   name_prefix     = var.name_prefix
   db_instance_arn = module.rds.db_instance_arn
 
-  # Bogota UTC-5: 03:00 local = 08:00 UTC
+  # Bogotá UTC-5: 03:00 local = 08:00 UTC
   backup_window_utc = "0 8 * * ? *"
 
   daily_retention_days   = 30
@@ -132,12 +132,12 @@ module "rds_backup" {
   tags = { Component = "backup" }
 }
 
-# ─── Ingress k3s → RDS (regla en el environment para evitar ciclo) ───────
+# ─── k3s → RDS ingress (rule in environment to avoid cycle) ─────────────
 resource "aws_security_group_rule" "k3s_to_db" {
   count = var.enable_ec2_k3s ? 1 : 0
 
   type                     = "ingress"
-  description              = "Postgres 5432 desde el SG del k3s"
+  description              = "Postgres 5432 from k3s SG"
   from_port                = 5432
   to_port                  = 5432
   protocol                 = "tcp"

@@ -1,5 +1,5 @@
 // src/lib/validations.ts
-// Schemas de validación con Zod — valentinajimenez
+// Zod validation schemas — valentinajimenez
 
 import { z } from 'zod'
 
@@ -7,16 +7,16 @@ import { z } from 'zod'
 // HELPERS
 // ─────────────────────────────────────────
 
-// Valida formato HH:MM (ej: "09:00", "18:30")
+// Validates HH:MM format (e.g.: "09:00", "18:30")
 const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/
 const timeString = z.string().regex(timeRegex, 'Formato de hora inválido. Use HH:MM')
 
-// Valida formato YYYY-MM-DD
+// Validates YYYY-MM-DD format
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/
 const dateString = z.string().regex(dateRegex, 'Formato de fecha inválido. Use YYYY-MM-DD')
 
 // ─────────────────────────────────────────
-// AGENDAMIENTO (público)
+// BOOKING (public)
 // ─────────────────────────────────────────
 
 export const createAppointmentSchema = z.object({
@@ -52,7 +52,7 @@ export const createAppointmentSchema = z.object({
 export type CreateAppointmentSchema = z.infer<typeof createAppointmentSchema>
 
 // ─────────────────────────────────────────
-// DISPONIBILIDAD (query params)
+// AVAILABILITY (query params)
 // ─────────────────────────────────────────
 
 export const availabilityQuerySchema = z.object({
@@ -61,7 +61,7 @@ export const availabilityQuerySchema = z.object({
 })
 
 // ─────────────────────────────────────────
-// ACTUALIZAR CITA (admin)
+// UPDATE APPOINTMENT (admin)
 // ─────────────────────────────────────────
 
 export const updateAppointmentSchema = z.object({
@@ -88,7 +88,7 @@ export const updateAppointmentSchema = z.object({
 })
 
 // ─────────────────────────────────────────
-// SERVICIOS (admin)
+// SERVICES (admin)
 // ─────────────────────────────────────────
 
 export const createServiceSchema = z.object({
@@ -126,7 +126,7 @@ export const updateServiceSchema = createServiceSchema.partial().extend({
 })
 
 // ─────────────────────────────────────────
-// HORARIOS (admin)
+// SCHEDULES (admin)
 // ─────────────────────────────────────────
 
 export const scheduleSchema = z.object({
@@ -143,7 +143,7 @@ export const scheduleSchema = z.object({
 )
 
 // ─────────────────────────────────────────
-// FECHAS BLOQUEADAS (admin)
+// BLOCKED DATES (admin)
 // ─────────────────────────────────────────
 
 export const blockedDateSchema = z.object({
@@ -152,7 +152,7 @@ export const blockedDateSchema = z.object({
 })
 
 // ─────────────────────────────────────────
-// GALERÍA (admin)
+// GALLERY (admin)
 // ─────────────────────────────────────────
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const
@@ -192,13 +192,13 @@ export const loginSchema = z.object({
 })
 
 // ─────────────────────────────────────────
-// ACTUALIZAR PAGO DE CITA (admin)
+// UPDATE APPOINTMENT PAYMENT (admin)
 // ─────────────────────────────────────────
 
 export const updateAppointmentPaymentSchema = updateAppointmentSchema
 
 // ─────────────────────────────────────────
-// CITA MANUAL (admin)
+// MANUAL APPOINTMENT (admin)
 // ─────────────────────────────────────────
 
 export const createManualAppointmentSchema = z.object({
@@ -214,7 +214,7 @@ export const createManualAppointmentSchema = z.object({
 })
 
 // ─────────────────────────────────────────
-// CLIENTES (admin)
+// CLIENTS (admin)
 // ─────────────────────────────────────────
 
 export const createClientSchema = z.object({
@@ -227,7 +227,7 @@ export const createClientSchema = z.object({
 export const updateClientSchema = createClientSchema.partial()
 
 // ─────────────────────────────────────────
-// GASTOS (admin)
+// EXPENSES (admin)
 // ─────────────────────────────────────────
 
 export const createExpenseSchema = z.object({

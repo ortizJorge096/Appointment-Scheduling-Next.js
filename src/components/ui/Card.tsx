@@ -17,7 +17,7 @@ export function Card({ children, className, padding = 'md' }: CardProps) {
   )
 }
 
-// Card oscura para secciones sobre fondo dark
+// Dark card for sections on dark background
 export function DarkCard({ children, className }: Omit<CardProps, 'padding'>) {
   return (
     <div className={cn('bg-white/[0.04] border border-white/10 rounded-2xl p-6', className)}>
@@ -26,7 +26,7 @@ export function DarkCard({ children, className }: Omit<CardProps, 'padding'>) {
   )
 }
 
-// Stat card para métricas del dashboard
+// Stat card for dashboard metrics
 interface StatCardProps {
   label:     string
   value:     string | number

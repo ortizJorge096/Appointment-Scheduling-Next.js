@@ -1,6 +1,6 @@
 # infra/k8s/base/error-pages.yaml
-# Sirve una página de mantenimiento con branding cuando el backend está caído.
-# nginx-ingress la usa como default-backend para los códigos 502/503/504.
+# Serves a branded maintenance page when the backend is down.
+# nginx-ingress uses it as default-backend for 502/503/504 error codes.
 
 # ─── ConfigMap: HTML + nginx config ──────────────────────────────────────────
 apiVersion: v1
@@ -229,7 +229,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: error-pages
-          # nginx-unprivileged escucha en 8080 y corre sin root
+          # nginx-unprivileged listens on 8080 and runs without root
           image: nginxinc/nginx-unprivileged:1.25-alpine
           ports:
             - name: http

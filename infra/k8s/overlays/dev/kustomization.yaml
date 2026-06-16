@@ -33,9 +33,9 @@ patches:
       - op: replace
         path: /spec/rules/0/host
         value: appointment-scheduling.example.com   # rewritten by user-data / deploy
-      # El namespace se renombra a appointment-scheduling-dev en este overlay,
-      # pero kustomize no reescribe valores string dentro de anotaciones —
-      # hay que apuntar el middleware al namespace correcto a mano.
+      # The namespace is renamed to appointment-scheduling-dev in this overlay,
+      # but kustomize doesn't rewrite string values inside annotations —
+      # you must point the middleware to the correct namespace manually.
       - op: replace
         path: /metadata/annotations/traefik.ingress.kubernetes.io~1router.middlewares
         value: appointment-scheduling-dev-error-pages@kubernetescrd

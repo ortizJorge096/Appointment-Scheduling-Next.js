@@ -1,21 +1,21 @@
 # ─────────────────────────────────────────────────────────────────────────
-# Bootstrap — crea el bucket S3 que guarda el state remoto del resto de
-# configuraciones de este repo.
+# Bootstrap — creates the S3 bucket that stores the remote state for the
+# rest of the configurations in this repo.
 #
-# Este módulo usa state LOCAL (terraform.tfstate aquí) porque está creando
-# el backend. Aplícalo UNA vez; después los environments lo usan como
-# backend con `use_lockfile = true` (Terraform 1.10+ — sin DynamoDB).
+# This module uses LOCAL state (terraform.tfstate here) because it is creating
+# the backend. Apply it ONCE; afterwards the environments use it as
+# backend with `use_lockfile = true` (Terraform 1.10+ — no DynamoDB).
 #
 # Free Tier:
-#   - S3: 5 GB + 20k GET + 2k PUT/mes gratis durante 12 meses.
-#   - State < 1 MB. Cómodamente gratis.
-#   - Sin DynamoDB gracias a use_lockfile.
+#   - S3: 5 GB + 20k GET + 2k PUT/month free for 12 months.
+#   - State < 1 MB. Comfortably free.
+#   - No DynamoDB thanks to use_lockfile.
 # ─────────────────────────────────────────────────────────────────────────
 
 resource "aws_s3_bucket" "tfstate" {
   bucket = var.state_bucket_name
 
-  # Seguridad: no permitir que `terraform destroy` borre el historial.
+  # Security: prevent `terraform destroy` from deleting history.
   lifecycle {
     prevent_destroy = true
   }

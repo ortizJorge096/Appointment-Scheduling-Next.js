@@ -1,9 +1,9 @@
 # infra/k8s/base/traefik-error-pages.yaml
-# Middleware de Traefik: intercepta respuestas 5xx del backend
-# y las redirige al servicio error-pages (página de mantenimiento con branding).
+# Traefik middleware: intercepts 5xx responses from the backend
+# and redirects to the error-pages service (branded maintenance page).
 #
-# Nota: k3s usa Traefik como ingress controller. Las anotaciones
-# nginx.ingress.kubernetes.io/* no tienen efecto aquí.
+# Note: k3s uses Traefik as ingress controller. The annotations
+# nginx.ingress.kubernetes.io/* have no effect here.
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:

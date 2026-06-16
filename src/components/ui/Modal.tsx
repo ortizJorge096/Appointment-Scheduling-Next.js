@@ -15,7 +15,7 @@ interface ModalProps {
 const widths = { sm: 'max-w-sm', md: 'max-w-md', lg: 'max-w-lg' }
 
 export function Modal({ open, onClose, title, children, maxWidth = 'md' }: ModalProps) {
-  // Cerrar con Escape
+  // Close on Escape
   useEffect(() => {
     if (!open) return
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
@@ -23,7 +23,7 @@ export function Modal({ open, onClose, title, children, maxWidth = 'md' }: Modal
     return () => window.removeEventListener('keydown', handler)
   }, [open, onClose])
 
-  // Bloquear scroll del body
+  // Lock body scroll
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }

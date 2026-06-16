@@ -1,11 +1,11 @@
 // src/lib/calendar.ts
-// Integración con Google Calendar — crea, actualiza y cancela eventos
-// cuando se agenda o cancela una cita en el estudio.
+// Google Calendar integration — creates, updates and cancels events
+// when an appointment is booked or cancelled at the studio.
 //
-// Credenciales: Service Account con acceso al calendario de Valentina.
-// GOOGLE_CLIENT_EMAIL  → email de la service account (ConfigMap)
-// GOOGLE_PRIVATE_KEY   → clave privada del JSON (SSM SecureString)
-// GOOGLE_CALENDAR_ID   → ID del calendario (ConfigMap)
+// Credentials: Service Account with access to Valentina's calendar.
+// GOOGLE_CLIENT_EMAIL  → service account email (ConfigMap)
+// GOOGLE_PRIVATE_KEY   → private key from the JSON (SSM SecureString)
+// GOOGLE_CALENDAR_ID   → calendar ID (ConfigMap)
 
 import { google } from 'googleapis'
 import { format } from 'date-fns'
@@ -13,7 +13,7 @@ import { toZonedTime } from 'date-fns-tz'
 import { STUDIO } from './config'
 import type { AppointmentWithService } from '@/types'
 
-// ── Cliente lazy ────────────────────────────────────────────────────────
+// ── Lazy client ─────────────────────────────────────────────────────────
 function getCalendarClient() {
   const clientEmail = process.env.GOOGLE_CLIENT_EMAIL
   const privateKey  = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n')
@@ -40,8 +40,8 @@ const calendarEnabled = () =>
 // ── Helpers ─────────────────────────────────────────────────────────────
 
 /**
- * Construye el timestamp ISO 8601 en la zona horaria del negocio.
- * appointment.date es UTC medianoche del día; startTime/endTime son "HH:MM" en hora Colombia.
+ * Builds the ISO 8601 timestamp in the business timezone.
+ * appointment.date is UTC midnight of the day; startTime/endTime are "HH:MM" in Colombia time.
  */
 function buildEventDateTime(dateUtc: Date | string, time: string) {
   const dateStr = format(toZonedTime(new Date(dateUtc), STUDIO.timezone), 'yyyy-MM-dd')
@@ -60,7 +60,7 @@ function buildDescription(appt: AppointmentWithService): string {
   return lines.join('\n')
 }
 
-// ── Crear evento ─────────────────────────────────────────────────────────
+// ── Create event ─────────────────────────────────────────────────────────
 
 export async function createCalendarEvent(
   appointment: AppointmentWithService
@@ -80,7 +80,7 @@ export async function createCalendarEvent(
         description: buildDescription(appointment),
         start:       buildEventDateTime(appointment.date, appointment.startTime),
         end:         buildEventDateTime(appointment.date, appointment.endTime),
-        colorId:     '11', // rojo-rosado, visible entre otros eventos
+        colorId:     '11', // pinkish-red, stands out among other events
         reminders: {
           useDefault: false,
           overrides: [
@@ -100,7 +100,7 @@ export async function createCalendarEvent(
   }
 }
 
-// ── Cancelar evento ───────────────────────────────────────────────────────
+// ── Cancel event ───────────────────────────────────────────────────────────
 
 export async function deleteCalendarEvent(calendarEventId: string): Promise<void> {
   if (!calendarEnabled()) return
@@ -110,7 +110,7 @@ export async function deleteCalendarEvent(calendarEventId: string): Promise<void
     await calendar.events.delete({ calendarId, eventId: calendarEventId })
     console.log(`📅 Evento de calendario eliminado: ${calendarEventId}`)
   } catch (err) {
-    // Si el evento ya no existe en Google, no es un error crítico
+    // If the event no longer exists in Google, it's not a critical error
     console.error('❌ Error eliminando evento de Google Calendar:', err)
   }
 }

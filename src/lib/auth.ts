@@ -1,5 +1,5 @@
 // src/lib/auth.ts
-// Configuración de NextAuth.js — solo autenticación de admin
+// NextAuth.js configuration — admin authentication only
 // valentinajimenez
 
 import type { NextAuthOptions, User } from 'next-auth'
@@ -40,7 +40,7 @@ export const authOptions: NextAuthOptions = {
 
   session: {
     strategy: 'jwt',
-    maxAge: 8 * 60 * 60, // 8 horas — jornada laboral
+    maxAge: 8 * 60 * 60, // 8 hours — work day
   },
 
   callbacks: {
@@ -64,7 +64,7 @@ export const authOptions: NextAuthOptions = {
   },
 
   pages: {
-    signIn: '/admin/login',   // página de login personalizada
+    signIn: '/admin/login',   // custom login page
     error: '/admin/login',
   },
 

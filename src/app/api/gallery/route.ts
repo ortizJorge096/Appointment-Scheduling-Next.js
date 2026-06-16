@@ -1,6 +1,6 @@
 // src/app/api/gallery/route.ts
-// GET  → lista imágenes activas (público) — usado por la home
-// POST → registra en BD una imagen ya subida a S3 (admin)
+// GET  → list active images (public) — used by the home page
+// POST → registers in the DB an image already uploaded to S3 (admin)
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
@@ -12,7 +12,7 @@ import { getPublicUrl } from '@/lib/s3'
 export const dynamic = 'force-dynamic'
 
 export async function GET(): Promise<NextResponse> {
-  // Si hay sesión admin → ver todas; si es público → solo activas
+  // Admin session → see all; public → only active
   const session = await getServerSession(authOptions)
 
   const images = await prisma.galleryImage.findMany({
@@ -30,7 +30,7 @@ export async function GET(): Promise<NextResponse> {
     order: i.order,
     isActive: i.isActive,
     url: getPublicUrl(i.s3Key),
-    s3Key: session ? i.s3Key : undefined, // solo el admin necesita la key
+    s3Key: session ? i.s3Key : undefined, // only admin needs the key
   }))
 
   return NextResponse.json({ success: true, data: withUrl })
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const { s3Key, title, category, width, height } = parsed.data
 
-  // El order por defecto es el siguiente al máximo existente
+  // Default order is the next one after the current maximum
   const last = await prisma.galleryImage.findFirst({
     orderBy: { order: 'desc' },
     select: { order: true },

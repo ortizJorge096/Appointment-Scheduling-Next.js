@@ -3,43 +3,43 @@
 # ─────────────────────────────────────────────────────────────────────────
 
 variable "name_prefix" {
-  description = "Prefijo para nombrar recursos (ej. 'appointment-scheduling-prod')."
+  description = "Prefix for naming resources (e.g. 'appointment-scheduling-prod')."
   type        = string
 }
 
 variable "db_instance_arn" {
-  description = "ARN de la instancia RDS a proteger."
+  description = "ARN of the RDS instance to protect."
   type        = string
 }
 
-# ── Retenciones (días) ────────────────────────────────────────────────────
+# ── Retention (days) ─────────────────────────────────────────────────────
 
 variable "daily_retention_days" {
-  description = "Días de retención para el backup diario."
+  description = "Retention days for the daily backup."
   type        = number
   default     = 30
 }
 
 variable "weekly_retention_days" {
-  description = "Días de retención para el backup semanal."
+  description = "Retention days for the weekly backup."
   type        = number
   default     = 90
 }
 
 variable "monthly_retention_days" {
-  description = "Días de retención para el backup mensual."
+  description = "Retention days for the monthly backup."
   type        = number
   default     = 365
 }
 
-# ── Ventana horaria (UTC) ─────────────────────────────────────────────────
+# ── Time window (UTC) ────────────────────────────────────────────────────
 # 03:00 Bogotá (UTC-5) = 08:00 UTC.
-# La ventana de 1 h es suficiente para una BD de bajo volumen.
+# The 1-hour window is sufficient for a low-volume DB.
 
 variable "backup_window_utc" {
-  description = "Hora de inicio del backup en formato cron UTC (sin 'cron()')."
+  description = "Backup start time in cron UTC format (without 'cron()')."
   type        = string
-  default     = "0 8 * * ? *"  # 03:00 Bogotá / 08:00 UTC
+  default     = "0 8 * * ? *"  # 03:00 Bogotá UTC-5 / 08:00 UTC
 }
 
 # ── Vault ────────────────────────────────────────────────────────────────
@@ -51,7 +51,7 @@ variable "vault_kms_key_arn" {
 }
 
 variable "tags" {
-  description = "Tags comunes a todos los recursos."
+  description = "Common tags for all resources."
   type        = map(string)
   default     = {}
 }

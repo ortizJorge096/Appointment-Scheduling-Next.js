@@ -1,11 +1,11 @@
 variable "region" {
-  description = "Región AWS."
+  description = "AWS region."
   type        = string
   default     = "us-east-1"
 }
 
 variable "name_prefix" {
-  description = "Prefijo. prod = appointment-scheduling-prod."
+  description = "Prefix. prod = appointment-scheduling-prod."
   type        = string
   default     = "appointment-scheduling-prod"
 }
@@ -29,7 +29,7 @@ variable "allowed_environments" {
 }
 
 variable "create_oidc_provider" {
-  description = "En prod por defecto false — el OIDC provider lo creó dev."
+  description = "In prod defaults to false — the OIDC provider was created by dev."
   type        = bool
   default     = false
 }
@@ -70,7 +70,7 @@ variable "github_token" {
   sensitive = true
 }
 
-# Prod usa más RAM (cert-manager + 2 réplicas + runner). t3.medium NO es Free Tier.
+# Prod uses more RAM (cert-manager + 2 replicas + runner). t3.medium is NOT Free Tier.
 variable "instance_type" {
   type    = string
   default = "t3.medium"
@@ -86,7 +86,7 @@ variable "runner_labels" {
   default = "self-hosted,linux,x64,k3s-deploy,k3s-prod"
 }
 
-# Prod sí activa Let's Encrypt por defecto.
+# Prod enables Let's Encrypt by default.
 variable "enable_letsencrypt" {
   type    = bool
   default = true
@@ -107,7 +107,7 @@ variable "enable_emails" {
   default = true
 }
 
-# Prod: deletion_protection en RDS.
+# Prod: deletion_protection on RDS.
 variable "db_deletion_protection" {
   type    = bool
   default = true

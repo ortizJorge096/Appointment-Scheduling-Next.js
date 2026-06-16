@@ -1,7 +1,7 @@
 // src/app/api/availability/range/route.ts
 // GET /api/availability/range?from=YYYY-MM-DD&to=YYYY-MM-DD&serviceId=xxx
-// Devuelve, para cada día del rango, si tiene al menos un horario libre.
-// Una sola consulta en lugar de N llamadas a /api/availability.
+// Returns, for each day in the range, whether it has at least one free slot.
+// Single query instead of N calls to /api/availability.
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ success: false, error: 'Servicio no disponible' }, { status: 404 })
     }
 
-    // Construir lista de fechas del rango (cap a 60 días)
+    // Build list of dates in range (capped at 60 days)
     const dates: string[] = []
     let cursor = new Date(`${from}T12:00:00`)
     const end = new Date(`${to}T12:00:00`)
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       cursor = addDays(cursor, 1)
     }
 
-    // Cargar de una vez: horarios semanales, fechas bloqueadas y citas activas del rango.
+    // Load at once: weekly schedules, blocked dates, and active appointments in range.
     const rangeStart = new Date(`${from}T00:00:00`)
     const rangeEnd   = new Date(`${to}T23:59:59`)
 
@@ -87,7 +87,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     // (server or CI runner). Matches the calendar day used to build the range.
     const blockedSet = new Set(blocked.map((b) => formatInTimeZone(b.date, 'UTC', 'yyyy-MM-dd')))
 
-    // Agrupar citas por día (YYYY-MM-DD)
+    // Group appointments by day (YYYY-MM-DD)
     const apptsByDay = new Map<string, { startTime: string; endTime: string }[]>()
     for (const a of appointments) {
       const key = formatInTimeZone(a.date, 'UTC', 'yyyy-MM-dd')
@@ -96,7 +96,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       apptsByDay.set(key, arr)
     }
 
-    // "Ahora" en zona horaria del negocio
+    // "Now" in business timezone
     const nowBogota = toZonedTime(new Date(), STUDIO.timezone)
     const todayStr  = format(nowBogota, 'yyyy-MM-dd')
     const nowMinutes = nowBogota.getHours() * 60 + nowBogota.getMinutes() + STUDIO.bookingBufferMin
@@ -105,11 +105,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const step     = STUDIO.slotGranularityMin
 
     const result: DayAvailability[] = dates.map((dateStr) => {
-      // Pasado
+      // Past
       if (dateStr < todayStr) return { date: dateStr, open: false }
-      // Bloqueado
+      // Blocked
       if (blockedSet.has(dateStr)) return { date: dateStr, open: false }
-      // Día de la semana cerrado
+      // Day of week closed
       const wd = weekdayFromDateStr(dateStr)
       const schedule = scheduleByDay.get(DAYS_OF_WEEK[wd as 0 | 1 | 2 | 3 | 4 | 5 | 6])
       if (!schedule || !schedule.isActive) return { date: dateStr, open: false }
@@ -124,7 +124,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         e: timeToMinutes(a.endTime),
       }))
 
-      // ¿Existe al menos un slot libre?
+      // Is there at least one free slot?
       for (let s = scheduleStart; s + duration <= scheduleEnd; s += step) {
         if (s < minStart) continue
         const e = s + duration

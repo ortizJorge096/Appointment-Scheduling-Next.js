@@ -1,6 +1,6 @@
 'use client'
 // src/app/cancelar/CancelarClient.tsx
-// Cancelación pública de una cita mediante id + token del email.
+// Public appointment cancellation via id + email token.
 
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'

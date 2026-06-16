@@ -1,6 +1,6 @@
 // src/app/api/gallery/[id]/route.ts
-// PATCH  → actualizar título / categoría / orden / activo (admin)
-// DELETE → eliminar imagen (borra el objeto en S3 y el registro en BD)
+// PATCH  → update title / category / order / active (admin)
+// DELETE → delete image (deletes the S3 object and the DB record)
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
@@ -44,7 +44,7 @@ export async function PATCH(
   }
 
   try {
-    // Si se reemplaza la imagen, borrar el objeto anterior de S3
+    // If replacing the image, delete the previous S3 object
     if (parsed.data.s3Key) {
       const current = await prisma.galleryImage.findUnique({
         where: { id },
@@ -88,7 +88,7 @@ export async function DELETE(
     )
   }
 
-  // Primero borra el objeto en S3 (no relanza si falla — el registro debe limpiarse igual)
+  // First delete the S3 object (does not throw if it fails — the record must be cleaned up anyway)
   await deleteObject(image.s3Key)
   await prisma.galleryImage.delete({ where: { id } })
 

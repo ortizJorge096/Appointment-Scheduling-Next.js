@@ -1,6 +1,6 @@
 // src/app/api/clients/[id]/route.ts
-// GET   /api/clients/:id  → detalle + historial de citas
-// PATCH /api/clients/:id  → actualizar datos del cliente
+// GET   /api/clients/:id  → detail + appointment history
+// PATCH /api/clients/:id  → update client data
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'

@@ -25,9 +25,9 @@ export default function DateTimePicker({
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState<string | null>(null)
 
-  // Mapa de fechas → tiene al menos un horario libre.
-  // Se llena con una sola llamada al endpoint de rango al cargar el componente.
-  // Las fechas con `false` se muestran deshabilitadas (no clickables).
+  // Map of dates → has at least one free slot.
+  // Filled with a single call to the range endpoint when the component loads.
+  // Dates with `false` are shown disabled (not clickable).
   const [dateOpen, setDateOpen] = useState<Record<string, boolean>>({})
   const [rangeLoading, setRangeLoading] = useState(true)
 
@@ -35,7 +35,7 @@ export default function DateTimePicker({
     format(addDays(new Date(), i), 'yyyy-MM-dd')
   )
 
-  // ── Prefetch: disponibilidad de TODOS los días visibles, una sola llamada ──
+  // ── Prefetch: availability of ALL visible days, single call ──
   useEffect(() => {
     if (!serviceId) return
     setRangeLoading(true)
@@ -49,7 +49,7 @@ export default function DateTimePicker({
         for (const d of json.data.dates) next[d.date] = d.open
         setDateOpen(next)
 
-        // Si la fecha actualmente elegida quedó cerrada, saltar al primer día abierto
+        // If the currently selected date is closed, jump to the first open day
         if (selectedDate && next[selectedDate] === false) {
           const firstOpen = json.data.dates.find((d: { date: string; open: boolean }) => d.open)
           if (firstOpen) {
@@ -58,14 +58,14 @@ export default function DateTimePicker({
           }
         }
       })
-      .catch(() => { /* silencioso — el slot fetch dirá si algo falla */ })
+      .catch(() => { /* silent — the slot fetch will say if something fails */ })
       .finally(() => setRangeLoading(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [serviceId])
 
-  // ── Fetch detallado de horarios para la fecha seleccionada ──
-  // No dependemos de dateOpen aquí para evitar un bucle (la fuente de verdad
-  // del estado abierto/cerrado de cada día es el prefetch de rango).
+  // ── Detailed fetch of schedules for the selected date ──
+  // We don't depend on dateOpen here to avoid a loop (the source of truth
+  // for the open/closed status of each day is the range prefetch).
   useEffect(() => {
     if (!serviceId || !selectedDate) return
     let cancelled = false
@@ -82,14 +82,14 @@ export default function DateTimePicker({
         }
         const fetchedSlots: TimeSlot[] = json.data.slots
         setSlots(fetchedSlots)
-        // Si el día se quedó sin huecos disponibles (p.ej. lo llenaron
-        // mientras esta clienta navegaba), marcarlo como cerrado en la tira
-        // para que aparezca deshabilitado al instante.
+        // If the day ran out of available slots (e.g. someone booked them
+        // while this client was browsing), mark it as closed in the strip
+        // so it appears disabled instantly.
         const stillHasAvailable = fetchedSlots.some((s) => s.available)
         if (!stillHasAvailable) {
           setDateOpen((prev) => ({ ...prev, [selectedDate]: false }))
         }
-        // Si la hora previamente elegida ya no está disponible, limpiarla
+        // If the previously chosen time is no longer available, clear it
         if (selectedTime && !fetchedSlots.find((s) => s.startTime === selectedTime && s.available)) {
           onTimeChange('')
         }
@@ -120,7 +120,7 @@ export default function DateTimePicker({
   return (
     <div className="space-y-6">
 
-      {/* ── Selector de fecha ── */}
+      {/* ── Date picker ── */}
       <div>
         <label className="form-label">
           Fecha
@@ -135,7 +135,7 @@ export default function DateTimePicker({
             const { day, weekday } = formatDateLabel(dateStr)
             const isSelected = dateStr === selectedDate
             const isPast     = isBefore(startOfDay(new Date(`${dateStr}T12:00:00`)), startOfDay(new Date()))
-            // El día se considera cerrado solo cuando el rango ya respondió que no está abierto
+            // The day is considered closed only when the range already responded it's not open
             const isClosed   = dateStr in dateOpen && dateOpen[dateStr] === false
             const isDisabled = disabled || isPast || isClosed
 
@@ -161,7 +161,7 @@ export default function DateTimePicker({
                   {day}
                 </span>
 
-                {/* "Hoy" label */}
+                {/* "Today" label */}
                 {isToday(new Date(`${dateStr}T12:00:00`)) && (
                   <span className={`text-[9px] mt-0.5 tracking-wide
                     ${isSelected ? 'text-white/80' : isClosed ? 'text-ink-muted/30' : 'text-gold'}`}>
@@ -174,7 +174,7 @@ export default function DateTimePicker({
         </div>
       </div>
 
-      {/* ── Selector de hora ── */}
+      {/* ── Time picker ── */}
       <div>
         <label className="form-label">
           Hora disponible
@@ -187,7 +187,7 @@ export default function DateTimePicker({
 
         {error && <p className="text-sm text-red-500 mb-3">{error}</p>}
 
-        {/* Día cerrado (no debería ser seleccionable, mensaje defensivo) */}
+        {/* Closed day (should not be selectable, defensive message) */}
         {!loading && !error && isSelectedDayClosed && (
           <p className="text-sm text-ink-muted italic">
             Este día no tenemos atención. Por favor elige otra fecha.
@@ -213,7 +213,7 @@ export default function DateTimePicker({
           </div>
         )}
 
-        {/* Día abierto pero todos los horarios ocupados */}
+        {/* Open day but all time slots are taken */}
         {!loading && !error && !isSelectedDayClosed && slots.length > 0 && availableSlots.length === 0 && (
           <div className="flex items-center gap-2 bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-500">
             <span>⚠</span> Todos los horarios de este día están ocupados. Por favor elige otra fecha.

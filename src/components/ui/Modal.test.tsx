@@ -34,7 +34,7 @@ describe('Modal', () => {
   it('calls onClose when backdrop is clicked', async () => {
     const onClose = vi.fn()
     const { container } = render(<Modal open onClose={onClose}>Content</Modal>)
-    // El backdrop es el primer div hijo del fixed container
+    // The backdrop is the first child div of the fixed container
     const backdrop = container.querySelector('.absolute.inset-0')!
     await userEvent.click(backdrop)
     expect(onClose).toHaveBeenCalledTimes(1)

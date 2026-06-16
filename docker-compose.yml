@@ -1,6 +1,6 @@
 # docker-compose.yml
-# Entorno local completo: Next.js + PostgreSQL
-# Uso: docker compose up --build
+# Complete local environment: Next.js + PostgreSQL
+# Usage: docker compose up --build
 
 services:
 
@@ -16,7 +16,7 @@ services:
       POSTGRES_PASSWORD: valentinajimenez123
 
     ports:
-      - "5432:5432" # expuesto para conectar con Prisma Studio
+      - "5432:5432" # exposed for Prisma Studio connections
 
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -44,14 +44,14 @@ services:
 
     environment:
       TZ: America/Bogota
-      # Sobreescribir DATABASE_URL para apuntar al contenedor db
+      # Override DATABASE_URL to point to the db container
       DATABASE_URL: postgresql://valentinajimenez:valentinajimenez123@db:5432/valentinajimenez
 
     depends_on:
       db:
         condition: service_healthy
 
-  # ── Migraciones (se ejecuta una vez y sale) ───────────
+  # ── Migrations (runs once and exits) ──────────────────
   # migrate:
   #   build:
   #     context: .

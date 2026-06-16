@@ -1,6 +1,6 @@
 terraform {
-  # Reemplaza `bucket` por el output `state_bucket_name` del bootstrap.
-  # Locking nativo de S3 (Terraform >= 1.10) — sin DynamoDB.
+  # Replace `bucket` with the `state_bucket_name` output from bootstrap.
+  # Native S3 locking (Terraform >= 1.10) — no DynamoDB.
   backend "s3" {
     bucket       = "appointment-scheduling-tfstate"
     key          = "dev/terraform.tfstate"

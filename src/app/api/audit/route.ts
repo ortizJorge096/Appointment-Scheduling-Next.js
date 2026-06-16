@@ -1,5 +1,5 @@
 // src/app/api/audit/route.ts
-// GET /api/audit  → listar entradas del log de auditoría (admin)
+// GET /api/audit  → list audit log entries (admin)
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'

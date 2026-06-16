@@ -1,12 +1,12 @@
 # ─────────────────────────────────────────────────────────────────────────
-# rds-scheduler — apaga la instancia RDS cada hora.
+# rds-scheduler — shuts down the RDS instance every hour.
 #
-# Úsalo en dev para minimizar el costo de RDS.
-# Cuando necesites la BD, iníciala manualmente y se apagará sola en < 1h.
-# NO uses este módulo en prod.
+# Use it in dev to minimize RDS cost.
+# When you need the DB, start it manually and it will shut down in < 1h.
+# Do NOT use this module in prod.
 #
-# AWS ignora StopDBInstance si la instancia ya está detenida — sin errores.
-# Nota: AWS RDS se auto-reinicia tras 7 días detenido — comportamiento de AWS.
+# AWS ignores StopDBInstance if the instance is already stopped — no errors.
+# Note: AWS RDS automatically restarts after 7 days stopped — AWS behavior.
 # ─────────────────────────────────────────────────────────────────────────
 
 data "aws_iam_policy_document" "scheduler_assume" {
@@ -41,7 +41,7 @@ resource "aws_iam_role_policy" "rds_stop" {
   policy = data.aws_iam_policy_document.rds_stop.json
 }
 
-# Apagar cada hora — si ya está detenida, AWS no hace nada
+# Shut down hourly — if already stopped, AWS does nothing
 resource "aws_scheduler_schedule" "stop_hourly" {
   name       = "${var.name_prefix}-rds-stop-hourly"
   group_name = "default"

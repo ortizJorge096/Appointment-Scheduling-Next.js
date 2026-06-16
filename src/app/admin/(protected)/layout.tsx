@@ -1,5 +1,5 @@
 // src/app/admin/(protected)/layout.tsx
-// Protege SOLO las rutas del admin — la página de login queda fuera de este scope
+// Protects ONLY admin routes — the login page is outside this scope
 
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'

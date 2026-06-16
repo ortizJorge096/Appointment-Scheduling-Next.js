@@ -16,7 +16,7 @@ const base = {
   strokeLinejoin: 'round' as const,
 }
 
-/** Manicura / uñas — mano con uña pulida */
+/** Manicura / nails — hand with polished nail */
 export function ManicuraIcon(props: IconProps) {
   return (
     <svg {...base} {...props}>
@@ -28,7 +28,7 @@ export function ManicuraIcon(props: IconProps) {
   )
 }
 
-/** Pedicura — pie con destellos */
+/** Pedicura — foot with sparkles */
 export function PedicuraIcon(props: IconProps) {
   return (
     <svg {...base} {...props}>
@@ -41,7 +41,7 @@ export function PedicuraIcon(props: IconProps) {
   )
 }
 
-/** Pestañas — ojo con pestañas marcadas */
+/** Pestañas — eye with defined lashes */
 export function PestanasIcon(props: IconProps) {
   return (
     <svg {...base} {...props}>
@@ -53,7 +53,7 @@ export function PestanasIcon(props: IconProps) {
   )
 }
 
-/** Cejas y pestañas — ceja diseñada sobre ojo */
+/** Brows and lashes — designed brow over eye */
 export function CejasIcon(props: IconProps) {
   return (
     <svg {...base} {...props}>
@@ -66,7 +66,7 @@ export function CejasIcon(props: IconProps) {
   )
 }
 
-/** Depilación — pinza de precisión con destello */
+/** Waxing — precision tweezers with spark */
 export function DepilacionIcon(props: IconProps) {
   return (
     <svg {...base} {...props}>
@@ -79,7 +79,7 @@ export function DepilacionIcon(props: IconProps) {
   )
 }
 
-/** Corte de cabello — tijeras */
+/** Haircut — scissors */
 export function CorteIcon(props: IconProps) {
   return (
     <svg {...base} {...props}>
@@ -91,7 +91,7 @@ export function CorteIcon(props: IconProps) {
   )
 }
 
-/** Promos / combos — destello */
+/** Promos / combos — sparkle */
 export function PromoIcon(props: IconProps) {
   return (
     <svg {...base} {...props}>

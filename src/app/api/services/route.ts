@@ -1,6 +1,6 @@
 // src/app/api/services/route.ts
-// GET  /api/services  → listar servicios activos (público)
-// POST /api/services  → crear servicio (admin)
+// GET  /api/services  → list active services (public)
+// POST /api/services  → create service (admin)
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
@@ -14,7 +14,7 @@ export async function GET(): Promise<NextResponse> {
   const session = await getServerSession(authOptions)
 
   const services = await prisma.service.findMany({
-    // Admin ve todos (activos e inactivos); público solo activos
+    // Admin sees all (active and inactive); public sees only active
     where: session ? {} : { isActive: true },
     orderBy: { order: 'asc' },
     select: {

@@ -1,92 +1,92 @@
 variable "name" {
-  description = "Prefijo para nombrar recursos."
+  description = "Prefix for naming resources."
   type        = string
 }
 
 variable "vpc_id" {
-  description = "VPC donde se crea el SG de la BD."
+  description = "VPC where the DB security group is created."
   type        = string
 }
 
 variable "db_subnet_ids" {
-  description = "Lista de subnet IDs privadas para el subnet group de RDS (mín. 2 AZs)."
+  description = "List of private subnet IDs for the RDS subnet group (min. 2 AZs)."
   type        = list(string)
 }
 
 variable "allowed_security_group_ids" {
-  description = "SGs que pueden conectarse a Postgres (5432). Típicamente el del k3s."
+  description = "SGs allowed to connect to Postgres (5432). Typically the k3s one."
   type        = list(string)
   default     = []
 }
 
 variable "engine_version" {
-  description = "Versión de Postgres."
+  description = "Postgres version."
   type        = string
   default     = "16.4"
 }
 
 variable "instance_class" {
-  description = "Instance class de RDS. db.t3.micro / db.t4g.micro son Free Tier."
+  description = "RDS instance class. db.t3.micro / db.t4g.micro are Free Tier."
   type        = string
   default     = "db.t3.micro"
 }
 
 variable "allocated_storage_gb" {
-  description = "Storage en GB. Free Tier ofrece 20 GB."
+  description = "Storage in GB. Free Tier offers 20 GB."
   type        = number
   default     = 20
 }
 
 variable "max_allocated_storage_gb" {
-  description = "Autoscaling de storage hasta este tope (0 = desactiva autoscaling)."
+  description = "Storage autoscaling up to this limit (0 = disables autoscaling)."
   type        = number
   default     = 0
 }
 
 variable "storage_type" {
-  description = "gp2 o gp3. gp2 cubre Free Tier."
+  description = "gp2 or gp3. gp2 is covered by Free Tier."
   type        = string
   default     = "gp2"
 }
 
 variable "db_name" {
-  description = "Nombre de la BD inicial."
+  description = "Name of the initial database."
   type        = string
   default     = "appointment_scheduling"
 }
 
 variable "db_username" {
-  description = "Usuario master."
+  description = "Master username."
   type        = string
   default     = "appsched"
 }
 
 variable "backup_retention_days" {
-  description = "Días de retención de backups. 7 es el default sensato; 0 los desactiva."
+  description = "Backup retention days. 7 is the sensible default; 0 disables them."
   type        = number
   default     = 7
 }
 
 variable "deletion_protection" {
-  description = "Bloquear destroy accidental. Pónlo en true para prod."
+  description = "Block accidental destroy. Set to true for prod."
   type        = bool
   default     = false
 }
 
 variable "skip_final_snapshot" {
-  description = "Saltar snapshot final al destruir (true facilita dev tear-down)."
+  description = "Skip final snapshot on destroy (true facilitates dev tear-down)."
   type        = bool
   default     = true
 }
 
 variable "publicly_accessible" {
-  description = "Si la BD acepta conexiones desde Internet. Mantenerlo en false."
+  description = "Whether the DB accepts connections from the Internet. Keep it false."
   type        = bool
   default     = false
 }
 
 variable "multi_az" {
-  description = "Multi-AZ replication. false ahorra costo (no Free Tier para Multi-AZ)."
+  description = "Multi-AZ replication. false saves cost (not Free Tier for Multi-AZ)."
   type        = bool
   default     = false
 }

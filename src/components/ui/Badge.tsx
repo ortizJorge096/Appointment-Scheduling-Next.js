@@ -26,7 +26,7 @@ export function Badge({ variant = 'default', children, className }: BadgeProps) 
   )
 }
 
-// Helper para mapear AppointmentStatus → BadgeVariant
+// Helper to map AppointmentStatus → BadgeVariant
 export function statusToBadge(status: string): BadgeVariant {
   const map: Record<string, BadgeVariant> = {
     PENDING:   'pending',

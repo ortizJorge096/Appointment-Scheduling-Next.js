@@ -1,6 +1,6 @@
 'use client'
 // src/app/admin/horarios/page.tsx
-// Gestión de horarios por día de semana y fechas bloqueadas
+// Schedule management by weekday and blocked dates
 
 import { useState, useEffect } from 'react'
 
@@ -35,7 +35,7 @@ export default function HorariosPage() {
   const [saving, setSaving]             = useState<string | null>(null)
   const [message, setMessage]           = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
 
-  // Fecha bloqueada nueva
+  // New blocked date
   const [newBlock, setNewBlock] = useState({ date: '', reason: '' })
   const [addingBlock, setAddingBlock] = useState(false)
 
@@ -53,7 +53,7 @@ export default function HorariosPage() {
     const blkJson = await blkRes.json()
 
     if (schJson.success) {
-      // Asegurar que todos los días tienen un registro (aunque sea vacío)
+      // Ensure every day has a record (even if empty)
       const map = Object.fromEntries(schJson.data.map((s: Schedule) => [s.dayOfWeek, s]))
       setSchedules(
         DAYS.map((d) => map[d.key] ?? { dayOfWeek: d.key, startTime: '09:00', endTime: '18:00', isActive: false })
@@ -66,14 +66,14 @@ export default function HorariosPage() {
 
   useEffect(() => { load() }, [])
 
-  // Actualizar un campo de un horario localmente
+  // Update a schedule field locally
   function updateSchedule(day: string, field: keyof Schedule, value: string | boolean) {
     setSchedules((prev) =>
       prev.map((s) => s.dayOfWeek === day ? { ...s, [field]: value } : s)
     )
   }
 
-  // Guardar un horario específico
+  // Save a specific schedule
   async function saveSchedule(schedule: Schedule) {
     setSaving(schedule.dayOfWeek)
     const res  = await fetch('/api/schedules', {
@@ -87,7 +87,7 @@ export default function HorariosPage() {
     setSaving(null)
   }
 
-  // Agregar fecha bloqueada
+  // Add blocked date
   async function addBlockedDate() {
     if (!newBlock.date) { flash('err', 'Selecciona una fecha'); return }
     setAddingBlock(true)
@@ -107,7 +107,7 @@ export default function HorariosPage() {
     setAddingBlock(false)
   }
 
-  // Eliminar fecha bloqueada
+  // Remove blocked date
   async function removeBlockedDate(id: string) {
     if (!confirm('¿Desbloquear esta fecha?')) return
     const res = await fetch(`/api/schedules/blocked/${id}`, { method: 'DELETE' })
@@ -125,7 +125,7 @@ export default function HorariosPage() {
         <h1 className="font-serif text-3xl text-ink font-light">Horarios</h1>
       </div>
 
-      {/* Mensaje flash */}
+      {/* Flash message */}
       {message && (
         <div className={`text-sm px-4 py-3 mb-5 border ${
           message.type === 'ok'
@@ -140,7 +140,7 @@ export default function HorariosPage() {
         <div className="text-ink-muted text-sm">Cargando horarios...</div>
       ) : (
         <>
-          {/* ── Horarios por día ── */}
+          {/* ── Daily schedules ── */}
           <section className="bg-white border border-beige-dark mb-10">
             <div className="px-6 py-4 border-b border-beige-dark">
               <h2 className="font-serif text-xl text-ink font-light">Días de atención</h2>
@@ -155,7 +155,7 @@ export default function HorariosPage() {
                     className={`px-6 py-4 flex flex-wrap items-center gap-4 transition-opacity
                       ${sched.isActive ? '' : 'opacity-50'}`}>
 
-                    {/* Toggle activo */}
+                    {/* Active toggle */}
                     <label className="flex items-center gap-2 cursor-pointer min-w-[100px]">
                       <input
                         type="checkbox"
@@ -166,7 +166,7 @@ export default function HorariosPage() {
                       <span className="text-sm font-medium text-ink">{dayLabel}</span>
                     </label>
 
-                    {/* Horas */}
+                    {/* Hours */}
                     <div className="flex items-center gap-2 text-sm text-ink-muted">
                       <input
                         type="time"
@@ -185,7 +185,7 @@ export default function HorariosPage() {
                       />
                     </div>
 
-                    {/* Guardar */}
+                    {/* Save */}
                     <button
                       onClick={() => saveSchedule(sched)}
                       disabled={saving === sched.dayOfWeek}
@@ -200,14 +200,14 @@ export default function HorariosPage() {
             </div>
           </section>
 
-          {/* ── Fechas bloqueadas ── */}
+          {/* ── Blocked dates ── */}
           <section className="bg-white border border-beige-dark">
             <div className="px-6 py-4 border-b border-beige-dark">
               <h2 className="font-serif text-xl text-ink font-light">Fechas bloqueadas</h2>
               <p className="text-xs text-ink-muted mt-0.5">Festivos, vacaciones o días sin atención.</p>
             </div>
 
-            {/* Agregar nueva fecha */}
+            {/* Add new date */}
             <div className="px-6 py-4 border-b border-beige-dark flex flex-wrap gap-3 items-end">
               <div>
                 <label className="form-label text-[10px]">Fecha</label>
@@ -238,7 +238,7 @@ export default function HorariosPage() {
               </button>
             </div>
 
-            {/* Lista de fechas bloqueadas */}
+            {/* Blocked dates list */}
             {blockedDates.length === 0 ? (
               <div className="px-6 py-8 text-center text-ink-muted text-sm">
                 No hay fechas bloqueadas.

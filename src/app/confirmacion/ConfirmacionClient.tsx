@@ -1,6 +1,6 @@
 'use client'
 // src/app/confirmacion/ConfirmacionClient.tsx
-// Componente cliente — usa useSearchParams para leer el ID de la cita
+// Client component — uses useSearchParams to read the appointment ID
 
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
@@ -32,7 +32,7 @@ export default function ConfirmacionClient() {
       .finally(() => setLoading(false))
   }, [id])
 
-  if (loading) return null // el Suspense fallback ya muestra el spinner
+  if (loading) return null // the Suspense fallback already shows the spinner
 
   if (error || !appointment) {
     return (
