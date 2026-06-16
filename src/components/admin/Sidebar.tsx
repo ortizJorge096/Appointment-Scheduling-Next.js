@@ -22,10 +22,10 @@ export default function AdminSidebar() {
     <aside className="w-56 min-h-screen bg-ink border-r border-white/10 flex flex-col shrink-0">
       <div className="px-6 py-6 border-b border-white/10">
         <Link href="/" target="_blank" className="block">
-          <p className="font-serif text-base text-white font-light leading-tight">
+          <p className="logo-script text-gold text-2xl leading-none">
             Valentina Jimenez
           </p>
-          <em className="text-gold text-xs italic font-light not-italic">Beauty Studio</em>
+          <span className="logo-studio text-white/70 text-[0.5rem] mt-1 block">Beauty Studio</span>
         </Link>
         <p className="text-[10px] text-white/20 mt-2 tracking-widest uppercase">Panel admin</p>
       </div>

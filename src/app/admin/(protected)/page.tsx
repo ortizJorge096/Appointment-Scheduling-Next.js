@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { StatCard } from '@/components/ui/Card'
 
 export const metadata: Metadata = { title: 'Dashboard' }
 export const dynamic = 'force-dynamic'
@@ -68,13 +69,7 @@ export default async function DashboardPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-10">
         {stats.map((s) => (
-          <div key={s.label}
-            className={`bg-white border p-5 ${s.accent ? 'border-gold' : 'border-beige-dark'}`}>
-            <p className="text-xs text-ink-muted tracking-wide uppercase mb-2">{s.label}</p>
-            <p className={`font-serif text-2xl font-light ${s.accent ? 'text-gold' : 'text-ink'}`}>
-              {s.value}
-            </p>
-          </div>
+          <StatCard key={s.label} label={s.label} value={s.value} accent={s.accent} />
         ))}
       </div>
 
@@ -90,7 +85,7 @@ export default async function DashboardPage() {
             No hay citas agendadas para hoy.
           </div>
         ) : (
-          <div className="divide-y divide-gold-light">
+          <div className="divide-y divide-beige-dark">
             {todayAppointments.map((appt) => (
               <Link key={appt.id} href={`/admin/citas/${appt.id}`}
                 className="flex items-center justify-between px-6 py-4

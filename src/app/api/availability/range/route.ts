@@ -8,7 +8,7 @@ import { prisma } from '@/lib/prisma'
 import { STUDIO } from '@/lib/config'
 import { timeToMinutes } from '@/lib/availability'
 import { addDays, format } from 'date-fns'
-import { toZonedTime } from 'date-fns-tz'
+import { toZonedTime, formatInTimeZone } from 'date-fns-tz'
 
 export const dynamic = 'force-dynamic'
 
@@ -82,12 +82,15 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     ])
 
     const scheduleByDay = new Map(schedules.map((s) => [s.dayOfWeek, s]))
-    const blockedSet = new Set(blocked.map((b) => format(b.date, 'yyyy-MM-dd')))
+    // Las fechas (blocked/appointment) son "date-only": se comparan como día calendario
+    // en UTC para que el resultado sea determinista e independiente de la zona horaria
+    // del runtime (servidor o runner de CI). Coincide con el día calendario del rango.
+    const blockedSet = new Set(blocked.map((b) => formatInTimeZone(b.date, 'UTC', 'yyyy-MM-dd')))
 
     // Agrupar citas por día (YYYY-MM-DD)
     const apptsByDay = new Map<string, { startTime: string; endTime: string }[]>()
     for (const a of appointments) {
-      const key = format(a.date, 'yyyy-MM-dd')
+      const key = formatInTimeZone(a.date, 'UTC', 'yyyy-MM-dd')
       const arr = apptsByDay.get(key) ?? []
       arr.push({ startTime: a.startTime, endTime: a.endTime })
       apptsByDay.set(key, arr)

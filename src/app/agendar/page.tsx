@@ -3,6 +3,7 @@ import { Suspense } from 'react'
 import Navbar from '@/components/public/Navbar'
 import BookingForm from '@/components/public/BookingForm'
 import Footer from '@/components/public/Footer'
+import WhatsAppFab from '@/components/public/WhatsAppFab'
 
 export const metadata: Metadata = {
   title: 'Agendar cita',
@@ -18,7 +19,9 @@ export default function AgendarPage() {
           <h1 className="font-serif text-4xl lg:text-5xl font-light text-ink">
             Agenda tu <em className="text-gold italic">cita</em>
           </h1>
-          <p className="text-ink-muted mt-3 text-sm">Confirmación inmediata por email</p>
+          <p className="text-ink-muted mt-3 text-sm">
+            En menos de 60 segundos · Confirmación inmediata por email
+          </p>
         </div>
         <div className="max-w-3xl mx-auto px-6">
           <div className="bg-white border border-beige-dark p-8 lg:p-12 shadow-sm">
@@ -33,6 +36,7 @@ export default function AgendarPage() {
         </div>
       </main>
       <Footer />
+      <WhatsAppFab />
     </>
   )
 }

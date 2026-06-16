@@ -34,10 +34,10 @@ export default function LoginPage() {
       <div className="relative w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-10">
-          <p className="font-serif text-3xl text-white font-light tracking-wide">
+          <p className="logo-script text-gold text-4xl leading-none">
             Valentina Jimenez
           </p>
-          <p className="text-gold text-sm italic font-light mt-0.5">Beauty Studio</p>
+          <p className="logo-studio text-white/70 text-[0.6rem] mt-1">Beauty Studio</p>
           <p className="text-white/20 text-xs mt-3 tracking-widest uppercase">Panel de administración</p>
         </div>
 
