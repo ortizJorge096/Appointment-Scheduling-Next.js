@@ -24,31 +24,29 @@ vi.mock('@/lib/config', () => ({
 }))
 
 describe('ServicesGrid', () => {
-  it('renders service names', async () => {
+  it('renders one card per specialty (category labels)', async () => {
     render(await ServicesGrid())
-    expect(screen.getByText('Manicura tradicional')).toBeInTheDocument()
-    expect(screen.getByText('Lifting de pestañas')).toBeInTheDocument()
+    expect(screen.getByText('Uñas')).toBeInTheDocument()
+    expect(screen.getByText('Pestañas')).toBeInTheDocument()
   })
 
-  it('renders Reservar buttons linking to /agendar', async () => {
+  it('each specialty card links to the booking flow filtered by category', async () => {
     render(await ServicesGrid())
     const links = screen.getAllByRole('link', { name: /reservar/i })
     expect(links.length).toBe(2)
-    expect(links[0]).toHaveAttribute('href', '/agendar?service=svc-1')
-    expect(links[1]).toHaveAttribute('href', '/agendar?service=svc-2')
+    expect(links[0]).toHaveAttribute('href', '/agendar?categoria=UNAS')
+    expect(links[1]).toHaveAttribute('href', '/agendar?categoria=PESTANAS')
   })
 
-  it('entire card is NOT a link', async () => {
+  it('shows the "desde" minimum price for each category', async () => {
     render(await ServicesGrid())
-    // Solo los botones Reservar deben ser links, no las tarjetas
-    const allLinks = screen.getAllByRole('link')
-    const reservarLinks = allLinks.filter((l) => l.textContent?.includes('Reservar'))
-    expect(reservarLinks.length).toBe(allLinks.filter(l => l.getAttribute('href')?.startsWith('/agendar?service=')).length)
+    // Both categories render a "desde <min price>" line
+    expect(screen.getAllByText(/desde/i).length).toBe(2)
+    expect(screen.getAllByText(/35/).length).toBeGreaterThan(0)
   })
 
-  it('shows price and duration', async () => {
+  it('does NOT render the full service listing', async () => {
     render(await ServicesGrid())
-    expect(screen.getByText(/35/)).toBeInTheDocument()
-    expect(screen.getByText(/45 min/)).toBeInTheDocument()
+    expect(screen.queryByText('Manicura tradicional')).not.toBeInTheDocument()
   })
 })

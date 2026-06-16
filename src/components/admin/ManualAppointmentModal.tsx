@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 
 interface Service { id: string; name: string; price: number; durationMinutes: number }
+interface ClientHit { id: string; name: string; email: string; phone: string | null }
 
 const SOURCE_OPTIONS = [
   { value: 'PRESENCIAL', label: 'Presencial' },
@@ -22,9 +23,11 @@ const EMPTY = {
 
 type FieldErrors = Partial<Record<keyof typeof EMPTY, string>>
 
-// Hoy en formato YYYY-MM-DD (zona local del navegador)
-function today() {
+// Earliest date allowed for manual backfill: 15 days ago
+const PAST_LIMIT_DAYS = 15
+function minManualDate() {
   const d = new Date()
+  d.setDate(d.getDate() - PAST_LIMIT_DAYS)
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
@@ -38,6 +41,11 @@ export default function ManualAppointmentModal() {
   const [apiError, setApiError] = useState('')
   const [success, setSuccess]   = useState('')
 
+  // Existing-client search (prefills the form when one is picked)
+  const [clientQuery, setClientQuery]     = useState('')
+  const [clientResults, setClientResults] = useState<ClientHit[]>([])
+  const [searching, setSearching]         = useState(false)
+
   const loadServices = useCallback(async () => {
     const res = await fetch('/api/services')
     const j   = await res.json()
@@ -45,8 +53,34 @@ export default function ManualAppointmentModal() {
   }, [])
 
   useEffect(() => {
-    if (open) { loadServices(); setFieldErrors({}); setApiError(''); setSuccess('') }
+    if (open) {
+      loadServices()
+      setFieldErrors({}); setApiError(''); setSuccess('')
+      setClientQuery(''); setClientResults([])
+    }
   }, [open, loadServices])
+
+  // Debounced search of existing clients via /api/clients?search=
+  useEffect(() => {
+    const q = clientQuery.trim()
+    if (q.length < 2) { setClientResults([]); setSearching(false); return }
+    setSearching(true)
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/clients?search=${encodeURIComponent(q)}&limit=6`)
+        const j   = await res.json()
+        if (j.success) setClientResults(j.data.clients ?? [])
+      } catch { /* ignore network errors in the picker */ }
+      finally { setSearching(false) }
+    }, 300)
+    return () => clearTimeout(t)
+  }, [clientQuery])
+
+  function pickClient(c: ClientHit) {
+    setForm(f => ({ ...f, clientName: c.name, clientEmail: c.email, clientPhone: c.phone ?? '' }))
+    setClientQuery(''); setClientResults([])
+    setFieldErrors(fe => ({ ...fe, clientName: undefined, clientEmail: undefined, clientPhone: undefined }))
+  }
 
   function field(key: keyof typeof EMPTY) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -118,6 +152,44 @@ export default function ManualAppointmentModal() {
                 <p className="text-xs font-medium text-ink-mid uppercase tracking-wider mb-3">
                   Datos del cliente
                 </p>
+
+                {/* Existing-client search — pick one to prefill, or just type a new one */}
+                <div className="relative mb-3">
+                  <input
+                    type="text"
+                    value={clientQuery}
+                    onChange={(e) => setClientQuery(e.target.value)}
+                    placeholder="Buscar cliente existente por nombre, email o teléfono…"
+                    aria-label="Buscar cliente existente"
+                    className="input-field w-full pr-9"
+                    autoComplete="off"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-muted text-sm">
+                    {searching ? '…' : '⌕'}
+                  </span>
+                  {clientResults.length > 0 && (
+                    <ul className="absolute z-10 left-0 right-0 mt-1 bg-white border border-beige-dark
+                                   rounded-xl shadow-lg max-h-56 overflow-y-auto">
+                      {clientResults.map((c) => (
+                        <li key={c.id}>
+                          <button type="button" onClick={() => pickClient(c)}
+                            className="w-full text-left px-4 py-2.5 hover:bg-gold-pale transition-colors">
+                            <span className="block text-sm text-ink font-medium">{c.name}</span>
+                            <span className="block text-xs text-ink-muted">
+                              {c.email}{c.phone ? ` · ${c.phone}` : ''}
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {clientQuery.trim().length >= 2 && !searching && clientResults.length === 0 && (
+                    <p className="text-xs text-ink-muted mt-1.5 px-1">
+                      Sin coincidencias — completa los datos para crear un cliente nuevo.
+                    </p>
+                  )}
+                </div>
+
                 <div className="space-y-3">
                   <div>
                     <label className="block text-sm text-ink-mid mb-1">
@@ -176,7 +248,10 @@ export default function ManualAppointmentModal() {
                         Fecha <span className="text-red-500">*</span>
                       </label>
                       <input type="date" value={form.date} onChange={field('date')}
+                        aria-label="Fecha"
+                        min={minManualDate()}
                         className={`input-field w-full ${fieldErrors.date ? 'border-red-400' : ''}`} />
+                      <p className="text-[11px] text-ink-muted mt-1">Hasta {PAST_LIMIT_DAYS} días atrás</p>
                       <Err k="date" />
                     </div>
                     <div>
@@ -184,6 +259,7 @@ export default function ManualAppointmentModal() {
                         Hora <span className="text-red-500">*</span>
                       </label>
                       <input type="time" value={form.startTime}
+                        aria-label="Hora"
                         onChange={e => {
                           setForm(f => ({ ...f, startTime: e.target.value.slice(0, 5) }))
                           if (fieldErrors.startTime) setFieldErrors(fe => ({ ...fe, startTime: undefined }))

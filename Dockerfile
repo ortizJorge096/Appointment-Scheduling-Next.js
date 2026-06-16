@@ -40,14 +40,24 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser  --system --uid 1001 nextjs
 
-# Copiar solo lo necesario para producción
-COPY --from=builder /app/prisma          ./prisma
-COPY --from=builder /app/node_modules    ./node_modules
-COPY --from=builder /app/package.json    ./package.json
+# ── Output standalone de Next ──
+# Incluye server.js y SOLO las dependencias de runtime que la app importa
+# (trazadas por Next). Evita copiar node_modules completo con devDeps.
 COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static    ./.next/static
-# public/ no esta incluido en standalone — copiarlo explicitamente
-COPY --from=builder /app/public          ./public
+COPY --from=builder /app/.next/static     ./.next/static
+# public/ no está incluido en standalone — copiarlo explícitamente
+COPY --from=builder /app/public           ./public
+
+# ── Prisma ──
+# Esquema + migraciones, más el CLI y los engines que el init-container
+# necesita para `prisma migrate deploy`. El output standalone no traza el CLI
+# (es devDependency) ni siempre incluye el binario del query engine, así que
+# se superponen explícitamente sobre el node_modules trazado.
+COPY --from=builder /app/prisma                   ./prisma
+COPY --from=builder /app/node_modules/.prisma     ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma     ./node_modules/@prisma
+COPY --from=builder /app/node_modules/prisma      ./node_modules/prisma
+COPY --from=builder /app/node_modules/.bin/prisma ./node_modules/.bin/prisma
 
 USER nextjs
 

@@ -1,8 +1,49 @@
-# .dockerignore
+# .dockerignore — keep the build context small and free of secrets/cruft.
+# Do NOT exclude configs that `next build` needs:
+# package.json, package-lock.json, .npmrc, next.config.ts, tsconfig.json,
+# tailwind.config.ts, postcss.config.js, eslint.config.mjs, prisma/, src/, public/.
+
+# Dependencies and build artifacts (regenerated inside the image)
 node_modules
 .next
+out
+coverage
+
+# Version control / CI
 .git
-.env.local
+.gitignore
+.github
+
+# Secrets and environment (runtime gets them from the k8s Secret/ConfigMap)
+.env
+.env.*
+
+# Infrastructure — not needed to build the app (includes heavy Terraform binaries)
+infra
+
+# Prototypes and documentation
+rediseno-valentina
 *.md
+
+# Tests and test tooling (not part of the production image)
+**/*.test.ts
+**/*.test.tsx
+vitest.config.ts
+src/test-utils
+
+# Lint/format/security configs not required at runtime
+.gitleaks.toml
+.prettierrc.yaml
+.prettierignore
+
+# Docker / compose (Docker reads the Dockerfile outside the context)
+Dockerfile
+Dockerfile.migrate
+docker-compose.yml
+.dockerignore
+
+# Editor / OS files
+.vscode
+.idea
 .DS_Store
 Thumbs.db

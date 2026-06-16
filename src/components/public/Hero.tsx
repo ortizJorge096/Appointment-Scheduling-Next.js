@@ -48,7 +48,7 @@ export default function Hero() {
 
         <div className="hidden lg:flex flex-col gap-3">
           <NextAvailability />
-          <div className="border-l-2 border-gold bg-white/[0.04] px-4 py-3">
+          <div className="border-l-2 border-gold bg-white/[0.04] rounded-r-xl px-4 py-3">
             <p className="text-xs text-white/35">Incluye</p>
             <p className="text-white/70 text-sm mt-0.5">
               Recordatorio 24h antes · Sin pagos anticipados

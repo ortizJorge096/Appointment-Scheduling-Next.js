@@ -1,16 +1,16 @@
 // src/lib/db-error.ts
-// Detecta errores de conexión de Prisma y devuelve una respuesta 503 amigable.
+// Detects Prisma connection errors and returns a friendly 503 response.
 
 import { Prisma } from '@prisma/client'
 import { NextResponse } from 'next/server'
 import type { ApiResponse } from '@/types'
 
 /**
- * Códigos de error de Prisma relacionados con la base de datos no disponible.
- * P1001 — No se puede conectar al servidor de BD
- * P1008 — Operación agotó el tiempo de espera
- * P1017 — El servidor cerró la conexión
- * P2024 — Timeout obteniendo conexión del pool
+ * Prisma error codes related to the database being unavailable.
+ * P1001 — Cannot reach the database server
+ * P1008 — Operation timed out
+ * P1017 — Server closed the connection
+ * P2024 — Timed out fetching a connection from the pool
  */
 const DB_UNAVAILABLE_CODES = new Set(['P1001', 'P1008', 'P1017', 'P2024'])
 
@@ -24,7 +24,7 @@ export function isDbUnavailable(err: unknown): boolean {
   return false
 }
 
-// Genérica para ser compatible con cualquier NextResponse<ApiResponse<T>>
+// Generic so it stays compatible with any NextResponse<ApiResponse<T>>
 export function dbUnavailableResponse<T = never>(): NextResponse<ApiResponse<T>> {
   return NextResponse.json<ApiResponse<T>>(
     {

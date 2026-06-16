@@ -1,41 +1,41 @@
 // src/lib/config.ts
 // ─────────────────────────────────────────────────────────────
-// CONFIGURACIÓN CENTRAL DEL NEGOCIO
-// Edita SOLO este archivo para actualizar datos del estudio.
+// CENTRAL BUSINESS CONFIGURATION
+// Edit ONLY this file to update the studio's data.
 // ─────────────────────────────────────────────────────────────
 
 export const STUDIO = {
-  // Identidad
+  // Identity
   name:      'Valentina Jimenez Beauty Studio',
   shortName: 'Valentina Jimenez',
   tagline:   'Beauty Studio',
   slogan:    'Uñas, pestañas y cejas con acabado profesional.',
 
-  // Ubicación
+  // Location
   city:         'Floridablanca',
   neighborhood: 'La Cumbre',
   state:        'Santander',
   country:      'Colombia',
   address:      'La Cumbre, Floridablanca, Santander',
 
-  // Contacto
+  // Contact
   phone:      '+57 300 179 0511',
-  whatsapp:   '573001790511',          // sin +, sin espacios — para wa.me/
-  email:      'hola@vjbeautystudio.com',
-  adminEmail: 'admin@vjbeautystudio.com',
+  whatsapp:   '573001790511',          // no +, no spaces — for wa.me/
+  email:      'valentinajimenezbeautystudio@gmail.com',
+  adminEmail: 'valentinajimenezbeautystudio@gmail.com',
   instagram:  '_valebeautystudio_',
   tiktok:     'valebeautystudio1',
 
-  // Horario de atención (texto para mostrar en UI)
+  // Business hours (display text for the UI)
   hours: 'Lun–Sáb 9am–6pm',
 
-  // Zona horaria del negocio (para cálculos de disponibilidad y recordatorios)
+  // Business timezone (used for availability calculations and reminders)
   timezone: 'America/Bogota',
 
-  // Cada cuántos minutos se ofrece un horario de inicio (granularidad de slots)
+  // Granularity of start-time slots, in minutes
   slotGranularityMin: 30,
 
-  // Margen mínimo (min) entre "ahora" y el primer horario reservable hoy
+  // Minimum margin (min) between "now" and the first bookable slot today
   bookingBufferMin: 30,
 
   // URLs
@@ -52,8 +52,8 @@ export const STUDIO = {
 } as const
 
 // ─────────────────────────────────────────────────────────────
-// CATEGORÍAS DE SERVICIOS — etiqueta visible y orden de aparición
-// Las claves coinciden con el enum ServiceCategory de Prisma.
+// SERVICE CATEGORIES — visible label and display order.
+// Keys match the Prisma ServiceCategory enum.
 // ─────────────────────────────────────────────────────────────
 export const SERVICE_CATEGORIES = {
   UNAS:     { label: 'Uñas',     order: 1 },
@@ -64,7 +64,7 @@ export const SERVICE_CATEGORIES = {
 
 export type ServiceCategoryKey = keyof typeof SERVICE_CATEGORIES
 
-// Lista ordenada de claves de categoría, para iterar en la UI
+// Ordered list of category keys, for iterating in the UI
 export const CATEGORY_ORDER = (Object.keys(SERVICE_CATEGORIES) as ServiceCategoryKey[])
   .sort((a, b) => SERVICE_CATEGORIES[a].order - SERVICE_CATEGORIES[b].order)
 
@@ -73,7 +73,7 @@ export function categoryLabel(key: string): string {
   return cat?.label ?? key
 }
 
-// Helpers derivados
+// Derived helpers
 export const WHATSAPP_URL  = `https://wa.me/${STUDIO.whatsapp}`
 export const MAILTO_URL    = `mailto:${STUDIO.email}`
 export const INSTAGRAM_URL = `https://www.instagram.com/${STUDIO.instagram}/`

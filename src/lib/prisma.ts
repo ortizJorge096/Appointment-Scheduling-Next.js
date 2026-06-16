@@ -1,5 +1,5 @@
 // src/lib/prisma.ts
-// Singleton de PrismaClient — evita múltiples conexiones en desarrollo (hot reload)
+// PrismaClient singleton — avoids multiple connections in development (hot reload)
 
 import { PrismaClient } from '@prisma/client'
 

@@ -339,7 +339,7 @@ export default function BookingForm() {
                   const isSelected = form.category === cat
                   return (
                     <button key={cat} type="button" onClick={() => selectCategory(cat)}
-                      className={`text-left p-5 border transition-all duration-150
+                      className={`text-left p-5 rounded-2xl border transition-all duration-150 hover:shadow-sm
                         ${isSelected ? 'border-gold bg-gold-pale ring-1 ring-gold'
                         : attempted && !form.category ? 'border-red-300 bg-white hover:border-gold/50'
                         : 'border-beige-dark bg-white hover:border-gold/50'}`}>
@@ -389,7 +389,7 @@ export default function BookingForm() {
                 const isSelected = form.serviceId === svc.id
                 return (
                   <button key={svc.id} type="button" onClick={() => selectService(svc.id)}
-                    className={`w-full text-left p-5 border transition-all duration-150
+                    className={`w-full text-left p-5 rounded-2xl border transition-all duration-150 hover:shadow-sm
                       ${isSelected ? 'border-gold bg-gold-pale ring-1 ring-gold'
                       : attempted && !form.serviceId ? 'border-red-300 bg-white hover:border-gold/50'
                       : 'border-beige-dark bg-white hover:border-gold/50'}`}>
@@ -425,7 +425,7 @@ export default function BookingForm() {
           </div>
 
           {selectedService && (
-            <div className="flex items-center justify-between bg-gold-pale/60 border border-gold/20 px-4 py-3 mb-6">
+            <div className="flex items-center justify-between bg-gold-pale/60 border border-gold/20 rounded-xl px-4 py-3 mb-6">
               <div className="min-w-0">
                 <p className="text-[10px] tracking-widest uppercase text-gold-dark mb-0.5">
                   Servicio elegido
@@ -562,7 +562,7 @@ export default function BookingForm() {
             <h2 className="font-serif text-2xl text-ink">Confirma tu cita</h2>
             <p className="text-sm text-ink-muted mt-1">Revisa los datos antes de confirmar.</p>
           </div>
-          <div className="bg-beige border border-beige-dark p-6 space-y-3 mb-6">
+          <div className="bg-beige border border-beige-dark rounded-2xl p-6 space-y-3 mb-6">
             {[
               { label: 'Servicio',  value: selectedService.name },
               { label: 'Fecha',     value: format(new Date(`${form.date}T12:00:00`), "EEEE d 'de' MMMM", { locale: es }) },

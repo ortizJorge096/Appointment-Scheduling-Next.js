@@ -2,7 +2,7 @@
 import type { Metadata } from 'next'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
-import { format, startOfDay, endOfDay, startOfWeek, endOfWeek } from 'date-fns'
+import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, subDays } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { StatCard } from '@/components/ui/Card'
 
@@ -18,11 +18,16 @@ const STATUS_CLASS: Record<string, string> = {
   COMPLETED: 'badge-completed', CANCELLED: 'badge-cancelled', NO_SHOW: 'badge-no_show',
 }
 
+// Order used for the status-distribution bars
+const STATUS_ORDER = ['CONFIRMED', 'PENDING', 'COMPLETED', 'NO_SHOW'] as const
+
 function formatPrice(p: number) {
   return new Intl.NumberFormat('es-CO', {
     style: 'currency', currency: 'COP', minimumFractionDigits: 0,
   }).format(p)
 }
+
+const PERIOD_DAYS = 14
 
 export default async function DashboardPage() {
   const now        = new Date()
@@ -30,8 +35,9 @@ export default async function DashboardPage() {
   const todayEnd   = endOfDay(now)
   const weekStart  = startOfWeek(now, { weekStartsOn: 1 })
   const weekEnd    = endOfWeek(now,   { weekStartsOn: 1 })
+  const periodStart = startOfDay(subDays(now, PERIOD_DAYS - 1))
 
-  const [todayAppointments, weekCount, pendingCount, totalCompleted] = await Promise.all([
+  const [todayAppointments, weekCount, pendingCount, totalCompleted, periodAppts] = await Promise.all([
     prisma.appointment.findMany({
       where: { date: { gte: todayStart, lte: todayEnd }, status: { not: 'CANCELLED' } },
       include: { service: { select: { name: true, price: true, durationMinutes: true } } },
@@ -42,18 +48,51 @@ export default async function DashboardPage() {
     }),
     prisma.appointment.count({ where: { status: 'PENDING' } }),
     prisma.appointment.count({ where: { status: 'COMPLETED' } }),
+    // Last PERIOD_DAYS for charts (cancelled excluded)
+    prisma.appointment.findMany({
+      where: { date: { gte: periodStart, lte: todayEnd }, status: { not: 'CANCELLED' } },
+      select: { date: true, status: true, service: { select: { price: true } } },
+    }),
   ])
 
   const todayRevenue = todayAppointments
     .filter((a) => a.status === 'COMPLETED')
     .reduce((sum, a) => sum + a.service.price, 0)
 
+  // ── Build per-day buckets for the bar chart ──
+  const days = Array.from({ length: PERIOD_DAYS }, (_, i) => {
+    const d = subDays(now, PERIOD_DAYS - 1 - i)
+    return {
+      key:     format(d, 'yyyy-MM-dd'),
+      label:   format(d, 'd'),
+      weekday: format(d, 'eee', { locale: es }),
+      count:   0,
+      revenue: 0,
+    }
+  })
+  const byKey = new Map(days.map((d) => [d.key, d]))
+  for (const a of periodAppts) {
+    const bucket = byKey.get(format(a.date, 'yyyy-MM-dd'))
+    if (!bucket) continue
+    bucket.count += 1
+    if (a.status === 'COMPLETED') bucket.revenue += a.service.price
+  }
+  const maxCount      = Math.max(1, ...days.map((d) => d.count))
+  const periodRevenue = days.reduce((s, d) => s + d.revenue, 0)
+  const periodTotal   = periodAppts.length
+
+  // ── Status distribution over the period ──
+  const statusCounts = periodAppts.reduce((acc, a) => {
+    acc[a.status] = (acc[a.status] ?? 0) + 1
+    return acc
+  }, {} as Record<string, number>)
+
   const stats = [
-    { label: 'Citas hoy',         value: todayAppointments.length, accent: false },
-    { label: 'Esta semana',        value: weekCount,                accent: false },
-    { label: 'Pendientes',         value: pendingCount,             accent: pendingCount > 0 },
+    { label: 'Citas hoy',         value: todayAppointments.length,  accent: false },
+    { label: 'Esta semana',        value: weekCount,                 accent: false },
+    { label: 'Pendientes',         value: pendingCount,              accent: pendingCount > 0 },
     { label: 'Ingreso hoy',        value: formatPrice(todayRevenue), accent: false },
-    { label: 'Total completadas',  value: totalCompleted,           accent: false },
+    { label: 'Total completadas',  value: totalCompleted,            accent: false },
   ]
 
   return (
@@ -67,14 +106,70 @@ export default async function DashboardPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-10">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         {stats.map((s) => (
           <StatCard key={s.label} label={s.label} value={s.value} accent={s.accent} />
         ))}
       </div>
 
-      {/* Citas de hoy */}
-      <div className="bg-white border border-beige-dark">
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
+        {/* Bar chart — appointments per day */}
+        <div className="card-premium p-6 lg:col-span-2">
+          <div className="flex items-end justify-between mb-5 flex-wrap gap-2">
+            <h2 className="font-serif text-xl text-ink">Citas · últimos {PERIOD_DAYS} días</h2>
+            <span className="text-xs text-ink-muted">
+              Ingresos del período:{' '}
+              <b className="font-serif text-gold-dark text-base">{formatPrice(periodRevenue)}</b>
+            </span>
+          </div>
+          <div className="flex items-end gap-1.5">
+            {days.map((d) => (
+              <div key={d.key} className="flex-1 flex flex-col items-center gap-1.5">
+                <div className="w-full h-40 flex items-end">
+                  <div
+                    className="w-full rounded-t-md bg-gradient-to-t from-gold to-gold-light
+                               min-h-[2px] transition-all duration-300 hover:brightness-110"
+                    style={{ height: `${Math.round((d.count / maxCount) * 100)}%` }}
+                    title={`${d.weekday} ${d.label}: ${d.count} cita(s) · ${formatPrice(d.revenue)}`}
+                  />
+                </div>
+                <span className="text-[9px] text-ink-muted">{d.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Status distribution */}
+        <div className="card-premium p-6">
+          <h2 className="font-serif text-xl text-ink mb-5">Distribución ({periodTotal})</h2>
+          {periodTotal === 0 ? (
+            <p className="text-sm text-ink-muted">Sin datos en el período.</p>
+          ) : (
+            <div className="space-y-4">
+              {STATUS_ORDER.map((st) => {
+                const n   = statusCounts[st] ?? 0
+                const pct = periodTotal ? Math.round((n / periodTotal) * 100) : 0
+                return (
+                  <div key={st}>
+                    <div className="flex items-center justify-between text-xs mb-1.5">
+                      <span className="text-ink-mid">{STATUS_LABEL[st]}</span>
+                      <span className="text-ink-muted">{n} · {pct}%</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-beige overflow-hidden">
+                      <div className="h-full rounded-full bg-gradient-to-r from-gold-light to-gold"
+                        style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Today's appointments */}
+      <div className="card-premium overflow-hidden">
         <div className="px-6 py-4 border-b border-beige-dark flex items-center justify-between">
           <h2 className="font-serif text-xl text-ink font-light">Citas de hoy</h2>
           <Link href="/admin/citas" className="text-xs text-gold hover:underline">Ver todas →</Link>

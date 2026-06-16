@@ -1,7 +1,7 @@
 // src/components/public/ServiceIcons.tsx
-// Iconos de línea (stroke) para los servicios del estudio.
-// Usan `currentColor`, por lo que heredan el color del contenedor (p. ej. text-gold).
-// Estilo coherente con el logotipo de marca: trazos finos, dorados, minimalistas.
+// Line (stroke) icons for the studio services.
+// They use `currentColor`, so they inherit the container color (e.g. text-gold).
+// Style consistent with the brand mark: thin, gold, minimal strokes.
 import type { ReactElement, SVGProps } from 'react'
 
 type IconProps = SVGProps<SVGSVGElement>
@@ -101,7 +101,7 @@ export function PromoIcon(props: IconProps) {
   )
 }
 
-// ── Mapa: clave de categoría (enum Prisma) → icono ──
+// ── Map: category key (Prisma enum) → icon ──
 export const CATEGORY_ICON: Record<string, IconComponent> = {
   UNAS:     ManicuraIcon,
   PESTANAS: PestanasIcon,
@@ -114,7 +114,7 @@ export function CategoryIcon({ category, ...props }: IconProps & { category: str
   return <Icon {...props} />
 }
 
-// ── Lista para secciones de marketing (los 5 servicios del banner) ──
+// ── List for marketing sections (the 5 services from the banner) ──
 export const SERVICE_HIGHLIGHTS = [
   { label: 'Manicura',         Icon: ManicuraIcon  },
   { label: 'Pedicura',         Icon: PedicuraIcon  },

@@ -69,6 +69,33 @@ describe('ManualAppointmentModal', () => {
     })
   })
 
+  it('searches existing clients and prefills the form when one is picked', async () => {
+    vi.mocked(global.fetch)
+      // services (on open)
+      .mockResolvedValueOnce({ json: () => Promise.resolve({ success: true, data: MOCK_SERVICES }) } as Response)
+      // client search
+      .mockResolvedValueOnce({
+        json: () => Promise.resolve({
+          success: true,
+          data: { clients: [{ id: 'c1', name: 'Ana López', email: 'ana@test.com', phone: '3001234567' }] },
+        }),
+      } as Response)
+
+    render(<ManualAppointmentModal />)
+    fireEvent.click(screen.getByRole('button', { name: /cita manual/i }))
+    await waitFor(() => screen.getByText(/Manicura/))
+
+    fireEvent.change(screen.getByLabelText('Buscar cliente existente'), { target: { value: 'ana' } })
+
+    // Debounced fetch resolves → result appears; clicking it prefills the fields
+    const result = await screen.findByText('Ana López')
+    fireEvent.click(result)
+
+    expect(screen.getByPlaceholderText('Ana García')).toHaveValue('Ana López')
+    expect(screen.getByPlaceholderText('ana@ejemplo.com')).toHaveValue('ana@test.com')
+    expect(screen.getByPlaceholderText('3001234567')).toHaveValue('3001234567')
+  })
+
   it('shows error message on API failure', async () => {
     // Load services
     vi.mocked(global.fetch)
@@ -88,9 +115,9 @@ describe('ManualAppointmentModal', () => {
     const select = screen.getByRole('combobox')
     fireEvent.change(select, { target: { value: 's1' } })
 
-    const dateInputs = screen.getAllByDisplayValue('')
-    fireEvent.change(dateInputs[0], { target: { value: '2026-12-01' } })
-    fireEvent.change(dateInputs[1], { target: { value: '10:00' } })
+    // Robust selection by accessible label (no fragile index lookup)
+    fireEvent.change(screen.getByLabelText('Fecha'), { target: { value: '2026-12-01' } })
+    fireEvent.change(screen.getByLabelText('Hora'),  { target: { value: '10:00' } })
 
     fireEvent.click(screen.getByRole('button', { name: /crear cita/i }))
 

@@ -1,28 +1,28 @@
 // src/lib/s3.ts
-// Helpers de S3. El cliente usa el "default credential provider chain" del SDK:
-//   1. Variables de entorno (AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY)
-//   2. ~/.aws/credentials (perfil)
-//   3. Instance Profile de EC2 (en producción)
-//   4. Role de ECS / Lambda / etc.
+// S3 helpers. The client uses the SDK's "default credential provider chain":
+//   1. Environment variables (AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY)
+//   2. ~/.aws/credentials (profile)
+//   3. EC2 Instance Profile (in production)
+//   4. ECS / Lambda / etc. role
 //
-// En desarrollo local: `aws configure` o exporta las variables en .env.local.
-// En producción (EC2 con Instance Profile): NO necesitas claves en .env.
+// Local development: run `aws configure` or export the variables in .env.local.
+// Production (EC2 with Instance Profile): you do NOT need keys in .env.
 
 import { S3Client, DeleteObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
-// ── Constantes ────────────────────────────────────────────────
-const PRESIGN_EXPIRES_SEC = 60 * 5         // 5 minutos para subir
-export const GALLERY_PREFIX = 'gallery/'   // todas las imágenes de galería van bajo este prefijo
+// ── Constants ─────────────────────────────────────────────────
+const PRESIGN_EXPIRES_SEC = 60 * 5         // 5 minutes to upload
+export const GALLERY_PREFIX = 'gallery/'   // all gallery images live under this prefix
 export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024  // 5 MB
 
-// ── Cliente lazy (igual patrón que lib/email.ts) ──────────────
+// ── Lazy client (same pattern as lib/email.ts) ────────────────
 let _client: S3Client | null = null
 function getClient(): S3Client {
   if (!_client) {
     _client = new S3Client({
       region: process.env.AWS_REGION ?? 'us-east-1',
-      // Sin `credentials`: el SDK usa la cadena por defecto.
+      // No `credentials`: the SDK uses the default chain.
     })
   }
   return _client
@@ -39,8 +39,8 @@ function getRegion(): string {
 }
 
 /**
- * URL pública de un objeto. Si configuras `AWS_S3_PUBLIC_BASE_URL`
- * (p. ej. una distribución de CloudFront), se usa esa base.
+ * Public URL for an object. If you set `AWS_S3_PUBLIC_BASE_URL`
+ * (e.g. a CloudFront distribution), that base is used instead.
  */
 export function getPublicUrl(key: string): string {
   const customBase = process.env.AWS_S3_PUBLIC_BASE_URL
@@ -53,8 +53,8 @@ export function getPublicUrl(key: string): string {
 }
 
 /**
- * Genera una URL PUT firmada para que el navegador del admin
- * suba un archivo directamente a S3.
+ * Generates a signed PUT URL so the admin's browser can upload
+ * a file directly to S3.
  */
 export async function getPresignedUploadUrl(args: {
   key: string
@@ -64,8 +64,8 @@ export async function getPresignedUploadUrl(args: {
     Bucket: getBucket(),
     Key: args.key,
     ContentType: args.contentType,
-    // Para que el objeto se pueda leer de forma pública sin firmar
-    // (depende de la bucket policy — si ya está abierta para gallery/*, no hace falta ACL).
+    // So the object can be read publicly without signing
+    // (depends on the bucket policy — if gallery/* is already open, no ACL is needed).
   })
   const uploadUrl = await getSignedUrl(getClient(), command, {
     expiresIn: PRESIGN_EXPIRES_SEC,
@@ -74,8 +74,8 @@ export async function getPresignedUploadUrl(args: {
 }
 
 /**
- * Elimina un objeto del bucket. Silencia errores 404
- * (si el archivo ya no existe en S3, sigue siendo éxito desde el punto de vista del DELETE).
+ * Deletes an object from the bucket. Swallows 404 errors
+ * (if the file no longer exists in S3, the DELETE still counts as success).
  */
 export async function deleteObject(key: string): Promise<void> {
   try {
@@ -87,13 +87,13 @@ export async function deleteObject(key: string): Promise<void> {
     )
   } catch (err) {
     console.error(`Error eliminando ${key} de S3:`, err)
-    // No relanzamos: el registro en BD debe poder borrarse aunque el objeto ya no exista
+    // We don't rethrow: the DB record must still be deletable even if the object is gone
   }
 }
 
 /**
- * Genera una key única bajo el prefijo de galería.
- * Ej: gallery/abc123-xyz789.jpg
+ * Builds a unique key under the gallery prefix.
+ * E.g.: gallery/abc123-xyz789.jpg
  */
 export function buildGalleryKey(id: string, originalFilename: string): string {
   const ext = (originalFilename.match(/\.([a-z0-9]+)$/i)?.[1] ?? 'jpg').toLowerCase()
