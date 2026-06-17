@@ -62,9 +62,15 @@ variable "db_username" {
 }
 
 variable "backup_retention_days" {
-  description = "Backup retention days. 7 is the sensible default; 0 disables them."
+  description = "Backup retention days. 0 disables automated backups."
   type        = number
-  default     = 7
+  default     = 0
+}
+
+variable "backup_window" {
+  description = "Preferred backup window (UTC). Only effective when backup_retention_days > 0."
+  type        = string
+  default     = "06:00-07:00"
 }
 
 variable "deletion_protection" {

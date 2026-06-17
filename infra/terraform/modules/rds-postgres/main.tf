@@ -61,7 +61,7 @@ resource "aws_db_subnet_group" "this" {
 # ─── Security Group ───────────────────────────────────────────────────────
 resource "aws_security_group" "db" {
   name        = "${var.name}-db-sg"
-  description = "Postgres 5432 from k3s SG"
+  description = "Postgres 5432 desde k3s SG"
   vpc_id      = var.vpc_id
 
   egress {
@@ -93,7 +93,7 @@ resource "aws_security_group_rule" "allow_postgres_from_app" {
 resource "aws_db_parameter_group" "this" {
   name        = "${var.name}-pg"
   family      = "postgres${split(".", var.engine_version)[0]}"
-  description = "Postgres with SSL enforced"
+  description = "Postgres con SSL forzado"
 
   parameter {
     name  = "rds.force_ssl"
@@ -127,7 +127,7 @@ resource "aws_db_instance" "this" {
   multi_az            = var.multi_az
 
   backup_retention_period = var.backup_retention_days
-  backup_window           = "06:00-07:00"
+  backup_window           = var.backup_retention_days > 0 ? var.backup_window : null
   maintenance_window      = "sun:07:30-sun:08:30"
 
   copy_tags_to_snapshot = true

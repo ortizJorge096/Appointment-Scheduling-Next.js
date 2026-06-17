@@ -117,7 +117,7 @@ module "rds" {
   skip_final_snapshot   = true
   multi_az              = false
   publicly_accessible   = false
-  backup_retention_days = 7  # 7 days in dev (Free Tier: 20 GB free backups)
+  backup_retention_days = 0  # Disabled in dev (saves cost; no automated backups)
 
   tags = { Component = "database" }
 }
