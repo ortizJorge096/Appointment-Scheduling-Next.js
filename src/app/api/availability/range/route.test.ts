@@ -14,12 +14,6 @@ vi.mock('@/lib/prisma', () => ({
 const { prisma } = await import('@/lib/prisma')
 
 const MOCK_SERVICE  = { durationMinutes: 45 }
-const MOCK_SCHEDULE = {
-  dayOfWeek: 'MONDAY',
-  startTime: '09:00',
-  endTime:   '18:00',
-  isActive:  true,
-}
 
 function makeRequest(params: Record<string, string> = {}): NextRequest {
   const url = new URL('http://localhost/api/availability/range')

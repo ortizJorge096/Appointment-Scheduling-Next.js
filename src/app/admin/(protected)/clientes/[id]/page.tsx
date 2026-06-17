@@ -41,6 +41,12 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
   const [saving, setSaving]     = useState(false)
   const [saveMsg, setSaveMsg]   = useState('')
 
+  // Edit contact info (name / email / phone)
+  const [editInfo, setEditInfo]   = useState(false)
+  const [infoForm, setInfoForm]   = useState({ name: '', email: '', phone: '' })
+  const [savingInfo, setSavingInfo] = useState(false)
+  const [infoErr, setInfoErr]     = useState('')
+
   useEffect(() => {
     fetch(`/api/clients/${id}`)
       .then(r => r.json())
@@ -62,6 +68,34 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
     setSaveMsg(j.success ? 'Guardado ✓' : 'Error al guardar')
     if (j.success) setClient(prev => prev ? { ...prev, notes } : prev)
     setTimeout(() => setSaveMsg(''), 3000)
+  }
+
+  function openEditInfo() {
+    if (!client) return
+    setInfoForm({ name: client.name, email: client.email, phone: client.phone ?? '' })
+    setInfoErr('')
+    setEditInfo(true)
+  }
+
+  async function saveInfo(e: React.FormEvent) {
+    e.preventDefault()
+    setSavingInfo(true); setInfoErr('')
+    const res = await fetch(`/api/clients/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name:  infoForm.name.trim(),
+        email: infoForm.email.trim(),
+        phone: infoForm.phone.trim() || undefined,
+      }),
+    })
+    const j = await res.json()
+    setSavingInfo(false)
+    if (!j.success) { setInfoErr(j.error ?? 'No se pudo guardar'); return }
+    setClient(prev => prev
+      ? { ...prev, name: infoForm.name.trim(), email: infoForm.email.trim(), phone: infoForm.phone.trim() || null }
+      : prev)
+    setEditInfo(false)
   }
 
   if (loading) return <div className="p-6 text-ink-muted">Cargando…</div>
@@ -86,14 +120,39 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
       <div className="bg-white rounded-xl border border-beige-dark p-6 mb-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-serif text-ink">{client.name}</h1>
-            <p className="text-sm text-ink-muted mt-1">{client.email}</p>
-            {client.phone && <p className="text-sm text-ink-muted">{client.phone}</p>}
-            <p className="text-xs text-ink-muted/60 mt-2">
-              Cliente desde {new Date(client.createdAt).toLocaleDateString('es-CO', {
-                day: '2-digit', month: 'long', year: 'numeric',
-              })}
-            </p>
+            {editInfo ? (
+              <form onSubmit={saveInfo} className="space-y-2 max-w-xs">
+                <input value={infoForm.name} onChange={e => setInfoForm(f => ({ ...f, name: e.target.value }))}
+                  required placeholder="Nombre" className="input-field w-full text-sm" />
+                <input type="email" value={infoForm.email} onChange={e => setInfoForm(f => ({ ...f, email: e.target.value }))}
+                  required placeholder="Email" className="input-field w-full text-sm" />
+                <input value={infoForm.phone} onChange={e => setInfoForm(f => ({ ...f, phone: e.target.value }))}
+                  placeholder="Teléfono / celular" className="input-field w-full text-sm" />
+                {infoErr && <p className="text-xs text-red-600">{infoErr}</p>}
+                <div className="flex gap-2 pt-1">
+                  <button type="submit" disabled={savingInfo} className="btn-primary text-xs py-1.5 px-4 disabled:opacity-50">
+                    {savingInfo ? 'Guardando…' : 'Guardar'}
+                  </button>
+                  <button type="button" onClick={() => setEditInfo(false)} className="btn-secondary text-xs py-1.5 px-4">
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <h1 className="text-2xl font-serif text-ink">{client.name}</h1>
+                  <button onClick={openEditInfo} className="text-xs text-gold hover:underline">Editar datos</button>
+                </div>
+                <p className="text-sm text-ink-muted mt-1">{client.email}</p>
+                {client.phone && <p className="text-sm text-ink-muted">{client.phone}</p>}
+                <p className="text-xs text-ink-muted/60 mt-2">
+                  Cliente desde {new Date(client.createdAt).toLocaleDateString('es-CO', {
+                    day: '2-digit', month: 'long', year: 'numeric',
+                  })}
+                </p>
+              </>
+            )}
           </div>
           <div className="flex gap-6 text-center shrink-0">
             <div>

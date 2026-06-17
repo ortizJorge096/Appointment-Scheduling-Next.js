@@ -65,6 +65,15 @@ describe('POST /api/appointments/manual', () => {
     expect(res.status).toBe(400)
   })
 
+  it('rejects dates older than 15 days (backfill limit)', async () => {
+    vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
+    // A date clearly more than 15 days in the past is always rejected
+    const res = await POST(makeRequest({ ...VALID_BODY, date: '2020-01-01' }))
+    expect(res.status).toBe(400)
+    const json = await res.json()
+    expect(json.error).toMatch(/15 días/)
+  })
+
   it('returns 404 when service not found', async () => {
     vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
     vi.mocked(prisma.service.findUnique).mockResolvedValue(null)

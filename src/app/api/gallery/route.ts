@@ -8,6 +8,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { galleryCreateSchema } from '@/lib/validations'
 import { getPublicUrl } from '@/lib/s3'
+import { audit, getClientIp } from '@/lib/audit'
 
 export const dynamic = 'force-dynamic'
 
@@ -76,6 +77,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       order: nextOrder,
       isActive: true,
     },
+  })
+
+  await audit({
+    action:    'CREATE',
+    entity:    'GALLERY',
+    entityId:  created.id,
+    userEmail: session.user?.email ?? undefined,
+    ip:        getClientIp(request),
+    metadata:  { s3Key: created.s3Key },
   })
 
   return NextResponse.json(

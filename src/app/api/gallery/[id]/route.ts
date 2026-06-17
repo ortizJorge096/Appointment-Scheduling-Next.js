@@ -8,6 +8,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { galleryUpdateSchema } from '@/lib/validations'
 import { deleteObject, getPublicUrl } from '@/lib/s3'
+import { audit, getClientIp } from '@/lib/audit'
 
 export const dynamic = 'force-dynamic'
 
@@ -59,6 +60,17 @@ export async function PATCH(
       where: { id },
       data: parsed.data,
     })
+
+    const session = await getServerSession(authOptions)
+    await audit({
+      action:    'UPDATE',
+      entity:    'GALLERY',
+      entityId:  id,
+      userEmail: session?.user?.email ?? undefined,
+      ip:        getClientIp(request),
+      metadata:  { fields: Object.keys(parsed.data) },
+    })
+
     return NextResponse.json({
       success: true,
       data: { ...updated, url: getPublicUrl(updated.s3Key) },
@@ -91,6 +103,15 @@ export async function DELETE(
   // First delete the S3 object (does not throw if it fails — the record must be cleaned up anyway)
   await deleteObject(image.s3Key)
   await prisma.galleryImage.delete({ where: { id } })
+
+  const session = await getServerSession(authOptions)
+  await audit({
+    action:    'DELETE',
+    entity:    'GALLERY',
+    entityId:  id,
+    userEmail: session?.user?.email ?? undefined,
+    ip:        getClientIp(_request),
+  })
 
   return NextResponse.json({ success: true, data: { id, deleted: true } })
 }

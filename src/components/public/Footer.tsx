@@ -56,17 +56,18 @@ export default function Footer() {
         </div>
       </div>
 
-      <div className="border-t border-white/[0.06] px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+      {/* Extra bottom padding so the floating WhatsApp button never covers the social links */}
+      <div className="border-t border-white/[0.06] px-6 pt-4 pb-24 sm:pb-6 flex flex-col sm:flex-row items-center justify-between gap-3">
         <p className="text-xs text-white/20">
           © {new Date().getFullYear()} {STUDIO.name}
         </p>
         <div className="flex items-center gap-4">
           <a href={INSTAGRAM_URL} target="_blank" rel="noreferrer"
-            className="text-white/30 hover:text-gold transition-colors text-xs tracking-widest uppercase">
+            className="text-white/60 hover:text-gold transition-colors text-sm tracking-widest uppercase">
             Instagram
           </a>
           <a href={TIKTOK_URL} target="_blank" rel="noreferrer"
-            className="text-white/30 hover:text-gold transition-colors text-xs tracking-widest uppercase">
+            className="text-white/60 hover:text-gold transition-colors text-sm tracking-widest uppercase">
             TikTok
           </a>
         </div>

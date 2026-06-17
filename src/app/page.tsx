@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import Navbar from '@/components/public/Navbar'
 import NosotrosImage from '@/components/public/NosotrosImage'
 import Hero from '@/components/public/Hero'
-import ServiceHighlights from '@/components/public/ServiceHighlights'
 import WhatsAppFab from '@/components/public/WhatsAppFab'
 import ServicesGrid from '@/components/public/ServicesGrid'
 import Galeria from '@/components/public/Galeria'
@@ -20,7 +19,6 @@ export default function HomePage() {
       <Navbar />
       <main>
         <Hero />
-        <ServiceHighlights />
         <ServicesGrid />
         <Galeria />
         <NosotrosSection />
