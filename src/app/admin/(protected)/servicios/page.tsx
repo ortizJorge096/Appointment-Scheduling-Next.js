@@ -119,15 +119,15 @@ export default function ServiciosPage() {
   }
 
   return (
-    <div className="p-8 max-w-4xl">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
 
       {/* Header */}
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-6 sm:mb-8 flex items-center justify-between">
         <div>
           <p className="text-xs text-ink-muted tracking-widest uppercase mb-1">Catálogo</p>
-          <h1 className="font-serif text-3xl text-ink font-light">Servicios</h1>
+          <h1 className="font-serif text-2xl sm:text-3xl text-ink font-light">Servicios</h1>
         </div>
-        <button onClick={openNew} className="btn-primary">+ Nuevo servicio</button>
+        <button onClick={openNew} className="btn-primary text-sm">+ Nuevo</button>
       </div>
 
       {/* Messages */}
@@ -210,7 +210,7 @@ export default function ServiciosPage() {
       )}
 
       {/* List */}
-      <div className="bg-white border border-beige-dark divide-y divide-beige-dark">
+      <div className="bg-white rounded-xl border border-beige-dark overflow-hidden">
         {loading ? (
           <div className="py-10 text-center text-ink-muted text-sm">Cargando...</div>
         ) : services.length === 0 ? (
@@ -218,53 +218,84 @@ export default function ServiciosPage() {
             No hay servicios aún. Crea el primero.
           </div>
         ) : (
-          paged.map((svc) => (
-            <div key={svc.id}
-              className={`flex items-center justify-between px-6 py-4 transition-opacity
-                ${svc.isActive ? '' : 'opacity-50'}`}>
-              <div className="flex-1 min-w-0 mr-4">
-                <div className="flex items-center gap-2">
-                  <p className="font-medium text-ink">{svc.name}</p>
-                  <span className="text-[10px] tracking-widest uppercase bg-gold-pale text-gold-dark px-2 py-0.5">
-                    {categoryLabel(svc.category)}
-                  </span>
-                  {!svc.isActive && (
-                    <span className="text-[10px] tracking-widest uppercase bg-gray-100 text-gray-400 px-2 py-0.5">
-                      Inactivo
-                    </span>
-                  )}
+          <>
+            <div className="divide-y divide-beige-dark hidden md:block">
+              {paged.map((svc) => (
+                <div key={svc.id}
+                  className={`flex items-center justify-between px-6 py-4 transition-opacity
+                    ${svc.isActive ? '' : 'opacity-50'}`}>
+                  <div className="flex-1 min-w-0 mr-4">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-medium text-ink">{svc.name}</p>
+                      <span className="text-[10px] tracking-widest uppercase bg-gold-pale text-gold-dark px-2 py-0.5 rounded-full">
+                        {categoryLabel(svc.category)}
+                      </span>
+                      {!svc.isActive && (
+                        <span className="text-[10px] tracking-widest uppercase bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full">
+                          Inactivo
+                        </span>
+                      )}
+                    </div>
+                    {svc.description && (
+                      <p className="text-xs text-ink-muted mt-0.5 truncate">{svc.description}</p>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-5 shrink-0">
+                    <div className="text-right">
+                      <p className="text-gold font-medium text-sm">{formatPrice(svc.price)}</p>
+                      <p className="text-xs text-ink-muted">{svc.durationMinutes} min</p>
+                    </div>
+
+                    <button
+                      onClick={() => openEdit(svc)}
+                      className="text-xs text-ink-muted hover:text-gold transition-colors"
+                    >
+                      Editar
+                    </button>
+
+                    <button
+                      onClick={() => toggleActive(svc)}
+                      className={`text-xs transition-colors ${
+                        svc.isActive
+                          ? 'text-ink-muted hover:text-red-500'
+                          : 'text-green-600 hover:text-green-700'
+                      }`}
+                    >
+                      {svc.isActive ? 'Desactivar' : 'Activar'}
+                    </button>
+                  </div>
                 </div>
-                {svc.description && (
-                  <p className="text-xs text-ink-muted mt-0.5 truncate">{svc.description}</p>
-                )}
-              </div>
-
-              <div className="flex items-center gap-5 shrink-0">
-                <div className="text-right hidden sm:block">
-                  <p className="text-gold font-medium text-sm">{formatPrice(svc.price)}</p>
-                  <p className="text-xs text-ink-muted">{svc.durationMinutes} min</p>
-                </div>
-
-                <button
-                  onClick={() => openEdit(svc)}
-                  className="text-xs text-ink-muted hover:text-gold transition-colors"
-                >
-                  Editar
-                </button>
-
-                <button
-                  onClick={() => toggleActive(svc)}
-                  className={`text-xs transition-colors ${
-                    svc.isActive
-                      ? 'text-ink-muted hover:text-red-500'
-                      : 'text-green-600 hover:text-green-700'
-                  }`}
-                >
-                  {svc.isActive ? 'Desactivar' : 'Activar'}
-                </button>
-              </div>
+              ))}
             </div>
-          ))
+
+            {/* Mobile cards */}
+            <div className="md:hidden divide-y divide-beige-dark">
+              {paged.map((svc) => (
+                <div key={svc.id} className={`px-4 py-3 transition-opacity ${svc.isActive ? '' : 'opacity-50'}`}>
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <p className="font-medium text-ink text-sm truncate">{svc.name}</p>
+                      <span className="text-[10px] tracking-widest uppercase bg-gold-pale text-gold-dark px-2 py-0.5 rounded-full shrink-0">
+                        {categoryLabel(svc.category)}
+                      </span>
+                    </div>
+                    <p className="text-gold font-medium text-sm shrink-0">{formatPrice(svc.price)}</p>
+                  </div>
+                  <div className="flex items-center justify-between mt-1.5">
+                    <span className="text-xs text-ink-muted">{svc.durationMinutes} min</span>
+                    <div className="flex items-center gap-3">
+                      <button onClick={() => openEdit(svc)} className="text-xs text-ink-muted hover:text-gold transition-colors">Editar</button>
+                      <button onClick={() => toggleActive(svc)}
+                        className={`text-xs transition-colors ${svc.isActive ? 'text-ink-muted hover:text-red-500' : 'text-green-600 hover:text-green-700'}`}>
+                        {svc.isActive ? 'Desactivar' : 'Activar'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
 

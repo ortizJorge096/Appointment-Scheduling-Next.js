@@ -209,11 +209,11 @@ export default function GaleriaAdminPage() {
   }
 
   return (
-    <div className="p-8 max-w-5xl">
-      <div className="mb-8 flex items-center justify-between">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
+      <div className="mb-6 sm:mb-8 flex items-center justify-between">
         <div>
           <p className="text-xs text-ink-muted tracking-widest uppercase mb-1">Contenido</p>
-          <h1 className="font-serif text-3xl text-ink font-light">Galería</h1>
+          <h1 className="font-serif text-2xl sm:text-3xl text-ink font-light">Galería</h1>
         </div>
         <label className={`btn-primary cursor-pointer ${uploading ? 'opacity-70 pointer-events-none' : ''}`}>
           {uploading ? `Subiendo ${progress}%` : '+ Subir imagen'}
@@ -290,32 +290,32 @@ export default function GaleriaAdminPage() {
                     <p className="text-xs text-gold tracking-widest uppercase">
                       {img.category ? categoryLabel(img.category) : '—'}
                     </p>
-                    <div className="flex items-center justify-between mt-2 pt-3 border-t border-beige-dark/60">
-                      <div className="flex items-center gap-1">
-                        <button disabled={idx === 0}
-                          onClick={() => move(img, -1)}
-                          className="text-xs text-ink-muted hover:text-gold disabled:opacity-20 px-1">↑</button>
-                        <button disabled={idx === arr.length - 1}
-                          onClick={() => move(img, +1)}
-                          className="text-xs text-ink-muted hover:text-gold disabled:opacity-20 px-1">↓</button>
+                      <div className="flex items-center justify-between mt-2 pt-3 border-t border-beige-dark/60">
+                        <div className="flex items-center gap-1">
+                          <button disabled={idx === 0}
+                            onClick={() => move(img, -1)}
+                            className="text-xs text-ink-muted hover:text-gold disabled:opacity-20 px-1">↑</button>
+                          <button disabled={idx === arr.length - 1}
+                            onClick={() => move(img, +1)}
+                            className="text-xs text-ink-muted hover:text-gold disabled:opacity-20 px-1">↓</button>
+                        </div>
+                        <div className="flex items-center gap-2 sm:gap-3 text-xs">
+                          <button
+                            onClick={() => { replacingImgRef.current = img; replaceInputRef.current?.click() }}
+                            disabled={replacingId === img.id}
+                            className="text-ink-muted hover:text-gold disabled:opacity-40">
+                            {replacingId === img.id ? `${progress}%` : '📷'}
+                          </button>
+                          <button onClick={() => { setEditing(img.id); setEditForm({ title: img.title ?? '', description: img.description ?? '', category: img.category ?? '' }) }}
+                            className="text-ink-muted hover:text-gold">✏️</button>
+                          <button onClick={() => toggleActive(img)}
+                            className={img.isActive ? 'text-ink-muted hover:text-red-500' : 'text-green-600 hover:text-green-700'}>
+                            {img.isActive ? '👁' : '✓'}
+                          </button>
+                          <button onClick={() => deleteImage(img)}
+                            className="text-ink-muted hover:text-red-500">🗑</button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-3 text-xs">
-                        <button
-                          onClick={() => { replacingImgRef.current = img; replaceInputRef.current?.click() }}
-                          disabled={replacingId === img.id}
-                          className="text-ink-muted hover:text-gold disabled:opacity-40">
-                          {replacingId === img.id ? `${progress}%` : 'Imagen'}
-                        </button>
-                        <button onClick={() => { setEditing(img.id); setEditForm({ title: img.title ?? '', description: img.description ?? '', category: img.category ?? '' }) }}
-                          className="text-ink-muted hover:text-gold">Editar</button>
-                        <button onClick={() => toggleActive(img)}
-                          className={img.isActive ? 'text-ink-muted hover:text-red-500' : 'text-green-600 hover:text-green-700'}>
-                          {img.isActive ? 'Ocultar' : 'Mostrar'}
-                        </button>
-                        <button onClick={() => deleteImage(img)}
-                          className="text-ink-muted hover:text-red-500">Borrar</button>
-                      </div>
-                    </div>
                   </>
                 )}
               </div>

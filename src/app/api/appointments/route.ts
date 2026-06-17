@@ -84,6 +84,13 @@ export async function GET(
           service: {
             select: { id: true, name: true, price: true, durationMinutes: true },
           },
+          services: {
+            include: {
+              service: {
+                select: { id: true, name: true, price: true, durationMinutes: true },
+              },
+            },
+          },
         },
         orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
         skip: (page - 1) * limit,
@@ -145,14 +152,15 @@ export async function POST(
     )
   }
 
-  const { clientName, clientEmail, clientPhone, serviceId, date, startTime, notes } =
+  const { clientName, clientEmail, clientPhone, serviceId, serviceIds, totalDurationMinutes, date, startTime, notes } =
     parsed.data
 
-  // Verify that the service exists
-  let service
+  // For multi-service bookings, verify all services exist
+  const allServiceIds = serviceIds && serviceIds.length > 1 ? serviceIds : [serviceId]
+  let services
   try {
-    service = await prisma.service.findUnique({
-      where: { id: serviceId, isActive: true },
+    services = await prisma.service.findMany({
+      where: { id: { in: allServiceIds }, isActive: true },
       select: { id: true, name: true, price: true, durationMinutes: true },
     })
   } catch (err) {
@@ -160,17 +168,31 @@ export async function POST(
     return NextResponse.json({ success: false, error: 'Error interno' }, { status: 500 })
   }
 
-  if (!service) {
+  if (services.length !== allServiceIds.length) {
     return NextResponse.json(
-      { success: false, error: 'Servicio no disponible' },
+      { success: false, error: 'Uno o más servicios no están disponibles' },
       { status: 404 }
     )
   }
 
+  // Use the primary service for backward compat
+  const service = services.find((s) => s.id === serviceId) ?? services[0]
+
+  // Calculate total duration
+  const computedDuration = totalDurationMinutes ?? services.reduce((sum, s) => sum + s.durationMinutes, 0)
+
   // Preliminary check (valid schedule, not in the past, open day, not blocked)
   let available
   try {
-    available = await isSlotAvailable(date, startTime, serviceId)
+    // Use durationMinutes-based check for multi-service bookings
+    if (serviceIds && serviceIds.length > 1) {
+      const { getAvailableSlotsByDuration } = await import('@/lib/availability')
+      const { slots } = await getAvailableSlotsByDuration(date, computedDuration)
+      const slot = slots.find((s) => s.startTime === startTime)
+      available = slot?.available ?? false
+    } else {
+      available = await isSlotAvailable(date, startTime, serviceId)
+    }
   } catch (err) {
     if (isDbUnavailable(err)) return dbUnavailableResponse()
     return NextResponse.json({ success: false, error: 'Error interno' }, { status: 500 })
@@ -184,7 +206,7 @@ export async function POST(
 
   // Calculate end time
   const startMinutes = timeToMinutes(startTime)
-  const endTime = minutesToTime(startMinutes + service.durationMinutes)
+  const endTime = minutesToTime(startMinutes + computedDuration)
 
   const dayStart = new Date(`${date}T00:00:00`)
   const dayEnd = new Date(`${date}T23:59:59`)
@@ -216,15 +238,29 @@ export async function POST(
           clientEmail: clientEmail.toLowerCase().trim(),
           clientPhone: clientPhone.trim(),
           serviceId,
+          totalDurationMinutes: computedDuration,
           date: dayStart,
           startTime,
           endTime,
           status: 'CONFIRMED', // auto-confirmed: the 24h reminder is sent automatically
           notes: notes?.trim() ?? null,
+          services: {
+            create: services.map((s) => ({
+              serviceId: s.id,
+              price: s.price,
+            })),
+          },
         },
         include: {
           service: {
             select: { id: true, name: true, price: true, durationMinutes: true },
+          },
+          services: {
+            include: {
+              service: {
+                select: { id: true, name: true, price: true, durationMinutes: true },
+              },
+            },
           },
         },
       }) as unknown as AppointmentWithService

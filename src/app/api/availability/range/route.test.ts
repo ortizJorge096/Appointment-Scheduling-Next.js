@@ -45,9 +45,18 @@ describe('GET /api/availability/range', () => {
     expect(res.status).toBe(400)
   })
 
-  it('returns 400 when serviceId is missing', async () => {
+  it('returns 400 when both serviceId and durationMinutes are missing', async () => {
     const res = await GET(makeRequest({ from: '2026-12-01', to: '2026-12-07' }))
     expect(res.status).toBe(400)
+  })
+
+  it('accepts durationMinutes instead of serviceId', async () => {
+    defaultMocks()
+    const res = await GET(makeRequest({ from: '2026-12-01', to: '2026-12-03', durationMinutes: '60' }))
+    const json = await res.json()
+    expect(res.status).toBe(200)
+    expect(json.success).toBe(true)
+    expect(Array.isArray(json.data.dates)).toBe(true)
   })
 
   it('returns 400 when from > to', async () => {

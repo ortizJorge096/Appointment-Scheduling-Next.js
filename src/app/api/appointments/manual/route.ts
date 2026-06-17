@@ -136,15 +136,27 @@ export async function POST(
           clientPhone: clientPhone.trim(),
           clientId:    client.id,
           serviceId,
+          totalDurationMinutes: service.durationMinutes,
           date:        dayStart,
           startTime,
           endTime,
           status:      'CONFIRMED',
           source,
           notes:       notes?.trim() ?? null,
+          services: {
+            create: [{
+              serviceId,
+              price: service.price,
+            }],
+          },
         },
         include: {
           service: { select: { id: true, name: true, price: true, durationMinutes: true } },
+          services: {
+            include: {
+              service: { select: { id: true, name: true, price: true, durationMinutes: true } },
+            },
+          },
         },
       }) as unknown as AppointmentWithService
     }, { isolationLevel: 'Serializable' })

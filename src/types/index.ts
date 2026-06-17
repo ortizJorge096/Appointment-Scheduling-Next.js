@@ -29,7 +29,8 @@ export interface TimeSlot {
 
 export interface AvailabilityQuery {
   date: string        // "YYYY-MM-DD"
-  serviceId: string
+  serviceId?: string
+  durationMinutes?: number
 }
 
 export interface AvailabilityResponse {
@@ -71,6 +72,8 @@ export interface CreateAppointmentInput {
   clientEmail: string
   clientPhone: string
   serviceId: string
+  serviceIds?: string[]
+  totalDurationMinutes?: number
   date: string        // "YYYY-MM-DD"
   startTime: string   // "HH:MM"
   notes?: string
@@ -98,12 +101,24 @@ export interface AppointmentWithService {
   confirmationSentAt: string | null
   reminderSentAt: string | null
   createdAt: string
+  totalDurationMinutes: number
   service: {
     id: string
     name: string
     price: number
     durationMinutes: number
   }
+  services?: Array<{
+    id: string
+    serviceId: string
+    price: number
+    service: {
+      id: string
+      name: string
+      price: number
+      durationMinutes: number
+    }
+  }>
 }
 
 export interface UpdateAppointmentInput {

@@ -48,7 +48,12 @@ export default async function CitasPage({ searchParams }: { searchParams: Promis
   const [appointments, total] = await Promise.all([
     prisma.appointment.findMany({
       where,
-      include: { service: { select: { name: true, price: true } } },
+      include: {
+        service: { select: { name: true, price: true } },
+        services: {
+          include: { service: { select: { name: true, price: true } } },
+        },
+      },
       orderBy: [{ date: 'desc' }, { startTime: 'asc' }],
       skip: (page - 1) * limit, take: limit,
     }),
@@ -68,80 +73,118 @@ export default async function CitasPage({ searchParams }: { searchParams: Promis
   }
 
   return (
-    <div className="p-8 max-w-6xl">
-      <div className="mb-8 flex items-start justify-between gap-4">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
+      <div className="mb-6 sm:mb-8 flex items-start justify-between gap-4">
         <div>
           <p className="text-xs text-ink-muted tracking-widest uppercase mb-1">Gestión</p>
-          <h1 className="font-serif text-3xl text-ink font-light">Citas</h1>
+          <h1 className="font-serif text-2xl sm:text-3xl text-ink font-light">Citas</h1>
         </div>
         <ManualAppointmentModal />
       </div>
 
-      {/* Filters — Client Component */}
       <CitasFilters status={status} dateFrom={dateFrom} dateTo={dateTo} />
 
-      {/* Table */}
-      <div className="bg-white border border-beige-dark overflow-x-auto">
+      {/* Table — desktop */}
+      <div className="bg-white rounded-xl border border-beige-dark overflow-x-auto">
         {appointments.length === 0 ? (
           <div className="py-16 text-center text-ink-muted text-sm">
             No hay citas con los filtros seleccionados.
           </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-beige-dark bg-beige text-xs text-ink-muted uppercase tracking-widest">
-                <th className="text-left px-5 py-3 font-medium">Fecha</th>
-                <th className="text-left px-5 py-3 font-medium">Hora</th>
-                <th className="text-left px-5 py-3 font-medium">Cliente</th>
-                <th className="text-left px-5 py-3 font-medium hidden md:table-cell">Servicio</th>
-                <th className="text-left px-5 py-3 font-medium hidden lg:table-cell">Valor</th>
-                <th className="text-left px-5 py-3 font-medium">Estado</th>
-                <th className="px-5 py-3" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-beige-dark">
-              {appointments.map((appt) => (
-                <tr key={appt.id} className="hover:bg-beige transition-colors group">
-                  <td className="px-5 py-3.5 text-ink whitespace-nowrap">
-                    {format(new Date(appt.date), 'd MMM yyyy', { locale: es })}
-                  </td>
-                  <td className="px-5 py-3.5 text-ink-muted font-mono text-xs">{appt.startTime}</td>
-                  <td className="px-5 py-3.5">
-                    <p className="text-ink font-medium">{appt.clientName}</p>
-                    <p className="text-xs text-ink-muted">{appt.clientPhone}</p>
-                  </td>
-                  <td className="px-5 py-3.5 text-ink-muted hidden md:table-cell">{appt.service.name}</td>
-                  <td className="px-5 py-3.5 text-gold hidden lg:table-cell">{formatPrice(appt.service.price)}</td>
-                  <td className="px-5 py-3.5">
-                    <span className={STATUS_CLASS[appt.status]}>{STATUS_LABEL[appt.status]}</span>
-                  </td>
-                  <td className="px-5 py-3.5 text-right">
-                    <Link href={`/admin/citas/${appt.id}`}
-                      className="text-xs text-gold-light group-hover:text-gold transition-colors">
-                      Ver →
-                    </Link>
-                  </td>
+          <>
+            <table className="w-full text-sm hidden md:table">
+              <thead>
+                <tr className="border-b border-beige-dark bg-beige text-xs text-ink-muted uppercase tracking-widest">
+                  <th className="text-left px-5 py-3 font-medium">Fecha</th>
+                  <th className="text-left px-5 py-3 font-medium">Hora</th>
+                  <th className="text-left px-5 py-3 font-medium">Cliente</th>
+                  <th className="text-left px-5 py-3 font-medium">Servicio</th>
+                  <th className="text-left px-5 py-3 font-medium hidden lg:table-cell">Valor</th>
+                  <th className="text-left px-5 py-3 font-medium">Estado</th>
+                  <th className="px-5 py-3" />
                 </tr>
+              </thead>
+              <tbody className="divide-y divide-beige-dark">
+                {appointments.map((appt) => (
+                  <tr key={appt.id} className="hover:bg-beige transition-colors group">
+                    <td className="px-5 py-3.5 text-ink whitespace-nowrap">
+                      {format(new Date(appt.date), 'd MMM yyyy', { locale: es })}
+                    </td>
+                    <td className="px-5 py-3.5 text-ink-muted font-mono text-xs">{appt.startTime}</td>
+                    <td className="px-5 py-3.5">
+                      <p className="text-ink font-medium">{appt.clientName}</p>
+                      <p className="text-xs text-ink-muted">{appt.clientPhone}</p>
+                    </td>
+                    <td className="px-5 py-3.5 text-ink-muted">
+                      {appt.services && appt.services.length > 1
+                        ? appt.services.map((s) => s.service.name).join(' + ')
+                        : appt.service.name}
+                    </td>
+                    <td className="px-5 py-3.5 text-gold hidden lg:table-cell">
+                      {formatPrice(
+                        appt.services && appt.services.length > 1
+                          ? appt.services.reduce((sum, s) => sum + s.price, 0)
+                          : appt.service.price
+                      )}
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <span className={STATUS_CLASS[appt.status]}>{STATUS_LABEL[appt.status]}</span>
+                    </td>
+                    <td className="px-5 py-3.5 text-right">
+                      <Link href={`/admin/citas/${appt.id}`}
+                        className="text-xs text-gold-light group-hover:text-gold transition-colors">
+                        Ver →
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {/* Mobile cards */}
+            <div className="md:hidden divide-y divide-beige-dark">
+              {appointments.map((appt) => (
+                <Link key={appt.id} href={`/admin/citas/${appt.id}`}
+                  className="block px-4 py-3 hover:bg-beige transition-colors">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-sm font-medium text-ink">{appt.clientName}</p>
+                    <span className={STATUS_CLASS[appt.status]}>{STATUS_LABEL[appt.status]}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-ink-muted">
+                    <span>{format(new Date(appt.date), 'd MMM', { locale: es })} · {appt.startTime}</span>
+                    <span className="text-gold">
+                      {formatPrice(
+                        appt.services && appt.services.length > 1
+                          ? appt.services.reduce((sum, s) => sum + s.price, 0)
+                          : appt.service.price
+                      )}
+                    </span>
+                  </div>
+                  <p className="text-xs text-ink-muted mt-0.5">
+                    {appt.services && appt.services.length > 1
+                      ? appt.services.map((s) => s.service.name).join(' + ')
+                      : appt.service.name}
+                  </p>
+                </Link>
               ))}
-            </tbody>
-          </table>
+            </div>
+          </>
         )}
       </div>
 
-      {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between mt-5">
+        <div className="flex items-center justify-between mt-4">
           <p className="text-xs text-ink-muted">{total} citas · Página {page} de {totalPages}</p>
           <div className="flex gap-2">
             {page > 1 && (
               <Link href={pageUrl(page - 1)}
-                className="px-3 py-1.5 text-xs border border-beige-dark text-ink-muted hover:border-gold">
+                className="px-3 py-1.5 text-xs border border-beige-dark rounded-lg text-ink-muted hover:border-gold transition-colors">
                 ← Anterior
               </Link>
             )}
             {page < totalPages && (
               <Link href={pageUrl(page + 1)}
-                className="px-3 py-1.5 text-xs border border-beige-dark text-ink-muted hover:border-gold">
+                className="px-3 py-1.5 text-xs border border-beige-dark rounded-lg text-ink-muted hover:border-gold transition-colors">
                 Siguiente →
               </Link>
             )}

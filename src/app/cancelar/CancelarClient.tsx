@@ -11,6 +11,7 @@ import { es } from 'date-fns/locale'
 interface AppointmentView {
   id: string
   service: { name: string }
+  services?: { service: { name: string } }[]
   date: string
   startTime: string
   status: string
@@ -106,7 +107,12 @@ export default function CancelarClient() {
 
             <div className="bg-white border border-beige-dark/60 rounded-2xl shadow-sm p-6 space-y-3 mb-6 text-left">
               {[
-                { label: 'Servicio', value: appt.service.name },
+                {
+                  label: 'Servicio' + (appt.services && appt.services.length > 1 ? 's' : ''),
+                  value: appt.services && appt.services.length > 1
+                    ? appt.services.map((s) => s.service.name).join(' + ')
+                    : appt.service.name
+                },
                 { label: 'Fecha',    value: dateLabel },
                 { label: 'Hora',     value: appt.startTime },
               ].map(({ label, value }) => (

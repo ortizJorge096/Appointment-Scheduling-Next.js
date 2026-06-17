@@ -28,6 +28,13 @@ export async function GET(
       service: {
         select: { id: true, name: true, price: true, durationMinutes: true },
       },
+      services: {
+        include: {
+          service: {
+            select: { id: true, name: true, price: true, durationMinutes: true },
+          },
+        },
+      },
     },
   })
 
@@ -45,10 +52,10 @@ export async function GET(
     return NextResponse.json({ success: true, data: appointment })
   }
 
-  const { clientName, clientEmail, service, date, startTime, endTime, status } = appointment
+  const { clientName, clientEmail, service, services, date, startTime, endTime, status } = appointment
   return NextResponse.json({
     success: true,
-    data: { id, clientName, clientEmail, service, date, startTime, endTime, status },
+    data: { id, clientName, clientEmail, service, services, date, startTime, endTime, status },
   })
 }
 
@@ -120,7 +127,7 @@ export async function PATCH(
   if (startTime) {
     updateData.startTime = startTime
     updateData.endTime = minutesToTime(
-      timeToMinutes(startTime) + appointment.service.durationMinutes
+      timeToMinutes(startTime) + appointment.totalDurationMinutes
     )
   }
 
@@ -130,6 +137,13 @@ export async function PATCH(
     include: {
       service: {
         select: { id: true, name: true, price: true, durationMinutes: true },
+      },
+      services: {
+        include: {
+          service: {
+            select: { id: true, name: true, price: true, durationMinutes: true },
+          },
+        },
       },
     },
   })

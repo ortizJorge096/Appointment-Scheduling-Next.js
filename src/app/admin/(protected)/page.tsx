@@ -40,7 +40,12 @@ export default async function DashboardPage() {
   const [todayAppointments, weekCount, pendingCount, totalCompleted, periodAppts, topClients] = await Promise.all([
     prisma.appointment.findMany({
       where: { date: { gte: todayStart, lte: todayEnd }, status: { not: 'CANCELLED' } },
-      include: { service: { select: { name: true, price: true, durationMinutes: true } } },
+      include: {
+        service: { select: { name: true, price: true, durationMinutes: true } },
+        services: {
+          include: { service: { select: { name: true, price: true } } },
+        },
+      },
       orderBy: { startTime: 'asc' },
     }),
     prisma.appointment.count({
@@ -51,7 +56,12 @@ export default async function DashboardPage() {
     // Last PERIOD_DAYS for charts (cancelled excluded)
     prisma.appointment.findMany({
       where: { date: { gte: periodStart, lte: todayEnd }, status: { not: 'CANCELLED' } },
-      select: { date: true, status: true, service: { select: { price: true } } },
+      select: {
+        date: true,
+        status: true,
+        service: { select: { price: true } },
+        services: { select: { price: true } },
+      },
     }),
     // Most frequent clients (by appointment count)
     prisma.client.findMany({
@@ -61,9 +71,17 @@ export default async function DashboardPage() {
     }),
   ])
 
+  // Helper to get total price from appointment (supports multi-service)
+  function getTotalPrice(apt: { service: { price: number }; services?: Array<{ price: number }> }): number {
+    if (apt.services && apt.services.length > 1) {
+      return apt.services.reduce((sum, s) => sum + s.price, 0)
+    }
+    return apt.service.price
+  }
+
   const todayRevenue = todayAppointments
     .filter((a) => a.status === 'COMPLETED')
-    .reduce((sum, a) => sum + a.service.price, 0)
+    .reduce((sum, a) => sum + getTotalPrice(a), 0)
 
   // ── Build per-day buckets for the bar chart ──
   const days = Array.from({ length: PERIOD_DAYS }, (_, i) => {
@@ -81,7 +99,12 @@ export default async function DashboardPage() {
     const bucket = byKey.get(format(a.date, 'yyyy-MM-dd'))
     if (!bucket) continue
     bucket.count += 1
-    if (a.status === 'COMPLETED') bucket.revenue += a.service.price
+    if (a.status === 'COMPLETED') {
+      const aptPrice = a.services && a.services.length > 0
+        ? a.services.reduce((sum, s) => sum + s.price, 0)
+        : a.service.price
+      bucket.revenue += aptPrice
+    }
   }
   const maxCount      = Math.max(1, ...days.map((d) => d.count))
   const periodRevenue = days.reduce((s, d) => s + d.revenue, 0)
@@ -102,7 +125,7 @@ export default async function DashboardPage() {
   ]
 
   return (
-    <div className="p-8 max-w-6xl">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
       {/* Header */}
       <div className="mb-8">
         <p className="text-xs text-ink-muted tracking-widest uppercase mb-1">
@@ -121,7 +144,7 @@ export default async function DashboardPage() {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
         {/* Bar chart — appointments per day */}
-        <div className="card-premium p-6 lg:col-span-2">
+        <div className="bg-white rounded-xl border border-beige-dark p-5 sm:p-6 lg:col-span-2">
           <div className="flex items-end justify-between mb-5 flex-wrap gap-2">
             <h2 className="font-serif text-xl text-ink">Citas · últimos {PERIOD_DAYS} días</h2>
             <span className="text-xs text-ink-muted">
@@ -147,7 +170,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* Status distribution */}
-        <div className="card-premium p-6">
+        <div className="bg-white rounded-xl border border-beige-dark p-5 sm:p-6">
           <h2 className="font-serif text-xl text-ink mb-5">Distribución ({periodTotal})</h2>
           {periodTotal === 0 ? (
             <p className="text-sm text-ink-muted">Sin datos en el período.</p>
@@ -159,7 +182,7 @@ export default async function DashboardPage() {
                 return (
                   <div key={st}>
                     <div className="flex items-center justify-between text-xs mb-1.5">
-                      <span className="text-ink-mid">{STATUS_LABEL[st]}</span>
+                      <span className="text-ink-muted">{STATUS_LABEL[st]}</span>
                       <span className="text-ink-muted">{n} · {pct}%</span>
                     </div>
                     <div className="h-2 rounded-full bg-beige overflow-hidden">
@@ -175,34 +198,44 @@ export default async function DashboardPage() {
       </div>
 
       {/* Today's appointments */}
-      <div className="card-premium overflow-hidden">
-        <div className="px-6 py-4 border-b border-beige-dark flex items-center justify-between">
+      <div className="bg-white rounded-xl border border-beige-dark overflow-hidden">
+        <div className="px-5 sm:px-6 py-4 border-b border-beige-dark flex items-center justify-between">
           <h2 className="font-serif text-xl text-ink font-light">Citas de hoy</h2>
           <Link href="/admin/citas" className="text-xs text-gold hover:underline">Ver todas →</Link>
         </div>
 
         {todayAppointments.length === 0 ? (
-          <div className="px-6 py-12 text-center text-ink-muted text-sm">
+          <div className="px-5 sm:px-6 py-12 text-center text-ink-muted text-sm">
             No hay citas agendadas para hoy.
           </div>
         ) : (
           <div className="divide-y divide-beige-dark">
             {todayAppointments.map((appt) => (
               <Link key={appt.id} href={`/admin/citas/${appt.id}`}
-                className="flex items-center justify-between px-6 py-4
+                className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4
                            hover:bg-beige transition-colors group">
-                <div className="flex items-center gap-6">
-                  <div className="text-center w-14">
+                <div className="flex items-center gap-4 sm:gap-6 min-w-0">
+                  <div className="text-center w-12 sm:w-14 shrink-0">
                     <p className="font-serif text-lg text-ink">{appt.startTime}</p>
                     <p className="text-[10px] text-ink-muted">{appt.endTime}</p>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-ink">{appt.clientName}</p>
-                    <p className="text-xs text-ink-muted">{appt.service.name}</p>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-ink truncate">{appt.clientName}</p>
+                    <p className="text-xs text-ink-muted">
+                      {appt.services && appt.services.length > 1
+                        ? appt.services.map((s) => s.service.name).join(' + ')
+                        : appt.service.name}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
-                  <p className="text-sm text-gold hidden sm:block">{formatPrice(appt.service.price)}</p>
+                  <p className="text-sm text-gold hidden sm:block">
+                    {formatPrice(
+                      appt.services && appt.services.length > 1
+                        ? appt.services.reduce((sum, s) => sum + s.price, 0)
+                        : appt.service.price
+                    )}
+                  </p>
                   <span className={STATUS_CLASS[appt.status]}>{STATUS_LABEL[appt.status]}</span>
                   <span className="text-gold-light group-hover:text-gold transition-colors text-lg">›</span>
                 </div>
@@ -213,21 +246,21 @@ export default async function DashboardPage() {
       </div>
 
       {/* Frequent clients */}
-      <div className="card-premium overflow-hidden mt-6">
-        <div className="px-6 py-4 border-b border-beige-dark flex items-center justify-between">
+      <div className="bg-white rounded-xl border border-beige-dark overflow-hidden mt-6">
+        <div className="px-5 sm:px-6 py-4 border-b border-beige-dark flex items-center justify-between">
           <h2 className="font-serif text-xl text-ink font-light">Clientas frecuentes</h2>
           <Link href="/admin/clientes" className="text-xs text-gold hover:underline">Ver todas →</Link>
         </div>
         {topClients.length === 0 ? (
-          <div className="px-6 py-12 text-center text-ink-muted text-sm">
+          <div className="px-5 sm:px-6 py-12 text-center text-ink-muted text-sm">
             Aún no hay clientas registradas.
           </div>
         ) : (
           <div className="divide-y divide-beige-dark">
             {topClients.map((c) => (
               <Link key={c.id} href={`/admin/clientes/${c.id}`}
-                className="flex items-center justify-between px-6 py-4 hover:bg-beige transition-colors group">
-                <div className="flex items-center gap-4 min-w-0">
+                className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 hover:bg-beige transition-colors group">
+                <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                   <span className="w-9 h-9 rounded-full bg-gold-pale text-gold-dark flex items-center justify-center text-xs font-semibold shrink-0">
                     {c.name.slice(0, 2).toUpperCase()}
                   </span>
