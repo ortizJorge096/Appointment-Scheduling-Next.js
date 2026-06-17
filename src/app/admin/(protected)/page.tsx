@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, subDays } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { StatCard } from '@/components/ui/Card'
+import { formatPrice } from '@/lib/utils'
 
 export const metadata: Metadata = { title: 'Dashboard' }
 export const dynamic = 'force-dynamic'
@@ -20,12 +21,6 @@ const STATUS_CLASS: Record<string, string> = {
 
 // Order used for the status-distribution bars
 const STATUS_ORDER = ['CONFIRMED', 'PENDING', 'COMPLETED', 'NO_SHOW'] as const
-
-function formatPrice(p: number) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency', currency: 'COP', minimumFractionDigits: 0,
-  }).format(p)
-}
 
 const PERIOD_DAYS = 14
 

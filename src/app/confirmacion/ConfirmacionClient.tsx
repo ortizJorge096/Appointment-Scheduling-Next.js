@@ -8,13 +8,8 @@ import Link from 'next/link'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { WHATSAPP_URL } from '@/lib/config'
+import { formatPrice } from '@/lib/utils'
 import type { AppointmentWithService } from '@/types'
-
-function formatPrice(price: number): string {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency', currency: 'COP', minimumFractionDigits: 0,
-  }).format(price)
-}
 
 export default function ConfirmacionClient() {
   const params = useSearchParams()

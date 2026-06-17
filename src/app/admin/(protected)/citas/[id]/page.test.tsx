@@ -46,6 +46,10 @@ describe('CitaDetailPage — pago', () => {
     await screen.findByRole('heading', { name: 'Ana López' })
 
     fireEvent.click(screen.getByRole('button', { name: /marcar pagado/i }))
+
+    // Wait for React state to flush (the amount input should reflect the full price)
+    await screen.findByDisplayValue('35000')
+
     fireEvent.click(screen.getByRole('button', { name: /guardar pago/i }))
 
     await waitFor(() => {

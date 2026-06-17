@@ -7,6 +7,7 @@ import DateTimePicker from './DateTimePicker'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { CATEGORY_ORDER, categoryLabel } from '@/lib/config'
+import { formatPrice } from '@/lib/utils'
 
 interface Service {
   id: string

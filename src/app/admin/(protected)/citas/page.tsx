@@ -7,6 +7,7 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import CitasFilters from './CitasFilters'
 import ManualAppointmentModal from '@/components/admin/ManualAppointmentModal'
+import { formatPrice } from '@/lib/utils'
 
 export const metadata: Metadata = { title: 'Citas' }
 export const dynamic = 'force-dynamic'
@@ -20,11 +21,6 @@ const STATUS_CLASS: Record<string, string> = {
   COMPLETED: 'badge-completed', CANCELLED: 'badge-cancelled', NO_SHOW: 'badge-no_show',
 }
 
-function formatPrice(p: number) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency', currency: 'COP', minimumFractionDigits: 0,
-  }).format(p)
-}
 
 interface SearchParams { status?: string; dateFrom?: string; dateTo?: string; page?: string }
 

@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import type { ClientSummary } from '@/types'
+import { Pagination } from '@/components/admin/Pagination'
 
 const EMPTY_FORM = { name: '', email: '', phone: '', notes: '' }
 
@@ -176,21 +177,7 @@ export default function ClientesPage() {
         )}
       </div>
 
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between mt-4">
-          <p className="text-xs text-ink-muted">Página {page} de {totalPages}</p>
-          <div className="flex gap-2">
-            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-              className="px-3 py-1.5 text-xs border border-beige-dark rounded-lg text-ink-muted disabled:opacity-30 hover:bg-beige/40 transition-colors">
-              ← Anterior
-            </button>
-            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-              className="px-3 py-1.5 text-xs border border-beige-dark rounded-lg text-ink-muted disabled:opacity-30 hover:bg-beige/40 transition-colors">
-              Siguiente →
-            </button>
-          </div>
-        </div>
-      )}
+      <Pagination page={page} totalPages={totalPages} onPage={setPage} />
 
       {/* Create-client modal */}
       {showCreate && (

@@ -4,12 +4,7 @@
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { CategoryIcon } from './ServiceIcons'
-
-function formatPrice(p: number) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency', currency: 'COP', minimumFractionDigits: 0,
-  }).format(p)
-}
+import { formatPrice } from '@/lib/utils'
 
 export default async function ServicesGrid() {
   const services = await prisma.service.findMany({

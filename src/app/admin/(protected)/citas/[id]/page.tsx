@@ -7,6 +7,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { formatPrice } from '@/lib/utils'
 import type { AppointmentWithService, AppointmentStatus } from '@/types'
 
 const STATUS_LABEL: Record<string, string> = {
@@ -39,11 +40,6 @@ const PAYMENT_METHOD_OPTS = [
   { v: 'DAVIPLATA',     l: 'Daviplata' },
 ]
 
-function formatPrice(p: number) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency', currency: 'COP', minimumFractionDigits: 0,
-  }).format(p)
-}
 
 // Available actions based on current status
 const ACTIONS: Record<string, { label: string; status: AppointmentStatus; style: string }[]> = {

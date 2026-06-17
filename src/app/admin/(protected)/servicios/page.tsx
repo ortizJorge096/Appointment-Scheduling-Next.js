@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react'
 import { CATEGORY_ORDER, categoryLabel } from '@/lib/config'
 import { Pagination } from '@/components/admin/Pagination'
+import { formatPrice } from '@/lib/utils'
 
 const PER_PAGE = 8
 
@@ -23,11 +24,6 @@ const EMPTY: Omit<Service, 'id' | 'isActive'> = {
   name: '', description: '', category: 'MANICURA', price: 0, durationMinutes: 45, order: 0,
 }
 
-function formatPrice(p: number) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency', currency: 'COP', minimumFractionDigits: 0,
-  }).format(p)
-}
 
 export default function ServiciosPage() {
   const [services, setServices] = useState<Service[]>([])
