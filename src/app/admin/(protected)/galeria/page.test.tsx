@@ -70,28 +70,28 @@ describe('GaleriaAdminPage', () => {
     expect(screen.getByText('Manicura')).toBeInTheDocument()
   })
 
-  it('renderiza botón "Imagen" para reemplazar en cada imagen', async () => {
-    render(<GaleriaAdminPage />)
-    const replaceBtns = await screen.findAllByText('Imagen')
-    expect(replaceBtns).toHaveLength(2)
-  })
-
-  it('renderiza botón Editar en cada imagen', async () => {
+  it('renderiza botón reemplazar (📷) en cada imagen', async () => {
     render(<GaleriaAdminPage />)
     await screen.findByText('Manicura')
-    expect(screen.getAllByText('Editar')).toHaveLength(2)
+    expect(screen.getAllByText('📷')).toHaveLength(2)
   })
 
-  it('renderiza Ocultar para imagen activa y Mostrar para inactiva', async () => {
+  it('renderiza botón Editar (✏️) en cada imagen', async () => {
     render(<GaleriaAdminPage />)
     await screen.findByText('Manicura')
-    expect(screen.getByText('Ocultar')).toBeInTheDocument()
-    expect(screen.getByText('Mostrar')).toBeInTheDocument()
+    expect(screen.getAllByText('✏️')).toHaveLength(2)
   })
 
-  it('renderiza botón Borrar en cada imagen', async () => {
+  it('renderiza visibilidad: ✓ para imagen activa y 👁 para inactiva', async () => {
     render(<GaleriaAdminPage />)
     await screen.findByText('Manicura')
-    expect(screen.getAllByText('Borrar')).toHaveLength(2)
+    expect(screen.getByText('✓')).toBeInTheDocument()
+    expect(screen.getByText('👁')).toBeInTheDocument()
+  })
+
+  it('renderiza botón Borrar (🗑) en cada imagen', async () => {
+    render(<GaleriaAdminPage />)
+    await screen.findByText('Manicura')
+    expect(screen.getAllByText('🗑')).toHaveLength(2)
   })
 })

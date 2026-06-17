@@ -25,10 +25,10 @@ function makeFetchMock() {
 describe('ClientesPage — crear cliente', () => {
   beforeEach(() => { vi.clearAllMocks() })
 
-  it('muestra el botón "Nuevo cliente"', async () => {
+  it('muestra el botón "+ Nuevo"', async () => {
     global.fetch = makeFetchMock() as unknown as typeof fetch
     render(<ClientesPage />)
-    expect(await screen.findByRole('button', { name: /nuevo cliente/i })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: /\+ nuevo/i })).toBeInTheDocument()
   })
 
   it('abre el modal y crea un cliente vía POST /api/clients', async () => {
@@ -36,7 +36,7 @@ describe('ClientesPage — crear cliente', () => {
     global.fetch = fetchMock as unknown as typeof fetch
 
     render(<ClientesPage />)
-    fireEvent.click(await screen.findByRole('button', { name: /nuevo cliente/i }))
+    fireEvent.click(await screen.findByRole('button', { name: /\+ nuevo/i }))
 
     // Modal abierto
     expect(screen.getByText('Nuevo cliente')).toBeInTheDocument()
