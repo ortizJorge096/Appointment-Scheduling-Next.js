@@ -98,17 +98,25 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
     setEditInfo(false)
   }
 
-  if (loading) return <div className="p-6 text-ink-muted">Cargando…</div>
-  if (!client) return <div className="p-6 text-ink-muted">Cliente no encontrado.</div>
+  if (loading) return <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto text-ink-muted">Cargando…</div>
+  if (!client) return <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto text-ink-muted">Cliente no encontrado.</div>
+
+  // Helper to get total price from appointment (supports multi-service)
+  function getTotalPrice(a: AppointmentWithService): number {
+    if (a.services && a.services.length > 1) {
+      return a.services.reduce((sum, s) => sum + s.price, 0)
+    }
+    return a.service.price
+  }
 
   const totalSpent = client.appointments
     .filter(a => ['PAID', 'PARTIAL'].includes(a.paymentStatus))
-    .reduce((sum, a) => sum + (a.amountPaid ?? a.service.price), 0)
+    .reduce((sum, a) => sum + (a.amountPaid ?? getTotalPrice(a)), 0)
 
   const completed = client.appointments.filter(a => a.status === 'COMPLETED').length
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
       {/* Breadcrumb */}
       <div className="text-xs text-ink-muted mb-4">
         <Link href="/admin/clientes" className="hover:text-gold">Clientes</Link>
@@ -117,9 +125,9 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
       </div>
 
       {/* Header */}
-      <div className="bg-white rounded-xl border border-beige-dark p-6 mb-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
+      <div className="bg-white rounded-xl border border-beige-dark p-5 sm:p-6 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div className="min-w-0 flex-1">
             {editInfo ? (
               <form onSubmit={saveInfo} className="space-y-2 max-w-xs">
                 <input value={infoForm.name} onChange={e => setInfoForm(f => ({ ...f, name: e.target.value }))}
@@ -154,7 +162,7 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
               </>
             )}
           </div>
-          <div className="flex gap-6 text-center shrink-0">
+          <div className="flex gap-4 sm:gap-6 text-center shrink-0 mt-4 sm:mt-0">
             <div>
               <p className="text-2xl font-serif text-ink">{client._count.appointments}</p>
               <p className="text-xs text-ink-muted">citas</p>
@@ -172,7 +180,7 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
 
         {/* Internal notes */}
         <div className="mt-5 pt-5 border-t border-beige-dark">
-          <label className="block text-xs font-medium text-ink-mid mb-1.5">
+          <label className="form-label">
             Notas internas (no visibles al cliente)
           </label>
           <textarea
@@ -180,8 +188,7 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
             onChange={e => setNotes(e.target.value)}
             rows={3}
             placeholder="Alergias, preferencias, observaciones…"
-            className="w-full border border-beige-dark rounded-lg px-3 py-2 text-sm
-                       focus:outline-none focus:ring-2 focus:ring-gold/40 resize-none"
+            className="input-field w-full resize-none text-sm"
           />
           <div className="flex items-center gap-3 mt-2">
             <button onClick={saveNotes} disabled={saving}
@@ -200,10 +207,14 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
       ) : (
         <div className="space-y-3">
           {client.appointments.map(apt => (
-            <div key={apt.id} className="bg-white rounded-xl border border-beige-dark p-4 flex items-center justify-between gap-4">
+            <div key={apt.id} className="bg-white rounded-xl border border-beige-dark p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <p className="font-medium text-ink text-sm">{apt.service.name}</p>
+                  <p className="font-medium text-ink text-sm">
+                    {apt.services && apt.services.length > 1
+                      ? apt.services.map((s) => s.service.name).join(' + ')
+                      : apt.service.name}
+                  </p>
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLOR[apt.status]}`}>
                     {STATUS_LABEL[apt.status]}
                   </span>
@@ -214,18 +225,20 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
                   {apt.startTime} – {apt.endTime}
                 </p>
               </div>
-              <div className="text-right shrink-0">
-                <p className={`text-sm font-medium ${PAYMENT_COLOR[apt.paymentStatus]}`}>
-                  {PAYMENT_LABEL[apt.paymentStatus]}
-                </p>
-                <p className="text-xs text-ink-muted">
-                  {COP(apt.amountPaid ?? apt.service.price)}
-                </p>
+              <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
+                <div className="text-right">
+                  <p className={`text-sm font-medium ${PAYMENT_COLOR[apt.paymentStatus]}`}>
+                    {PAYMENT_LABEL[apt.paymentStatus]}
+                  </p>
+                  <p className="text-xs text-ink-muted">
+                    {COP(apt.amountPaid ?? getTotalPrice(apt))}
+                  </p>
+                </div>
+                <Link href={`/admin/citas/${apt.id}`}
+                  className="text-xs text-gold hover:underline shrink-0">
+                  Ver →
+                </Link>
               </div>
-              <Link href={`/admin/citas/${apt.id}`}
-                className="text-xs text-gold hover:underline shrink-0">
-                Ver →
-              </Link>
             </div>
           ))}
         </div>

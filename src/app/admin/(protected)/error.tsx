@@ -15,8 +15,8 @@ export default function AdminError({
   }, [error])
 
   return (
-    <div className="p-8 max-w-xl">
-      <div className="bg-white border border-beige-dark/60 rounded-2xl shadow-sm p-10 text-center">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-xl mx-auto">
+      <div className="bg-white rounded-xl border border-beige-dark p-8 sm:p-10 text-center">
         <div className="text-4xl mb-4">⚠️</div>
         <h1 className="font-serif text-2xl text-ink mb-2">Algo salió mal</h1>
         <p className="text-sm text-ink-muted mb-6 leading-relaxed">

@@ -16,8 +16,11 @@ const APPT = {
   status: 'CONFIRMED', source: 'PRESENCIAL',
   paymentStatus: 'PENDING', paymentMethod: null, amountPaid: null,
   notes: null, confirmationSentAt: null, reminderSentAt: null,
+  cancelToken: 'tok', calendarEventId: null,
   createdAt: '2026-06-10T10:00:00.000Z',
+  totalDurationMinutes: 45,
   service: { id: 's1', name: 'Manicura', price: 35000, durationMinutes: 45 },
+  services: [],
 }
 
 function makeFetchMock() {
@@ -43,6 +46,10 @@ describe('CitaDetailPage — pago', () => {
     await screen.findByRole('heading', { name: 'Ana López' })
 
     fireEvent.click(screen.getByRole('button', { name: /marcar pagado/i }))
+
+    // Wait for React state to flush (the amount input should reflect the full price)
+    await screen.findByDisplayValue('35000')
+
     fireEvent.click(screen.getByRole('button', { name: /guardar pago/i }))
 
     await waitFor(() => {

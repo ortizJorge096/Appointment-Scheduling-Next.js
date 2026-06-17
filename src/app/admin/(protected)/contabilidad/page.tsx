@@ -97,21 +97,24 @@ export default function ContabilidadPage() {
   }
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
-      <h1 className="text-2xl font-serif text-ink mb-1">Contabilidad</h1>
-      <p className="text-sm text-ink-muted mb-6">Ingresos, gastos y utilidad neta del período</p>
+    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
+      <div className="mb-6">
+        <p className="text-xs text-ink-muted tracking-widest uppercase mb-1">Finanzas</p>
+        <h1 className="font-serif text-2xl sm:text-3xl text-ink font-light">Contabilidad</h1>
+        <p className="text-sm text-ink-muted mt-0.5">Ingresos, gastos y utilidad neta del período</p>
+      </div>
 
       {/* Date filter */}
       <div className="flex flex-wrap gap-3 mb-6 items-end">
         <div>
-          <label className="block text-xs text-ink-mid mb-1">Desde</label>
+          <label className="form-label text-[10px]">Desde</label>
           <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-            className="border border-beige-dark rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold/40" />
+            className="input-field text-sm" />
         </div>
         <div>
-          <label className="block text-xs text-ink-mid mb-1">Hasta</label>
+          <label className="form-label text-[10px]">Hasta</label>
           <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-            className="border border-beige-dark rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold/40" />
+            className="input-field text-sm" />
         </div>
       </div>
 
@@ -144,42 +147,42 @@ export default function ContabilidadPage() {
           <h2 className="text-lg font-serif text-ink mb-3">Registrar gasto</h2>
           <form onSubmit={addExpense} className="bg-white rounded-xl border border-beige-dark p-5 space-y-3">
             <div>
-              <label className="block text-xs text-ink-mid mb-1">Descripción *</label>
+              <label className="form-label text-[10px]">Descripción *</label>
               <input required value={form.description}
                 onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                 placeholder="Ej: Esmaltes UV, bombillas, etc."
-                className="w-full border border-beige-dark rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold/40" />
+                className="input-field w-full text-sm" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs text-ink-mid mb-1">Monto (COP) *</label>
+                <label className="form-label text-[10px]">Monto (COP) *</label>
                 <input required type="number" min="1" value={form.amount}
                   onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
                   placeholder="0"
-                  className="w-full border border-beige-dark rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold/40" />
+                  className="input-field w-full text-sm" />
               </div>
               <div>
-                <label className="block text-xs text-ink-mid mb-1">Fecha *</label>
+                <label className="form-label text-[10px]">Fecha *</label>
                 <input required type="date" value={form.date}
                   onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
-                  className="w-full border border-beige-dark rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold/40" />
+                  className="input-field w-full text-sm" />
               </div>
             </div>
             <div>
-              <label className="block text-xs text-ink-mid mb-1">Categoría</label>
+              <label className="form-label text-[10px]">Categoría</label>
               <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                className="w-full border border-beige-dark rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold/40 bg-white">
+                className="select-field w-full text-sm">
                 {EXPENSE_CATEGORIES.map(c => (
                   <option key={c} value={c}>{CAT_LABEL[c]}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-xs text-ink-mid mb-1">Notas</label>
+              <label className="form-label text-[10px]">Notas</label>
               <input value={form.notes}
                 onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
                 placeholder="Opcional"
-                className="w-full border border-beige-dark rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold/40" />
+                className="input-field w-full text-sm" />
             </div>
             {saveError && <p className="text-xs text-red-600">{saveError}</p>}
             <button type="submit" disabled={saving}

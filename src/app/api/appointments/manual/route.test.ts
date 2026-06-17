@@ -38,8 +38,11 @@ const MOCK_APPOINTMENT = {
   startTime: '10:00', endTime: '10:45', status: 'CONFIRMED',
   source: 'PRESENCIAL', paymentStatus: 'PENDING',
   paymentMethod: null, amountPaid: null, notes: null,
-  cancelToken: 'tok', createdAt: new Date(),
+  cancelToken: 'tok', calendarEventId: null,
+  confirmationSentAt: null, reminderSentAt: null,
+  createdAt: new Date(), totalDurationMinutes: 45,
   service: MOCK_SERVICE,
+  services: [],
 }
 
 const VALID_BODY = {

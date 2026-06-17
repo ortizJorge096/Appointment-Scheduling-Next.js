@@ -203,3 +203,103 @@ export async function isSlotAvailable(
   const slot = slots.find((s) => s.startTime === startTime)
   return slot?.available ?? false
 }
+
+/**
+ * Generates every available slot for a given date and duration.
+ * Used for multi-service bookings where we know the total duration.
+ *
+ * @param dateStr  Date in "YYYY-MM-DD" format
+ * @param durationMinutes  Total duration of all selected services
+ * @returns List of slots with availability
+ */
+export async function getAvailableSlotsByDuration(
+  dateStr: string,
+  durationMinutes: number
+): Promise<{ slots: TimeSlot[]; durationMinutes: number }> {
+
+  // 1. Compute "today" in the business timezone and drop past dates
+  const nowBogota = toZonedTime(new Date(), STUDIO.timezone)
+  const todayStr  = format(nowBogota, 'yyyy-MM-dd')
+
+  if (dateStr < todayStr) {
+    return { slots: [], durationMinutes }
+  }
+
+  // 2. Verify the date is not blocked
+  const blocked = await prisma.blockedDate.findFirst({
+    where: {
+      date: {
+        gte: new Date(`${dateStr}T00:00:00`),
+        lt: new Date(`${dateStr}T23:59:59`),
+      },
+    },
+  })
+
+  if (blocked) {
+    return { slots: [], durationMinutes }
+  }
+
+  // 3. Get the weekday's schedule
+  const dayOfWeek = jsDayToDayOfWeek(weekdayFromDateStr(dateStr))
+  const schedule = await prisma.schedule.findUnique({
+    where: { dayOfWeek: dayOfWeek as DayOfWeek },
+  })
+
+  if (!schedule || !schedule.isActive) {
+    return { slots: [], durationMinutes }
+  }
+
+  // 4. Load already confirmed/pending appointments for that date
+  const existingAppointments = await prisma.appointment.findMany({
+    where: {
+      date: {
+        gte: new Date(`${dateStr}T00:00:00`),
+        lt: new Date(`${dateStr}T23:59:59`),
+      },
+      status: { in: ['PENDING', 'CONFIRMED'] },
+    },
+    select: { startTime: true, endTime: true },
+  })
+
+  // 5. Generate slots every [slotGranularityMin] within the schedule
+  const scheduleStart = timeToMinutes(schedule.startTime)
+  const scheduleEnd = timeToMinutes(schedule.endTime)
+  const step = STUDIO.slotGranularityMin
+  const slots: TimeSlot[] = []
+
+  // Current time in minutes, in the business timezone (so we don't offer past slots today)
+  const isToday = dateStr === todayStr
+  const currentMinutes = isToday
+    ? nowBogota.getHours() * 60 + nowBogota.getMinutes() + STUDIO.bookingBufferMin
+    : 0
+
+  for (
+    let slotStart = scheduleStart;
+    slotStart + durationMinutes <= scheduleEnd;
+    slotStart += step
+  ) {
+    const slotEnd = slotStart + durationMinutes
+    const startTimeStr = minutesToTime(slotStart)
+    const endTimeStr = minutesToTime(slotEnd)
+
+    // Drop past slots (when it's today)
+    if (slotStart < currentMinutes) {
+      continue
+    }
+
+    // Check overlap with existing appointments
+    const hasConflict = existingAppointments.some((appt) => {
+      const apptStart = timeToMinutes(appt.startTime)
+      const apptEnd = timeToMinutes(appt.endTime)
+      return timesOverlap(slotStart, slotEnd, apptStart, apptEnd)
+    })
+
+    slots.push({
+      startTime: startTimeStr,
+      endTime: endTimeStr,
+      available: !hasConflict,
+    })
+  }
+
+  return { slots, durationMinutes }
+}

@@ -35,7 +35,7 @@ export default function AdminSidebar() {
       <Link
         key={item.href}
         href={item.href}
-        className={`flex items-center gap-3 px-3 py-2.5 text-sm transition-colors border-l-2 pl-[10px] ${
+        className={`flex items-center gap-3 px-3 py-3 text-sm transition-colors border-l-2 pl-[10px] ${
           active
             ? 'bg-gold/10 text-gold border-gold'
             : 'text-white/40 hover:text-white hover:bg-white/5 border-transparent'
@@ -67,7 +67,7 @@ export default function AdminSidebar() {
         className={`bg-ink border-r border-white/10 flex flex-col shrink-0
                     w-64 md:w-56 min-h-screen
                     fixed md:static inset-y-0 left-0 z-50
-                    transform transition-transform duration-300
+                    transform transition-transform duration-300 ease-in-out
                     ${open ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}
       >
         <div className="px-6 py-6 border-b border-white/10 flex items-start justify-between">

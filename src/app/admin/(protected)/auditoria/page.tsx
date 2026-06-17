@@ -69,7 +69,7 @@ function MetadataPreview({ data }: { data: Record<string, unknown> | null }) {
     <div className="space-y-0.5">
       {entries.map(([k, v]) => (
         <p key={k} className="text-[11px] text-ink-muted">
-          <span className="font-medium text-ink-mid">{k}:</span>{' '}
+          <span className="font-medium text-ink-muted">{k}:</span>{' '}
           {String(v)}
         </p>
       ))}
@@ -117,22 +117,23 @@ export default function AuditoriaPage() {
   }
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="font-serif text-2xl text-ink">Auditoría</h1>
-          <p className="text-sm text-ink-muted mt-0.5">
+          <p className="text-xs text-ink-muted tracking-widest uppercase mb-1">Sistema</p>
+          <h1 className="font-serif text-2xl sm:text-3xl text-ink font-light">Auditoría</h1>
+          <p className="text-sm text-ink-muted mt-0.5 hidden sm:block">
             Registro de todas las acciones sobre citas, clientes, gastos, servicios, horarios y galería.
           </p>
         </div>
-        <span className="text-xs text-ink-muted bg-beige px-3 py-1.5 rounded-lg border border-beige-dark">
+        <span className="text-xs text-ink-muted bg-beige px-3 py-1.5 rounded-lg border border-beige-dark shrink-0">
           {pagination.total} registros
         </span>
       </div>
 
       {/* Filters */}
-      <div className="bg-white border border-beige-dark rounded-xl p-4 flex flex-wrap gap-3 items-end">
+      <div className="bg-white rounded-xl border border-beige-dark p-3 sm:p-4 flex flex-wrap gap-3 items-end">
         <div>
           <label className="block text-xs text-ink-muted mb-1">Entidad</label>
           <select value={entity} onChange={e => { setEntity(e.target.value); setPage(1) }}
@@ -170,7 +171,7 @@ export default function AuditoriaPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white border border-beige-dark rounded-xl overflow-x-auto">
+      <div className="bg-white rounded-xl border border-beige-dark overflow-x-auto">
         {loading ? (
           <div className="py-16 text-center text-sm text-ink-muted">Cargando...</div>
         ) : logs.length === 0 ? (
@@ -179,12 +180,11 @@ export default function AuditoriaPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-beige-dark bg-beige/40">
-                <th className="text-left px-4 py-3 text-xs font-medium text-ink-mid uppercase tracking-wider">Fecha</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-ink-mid uppercase tracking-wider">Acción</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-ink-mid uppercase tracking-wider">Entidad</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-ink-mid uppercase tracking-wider">ID</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-ink-mid uppercase tracking-wider">Usuario</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-ink-mid uppercase tracking-wider">Detalle</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-ink-muted uppercase tracking-widest">Fecha</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-ink-muted uppercase tracking-widest">Acción</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-ink-muted uppercase tracking-widest hidden sm:table-cell">Entidad</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-ink-muted uppercase tracking-widest hidden md:table-cell">Usuario</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-ink-muted uppercase tracking-widest hidden lg:table-cell">Detalle</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-beige-dark/60">
@@ -197,17 +197,15 @@ export default function AuditoriaPage() {
                     <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-medium ${ACTION_COLORS[log.action]}`}>
                       {ACTION_LABELS[log.action]}
                     </span>
+                    <span className="sm:hidden text-xs text-ink-muted ml-1.5">{ENTITY_LABELS[log.entity]}</span>
                   </td>
-                  <td className={`px-4 py-3 text-xs font-medium ${ENTITY_COLORS[log.entity]}`}>
+                  <td className={`px-4 py-3 text-xs font-medium hidden sm:table-cell ${ENTITY_COLORS[log.entity]}`}>
                     {ENTITY_LABELS[log.entity]}
                   </td>
-                  <td className="px-4 py-3 font-mono text-[10px] text-ink-muted max-w-[120px] truncate">
-                    {log.entityId}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-ink-muted">
+                  <td className="px-4 py-3 text-xs text-ink-muted hidden md:table-cell">
                     {log.userEmail ?? '—'}
                   </td>
-                  <td className="px-4 py-3 max-w-[260px]">
+                  <td className="px-4 py-3 max-w-[260px] hidden lg:table-cell">
                     <MetadataPreview data={log.metadata} />
                   </td>
                 </tr>

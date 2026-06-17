@@ -51,7 +51,7 @@ export default function BookingSection() {
               'Recordatorio 24h antes de tu cita',
               'Atención personalizada y sin prisa',
             ].map((text) => (
-              <div key={text} className="flex items-center gap-3 text-sm text-ink-mid">
+              <div key={text} className="flex items-center gap-3 text-sm text-ink-muted">
                 <span className="text-gold text-xs">✦</span>
                 {text}
               </div>

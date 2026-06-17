@@ -13,7 +13,7 @@ vi.mock('@/lib/prisma', () => ({
       create:    vi.fn(),
       update:    vi.fn(),
     },
-    service: { findUnique: vi.fn() },
+    service: { findUnique: vi.fn(), findMany: vi.fn() },
     $transaction: vi.fn(),
   },
 }))
@@ -43,17 +43,25 @@ const MOCK_APPOINTMENT = {
   clientName: 'María García',
   clientEmail: 'maria@test.com',
   clientPhone: '3001234567',
+  clientId: null,
   serviceId:   's1',
   date:        new Date('2026-12-01'),
   startTime:   '10:00',
   endTime:     '10:45',
   status:      'CONFIRMED',
+  source:      'ONLINE',
+  paymentStatus: 'PENDING',
+  paymentMethod: null,
+  amountPaid: null,
   notes:       null,
   cancelToken: null,
+  calendarEventId: null,
   confirmationSentAt: null,
   reminderSentAt:     null,
   createdAt:          new Date(),
+  totalDurationMinutes: 45,
   service: MOCK_SERVICE,
+  services: [],
 }
 
 const VALID_BODY = {
@@ -152,21 +160,21 @@ describe('POST /api/appointments', () => {
   })
 
   it('returns 404 when service not found or inactive', async () => {
-    vi.mocked(prisma.service.findUnique).mockResolvedValue(null)
+    vi.mocked(prisma.service.findMany).mockResolvedValue([])
     const res = await POST(makePostRequest(VALID_BODY, '2.2.2.3'))
     expect(res.status).toBe(404)
-    expect((await res.json()).error).toContain('Servicio')
+    expect((await res.json()).error).toContain('servicios')
   })
 
   it('returns 409 when slot is not available', async () => {
-    vi.mocked(prisma.service.findUnique).mockResolvedValue(MOCK_SERVICE)
+    vi.mocked(prisma.service.findMany).mockResolvedValue([MOCK_SERVICE])
     vi.mocked(isSlotAvailable).mockResolvedValue(false)
     const res = await POST(makePostRequest(VALID_BODY, '2.2.2.4'))
     expect(res.status).toBe(409)
   })
 
   it('creates appointment and returns 201', async () => {
-    vi.mocked(prisma.service.findUnique).mockResolvedValue(MOCK_SERVICE)
+    vi.mocked(prisma.service.findMany).mockResolvedValue([MOCK_SERVICE])
     vi.mocked(isSlotAvailable).mockResolvedValue(true)
     vi.mocked(prisma.$transaction).mockResolvedValue(MOCK_APPOINTMENT)
 
@@ -179,7 +187,7 @@ describe('POST /api/appointments', () => {
   })
 
   it('returns 500 when transaction throws unexpected error', async () => {
-    vi.mocked(prisma.service.findUnique).mockResolvedValue(MOCK_SERVICE)
+    vi.mocked(prisma.service.findMany).mockResolvedValue([MOCK_SERVICE])
     vi.mocked(isSlotAvailable).mockResolvedValue(true)
     vi.mocked(prisma.$transaction).mockRejectedValue(new Error('DB error'))
 
@@ -189,7 +197,7 @@ describe('POST /api/appointments', () => {
 
   it('returns 429 after exceeding rate limit for same IP', async () => {
     const ip = '9.9.9.9'
-    vi.mocked(prisma.service.findUnique).mockResolvedValue(null)
+    vi.mocked(prisma.service.findMany).mockResolvedValue([])
 
     // 5 allowed, 6th should be rate limited
     for (let i = 0; i < 5; i++) {

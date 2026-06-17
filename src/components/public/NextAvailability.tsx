@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { formatPrice } from '@/lib/utils'
 
 interface NextSlot {
   date: string
@@ -22,11 +23,6 @@ interface ServicePreview {
   durationMinutes: number
 }
 
-function formatPrice(price: number): string {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency', currency: 'COP', minimumFractionDigits: 0,
-  }).format(price)
-}
 
 export default function NextAvailability() {
   const [slot, setSlot]         = useState<NextSlot | null>(null)

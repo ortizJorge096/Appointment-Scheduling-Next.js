@@ -136,7 +136,7 @@ export default function ManualAppointmentModal() {
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
 
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-beige-dark">
@@ -149,7 +149,7 @@ export default function ManualAppointmentModal() {
 
               {/* Datos del cliente */}
               <fieldset>
-                <p className="text-xs font-medium text-ink-mid uppercase tracking-wider mb-3">
+                <p className="text-xs font-medium text-ink-muted uppercase tracking-wider mb-3">
                   Datos del cliente
                 </p>
 
@@ -192,7 +192,7 @@ export default function ManualAppointmentModal() {
 
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-sm text-ink-mid mb-1">
+                    <label className="form-label">
                       Nombre completo <span className="text-red-500">*</span>
                     </label>
                     <input value={form.clientName} onChange={field('clientName')}
@@ -201,7 +201,7 @@ export default function ManualAppointmentModal() {
                     <Err k="clientName" />
                   </div>
                   <div>
-                    <label className="block text-sm text-ink-mid mb-1">
+                    <label className="form-label">
                       Email <span className="text-red-500">*</span>
                     </label>
                     <input type="email" value={form.clientEmail} onChange={field('clientEmail')}
@@ -210,7 +210,7 @@ export default function ManualAppointmentModal() {
                     <Err k="clientEmail" />
                   </div>
                   <div>
-                    <label className="block text-sm text-ink-mid mb-1">
+                    <label className="form-label">
                       Teléfono <span className="text-red-500">*</span>
                     </label>
                     <input value={form.clientPhone} onChange={field('clientPhone')}
@@ -223,12 +223,12 @@ export default function ManualAppointmentModal() {
 
               {/* Servicio + fecha + hora */}
               <fieldset>
-                <p className="text-xs font-medium text-ink-mid uppercase tracking-wider mb-3">
+                <p className="text-xs font-medium text-ink-muted uppercase tracking-wider mb-3">
                   Cita
                 </p>
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-sm text-ink-mid mb-1">
+                    <label className="form-label">
                       Servicio <span className="text-red-500">*</span>
                     </label>
                     <select value={form.serviceId} onChange={field('serviceId')}
@@ -244,7 +244,7 @@ export default function ManualAppointmentModal() {
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-sm text-ink-mid mb-1">
+                      <label className="form-label">
                         Fecha <span className="text-red-500">*</span>
                       </label>
                       <input type="date" value={form.date} onChange={field('date')}
@@ -255,7 +255,7 @@ export default function ManualAppointmentModal() {
                       <Err k="date" />
                     </div>
                     <div>
-                      <label className="block text-sm text-ink-mid mb-1">
+                      <label className="form-label">
                         Hora <span className="text-red-500">*</span>
                       </label>
                       <input type="time" value={form.startTime}
@@ -273,7 +273,7 @@ export default function ManualAppointmentModal() {
 
               {/* Origen */}
               <fieldset>
-                <p className="text-xs font-medium text-ink-mid uppercase tracking-wider mb-2">
+                <p className="text-xs font-medium text-ink-muted uppercase tracking-wider mb-2">
                   Origen de la cita
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -293,7 +293,7 @@ export default function ManualAppointmentModal() {
 
               {/* Notas */}
               <div>
-                <label className="block text-sm text-ink-mid mb-1">Notas internas</label>
+                <label className="form-label">Notas internas</label>
                 <textarea value={form.notes} onChange={field('notes')}
                   placeholder="Preferencias, alergias, observaciones..."
                   rows={2} className="input-field w-full resize-none" />

@@ -7,6 +7,7 @@ import DateTimePicker from './DateTimePicker'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { CATEGORY_ORDER, categoryLabel } from '@/lib/config'
+import { formatPrice } from '@/lib/utils'
 
 interface Service {
   id: string
@@ -22,6 +23,7 @@ type FormStep = 'category' | 'service' | 'datetime' | 'info' | 'confirm'
 interface FormData {
   category:    string
   serviceId:   string
+  serviceIds:  string[]
   date:        string
   startTime:   string
   clientName:  string
@@ -82,6 +84,7 @@ export default function BookingForm() {
   const [form, setForm] = useState<FormData>({
     category:    '',
     serviceId:   '',
+    serviceIds:  [],
     date:        format(new Date(), 'yyyy-MM-dd'),
     startTime:   '',
     clientName:  '',
@@ -132,7 +135,7 @@ export default function BookingForm() {
       .finally(() => setLoadingSvc(false))
   }, [])
 
-  // 5. Pre-selection via URL: /agendar?service=ID or /agendar?categoria=UNAS
+  // 5. Pre-selection via URL: /agendar?service=ID or /agendar?categoria=MANICURA
   useEffect(() => {
     if (appliedPreselect || services.length === 0) return
 
@@ -140,7 +143,7 @@ export default function BookingForm() {
     if (preService) {
       const svc = services.find((s) => s.id === preService)
       if (svc) {
-        setForm((prev) => ({ ...prev, category: svc.category, serviceId: svc.id }))
+        setForm((prev) => ({ ...prev, category: svc.category, serviceId: svc.id, serviceIds: [svc.id] }))
         setStep('datetime')
         setAppliedPreselect(true)
         return
@@ -166,22 +169,46 @@ export default function BookingForm() {
   }, [step])
 
   const selectedService = services.find((s) => s.id === form.serviceId)
+  const isVipCategory = form.category === 'VIP'
 
-  function updateForm(field: keyof FormData, value: string) {
+  // For multi-service: selected services and computed totals
+  const selectedServices = services.filter((s) => form.serviceIds.includes(s.id))
+  const totalDuration = selectedServices.reduce((sum, s) => sum + s.durationMinutes, 0)
+  const totalPrice = selectedServices.reduce((sum, s) => sum + s.price, 0)
+
+  // Use totalDuration for availability when multi-service
+  const availabilityDuration = isVipCategory && form.serviceIds.length > 1 ? totalDuration : undefined
+  const availabilityServiceId = isVipCategory && form.serviceIds.length > 1 ? undefined : form.serviceId
+
+  function updateForm(field: keyof FormData, value: string | string[]) {
     setForm((prev) => ({ ...prev, [field]: value }))
-    if (field in fieldErrors) setFieldErrors((prev) => ({ ...prev, [field]: undefined }))
+    if (typeof value === 'string' && field in fieldErrors) {
+      setFieldErrors((prev) => ({ ...prev, [field]: undefined }))
+    }
     setStepError(null)
+  }
+
+  function toggleService(id: string) {
+    setForm((prev) => {
+      const ids = prev.serviceIds.includes(id)
+        ? prev.serviceIds.filter((i) => i !== id)
+        : [...prev.serviceIds, id]
+      return { ...prev, serviceIds: ids, serviceId: ids[0] ?? '' }
+    })
+    setStepError(null)
+    setTimeout(() => continueRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 80)
   }
 
   function selectService(id: string) {
     updateForm('serviceId', id)
+    updateForm('serviceIds', [id])
     setStepError(null)
     setTimeout(() => continueRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 80)
   }
 
   function selectCategory(cat: string) {
     if (form.category !== cat) {
-      setForm((prev) => ({ ...prev, category: cat, serviceId: '' }))
+      setForm((prev) => ({ ...prev, category: cat, serviceId: '', serviceIds: [] }))
     }
     setStepError(null)
   }
@@ -193,7 +220,11 @@ export default function BookingForm() {
       return true
     }
     if (step === 'service') {
-      if (!form.serviceId) { setStepError('Por favor selecciona un servicio para continuar.'); return false }
+      if (isVipCategory) {
+        if (form.serviceIds.length === 0) { setStepError('Por favor selecciona al menos un servicio para continuar.'); return false }
+      } else {
+        if (!form.serviceId) { setStepError('Por favor selecciona un servicio para continuar.'); return false }
+      }
       return true
     }
     if (step === 'datetime') {
@@ -234,19 +265,28 @@ export default function BookingForm() {
     const timeout = setTimeout(() => controller.abort(), 12_000) // 12s máximo
 
     try {
+      const body: Record<string, unknown> = {
+        date:        form.date,
+        startTime:   form.startTime,
+        clientName:  form.clientName.trim(),
+        clientEmail: form.clientEmail.toLowerCase().trim(),
+        clientPhone: form.clientPhone.trim(),
+        notes:       form.notes.trim() || undefined,
+      }
+
+      if (isVipCategory && form.serviceIds.length > 1) {
+        body.serviceId = form.serviceIds[0]
+        body.serviceIds = form.serviceIds
+        body.totalDurationMinutes = totalDuration
+      } else {
+        body.serviceId = form.serviceId
+      }
+
       const res = await fetch('/api/appointments', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         signal:  controller.signal,
-        body: JSON.stringify({
-          serviceId:   form.serviceId,
-          date:        form.date,
-          startTime:   form.startTime,
-          clientName:  form.clientName.trim(),
-          clientEmail: form.clientEmail.toLowerCase().trim(),
-          clientPhone: form.clientPhone.trim(),
-          notes:       form.notes.trim() || undefined,
-        }),
+        body: JSON.stringify(body),
       })
 
       clearTimeout(timeout)
@@ -282,6 +322,13 @@ export default function BookingForm() {
   function inputClass(error?: string) {
     return `input-field ${error ? 'border-red-400 focus:border-red-400 bg-red-50/30' : ''}`
   }
+
+  // Summary data for confirm step
+  const summaryServices = isVipCategory && form.serviceIds.length > 1
+    ? selectedServices
+    : selectedService ? [selectedService] : []
+  const summaryDuration = isVipCategory && form.serviceIds.length > 1 ? totalDuration : selectedService?.durationMinutes ?? 0
+  const summaryPrice = isVipCategory && form.serviceIds.length > 1 ? totalPrice : selectedService?.price ?? 0
 
   return (
     <div ref={formTopRef} className="max-w-2xl mx-auto">
@@ -369,7 +416,8 @@ export default function BookingForm() {
           <div className="mb-6">
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <h2 className="font-serif text-2xl text-ink">
-                Servicios de <em className="text-gold italic">{categoryLabel(form.category).toLowerCase()}</em>
+                {isVipCategory ? 'Elige tus servicios' : 'Servicios de'}{' '}
+                <em className="text-gold italic">{categoryLabel(form.category).toLowerCase()}</em>
               </h2>
               <button type="button" onClick={() => setStep('category')}
                 className="text-xs tracking-widest uppercase font-semibold text-gold-dark hover:text-gold
@@ -377,7 +425,12 @@ export default function BookingForm() {
                 ← Cambiar categoría
               </button>
             </div>
-            <p className="text-sm text-ink-muted mt-1">Selecciona uno de los servicios disponibles. <span className="text-red-500">*</span></p>
+            <p className="text-sm text-ink-muted mt-1">
+              {isVipCategory
+                ? 'Selecciona uno o más servicios. Podrás combinar para tu paquete VIP.'
+                : 'Selecciona uno de los servicios disponibles. '}
+              <span className="text-red-500">*</span>
+            </p>
           </div>
           {stepError && (
             <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 border border-red-200 px-4 py-3">
@@ -390,19 +443,29 @@ export default function BookingForm() {
             services
               .filter((svc) => svc.category === form.category)
               .map((svc) => {
-                const isSelected = form.serviceId === svc.id
+                const isSelected = isVipCategory
+                  ? form.serviceIds.includes(svc.id)
+                  : form.serviceId === svc.id
                 return (
-                  <button key={svc.id} type="button" onClick={() => selectService(svc.id)}
+                  <button key={svc.id} type="button"
+                    onClick={() => isVipCategory ? toggleService(svc.id) : selectService(svc.id)}
                     className={`w-full text-left p-5 rounded-2xl border transition-all duration-150 hover:shadow-sm
                       ${isSelected ? 'border-gold bg-gold-pale ring-1 ring-gold'
-                      : attempted && !form.serviceId ? 'border-red-300 bg-white hover:border-gold/50'
+                      : attempted && !form.serviceId && form.serviceIds.length === 0 ? 'border-red-300 bg-white hover:border-gold/50'
                       : 'border-beige-dark bg-white hover:border-gold/50'}`}>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors
-                          ${isSelected ? 'border-gold' : 'border-beige-deeper'}`}>
-                          {isSelected && <div className="w-2 h-2 rounded-full bg-gold" />}
-                        </div>
+                        {isVipCategory ? (
+                          <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors
+                            ${isSelected ? 'border-gold bg-gold' : 'border-beige-deeper'}`}>
+                            {isSelected && <span className="text-white text-xs">✓</span>}
+                          </div>
+                        ) : (
+                          <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors
+                            ${isSelected ? 'border-gold' : 'border-beige-deeper'}`}>
+                            {isSelected && <div className="w-2 h-2 rounded-full bg-gold" />}
+                          </div>
+                        )}
                         <div>
                           <p className="font-medium text-ink">{svc.name}</p>
                           {svc.description && <p className="text-sm text-ink-muted mt-0.5">{svc.description}</p>}
@@ -417,6 +480,19 @@ export default function BookingForm() {
                 )
               })
           )}
+          {/* VIP multi-service summary */}
+          {isVipCategory && form.serviceIds.length > 1 && (
+            <div className="bg-gold-pale/60 border border-gold/20 rounded-xl px-4 py-3 mt-4">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-ink-muted">
+                  {form.serviceIds.length} servicios seleccionados · {totalDuration} min
+                </span>
+                <span className="font-serif text-gold-dark font-medium">
+                  {formatPrice(totalPrice)}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -428,7 +504,24 @@ export default function BookingForm() {
             <p className="text-sm text-ink-muted mt-1">Selecciona el día y un horario disponible. <span className="text-red-500">*</span></p>
           </div>
 
-          {selectedService && (
+          {/* Service summary */}
+          {isVipCategory && form.serviceIds.length > 1 ? (
+            <div className="flex items-center justify-between bg-gold-pale/60 border border-gold/20 rounded-xl px-4 py-3 mb-6">
+              <div className="min-w-0">
+                <p className="text-[10px] tracking-widest uppercase text-gold-dark mb-0.5">
+                  Servicios elegidos
+                </p>
+                <p className="text-sm text-ink font-medium truncate">
+                  {selectedServices.map((s) => s.name).join(' + ')}
+                  <span className="text-ink-muted font-normal"> · {totalDuration} min</span>
+                </p>
+              </div>
+              <button type="button" onClick={() => setStep('service')}
+                className="shrink-0 text-xs tracking-widest uppercase text-ink-muted hover:text-gold transition-colors">
+                Cambiar
+              </button>
+            </div>
+          ) : selectedService && (
             <div className="flex items-center justify-between bg-gold-pale/60 border border-gold/20 rounded-xl px-4 py-3 mb-6">
               <div className="min-w-0">
                 <p className="text-[10px] tracking-widest uppercase text-gold-dark mb-0.5">
@@ -452,7 +545,8 @@ export default function BookingForm() {
             </div>
           )}
           <DateTimePicker
-            serviceId={form.serviceId}
+            serviceId={availabilityServiceId}
+            durationMinutes={availabilityDuration}
             selectedDate={form.date}
             selectedTime={form.startTime}
             onDateChange={(d) => updateForm('date', d)}
@@ -560,19 +654,31 @@ export default function BookingForm() {
       )}
 
       {/* STEP 5 — Confirm */}
-      {step === 'confirm' && selectedService && (
+      {step === 'confirm' && (
         <div className="animate-fade-in">
           <div className="mb-6">
             <h2 className="font-serif text-2xl text-ink">Confirma tu cita</h2>
             <p className="text-sm text-ink-muted mt-1">Revisa los datos antes de confirmar.</p>
           </div>
           <div className="bg-beige border border-beige-dark rounded-2xl p-6 space-y-3 mb-6">
+            {summaryServices.length > 1 ? (
+              <div className="flex justify-between text-sm border-b border-beige-dark pb-3">
+                <span className="text-ink-muted">Servicios</span>
+                <span className="text-ink font-medium text-right max-w-[60%]">
+                  {summaryServices.map((s) => s.name).join(' + ')}
+                </span>
+              </div>
+            ) : (
+              <div className="flex justify-between text-sm border-b border-beige-dark pb-3">
+                <span className="text-ink-muted">Servicio</span>
+                <span className="text-ink font-medium text-right max-w-[60%]">{summaryServices[0]?.name ?? ''}</span>
+              </div>
+            )}
             {[
-              { label: 'Servicio',  value: selectedService.name },
               { label: 'Fecha',     value: format(new Date(`${form.date}T12:00:00`), "EEEE d 'de' MMMM", { locale: es }) },
               { label: 'Hora',      value: form.startTime },
-              { label: 'Duración',  value: `${selectedService.durationMinutes} minutos` },
-              { label: 'Valor',     value: formatPrice(selectedService.price) },
+              { label: 'Duración',  value: `${summaryDuration} minutos` },
+              { label: 'Valor',     value: formatPrice(summaryPrice) },
               { label: 'Nombre',    value: form.clientName },
               { label: 'Email',     value: form.clientEmail },
               { label: 'Teléfono', value: form.clientPhone },

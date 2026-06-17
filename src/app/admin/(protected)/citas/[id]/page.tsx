@@ -7,6 +7,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { formatPrice } from '@/lib/utils'
 import type { AppointmentWithService, AppointmentStatus } from '@/types'
 
 const STATUS_LABEL: Record<string, string> = {
@@ -39,11 +40,6 @@ const PAYMENT_METHOD_OPTS = [
   { v: 'DAVIPLATA',     l: 'Daviplata' },
 ]
 
-function formatPrice(p: number) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency', currency: 'COP', minimumFractionDigits: 0,
-  }).format(p)
-}
 
 // Available actions based on current status
 const ACTIONS: Record<string, { label: string; status: AppointmentStatus; style: string }[]> = {
@@ -144,20 +140,23 @@ export default function CitaDetailPage() {
   // Quick action: mark the full service price as paid
   function markPaidFull() {
     if (!appt) return
+    const totalPrice = appt.services && appt.services.length > 1
+      ? appt.services.reduce((sum, s) => sum + s.price, 0)
+      : appt.service.price
     setPayStatus('PAID')
-    setPayAmount(String(appt.service.price))
+    setPayAmount(String(totalPrice))
     if (!payMethod) setPayMethod('EFECTIVO')
   }
 
   if (loading) return (
-    <div className="p-8 flex items-center gap-3 text-ink-muted">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto flex items-center gap-3 text-ink-muted">
       <div className="w-5 h-5 border-2 border-gold border-t-transparent rounded-full animate-spin" />
       Cargando cita...
     </div>
   )
 
   if (error || !appt) return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto">
       <p className="text-red-500 mb-4">{error ?? 'Error'}</p>
       <Link href="/admin/citas" className="btn-secondary">← Volver</Link>
     </div>
@@ -166,7 +165,7 @@ export default function CitaDetailPage() {
   const actions = ACTIONS[appt.status] ?? []
 
   return (
-    <div className="p-8 max-w-3xl">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto">
 
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-xs text-ink-muted mb-6">
@@ -200,15 +199,30 @@ export default function CitaDetailPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
 
         {/* Service */}
-        <div className="bg-white border border-beige-dark/60 rounded-2xl shadow-sm p-5">
-          <p className="text-xs text-ink-muted uppercase tracking-widest mb-3">Servicio</p>
-          <p className="font-serif text-xl text-ink mb-0.5">{appt.service.name}</p>
-          <p className="text-gold text-lg font-medium">{formatPrice(appt.service.price)}</p>
-          <p className="text-xs text-ink-muted mt-0.5">{appt.service.durationMinutes} min</p>
+        <div className="bg-white rounded-xl border border-beige-dark p-5">
+          <p className="text-xs text-ink-muted uppercase tracking-widest mb-3">
+            Servicio{appt.services && appt.services.length > 1 ? 's' : ''}
+          </p>
+          {appt.services && appt.services.length > 1 ? (
+            <>
+              {appt.services.map((s) => (
+                <p key={s.id} className="text-sm text-ink">{s.service.name}</p>
+              ))}
+              <p className="text-gold text-lg font-medium mt-1">
+                {formatPrice(appt.services.reduce((sum, s) => sum + s.price, 0))}
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="font-serif text-xl text-ink mb-0.5">{appt.service.name}</p>
+              <p className="text-gold text-lg font-medium">{formatPrice(appt.service.price)}</p>
+              <p className="text-xs text-ink-muted mt-0.5">{appt.service.durationMinutes} min</p>
+            </>
+          )}
         </div>
 
         {/* Date and time */}
-        <div className="bg-white border border-beige-dark/60 rounded-2xl shadow-sm p-5">
+        <div className="bg-white rounded-xl border border-beige-dark p-5">
           <p className="text-xs text-ink-muted uppercase tracking-widest mb-3">Fecha y hora</p>
           <p className="font-serif text-xl text-ink capitalize">
             {format(new Date(appt.date), "EEEE d 'de' MMMM", { locale: es })}
@@ -219,14 +233,14 @@ export default function CitaDetailPage() {
         </div>
 
         {/* Contact */}
-        <div className="bg-white border border-beige-dark/60 rounded-2xl shadow-sm p-5">
+        <div className="bg-white rounded-xl border border-beige-dark p-5">
           <p className="text-xs text-ink-muted uppercase tracking-widest mb-3">Contacto</p>
           <p className="text-ink text-sm">{appt.clientEmail}</p>
           <p className="text-ink text-sm mt-1">{appt.clientPhone}</p>
         </div>
 
         {/* Scheduling */}
-        <div className="bg-white border border-beige-dark/60 rounded-2xl shadow-sm p-5">
+        <div className="bg-white rounded-xl border border-beige-dark p-5">
           <p className="text-xs text-ink-muted uppercase tracking-widest mb-3">Registro</p>
           <p className="text-xs text-ink-muted">
             Agendado el{' '}
@@ -242,7 +256,7 @@ export default function CitaDetailPage() {
       </div>
 
       {/* Notes */}
-      <div className="bg-white border border-beige-dark p-5 mb-8">
+      <div className="bg-white rounded-xl border border-beige-dark p-5 mb-8">
         <div className="flex items-center justify-between mb-3">
           <p className="text-xs text-ink-muted uppercase tracking-widest">Notas</p>
           {!editNotes && (
@@ -282,7 +296,7 @@ export default function CitaDetailPage() {
       </div>
 
       {/* Payment */}
-      <form onSubmit={savePayment} className="bg-white border border-beige-dark/60 rounded-2xl shadow-sm p-5 mb-8">
+      <form onSubmit={savePayment} className="bg-white rounded-xl border border-beige-dark p-5 mb-8">
         <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
           <p className="text-xs text-ink-muted uppercase tracking-widest">Pago</p>
           <button type="button" onClick={markPaidFull}

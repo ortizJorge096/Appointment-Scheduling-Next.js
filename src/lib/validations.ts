@@ -39,6 +39,19 @@ export const createAppointmentSchema = z.object({
     .string()
     .cuid('ID de servicio inválido'),
 
+  serviceIds: z
+    .array(z.string().cuid('ID de servicio inválido'))
+    .min(1, 'Selecciona al menos un servicio')
+    .max(5, 'Máximo 5 servicios por cita')
+    .optional(),
+
+  totalDurationMinutes: z
+    .number()
+    .int()
+    .min(15, 'Duración mínima 15 minutos')
+    .max(480, 'Duración máxima 8 horas')
+    .optional(),
+
   date: dateString,
 
   startTime: timeString,
@@ -47,7 +60,15 @@ export const createAppointmentSchema = z.object({
     .string()
     .max(500, 'Las notas no pueden superar 500 caracteres')
     .optional(),
-})
+}).refine(
+  (data) => {
+    if (data.serviceIds && data.serviceIds.length > 1) {
+      return data.totalDurationMinutes !== undefined && data.totalDurationMinutes > 0
+    }
+    return true
+  },
+  { message: 'totalDurationMinutes es requerido para citas con múltiples servicios' }
+)
 
 export type CreateAppointmentSchema = z.infer<typeof createAppointmentSchema>
 
@@ -57,8 +78,12 @@ export type CreateAppointmentSchema = z.infer<typeof createAppointmentSchema>
 
 export const availabilityQuerySchema = z.object({
   date: dateString,
-  serviceId: z.string().cuid('ID de servicio inválido'),
-})
+  serviceId: z.string().cuid('ID de servicio inválido').optional(),
+  durationMinutes: z.coerce.number().int().min(15).max(480).optional(),
+}).refine(
+  (data) => data.serviceId || data.durationMinutes,
+  { message: 'Se requiere serviceId o durationMinutes' }
+)
 
 // ─────────────────────────────────────────
 // UPDATE APPOINTMENT (admin)

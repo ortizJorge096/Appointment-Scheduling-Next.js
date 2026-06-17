@@ -89,10 +89,16 @@ function baseTemplate(content: string): string {
 export async function sendConfirmationEmail(
   appointment: AppointmentWithService
 ): Promise<void> {
-  const { clientName, clientEmail, service, date, startTime, id, cancelToken } = appointment
+  const { clientName, clientEmail, service, services, date, startTime, id, cancelToken, totalDurationMinutes } = appointment
   const cancelUrl = cancelToken
     ? `${appUrl()}/cancelar?id=${id}&token=${cancelToken}`
     : null
+
+  // Multi-service support
+  const isMultiService = services && services.length > 1
+  const serviceName = isMultiService ? services!.map((s) => s.service.name).join(' + ') : service.name
+  const serviceDuration = totalDurationMinutes || service.durationMinutes
+  const servicePrice = isMultiService ? services!.reduce((sum, s) => sum + s.price, 0) : service.price
 
   const content = `
     <h1 style="margin:0 0 8px;font-size:28px;font-weight:300;color:#111111;">
@@ -104,8 +110,8 @@ export async function sendConfirmationEmail(
     <table width="100%" cellpadding="0" cellspacing="0"
       style="background:#FAF7EE;padding:24px;margin-bottom:32px;">
       <tr>
-        <td style="padding:8px 0;color:#7A7060;font-size:13px;width:40%;">Servicio</td>
-        <td style="padding:8px 0;color:#111111;font-size:14px;font-weight:600;">${service.name}</td>
+        <td style="padding:8px 0;color:#7A7060;font-size:13px;width:40%;">Servicio${isMultiService ? 's' : ''}</td>
+        <td style="padding:8px 0;color:#111111;font-size:14px;font-weight:600;">${serviceName}</td>
       </tr>
       <tr>
         <td style="padding:8px 0;color:#7A7060;font-size:13px;border-top:1px solid #E8DCC4;">Fecha y hora</td>
@@ -113,12 +119,12 @@ export async function sendConfirmationEmail(
       </tr>
       <tr>
         <td style="padding:8px 0;color:#7A7060;font-size:13px;border-top:1px solid #E8DCC4;">Duración</td>
-        <td style="padding:8px 0;color:#111111;font-size:14px;border-top:1px solid #E8DCC4;">${service.durationMinutes} minutos</td>
+        <td style="padding:8px 0;color:#111111;font-size:14px;border-top:1px solid #E8DCC4;">${serviceDuration} minutos</td>
       </tr>
       <tr>
         <td style="padding:8px 0;color:#7A7060;font-size:13px;border-top:1px solid #E8DCC4;">Valor</td>
         <td style="padding:8px 0;color:#B8932A;font-size:16px;font-weight:600;border-top:1px solid #E8DCC4;">
-          ${formatPrice(service.price)}
+          ${formatPrice(servicePrice)}
         </td>
       </tr>
     </table>
@@ -140,7 +146,7 @@ export async function sendConfirmationEmail(
 
   await sendEmail({
     to:      clientEmail,
-    subject: `Cita confirmada — ${service.name} · ${STUDIO.name}`,
+    subject: `Cita confirmada — ${serviceName} · ${STUDIO.name}`,
     html:    baseTemplate(content),
   })
 }
@@ -149,7 +155,11 @@ export async function sendConfirmationEmail(
 export async function sendReminderEmail(
   appointment: AppointmentWithService
 ): Promise<void> {
-  const { clientName, clientEmail, service, date, startTime } = appointment
+  const { clientName, clientEmail, service, services, date, startTime } = appointment
+
+  // Multi-service support
+  const isMultiService = services && services.length > 1
+  const serviceName = isMultiService ? services!.map((s) => s.service.name).join(' + ') : service.name
 
   const content = `
     <h1 style="margin:0 0 8px;font-size:28px;font-weight:300;color:#111111;">
@@ -161,8 +171,8 @@ export async function sendReminderEmail(
     <table width="100%" cellpadding="0" cellspacing="0"
       style="background:#FAF7EE;padding:24px;margin-bottom:32px;">
       <tr>
-        <td style="padding:8px 0;color:#7A7060;font-size:13px;width:40%;">Servicio</td>
-        <td style="padding:8px 0;color:#111111;font-size:14px;font-weight:600;">${service.name}</td>
+        <td style="padding:8px 0;color:#7A7060;font-size:13px;width:40%;">Servicio${isMultiService ? 's' : ''}</td>
+        <td style="padding:8px 0;color:#111111;font-size:14px;font-weight:600;">${serviceName}</td>
       </tr>
       <tr>
         <td style="padding:8px 0;color:#7A7060;font-size:13px;border-top:1px solid #E8DCC4;">Cuándo</td>
@@ -177,7 +187,7 @@ export async function sendReminderEmail(
 
   await sendEmail({
     to:      clientEmail,
-    subject: `Recordatorio: tu cita de ${service.name} es mañana · ${STUDIO.name}`,
+    subject: `Recordatorio: tu cita de ${serviceName} es mañana · ${STUDIO.name}`,
     html:    baseTemplate(content),
   })
 }

@@ -8,13 +8,8 @@ import Link from 'next/link'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { WHATSAPP_URL } from '@/lib/config'
+import { formatPrice } from '@/lib/utils'
 import type { AppointmentWithService } from '@/types'
-
-function formatPrice(price: number): string {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency', currency: 'COP', minimumFractionDigits: 0,
-  }).format(price)
-}
 
 export default function ConfirmacionClient() {
   const params = useSearchParams()
@@ -80,11 +75,18 @@ export default function ConfirmacionClient() {
         <div className="bg-white border border-beige-dark/60 rounded-2xl shadow-sm p-6 space-y-3 mb-6">
           {[
             { label: 'Código',   value: appointment.id.slice(0, 8).toUpperCase() },
-            { label: 'Servicio', value: appointment.service.name },
+            ...(appointment.services && appointment.services.length > 1
+              ? [{ label: 'Servicios', value: appointment.services.map((s) => s.service.name).join(' + ') }]
+              : [{ label: 'Servicio', value: appointment.service.name }]
+            ),
             { label: 'Fecha',    value: dateFormatted },
             { label: 'Hora',     value: appointment.startTime },
-            { label: 'Duración', value: `${appointment.service.durationMinutes} min` },
-            { label: 'Valor',    value: formatPrice(appointment.service.price) },
+            { label: 'Duración', value: `${appointment.totalDurationMinutes || appointment.service.durationMinutes} min` },
+            { label: 'Valor',    value: formatPrice(
+              appointment.services && appointment.services.length > 1
+                ? appointment.services.reduce((sum, s) => sum + s.price, 0)
+                : appointment.service.price
+            )},
           ].map(({ label, value }) => (
             <div key={label}
               className="flex justify-between text-sm border-b border-beige-dark pb-3 last:border-0 last:pb-0">
