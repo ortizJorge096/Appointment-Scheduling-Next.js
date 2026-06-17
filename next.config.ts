@@ -53,6 +53,8 @@ const nextConfig: NextConfig = {
               `connect-src 'self' https://${s3Host}`,
               "object-src 'none'",
               "frame-ancestors 'none'",
+              // Allow the embedded Google Maps iframe in the "Visítanos" section
+              "frame-src https://www.google.com https://maps.google.com",
               "base-uri 'self'",
               "form-action 'self'",
             ].join('; '),
