@@ -73,10 +73,16 @@ export async function createCalendarEvent(
   try {
     const { calendar, calendarId } = getCalendarClient()
 
+    // Multi-service support
+    const isMultiService = appointment.services && appointment.services.length > 1
+    const serviceName = isMultiService
+      ? appointment.services!.map((s) => s.service.name).join(' + ')
+      : appointment.service.name
+
     const res = await calendar.events.insert({
       calendarId,
       requestBody: {
-        summary:     `${appointment.service.name} — ${appointment.clientName}`,
+        summary:     `${serviceName} — ${appointment.clientName}`,
         description: buildDescription(appointment),
         start:       buildEventDateTime(appointment.date, appointment.startTime),
         end:         buildEventDateTime(appointment.date, appointment.endTime),

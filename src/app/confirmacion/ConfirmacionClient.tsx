@@ -80,11 +80,18 @@ export default function ConfirmacionClient() {
         <div className="bg-white border border-beige-dark/60 rounded-2xl shadow-sm p-6 space-y-3 mb-6">
           {[
             { label: 'Código',   value: appointment.id.slice(0, 8).toUpperCase() },
-            { label: 'Servicio', value: appointment.service.name },
+            ...(appointment.services && appointment.services.length > 1
+              ? [{ label: 'Servicios', value: appointment.services.map((s) => s.service.name).join(' + ') }]
+              : [{ label: 'Servicio', value: appointment.service.name }]
+            ),
             { label: 'Fecha',    value: dateFormatted },
             { label: 'Hora',     value: appointment.startTime },
-            { label: 'Duración', value: `${appointment.service.durationMinutes} min` },
-            { label: 'Valor',    value: formatPrice(appointment.service.price) },
+            { label: 'Duración', value: `${appointment.totalDurationMinutes || appointment.service.durationMinutes} min` },
+            { label: 'Valor',    value: formatPrice(
+              appointment.services && appointment.services.length > 1
+                ? appointment.services.reduce((sum, s) => sum + s.price, 0)
+                : appointment.service.price
+            )},
           ].map(({ label, value }) => (
             <div key={label}
               className="flex justify-between text-sm border-b border-beige-dark pb-3 last:border-0 last:pb-0">

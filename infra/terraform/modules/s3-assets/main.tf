@@ -110,6 +110,17 @@ data "aws_iam_policy_document" "app_access" {
       values   = [for p in var.public_prefixes : "${p}*"]
     }
   }
+  # cert-manager ACME account keys + TLS certs (private, not web-accessible)
+  statement {
+    sid    = "CertManagerBackup"
+    effect = "Allow"
+    actions = [
+      "s3:PutObject",
+      "s3:GetObject",
+      "s3:DeleteObject",
+    ]
+    resources = ["${aws_s3_bucket.assets.arn}/cert-manager/*"]
+  }
 }
 
 resource "aws_iam_policy" "app_access" {

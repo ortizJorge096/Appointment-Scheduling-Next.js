@@ -4,9 +4,10 @@ import { GET } from './route'
 
 vi.mock('@/lib/availability', () => ({
   getAvailableSlots: vi.fn(),
+  getAvailableSlotsByDuration: vi.fn(),
 }))
 
-const { getAvailableSlots } = await import('@/lib/availability')
+const { getAvailableSlots, getAvailableSlotsByDuration } = await import('@/lib/availability')
 
 const MOCK_SLOTS = [
   { startTime: '09:00', endTime: '09:45', available: true  },
@@ -28,7 +29,7 @@ describe('GET /api/availability', () => {
     expect(res.status).toBe(400)
   })
 
-  it('returns 400 when serviceId is missing', async () => {
+  it('returns 400 when both serviceId and durationMinutes are missing', async () => {
     const res = await GET(makeRequest({ date: '2026-12-01' }))
     expect(res.status).toBe(400)
   })
@@ -43,7 +44,7 @@ describe('GET /api/availability', () => {
     expect(res.status).toBe(400)
   })
 
-  it('returns available slots on valid request', async () => {
+  it('returns available slots on valid request with serviceId', async () => {
     vi.mocked(getAvailableSlots).mockResolvedValue({ slots: MOCK_SLOTS, durationMinutes: 45 })
 
     const res  = await GET(makeRequest({ date: '2026-12-01', serviceId: 'clxxxxxxxxxxxxxxxxxxxxxxx' }))
@@ -54,6 +55,18 @@ describe('GET /api/availability', () => {
     expect(json.data.slots).toHaveLength(3)
     expect(json.data.serviceDuration).toBe(45)
     expect(json.data.date).toBe('2026-12-01')
+  })
+
+  it('returns available slots on valid request with durationMinutes', async () => {
+    vi.mocked(getAvailableSlotsByDuration).mockResolvedValue({ slots: MOCK_SLOTS, durationMinutes: 90 })
+
+    const res  = await GET(makeRequest({ date: '2026-12-01', durationMinutes: '90' }))
+    const json = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(json.success).toBe(true)
+    expect(json.data.slots).toHaveLength(3)
+    expect(json.data.serviceDuration).toBe(90)
   })
 
   it('returns 500 when getAvailableSlots throws', async () => {

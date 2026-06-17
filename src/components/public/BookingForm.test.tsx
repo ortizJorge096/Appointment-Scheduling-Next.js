@@ -11,7 +11,7 @@ vi.mock('next/navigation', () => ({
 
 // Mock DateTimePicker — the real one makes API calls and has complex state
 vi.mock('./DateTimePicker', () => ({
-  default: ({ onTimeChange }: { onTimeChange: (t: string) => void }) => (
+  default: ({ onTimeChange }: { onTimeChange: (t: string) => void; serviceId?: string; durationMinutes?: number }) => (
     <div>
       <button type="button" onClick={() => onTimeChange('10:00')}>10:00</button>
     </div>

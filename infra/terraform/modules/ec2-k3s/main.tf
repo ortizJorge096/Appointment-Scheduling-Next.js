@@ -35,7 +35,7 @@ data "aws_ami" "al2023" {
 # ─── Security Group ──────────────────────────────────────────────────────
 resource "aws_security_group" "this" {
   name        = "${var.name}-sg"
-  description = "k3s node: HTTP/HTTPS, no SSH (access via SSM Session Manager)"
+  description = "k3s node: HTTP/HTTPS, sin SSH (acceso via SSM Session Manager)"
   vpc_id      = var.vpc_id
 
   ingress {

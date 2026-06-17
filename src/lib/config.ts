@@ -16,7 +16,7 @@ export const STUDIO = {
   neighborhood: 'La Cumbre',
   state:        'Santander',
   country:      'Colombia',
-  address:      'La Cumbre, Floridablanca, Santander',
+  address:      'Calle 28 # 7E-14, La Cumbre, Floridablanca, Santander',
 
   // Contact
   phone:      '+57 300 179 0511',

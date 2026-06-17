@@ -29,7 +29,7 @@ export default function CitasFilters({ status, dateFrom, dateTo }: Props) {
   }
 
   return (
-    <div className="bg-white border border-beige-dark p-4 mb-6 flex flex-wrap gap-3 items-end">
+    <div className="bg-white rounded-xl border border-beige-dark p-3 sm:p-4 mb-6 flex flex-wrap gap-3 items-end">
 
       {/* Status */}
       <div>

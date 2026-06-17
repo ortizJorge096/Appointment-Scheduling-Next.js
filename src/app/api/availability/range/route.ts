@@ -1,5 +1,6 @@
 // src/app/api/availability/range/route.ts
 // GET /api/availability/range?from=YYYY-MM-DD&to=YYYY-MM-DD&serviceId=xxx
+// GET /api/availability/range?from=YYYY-MM-DD&to=YYYY-MM-DD&durationMinutes=60
 // Returns, for each day in the range, whether it has at least one free slot.
 // Single query instead of N calls to /api/availability.
 
@@ -33,24 +34,34 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const { searchParams } = new URL(request.url)
     const from = searchParams.get('from') ?? ''
     const to = searchParams.get('to') ?? ''
-    const serviceId = searchParams.get('serviceId') ?? ''
+    const serviceId = searchParams.get('serviceId') ?? undefined
+    const durationMinutesParam = searchParams.get('durationMinutes')
 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) {
       return NextResponse.json({ success: false, error: 'Fechas inválidas' }, { status: 400 })
     }
-    if (!serviceId) {
-      return NextResponse.json({ success: false, error: 'Servicio requerido' }, { status: 400 })
+    if (!serviceId && !durationMinutesParam) {
+      return NextResponse.json({ success: false, error: 'Servicio o duración requerido' }, { status: 400 })
     }
     if (from > to) {
       return NextResponse.json({ success: false, error: 'Rango inválido' }, { status: 400 })
     }
 
-    const service = await prisma.service.findUnique({
-      where: { id: serviceId, isActive: true },
-      select: { durationMinutes: true },
-    })
-    if (!service) {
-      return NextResponse.json({ success: false, error: 'Servicio no disponible' }, { status: 404 })
+    let duration: number
+    if (serviceId) {
+      const service = await prisma.service.findUnique({
+        where: { id: serviceId, isActive: true },
+        select: { durationMinutes: true },
+      })
+      if (!service) {
+        return NextResponse.json({ success: false, error: 'Servicio no disponible' }, { status: 404 })
+      }
+      duration = service.durationMinutes
+    } else {
+      duration = parseInt(durationMinutesParam!, 10)
+      if (isNaN(duration) || duration < 15 || duration > 480) {
+        return NextResponse.json({ success: false, error: 'Duración inválida' }, { status: 400 })
+      }
     }
 
     // Build list of dates in range (capped at 60 days)
@@ -101,7 +112,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const todayStr  = format(nowBogota, 'yyyy-MM-dd')
     const nowMinutes = nowBogota.getHours() * 60 + nowBogota.getMinutes() + STUDIO.bookingBufferMin
 
-    const duration = service.durationMinutes
     const step     = STUDIO.slotGranularityMin
 
     const result: DayAvailability[] = dates.map((dateStr) => {

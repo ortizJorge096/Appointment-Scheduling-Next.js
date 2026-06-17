@@ -39,6 +39,7 @@ export async function GET(
           paymentStatus: true,
           amountPaid: true,
           service: { select: { price: true } },
+          services: { select: { price: true } },
         },
       }),
       prisma.expense.findMany({
@@ -49,14 +50,27 @@ export async function GET(
       }),
     ])
 
-    type AptRow = { paymentStatus: string; amountPaid: number | null; service: { price: number } }
+    type AptRow = {
+      paymentStatus: string
+      amountPaid: number | null
+      service: { price: number }
+      services: Array<{ price: number }>
+    }
     type ExpRow = { amount: number }
+
+    // Helper to get total price from appointment (supports multi-service)
+    function getTotalPrice(apt: AptRow): number {
+      if (apt.services && apt.services.length > 1) {
+        return apt.services.reduce((sum, s) => sum + s.price, 0)
+      }
+      return apt.service.price
+    }
 
     // Income: sum of amountPaid (PAID or PARTIAL), or service price if PAID without an amount
     const totalIncome = (appointments as AptRow[]).reduce((sum: number, apt: AptRow) => {
       if (apt.paymentStatus === 'WAIVED') return sum
       if (apt.paymentStatus === 'PENDING') return sum
-      return sum + (apt.amountPaid ?? apt.service.price)
+      return sum + (apt.amountPaid ?? getTotalPrice(apt))
     }, 0)
 
     const totalExpenses = (expenses as ExpRow[]).reduce((sum: number, e: ExpRow) => sum + e.amount, 0)

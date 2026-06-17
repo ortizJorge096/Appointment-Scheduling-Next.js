@@ -7,18 +7,19 @@ import { es } from 'date-fns/locale'
 import type { TimeSlot } from '@/types'
 
 interface Props {
-  serviceId:    string
-  selectedDate: string
-  selectedTime: string
-  onDateChange: (date: string) => void
-  onTimeChange: (time: string) => void
-  disabled?:    boolean
+  serviceId?:         string
+  durationMinutes?:   number
+  selectedDate:       string
+  selectedTime:       string
+  onDateChange:       (date: string) => void
+  onTimeChange:       (time: string) => void
+  disabled?:          boolean
 }
 
 const DAYS_TO_SHOW = 14
 
 export default function DateTimePicker({
-  serviceId, selectedDate, selectedTime,
+  serviceId, durationMinutes, selectedDate, selectedTime,
   onDateChange, onTimeChange, disabled = false,
 }: Props) {
   const [slots,   setSlots]   = useState<TimeSlot[]>([])
@@ -35,13 +36,16 @@ export default function DateTimePicker({
     format(addDays(new Date(), i), 'yyyy-MM-dd')
   )
 
+  // Build availability URL params
+  const availParam = serviceId ? `serviceId=${serviceId}` : `durationMinutes=${durationMinutes}`
+
   // ── Prefetch: availability of ALL visible days, single call ──
   useEffect(() => {
-    if (!serviceId) return
+    if (!serviceId && !durationMinutes) return
     setRangeLoading(true)
     const from = availableDates[0]
     const to   = availableDates[availableDates.length - 1]
-    fetch(`/api/availability/range?from=${from}&to=${to}&serviceId=${serviceId}`)
+    fetch(`/api/availability/range?from=${from}&to=${to}&${availParam}`)
       .then((r) => r.json())
       .then((json) => {
         if (!json.success) return
@@ -61,17 +65,17 @@ export default function DateTimePicker({
       .catch(() => { /* silent — the slot fetch will say if something fails */ })
       .finally(() => setRangeLoading(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serviceId])
+  }, [serviceId, durationMinutes])
 
   // ── Detailed fetch of schedules for the selected date ──
   // We don't depend on dateOpen here to avoid a loop (the source of truth
   // for the open/closed status of each day is the range prefetch).
   useEffect(() => {
-    if (!serviceId || !selectedDate) return
+    if ((!serviceId && !durationMinutes) || !selectedDate) return
     let cancelled = false
     setLoading(true)
     setError(null)
-    fetch(`/api/availability?date=${selectedDate}&serviceId=${serviceId}`)
+    fetch(`/api/availability?date=${selectedDate}&${availParam}`)
       .then((r) => r.json())
       .then((json) => {
         if (cancelled) return
@@ -104,7 +108,7 @@ export default function DateTimePicker({
       })
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serviceId, selectedDate])
+  }, [serviceId, durationMinutes, selectedDate])
 
   function formatDateLabel(dateStr: string) {
     const d = new Date(`${dateStr}T12:00:00`)

@@ -144,6 +144,7 @@ async function main() {
           date:        dayStart,
           startTime:   startStr,
           endTime:     endStr,
+          totalDurationMinutes: dur,
           status:      'CONFIRMED',
           notes:       DEMO_NOTES,
         },

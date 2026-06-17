@@ -1,9 +1,10 @@
 // src/app/api/availability/route.ts
 // GET /api/availability?date=YYYY-MM-DD&serviceId=xxx
+// GET /api/availability?date=YYYY-MM-DD&durationMinutes=60
 // Returns available slots for a date and service
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getAvailableSlots } from '@/lib/availability'
+import { getAvailableSlots, getAvailableSlotsByDuration } from '@/lib/availability'
 import { availabilityQuerySchema } from '@/lib/validations'
 import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
 import type { ApiResponse, AvailabilityResponse } from '@/types'
@@ -15,7 +16,8 @@ export async function GET(
     const { searchParams } = new URL(request.url)
     const params = {
       date: searchParams.get('date') ?? '',
-      serviceId: searchParams.get('serviceId') ?? '',
+      serviceId: searchParams.get('serviceId') ?? undefined,
+      durationMinutes: searchParams.get('durationMinutes') ?? undefined,
     }
 
     // Validate parameters
@@ -27,12 +29,14 @@ export async function GET(
       )
     }
 
-    const { date, serviceId } = parsed.data
-    const { slots, durationMinutes } = await getAvailableSlots(date, serviceId)
+    const { date, serviceId, durationMinutes } = parsed.data
+    const result = serviceId
+      ? await getAvailableSlots(date, serviceId)
+      : await getAvailableSlotsByDuration(date, durationMinutes!)
 
     return NextResponse.json({
       success: true,
-      data: { date, slots, serviceDuration: durationMinutes },
+      data: { date, slots: result.slots, serviceDuration: result.durationMinutes },
     })
   } catch (error) {
     if (isDbUnavailable(error)) return dbUnavailableResponse()

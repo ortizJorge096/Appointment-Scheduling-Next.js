@@ -28,6 +28,11 @@ export async function GET(_req: NextRequest, { params }: Ctx): Promise<NextRespo
         appointments: {
           include: {
             service: { select: { id: true, name: true, price: true, durationMinutes: true } },
+            services: {
+              include: {
+                service: { select: { id: true, name: true, price: true, durationMinutes: true } },
+              },
+            },
           },
           orderBy: [{ date: 'desc' }, { startTime: 'desc' }],
         },
