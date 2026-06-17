@@ -115,7 +115,7 @@ export default function AuditoriaPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 max-w-5xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -129,7 +129,7 @@ export default function AuditoriaPage() {
         </span>
       </div>
 
-      {/* Filtros */}
+      {/* Filters */}
       <div className="bg-white border border-beige-dark rounded-xl p-4 flex flex-wrap gap-3 items-end">
         <div>
           <label className="block text-xs text-ink-muted mb-1">Entidad</label>
@@ -167,8 +167,8 @@ export default function AuditoriaPage() {
         </button>
       </div>
 
-      {/* Tabla */}
-      <div className="bg-white border border-beige-dark rounded-xl overflow-hidden">
+      {/* Table */}
+      <div className="bg-white border border-beige-dark rounded-xl overflow-x-auto">
         {loading ? (
           <div className="py-16 text-center text-sm text-ink-muted">Cargando...</div>
         ) : logs.length === 0 ? (
@@ -215,7 +215,7 @@ export default function AuditoriaPage() {
         )}
       </div>
 
-      {/* Paginación */}
+      {/* Pagination */}
       {pagination.totalPages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-xs text-ink-muted">

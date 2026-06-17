@@ -146,7 +146,7 @@ export default function CitaDetailPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
 
         {/* Service */}
-        <div className="bg-white border border-beige-dark p-5">
+        <div className="bg-white border border-beige-dark/60 rounded-2xl shadow-sm p-5">
           <p className="text-xs text-ink-muted uppercase tracking-widest mb-3">Servicio</p>
           <p className="font-serif text-xl text-ink mb-0.5">{appt.service.name}</p>
           <p className="text-gold text-lg font-medium">{formatPrice(appt.service.price)}</p>
@@ -154,7 +154,7 @@ export default function CitaDetailPage() {
         </div>
 
         {/* Date and time */}
-        <div className="bg-white border border-beige-dark p-5">
+        <div className="bg-white border border-beige-dark/60 rounded-2xl shadow-sm p-5">
           <p className="text-xs text-ink-muted uppercase tracking-widest mb-3">Fecha y hora</p>
           <p className="font-serif text-xl text-ink capitalize">
             {format(new Date(appt.date), "EEEE d 'de' MMMM", { locale: es })}
@@ -165,14 +165,14 @@ export default function CitaDetailPage() {
         </div>
 
         {/* Contact */}
-        <div className="bg-white border border-beige-dark p-5">
+        <div className="bg-white border border-beige-dark/60 rounded-2xl shadow-sm p-5">
           <p className="text-xs text-ink-muted uppercase tracking-widest mb-3">Contacto</p>
           <p className="text-ink text-sm">{appt.clientEmail}</p>
           <p className="text-ink text-sm mt-1">{appt.clientPhone}</p>
         </div>
 
         {/* Scheduling */}
-        <div className="bg-white border border-beige-dark p-5">
+        <div className="bg-white border border-beige-dark/60 rounded-2xl shadow-sm p-5">
           <p className="text-xs text-ink-muted uppercase tracking-widest mb-3">Registro</p>
           <p className="text-xs text-ink-muted">
             Agendado el{' '}
