@@ -7,6 +7,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { scheduleSchema } from '@/lib/validations'
+import { audit, getClientIp } from '@/lib/audit'
 import type { DayOfWeek } from '@prisma/client'
 
 export async function GET(): Promise<NextResponse> {
@@ -34,6 +35,20 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     where:  { dayOfWeek: parsed.data.dayOfWeek as DayOfWeek },
     update: parsed.data,
     create: parsed.data,
+  })
+
+  await audit({
+    action:    'UPDATE',
+    entity:    'SCHEDULE',
+    entityId:  schedule.id,
+    userEmail: session.user?.email ?? undefined,
+    ip:        getClientIp(request),
+    metadata:  {
+      dayOfWeek: parsed.data.dayOfWeek,
+      startTime: parsed.data.startTime,
+      endTime:   parsed.data.endTime,
+      isActive:  parsed.data.isActive,
+    },
   })
 
   return NextResponse.json({ success: true, data: schedule })

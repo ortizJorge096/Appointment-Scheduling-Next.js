@@ -257,4 +257,5 @@ enum AuditEntity {
   EXPENSE
   SERVICE
   GALLERY
+  SCHEDULE
 }

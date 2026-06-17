@@ -7,6 +7,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createServiceSchema } from '@/lib/validations'
+import { audit, getClientIp } from '@/lib/audit'
 
 export const dynamic = 'force-dynamic'
 
@@ -54,5 +55,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   const service = await prisma.service.create({ data: parsed.data })
+
+  await audit({
+    action:    'CREATE',
+    entity:    'SERVICE',
+    entityId:  service.id,
+    userEmail: session.user?.email ?? undefined,
+    ip:        getClientIp(request),
+    metadata:  { name: service.name, price: service.price },
+  })
+
   return NextResponse.json({ success: true, data: service }, { status: 201 })
 }

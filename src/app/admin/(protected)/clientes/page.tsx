@@ -83,7 +83,7 @@ export default function ClientesPage() {
           <p className="text-sm text-ink-muted mt-0.5">{total} cliente{total !== 1 ? 's' : ''} registrados</p>
         </div>
         <button onClick={() => { setForm(EMPTY_FORM); setFormError(''); setShowCreate(true) }}
-          className="btn-cta text-sm">
+          className="btn-primary text-sm">
           + Nuevo cliente
         </button>
       </div>
@@ -112,7 +112,7 @@ export default function ClientesPage() {
             </p>
             {!query && (
               <button onClick={() => { setForm(EMPTY_FORM); setFormError(''); setShowCreate(true) }}
-                className="btn-cta text-sm mt-4">
+                className="btn-primary text-sm mt-4">
                 + Crear el primero
               </button>
             )}
@@ -213,7 +213,7 @@ export default function ClientesPage() {
                 <button type="button" onClick={() => setShowCreate(false)} className="btn-secondary flex-1">
                   Cancelar
                 </button>
-                <button type="submit" disabled={saving} className="btn-cta flex-1 disabled:opacity-50">
+                <button type="submit" disabled={saving} className="btn-primary flex-1 disabled:opacity-50">
                   {saving ? 'Guardando…' : 'Crear cliente'}
                 </button>
               </div>

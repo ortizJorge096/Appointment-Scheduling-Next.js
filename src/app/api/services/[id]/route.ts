@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { updateServiceSchema } from '@/lib/validations'
+import { audit, getClientIp } from '@/lib/audit'
 
 export const dynamic = 'force-dynamic'
 
@@ -41,6 +42,15 @@ export async function PATCH(
     data: parsed.data,
   })
 
+  await audit({
+    action:    'UPDATE',
+    entity:    'SERVICE',
+    entityId:  id,
+    userEmail: session.user?.email ?? undefined,
+    ip:        getClientIp(request),
+    metadata:  { fields: Object.keys(parsed.data) },
+  })
+
   return NextResponse.json({ success: true, data: service })
 }
 
@@ -74,6 +84,14 @@ export async function DELETE(
   }
 
   await prisma.service.delete({ where: { id } })
+
+  await audit({
+    action:    'DELETE',
+    entity:    'SERVICE',
+    entityId:  id,
+    userEmail: session.user?.email ?? undefined,
+    ip:        getClientIp(_req),
+  })
 
   return NextResponse.json({
     success: true,

@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback } from 'react'
 
 type AuditAction = 'CREATE' | 'UPDATE' | 'DELETE' | 'STATUS_CHANGE'
-type AuditEntity = 'APPOINTMENT' | 'CLIENT' | 'EXPENSE' | 'SERVICE' | 'GALLERY'
+type AuditEntity = 'APPOINTMENT' | 'CLIENT' | 'EXPENSE' | 'SERVICE' | 'GALLERY' | 'SCHEDULE'
 
 interface AuditLog {
   id:        string
@@ -36,6 +36,7 @@ const ENTITY_LABELS: Record<AuditEntity, string> = {
   EXPENSE:     'Gasto',
   SERVICE:     'Servicio',
   GALLERY:     'Galería',
+  SCHEDULE:    'Horario',
 }
 
 const ACTION_COLORS: Record<AuditAction, string> = {
@@ -51,6 +52,7 @@ const ENTITY_COLORS: Record<AuditEntity, string> = {
   EXPENSE:     'text-ink',
   SERVICE:     'text-ink',
   GALLERY:     'text-ink',
+  SCHEDULE:    'text-ink',
 }
 
 function formatDate(iso: string) {

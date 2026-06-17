@@ -7,6 +7,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { blockedDateSchema } from '@/lib/validations'
+import { audit, getClientIp } from '@/lib/audit'
 
 export async function GET() {
   const blocked = await prisma.blockedDate.findMany({
@@ -34,8 +35,17 @@ export async function POST(request: NextRequest) {
   const blocked = await prisma.blockedDate.create({
     data: {
       date:   new Date(`${parsed.data.date}T12:00:00`),
-            reason: parsed.data.reason ?? null,
+      reason: parsed.data.reason ?? null,
     },
+  })
+
+  await audit({
+    action:    'CREATE',
+    entity:    'SCHEDULE',
+    entityId:  blocked.id,
+    userEmail: session.user?.email ?? undefined,
+    ip:        getClientIp(request),
+    metadata:  { blockedDate: parsed.data.date, reason: parsed.data.reason ?? null },
   })
 
   return NextResponse.json({ success: true, data: blocked }, { status: 201 })

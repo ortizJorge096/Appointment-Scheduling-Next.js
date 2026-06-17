@@ -25,6 +25,20 @@ const STATUS_CLASS: Record<string, string> = {
   NO_SHOW:   'badge-no_show',
 }
 
+const PAYMENT_STATUS_OPTS = [
+  { v: 'PENDING', l: 'Sin pago' },
+  { v: 'PAID',    l: 'Pagado' },
+  { v: 'PARTIAL', l: 'Parcial' },
+  { v: 'WAIVED',  l: 'Cortesía' },
+]
+const PAYMENT_METHOD_OPTS = [
+  { v: 'EFECTIVO',      l: 'Efectivo' },
+  { v: 'TRANSFERENCIA', l: 'Transferencia' },
+  { v: 'TARJETA',       l: 'Tarjeta' },
+  { v: 'NEQUI',         l: 'Nequi' },
+  { v: 'DAVIPLATA',     l: 'Daviplata' },
+]
+
 function formatPrice(p: number) {
   return new Intl.NumberFormat('es-CO', {
     style: 'currency', currency: 'COP', minimumFractionDigits: 0,
@@ -57,6 +71,12 @@ export default function CitaDetailPage() {
   const [notes, setNotes]       = useState('')
   const [editNotes, setEditNotes] = useState(false)
 
+  // Payment form
+  const [payStatus, setPayStatus] = useState('PENDING')
+  const [payAmount, setPayAmount] = useState('')
+  const [payMethod, setPayMethod] = useState('')
+  const [savingPay, setSavingPay] = useState(false)
+
   useEffect(() => {
     fetch(`/api/appointments/${id}`)
       .then((r) => r.json())
@@ -67,6 +87,14 @@ export default function CitaDetailPage() {
       .catch(() => setError('Error de conexión'))
       .finally(() => setLoading(false))
   }, [id])
+
+  // Keep the payment form in sync with the loaded appointment
+  useEffect(() => {
+    if (!appt) return
+    setPayStatus(appt.paymentStatus)
+    setPayAmount(appt.amountPaid != null ? String(appt.amountPaid) : '')
+    setPayMethod(appt.paymentMethod ?? '')
+  }, [appt])
 
   async function updateStatus(status: AppointmentStatus) {
     if (!confirm(`¿Cambiar estado a "${STATUS_LABEL[status]}"?`)) return
@@ -93,6 +121,32 @@ export default function CitaDetailPage() {
     if (json.success) { setAppt(json.data); setEditNotes(false) }
     else setError(json.error)
     setUpdating(false)
+  }
+
+  async function savePayment(e: React.FormEvent) {
+    e.preventDefault()
+    setSavingPay(true)
+    const res = await fetch(`/api/appointments/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        paymentStatus: payStatus,
+        amountPaid:    payAmount ? parseInt(payAmount) : null,
+        paymentMethod: payMethod || null,
+      }),
+    })
+    const json = await res.json()
+    if (json.success) setAppt(json.data)
+    else setError(json.error)
+    setSavingPay(false)
+  }
+
+  // Quick action: mark the full service price as paid
+  function markPaidFull() {
+    if (!appt) return
+    setPayStatus('PAID')
+    setPayAmount(String(appt.service.price))
+    if (!payMethod) setPayMethod('EFECTIVO')
   }
 
   if (loading) return (
@@ -226,6 +280,39 @@ export default function CitaDetailPage() {
           </p>
         )}
       </div>
+
+      {/* Payment */}
+      <form onSubmit={savePayment} className="bg-white border border-beige-dark/60 rounded-2xl shadow-sm p-5 mb-8">
+        <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+          <p className="text-xs text-ink-muted uppercase tracking-widest">Pago</p>
+          <button type="button" onClick={markPaidFull}
+            className="text-xs text-gold hover:underline">Marcar pagado (total)</button>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label className="form-label">Estado</label>
+            <select className="select-field" value={payStatus} onChange={(e) => setPayStatus(e.target.value)}>
+              {PAYMENT_STATUS_OPTS.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="form-label">Monto pagado (COP)</label>
+            <input type="number" min={0} step={1000} className="input-field" value={payAmount}
+              onChange={(e) => setPayAmount(e.target.value)} placeholder="0" />
+          </div>
+          <div>
+            <label className="form-label">Método</label>
+            <select className="select-field" value={payMethod} onChange={(e) => setPayMethod(e.target.value)}>
+              <option value="">—</option>
+              {PAYMENT_METHOD_OPTS.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}
+            </select>
+          </div>
+        </div>
+        <button type="submit" disabled={savingPay}
+          className="btn-primary text-xs px-5 py-2 mt-4 disabled:opacity-50">
+          {savingPay ? 'Guardando...' : 'Guardar pago'}
+        </button>
+      </form>
 
       {/* Status actions */}
       {actions.length > 0 && (
