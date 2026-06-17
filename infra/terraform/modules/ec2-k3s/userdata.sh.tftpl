@@ -119,11 +119,11 @@ kubectl --kubeconfig $${KUBECONFIG} -n cert-manager \
   wait --for=condition=Available --timeout=180s deployment/cert-manager-cainjector || true
 
 # Restore ACME secrets from S3 before applying issuers (avoids LE rate-limit).
-for _s in letsencrypt-staging-account letsencrypt-prod-account; do
-  _uri="s3://${s3_bucket_name}/cert-manager/$$_s.json"
-  if aws s3 ls "$$_uri" --region "${aws_region}" >/dev/null 2>&1; then
-    aws s3 cp "$$_uri" - --region "${aws_region}" \
-      | kubectl --kubeconfig $${KUBECONFIG} -n cert-manager apply -f - 2>/dev/null && echo "Restored $$_s"
+for secret_name in letsencrypt-staging-account letsencrypt-prod-account; do
+  uri="s3://${s3_bucket_name}/cert-manager/$${secret_name}.json"
+  if aws s3 ls "$${uri}" --region "${aws_region}" >/dev/null 2>&1; then
+    aws s3 cp "$${uri}" - --region "${aws_region}" \
+      | kubectl --kubeconfig $${KUBECONFIG} -n cert-manager apply -f - 2>/dev/null && echo "Restored $${secret_name}"
   fi
 done
 
@@ -160,17 +160,16 @@ spec:
 ISSUERS_EOF
 
 # Backup ACME secrets to S3.
-for _s in letsencrypt-staging-account letsencrypt-prod-account; do
-  kubectl --kubeconfig $${KUBECONFIG} -n cert-manager get secret "$$_s" -o json 2>/dev/null \
-    | aws s3 cp - "s3://${s3_bucket_name}/cert-manager/$$_s.json" --region "${aws_region}" 2>/dev/null || true
+for secret_name in letsencrypt-staging-account letsencrypt-prod-account; do
+  kubectl --kubeconfig $${KUBECONFIG} -n cert-manager get secret "$${secret_name}" -o json 2>/dev/null \
+    | aws s3 cp - "s3://${s3_bucket_name}/cert-manager/$${secret_name}.json" --region "${aws_region}" 2>/dev/null || true
 done
 echo "── cert-manager secrets backed up ──"
 
 # Cron: re-backup every 6h.
-cat > /etc/cron.d/cm-backup <<CRON
-SHELL=/bin/bash
-0 */6 * * * root for s in letsencrypt-staging-account letsencrypt-prod-account; do kubectl -n cert-manager get secret "\$s" -o json 2>/dev/null | aws s3 cp - "s3://${s3_bucket_name}/cert-manager/\$s.json" --region "${aws_region}" 2>/dev/null; done
-CRON
+mkdir -p /etc/cron.d
+echo 'SHELL=/bin/bash' > /etc/cron.d/cm-backup
+echo "0 */6 * * * root for s in letsencrypt-staging-account letsencrypt-prod-account; do kubectl -n cert-manager get secret \"\$s\" -o json 2>/dev/null | aws s3 cp - \"s3://${s3_bucket_name}/cert-manager/\$s.json\" --region \"${aws_region}\" 2>/dev/null; done" >> /etc/cron.d/cm-backup
 %{ endif ~}
 
 # ── (6) SSM secrets ──
