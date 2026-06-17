@@ -19,7 +19,7 @@ vi.mock('./DateTimePicker', () => ({
 }))
 
 const MOCK_SERVICES = [
-  { id: 'svc-1', name: 'Manicura', description: null, category: 'UNAS', price: 50000, durationMinutes: 60 },
+  { id: 'svc-1', name: 'Manicura tradicional', description: null, category: 'MANICURA', price: 50000, durationMinutes: 60 },
 ]
 
 const STORAGE_KEY = 'vj_booking_client'
@@ -41,13 +41,13 @@ beforeEach(() => {
 })
 
 async function navigateToInfoStep(user: ReturnType<typeof userEvent.setup>) {
-  // Step 1 — category: click Uñas then Continuar
-  const catBtn = await screen.findByText('Uñas')
+  // Step 1 — category: click Manicura then Continuar
+  const catBtn = await screen.findByText('Manicura')
   await user.click(catBtn)
   await user.click(screen.getByText(/Continuar/))
 
-  // Step 2 — service: click Manicura then Continuar (no auto-advance)
-  const svcBtn = await screen.findByText('Manicura')
+  // Step 2 — service: click Manicura tradicional then Continuar (no auto-advance)
+  const svcBtn = await screen.findByText('Manicura tradicional')
   await user.click(svcBtn)
   await user.click(screen.getByText(/Continuar/))
 
@@ -63,7 +63,7 @@ async function navigateToInfoStep(user: ReturnType<typeof userEvent.setup>) {
 describe('BookingForm — datos persistidos', () => {
   it('arranca en el paso categoría', async () => {
     render(<BookingForm />)
-    expect(await screen.findByText('Uñas')).toBeInTheDocument()
+    expect(await screen.findByText('Manicura')).toBeInTheDocument()
   })
 
   it('no auto-rellena los campos cuando hay datos guardados', async () => {
@@ -71,7 +71,7 @@ describe('BookingForm — datos persistidos', () => {
       clientName: 'María López', clientEmail: 'maria@email.com', clientPhone: '3001112233',
     }))
     render(<BookingForm />)
-    await screen.findByText('Uñas')
+    await screen.findByText('Manicura')
     expect(screen.queryByDisplayValue('María López')).not.toBeInTheDocument()
   })
 

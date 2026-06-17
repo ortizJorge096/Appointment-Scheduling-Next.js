@@ -4,9 +4,9 @@ import GaleriaAdminPage from './page'
 const MOCK_IMAGES = [
   {
     id: 'img-1',
-    title: 'Manicura',
-    description: 'Diseño floral',
-    category: 'UNAS',
+    title: 'Diseño floral',
+    description: 'Set completo de uñas',
+    category: 'MANICURA',
     width: 800,
     height: 800,
     order: 1,
@@ -55,7 +55,7 @@ describe('GaleriaAdminPage', () => {
 
   it('carga y muestra las imágenes', async () => {
     render(<GaleriaAdminPage />)
-    expect(await screen.findByText('Manicura')).toBeInTheDocument()
+    expect(await screen.findByText('Diseño floral')).toBeInTheDocument()
   })
 
   it('muestra "Sin título" para imágenes sin título', async () => {
@@ -67,7 +67,7 @@ describe('GaleriaAdminPage', () => {
   it('muestra la categoría de la imagen', async () => {
     render(<GaleriaAdminPage />)
     await screen.findByText('Manicura')
-    expect(screen.getByText('Uñas')).toBeInTheDocument()
+    expect(screen.getByText('Manicura')).toBeInTheDocument()
   })
 
   it('renderiza botón "Imagen" para reemplazar en cada imagen', async () => {
