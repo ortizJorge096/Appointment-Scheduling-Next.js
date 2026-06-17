@@ -1,5 +1,5 @@
 // src/app/admin/(protected)/citas/page.tsx
-// Server Component limpio — sin event handlers de cliente
+// Clean Server Component — no client event handlers
 import type { Metadata } from 'next'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
@@ -77,10 +77,10 @@ export default async function CitasPage({ searchParams }: { searchParams: Promis
         <ManualAppointmentModal />
       </div>
 
-      {/* Filtros — Client Component (sin bug) */}
+      {/* Filters — Client Component */}
       <CitasFilters status={status} dateFrom={dateFrom} dateTo={dateTo} />
 
-      {/* Tabla */}
+      {/* Table */}
       <div className="bg-white border border-beige-dark overflow-x-auto">
         {appointments.length === 0 ? (
           <div className="py-16 text-center text-ink-muted text-sm">
@@ -99,7 +99,7 @@ export default async function CitasPage({ searchParams }: { searchParams: Promis
                 <th className="px-5 py-3" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-gold-light">
+            <tbody className="divide-y divide-beige-dark">
               {appointments.map((appt) => (
                 <tr key={appt.id} className="hover:bg-beige transition-colors group">
                   <td className="px-5 py-3.5 text-ink whitespace-nowrap">
@@ -128,7 +128,7 @@ export default async function CitasPage({ searchParams }: { searchParams: Promis
         )}
       </div>
 
-      {/* Paginación */}
+      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between mt-5">
           <p className="text-xs text-ink-muted">{total} citas · Página {page} de {totalPages}</p>

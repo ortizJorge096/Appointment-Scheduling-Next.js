@@ -111,7 +111,7 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
           </div>
         </div>
 
-        {/* Notas internas */}
+        {/* Internal notes */}
         <div className="mt-5 pt-5 border-t border-beige-dark">
           <label className="block text-xs font-medium text-ink-mid mb-1.5">
             Notas internas (no visibles al cliente)
@@ -134,7 +134,7 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
         </div>
       </div>
 
-      {/* Historial de citas */}
+      {/* Appointment history */}
       <h2 className="text-lg font-serif text-ink mb-3">Historial de citas</h2>
       {client.appointments.length === 0 ? (
         <p className="text-sm text-ink-muted">Sin citas registradas.</p>

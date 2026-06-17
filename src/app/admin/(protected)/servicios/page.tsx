@@ -123,7 +123,7 @@ export default function ServiciosPage() {
         <button onClick={openNew} className="btn-primary">+ Nuevo servicio</button>
       </div>
 
-      {/* Mensajes */}
+      {/* Messages */}
       {error   && <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 mb-5">{error}</div>}
       {success && <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 mb-5">✓ {success}</div>}
 
@@ -202,7 +202,7 @@ export default function ServiciosPage() {
         </div>
       )}
 
-      {/* Lista */}
+      {/* List */}
       <div className="bg-white border border-beige-dark divide-y divide-beige-dark">
         {loading ? (
           <div className="py-10 text-center text-ink-muted text-sm">Cargando...</div>

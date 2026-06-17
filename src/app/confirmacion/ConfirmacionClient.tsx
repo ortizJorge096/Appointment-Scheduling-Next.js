@@ -7,6 +7,7 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { WHATSAPP_URL } from '@/lib/config'
 import type { AppointmentWithService } from '@/types'
 
 function formatPrice(price: number): string {
@@ -57,7 +58,7 @@ export default function ConfirmacionClient() {
       <div className="max-w-md w-full">
 
         {/* Check */}
-        <div className="w-16 h-16 rounded-full bg-gold flex items-center justify-center mx-auto mb-8">
+        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-gold-light to-gold flex items-center justify-center mx-auto mb-8 shadow-md">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
             stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="20 6 9 17 4 12" />
@@ -75,8 +76,8 @@ export default function ConfirmacionClient() {
           </p>
         </div>
 
-        {/* Resumen */}
-        <div className="bg-white border border-beige-dark p-6 space-y-3 mb-6">
+        {/* Summary */}
+        <div className="bg-white border border-beige-dark/60 rounded-2xl shadow-sm p-6 space-y-3 mb-6">
           {[
             { label: 'Código',   value: appointment.id.slice(0, 8).toUpperCase() },
             { label: 'Servicio', value: appointment.service.name },
@@ -98,8 +99,11 @@ export default function ConfirmacionClient() {
           <strong className="text-ink">24 horas de anticipación</strong>.
         </p>
 
-        <div className="text-center">
-          <Link href="/" className="btn-secondary inline-block">Volver al inicio</Link>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <a href={WHATSAPP_URL} target="_blank" rel="noreferrer" className="btn-cta text-center">
+            Escríbenos por WhatsApp
+          </a>
+          <Link href="/" className="btn-secondary text-center">Volver al inicio</Link>
         </div>
 
       </div>

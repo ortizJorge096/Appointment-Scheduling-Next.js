@@ -104,7 +104,7 @@ export default function CancelarClient() {
             <h1 className="font-serif text-3xl text-ink font-light mb-2">¿Cancelar tu cita?</h1>
             <p className="text-ink-muted text-sm mb-8">Esta acción no se puede deshacer.</p>
 
-            <div className="bg-white border border-beige-dark p-6 space-y-3 mb-6 text-left">
+            <div className="bg-white border border-beige-dark/60 rounded-2xl shadow-sm p-6 space-y-3 mb-6 text-left">
               {[
                 { label: 'Servicio', value: appt.service.name },
                 { label: 'Fecha',    value: dateLabel },

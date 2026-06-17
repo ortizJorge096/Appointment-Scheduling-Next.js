@@ -23,7 +23,8 @@ export default async function ProtectedAdminLayout({
     <AdminSessionProvider>
       <div className="min-h-screen bg-gray-50 flex">
         <AdminSidebar />
-        <main className="flex-1 overflow-auto">
+        {/* pt-14 on mobile clears the fixed top bar; reset on md+ */}
+        <main className="flex-1 overflow-auto pt-14 md:pt-0 min-w-0">
           {children}
         </main>
       </div>

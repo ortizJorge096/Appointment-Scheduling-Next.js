@@ -5,8 +5,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import type { ClientSummary } from '@/types'
 
-const COP = (n: number) =>
-  new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n)
+const EMPTY_FORM = { name: '', email: '', phone: '', notes: '' }
 
 export default function ClientesPage() {
   const [clients, setClients]   = useState<ClientSummary[]>([])
@@ -15,6 +14,12 @@ export default function ClientesPage() {
   const [search, setSearch]     = useState('')
   const [loading, setLoading]   = useState(true)
   const [query, setQuery]       = useState('')  // debounced
+
+  // Create-client modal state
+  const [showCreate, setShowCreate] = useState(false)
+  const [form, setForm]             = useState(EMPTY_FORM)
+  const [saving, setSaving]         = useState(false)
+  const [formError, setFormError]   = useState('')
 
   // Debounce search
   useEffect(() => {
@@ -42,17 +47,48 @@ export default function ClientesPage() {
 
   const totalPages = Math.ceil(total / 20)
 
+  async function createClient(e: React.FormEvent) {
+    e.preventDefault()
+    setSaving(true); setFormError('')
+    try {
+      const res = await fetch('/api/clients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name:  form.name.trim(),
+          email: form.email.trim(),
+          phone: form.phone.trim() || undefined,
+          notes: form.notes.trim() || undefined,
+        }),
+      })
+      const json = await res.json()
+      if (!json.success) { setFormError(json.error ?? 'No se pudo crear el cliente'); return }
+      setShowCreate(false)
+      setForm(EMPTY_FORM)
+      setPage(1)
+      await load()
+    } catch {
+      setFormError('Error de conexión. Intenta de nuevo.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return (
     <div className="p-6 max-w-5xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-serif text-ink">Clientes</h1>
           <p className="text-sm text-ink-muted mt-0.5">{total} cliente{total !== 1 ? 's' : ''} registrados</p>
         </div>
+        <button onClick={() => { setForm(EMPTY_FORM); setFormError(''); setShowCreate(true) }}
+          className="btn-cta text-sm">
+          + Nuevo cliente
+        </button>
       </div>
 
-      {/* Búsqueda */}
+      {/* Search */}
       <div className="mb-4">
         <input
           type="text"
@@ -64,13 +100,22 @@ export default function ClientesPage() {
         />
       </div>
 
-      {/* Tabla */}
-      <div className="bg-white rounded-xl border border-beige-dark overflow-hidden">
+      {/* Table */}
+      <div className="bg-white rounded-xl border border-beige-dark overflow-x-auto">
         {loading ? (
           <div className="py-16 text-center text-ink-muted text-sm">Cargando…</div>
         ) : clients.length === 0 ? (
-          <div className="py-16 text-center text-ink-muted text-sm">
-            {query ? 'Sin resultados para esa búsqueda.' : 'Aún no hay clientes registrados.'}
+          <div className="py-16 px-6 text-center">
+            <div className="text-3xl opacity-40 mb-2">◉</div>
+            <p className="text-ink-muted text-sm">
+              {query ? 'Sin resultados para esa búsqueda.' : 'Aún no hay clientes registrados.'}
+            </p>
+            {!query && (
+              <button onClick={() => { setForm(EMPTY_FORM); setFormError(''); setShowCreate(true) }}
+                className="btn-cta text-sm mt-4">
+                + Crear el primero
+              </button>
+            )}
           </div>
         ) : (
           <table className="w-full text-sm">
@@ -90,16 +135,16 @@ export default function ClientesPage() {
                     <p className="font-medium text-ink">{c.name}</p>
                     <p className="text-xs text-ink-muted">{c.email}</p>
                   </td>
-                  <td className="px-4 py-3 text-ink-muted">{c.phone ?? '—'}</td>
+                  <td className="px-4 py-3 text-ink-muted whitespace-nowrap">{c.phone ?? '—'}</td>
                   <td className="px-4 py-3 text-center">
                     <span className="inline-block bg-gold/10 text-gold-dark text-xs font-medium px-2 py-0.5 rounded-full">
                       {c._count.appointments}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-ink-muted text-xs">
+                  <td className="px-4 py-3 text-ink-muted text-xs whitespace-nowrap">
                     {new Date(c.createdAt).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-right whitespace-nowrap">
                     <Link href={`/admin/clientes/${c.id}`}
                       className="text-xs text-gold hover:underline">
                       Ver historial →
@@ -112,7 +157,7 @@ export default function ClientesPage() {
         )}
       </div>
 
-      {/* Paginación */}
+      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between mt-4 text-sm text-ink-muted">
           <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
@@ -124,6 +169,56 @@ export default function ClientesPage() {
             className="px-3 py-1.5 rounded-lg border border-beige-dark disabled:opacity-30 hover:bg-beige/40">
             Siguiente →
           </button>
+        </div>
+      )}
+
+      {/* Create-client modal */}
+      {showCreate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-beige-dark">
+              <h2 className="font-serif text-xl text-ink">Nuevo cliente</h2>
+              <button onClick={() => setShowCreate(false)}
+                className="text-ink-muted hover:text-ink text-xl leading-none">×</button>
+            </div>
+            <form onSubmit={createClient} noValidate className="px-6 py-5 space-y-4">
+              <div>
+                <label className="block text-sm text-ink-mid mb-1">Nombre completo <span className="text-red-500">*</span></label>
+                <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                  placeholder="Ana García" required className="input-field w-full" />
+              </div>
+              <div>
+                <label className="block text-sm text-ink-mid mb-1">Email <span className="text-red-500">*</span></label>
+                <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                  placeholder="ana@ejemplo.com" required className="input-field w-full" />
+              </div>
+              <div>
+                <label className="block text-sm text-ink-mid mb-1">Teléfono</label>
+                <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
+                  placeholder="3001234567" className="input-field w-full" />
+              </div>
+              <div>
+                <label className="block text-sm text-ink-mid mb-1">Notas internas</label>
+                <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+                  rows={2} placeholder="Preferencias, observaciones…" className="input-field w-full resize-none" />
+              </div>
+
+              {formError && (
+                <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-3 py-2 rounded-lg">
+                  {formError}
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-1">
+                <button type="button" onClick={() => setShowCreate(false)} className="btn-secondary flex-1">
+                  Cancelar
+                </button>
+                <button type="submit" disabled={saving} className="btn-cta flex-1 disabled:opacity-50">
+                  {saving ? 'Guardando…' : 'Crear cliente'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>
