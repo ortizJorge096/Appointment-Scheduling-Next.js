@@ -20,15 +20,102 @@ export default function HomePage() {
       <main>
         <Hero />
         <ServicesGrid />
+        <BeneficiosSection />
         <Galeria />
         <NosotrosSection />
         <BookingSection />
+        <UbicacionSection />
         <ContactoSection />
         <FAQ />
       </main>
       <Footer />
       <WhatsAppFab />
     </>
+  )
+}
+
+function BeneficiosSection() {
+  const items = [
+    { icon: '✦', title: 'Productos premium',       text: 'Marcas profesionales e insumos de primera en cada servicio.' },
+    { icon: '✛', title: 'Bioseguridad',            text: 'Material esterilizado y protocolos de higiene estrictos.' },
+    { icon: '♥', title: 'Atención personalizada',  text: 'Asesoría según tu estilo, tus rasgos y lo que buscas.' },
+    { icon: '⏱', title: 'Puntualidad',             text: 'Agenda controlada para que nunca esperes de más.' },
+  ]
+  return (
+    <section className="py-24 bg-beige/30">
+      <div className="max-w-7xl mx-auto px-6 lg:px-10">
+        <div className="text-center mb-14">
+          <span className="eyebrow-center">Por qué elegirnos</span>
+          <h2 className="text-4xl lg:text-5xl font-serif font-light text-ink mt-5">
+            Lujo accesible, sin <em className="text-gold italic">compromisos</em>
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {items.map((b) => (
+            <div key={b.title} className="card-premium p-7 text-center">
+              <div className="flex justify-center mb-4">
+                <span className="svc-icon-ring w-14 h-14 text-2xl">{b.icon}</span>
+              </div>
+              <h3 className="font-serif text-xl text-ink mb-2">{b.title}</h3>
+              <p className="text-sm text-ink-muted leading-relaxed">{b.text}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function UbicacionSection() {
+  const q        = encodeURIComponent(STUDIO.address)
+  const mapsUrl  = `https://www.google.com/maps/search/?api=1&query=${q}`
+  const embedUrl = `https://www.google.com/maps?q=${q}&output=embed`
+  return (
+    <section id="ubicacion" className="py-24 bg-white">
+      <div className="max-w-7xl mx-auto px-6 lg:px-10 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        <div>
+          <span className="section-tag mb-6">Visítanos</span>
+          <h2 className="text-4xl lg:text-5xl font-serif font-light text-ink mb-6">
+            Tu nuevo lugar <em className="text-gold italic">favorito</em>
+          </h2>
+          <div className="space-y-4">
+            <div className="flex gap-3">
+              <span className="text-gold-dark">📍</span>
+              <div>
+                <p className="font-medium text-ink text-sm">Dirección</p>
+                <p className="text-sm text-ink-muted">{STUDIO.address}</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <span className="text-gold-dark">🕐</span>
+              <div>
+                <p className="font-medium text-ink text-sm">Horario</p>
+                <p className="text-sm text-ink-muted">{STUDIO.hours}</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <span className="text-gold-dark">📱</span>
+              <div>
+                <p className="font-medium text-ink text-sm">Teléfono / WhatsApp</p>
+                <p className="text-sm text-ink-muted">{STUDIO.phone}</p>
+              </div>
+            </div>
+          </div>
+          <a href={mapsUrl} target="_blank" rel="noreferrer" className="btn-cta mt-8 inline-flex">
+            Cómo llegar
+          </a>
+        </div>
+        <div className="rounded-2xl overflow-hidden shadow-md border border-beige-dark/60 h-[340px]">
+          <iframe
+            src={embedUrl}
+            title="Mapa — Valentina Jimenez Beauty Studio"
+            width="100%" height="100%" loading="lazy"
+            style={{ border: 0 }}
+            referrerPolicy="no-referrer-when-downgrade"
+          />
+        </div>
+      </div>
+    </section>
   )
 }
 
@@ -82,15 +169,8 @@ function ContactoSection() {
         <p className="text-ink-muted text-base leading-relaxed mb-12 max-w-md mx-auto">
           Escríbenos por WhatsApp o al correo. Con gusto te asesoramos.
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-12 max-w-xl mx-auto">
           {[
-            {
-              icon: '📍',
-              label: 'Ubicación',
-              value: STUDIO.city,
-              sub: `${STUDIO.state}, ${STUDIO.country}`,
-              href: undefined,
-            },
             {
               icon: '📱',
               label: 'WhatsApp',

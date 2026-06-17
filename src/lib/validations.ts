@@ -103,7 +103,7 @@ export const createServiceSchema = z.object({
     .optional(),
 
   category: z
-    .enum(['UNAS', 'PESTANAS', 'CEJAS', 'PROMOS'])
+    .enum(['MANICURA', 'PEDICURA', 'CEJAS_PESTANAS', 'DEPILACION', 'CORTE', 'VIP'])
     .optional(),
 
   price: z
@@ -168,7 +168,7 @@ export const galleryCreateSchema = z.object({
   s3Key:       z.string().min(1).max(300),
   title:       z.string().max(120).optional(),
   description: z.string().max(300).optional(),
-  category:    z.enum(['UNAS', 'PESTANAS', 'CEJAS', 'PROMOS']).optional(),
+  category:    z.enum(['MANICURA', 'PEDICURA', 'CEJAS_PESTANAS', 'DEPILACION', 'CORTE', 'VIP']).optional(),
   width:       z.number().int().positive().optional(),
   height:      z.number().int().positive().optional(),
 })
@@ -177,7 +177,7 @@ export const galleryUpdateSchema = z.object({
   s3Key:       z.string().min(1).max(300).optional(),
   title:       z.string().max(120).nullable().optional(),
   description: z.string().max(300).nullable().optional(),
-  category:    z.enum(['UNAS', 'PESTANAS', 'CEJAS', 'PROMOS']).nullable().optional(),
+  category:    z.enum(['MANICURA', 'PEDICURA', 'CEJAS_PESTANAS', 'DEPILACION', 'CORTE', 'VIP']).nullable().optional(),
   order:       z.number().int().min(0).optional(),
   isActive:    z.boolean().optional(),
 })

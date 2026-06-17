@@ -39,7 +39,7 @@ describe('MAILTO_URL', () => {
 
 describe('categoryLabel', () => {
   it('devuelve la etiqueta de una categoría existente', () => {
-    expect(categoryLabel('UNAS')).toBe('Uñas')
+    expect(categoryLabel('MANICURA')).toBe('Manicura')
   })
 
   it('devuelve la clave si la categoría no existe', () => {
@@ -49,9 +49,9 @@ describe('categoryLabel', () => {
 
 describe('CATEGORY_ORDER', () => {
   it('contiene todas las categorías', () => {
-    expect(CATEGORY_ORDER).toContain('UNAS')
-    expect(CATEGORY_ORDER).toContain('PESTANAS')
-    expect(CATEGORY_ORDER).toContain('CEJAS')
-    expect(CATEGORY_ORDER).toContain('PROMOS')
+    expect(CATEGORY_ORDER).toContain('MANICURA')
+    expect(CATEGORY_ORDER).toContain('PEDICURA')
+    expect(CATEGORY_ORDER).toContain('CEJAS_PESTANAS')
+    expect(CATEGORY_ORDER).toContain('VIP')
   })
 })

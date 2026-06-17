@@ -14,10 +14,12 @@ function formatPrice(p: number) {
 
 // Short intro line per category (user-facing copy stays in Spanish)
 const CATEGORY_INTROS: Record<string, string> = {
-  UNAS:     'Manicura, pedicura, polygel y acrílico — manos y pies impecables.',
-  PESTANAS: 'Lifting, clásicas, volumen e híbridas para una mirada definida.',
-  CEJAS:    'Diseño, henna y laminado para enmarcar tu rostro.',
-  PROMOS:   'Combos con precio especial para consentirte por menos.',
+  MANICURA:       'Manicura, gel, acrílico y nail art para manos impecables.',
+  PEDICURA:       'Spa de pies, esmaltado y semipermanente.',
+  CEJAS_PESTANAS: 'Diseño, laminado, lifting y volumen para tu mirada.',
+  DEPILACION:     'Cera e hilo con técnicas suaves de precisión.',
+  CORTE:          'Corte, peinado y tratamientos de cabello.',
+  VIP:            'Combos y paquetes con precio especial.',
 }
 
 export default async function ServicesGrid() {

@@ -4,6 +4,9 @@
 
 import { useState, useEffect } from 'react'
 import { CATEGORY_ORDER, categoryLabel } from '@/lib/config'
+import { Pagination } from '@/components/admin/Pagination'
+
+const PER_PAGE = 8
 
 interface Service {
   id: string
@@ -17,7 +20,7 @@ interface Service {
 }
 
 const EMPTY: Omit<Service, 'id' | 'isActive'> = {
-  name: '', description: '', category: 'UNAS', price: 0, durationMinutes: 45, order: 0,
+  name: '', description: '', category: 'MANICURA', price: 0, durationMinutes: 45, order: 0,
 }
 
 function formatPrice(p: number) {
@@ -37,6 +40,10 @@ export default function ServiciosPage() {
   const [editing, setEditing]   = useState<Service | null>(null)   // null = new
   const [showForm, setShowForm] = useState(false)
   const [form, setForm]         = useState(EMPTY)
+  const [page, setPage]         = useState(1)
+
+  const totalPages = Math.ceil(services.length / PER_PAGE)
+  const paged      = services.slice((page - 1) * PER_PAGE, page * PER_PAGE)
 
   function load() {
     fetch('/api/services')
@@ -60,7 +67,7 @@ export default function ServiciosPage() {
     setForm({
       name: svc.name,
       description: svc.description ?? '',
-      category: svc.category ?? 'UNAS',
+      category: svc.category ?? 'MANICURA',
       price: svc.price,
       durationMinutes: svc.durationMinutes,
       order: svc.order,
@@ -211,7 +218,7 @@ export default function ServiciosPage() {
             No hay servicios aún. Crea el primero.
           </div>
         ) : (
-          services.map((svc) => (
+          paged.map((svc) => (
             <div key={svc.id}
               className={`flex items-center justify-between px-6 py-4 transition-opacity
                 ${svc.isActive ? '' : 'opacity-50'}`}>
@@ -260,6 +267,8 @@ export default function ServiciosPage() {
           ))
         )}
       </div>
+
+      <Pagination page={page} totalPages={totalPages} onPage={setPage} />
 
     </div>
   )

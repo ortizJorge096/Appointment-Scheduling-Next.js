@@ -32,10 +32,12 @@ interface FormData {
 
 // Short description for each category in step 1 cards
 const CATEGORY_BLURBS: Record<string, string> = {
-  UNAS:     'Manicura, pedicura, polygel y acrílico',
-  PESTANAS: 'Lifting, clásicas, volumen e híbridas',
-  CEJAS:    'Diseño, henna y laminado',
-  PROMOS:   'Combos con precio especial',
+  MANICURA:       'Manicura, gel, acrílico y nail art',
+  PEDICURA:       'Spa de pies, esmaltado y semipermanente',
+  CEJAS_PESTANAS: 'Diseño, laminado, lifting y volumen',
+  DEPILACION:     'Cera e hilo, técnicas de precisión',
+  CORTE:          'Corte, peinado y tratamientos',
+  VIP:            'Combos y paquetes con precio especial',
 }
 
 interface FieldErrors {
@@ -146,7 +148,7 @@ export default function BookingForm() {
     }
 
     const preCat = searchParams.get('categoria')
-    if (preCat && ['UNAS', 'PESTANAS', 'CEJAS', 'PROMOS'].includes(preCat)) {
+    if (preCat && ['MANICURA', 'PEDICURA', 'CEJAS_PESTANAS', 'DEPILACION', 'CORTE', 'VIP'].includes(preCat)) {
       setForm((prev) => ({ ...prev, category: preCat }))
       setStep('service')
       setAppliedPreselect(true)
@@ -221,6 +223,7 @@ export default function BookingForm() {
   function handlePrev() {
     const idx = STEPS.indexOf(step)
     if (idx > 0) setStep(STEPS[idx - 1])
+    else router.push('/')   // from the first step, leave the booking back to home
   }
 
   async function handleSubmit() {
@@ -369,7 +372,8 @@ export default function BookingForm() {
                 Servicios de <em className="text-gold italic">{categoryLabel(form.category).toLowerCase()}</em>
               </h2>
               <button type="button" onClick={() => setStep('category')}
-                className="text-xs tracking-widest uppercase text-ink-muted hover:text-gold transition-colors">
+                className="text-xs tracking-widest uppercase font-semibold text-gold-dark hover:text-gold
+                           border border-gold/40 rounded-full px-3 py-1.5 transition-colors">
                 ← Cambiar categoría
               </button>
             </div>
@@ -593,9 +597,9 @@ export default function BookingForm() {
 
       {/* Navigation */}
       <div className="flex justify-between mt-10 pt-6 border-t border-beige-dark">
-             {step !== 'service' ? (
-          <button type="button" onClick={handlePrev} className="btn-secondary" disabled={submitting}>← Atrás</button>
-        ) : <span />}
+        <button type="button" onClick={handlePrev} className="btn-secondary" disabled={submitting}>
+          {step === 'category' ? '← Volver al inicio' : '← Atrás'}
+        </button>
         {step !== 'confirm' ? (
           <button ref={continueRef} type="button" onClick={handleNext} className="btn-cta">Continuar →</button>
         ) : (

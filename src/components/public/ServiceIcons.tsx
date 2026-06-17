@@ -103,10 +103,12 @@ export function PromoIcon(props: IconProps) {
 
 // ── Map: category key (Prisma enum) → icon ──
 export const CATEGORY_ICON: Record<string, IconComponent> = {
-  UNAS:     ManicuraIcon,
-  PESTANAS: PestanasIcon,
-  CEJAS:    CejasIcon,
-  PROMOS:   PromoIcon,
+  MANICURA:       ManicuraIcon,
+  PEDICURA:       PedicuraIcon,
+  CEJAS_PESTANAS: CejasIcon,
+  DEPILACION:     DepilacionIcon,
+  CORTE:          CorteIcon,
+  VIP:            PromoIcon,
 }
 
 export function CategoryIcon({ category, ...props }: IconProps & { category: string }) {

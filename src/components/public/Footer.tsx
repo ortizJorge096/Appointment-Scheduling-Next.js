@@ -52,25 +52,25 @@ export default function Footer() {
                 {STUDIO.email}
               </a>
             </li>
+            <li className="flex items-center gap-4 pt-2">
+              <a href={INSTAGRAM_URL} target="_blank" rel="noreferrer"
+                className="text-white/60 hover:text-gold transition-colors text-xs tracking-widest uppercase">
+                Instagram
+              </a>
+              <a href={TIKTOK_URL} target="_blank" rel="noreferrer"
+                className="text-white/60 hover:text-gold transition-colors text-xs tracking-widest uppercase">
+                TikTok
+              </a>
+            </li>
           </ul>
         </div>
       </div>
 
-      {/* Extra bottom padding so the floating WhatsApp button never covers the social links */}
-      <div className="border-t border-white/[0.06] px-6 pt-4 pb-24 sm:pb-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+      {/* Copyright only, centered — never under the floating WhatsApp button (which sits bottom-right) */}
+      <div className="border-t border-white/[0.06] px-6 py-6 text-center">
         <p className="text-xs text-white/20">
           © {new Date().getFullYear()} {STUDIO.name}
         </p>
-        <div className="flex items-center gap-4">
-          <a href={INSTAGRAM_URL} target="_blank" rel="noreferrer"
-            className="text-white/60 hover:text-gold transition-colors text-sm tracking-widest uppercase">
-            Instagram
-          </a>
-          <a href={TIKTOK_URL} target="_blank" rel="noreferrer"
-            className="text-white/60 hover:text-gold transition-colors text-sm tracking-widest uppercase">
-            TikTok
-          </a>
-        </div>
       </div>
     </footer>
   )
