@@ -4,6 +4,9 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import type { ExpenseSummary, AccountingSummary } from '@/types'
+import { Pagination } from '@/components/admin/Pagination'
+
+const PER_PAGE = 10
 
 const COP = (n: number) =>
   new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n)
@@ -42,6 +45,12 @@ export default function ContabilidadPage() {
 
   // Delete modal
   const [deleting, setDeleting]   = useState<string | null>(null)
+
+  // Expense list pagination
+  const [expPage, setExpPage] = useState(1)
+  useEffect(() => { setExpPage(1) }, [dateFrom, dateTo])
+  const expTotalPages = Math.ceil(expenses.length / PER_PAGE)
+  const pagedExpenses = expenses.slice((expPage - 1) * PER_PAGE, expPage * PER_PAGE)
 
   const loadSummary = useCallback(async () => {
     setLoadingSum(true)
@@ -191,8 +200,8 @@ export default function ContabilidadPage() {
           ) : expenses.length === 0 ? (
             <p className="text-sm text-ink-muted">Sin gastos en este período.</p>
           ) : (
-            <div className="space-y-2 max-h-[520px] overflow-y-auto pr-1">
-              {expenses.map(exp => (
+            <div className="space-y-2">
+              {pagedExpenses.map(exp => (
                 <div key={exp.id}
                   className="bg-white rounded-xl border border-beige-dark px-4 py-3 flex items-center justify-between gap-3">
                   <div className="flex-1 min-w-0">
@@ -214,6 +223,7 @@ export default function ContabilidadPage() {
                   </div>
                 </div>
               ))}
+              <Pagination page={expPage} totalPages={expTotalPages} onPage={setExpPage} />
             </div>
           )}
         </div>

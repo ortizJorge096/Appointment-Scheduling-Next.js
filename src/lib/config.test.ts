@@ -39,7 +39,7 @@ describe('MAILTO_URL', () => {
 
 describe('categoryLabel', () => {
   it('devuelve la etiqueta de una categoría existente', () => {
-    expect(categoryLabel('UNAS')).toBe('Uñas')
+    expect(categoryLabel('MANICURA')).toBe('Manicura')
   })
 
   it('devuelve la clave si la categoría no existe', () => {

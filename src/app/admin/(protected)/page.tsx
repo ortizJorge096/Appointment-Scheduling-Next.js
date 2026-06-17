@@ -37,7 +37,7 @@ export default async function DashboardPage() {
   const weekEnd    = endOfWeek(now,   { weekStartsOn: 1 })
   const periodStart = startOfDay(subDays(now, PERIOD_DAYS - 1))
 
-  const [todayAppointments, weekCount, pendingCount, totalCompleted, periodAppts] = await Promise.all([
+  const [todayAppointments, weekCount, pendingCount, totalCompleted, periodAppts, topClients] = await Promise.all([
     prisma.appointment.findMany({
       where: { date: { gte: todayStart, lte: todayEnd }, status: { not: 'CANCELLED' } },
       include: { service: { select: { name: true, price: true, durationMinutes: true } } },
@@ -52,6 +52,12 @@ export default async function DashboardPage() {
     prisma.appointment.findMany({
       where: { date: { gte: periodStart, lte: todayEnd }, status: { not: 'CANCELLED' } },
       select: { date: true, status: true, service: { select: { price: true } } },
+    }),
+    // Most frequent clients (by appointment count)
+    prisma.client.findMany({
+      orderBy: { appointments: { _count: 'desc' } },
+      take: 5,
+      include: { _count: { select: { appointments: true } } },
     }),
   ])
 
@@ -198,6 +204,42 @@ export default async function DashboardPage() {
                 <div className="flex items-center gap-4">
                   <p className="text-sm text-gold hidden sm:block">{formatPrice(appt.service.price)}</p>
                   <span className={STATUS_CLASS[appt.status]}>{STATUS_LABEL[appt.status]}</span>
+                  <span className="text-gold-light group-hover:text-gold transition-colors text-lg">›</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Frequent clients */}
+      <div className="card-premium overflow-hidden mt-6">
+        <div className="px-6 py-4 border-b border-beige-dark flex items-center justify-between">
+          <h2 className="font-serif text-xl text-ink font-light">Clientas frecuentes</h2>
+          <Link href="/admin/clientes" className="text-xs text-gold hover:underline">Ver todas →</Link>
+        </div>
+        {topClients.length === 0 ? (
+          <div className="px-6 py-12 text-center text-ink-muted text-sm">
+            Aún no hay clientas registradas.
+          </div>
+        ) : (
+          <div className="divide-y divide-beige-dark">
+            {topClients.map((c) => (
+              <Link key={c.id} href={`/admin/clientes/${c.id}`}
+                className="flex items-center justify-between px-6 py-4 hover:bg-beige transition-colors group">
+                <div className="flex items-center gap-4 min-w-0">
+                  <span className="w-9 h-9 rounded-full bg-gold-pale text-gold-dark flex items-center justify-center text-xs font-semibold shrink-0">
+                    {c.name.slice(0, 2).toUpperCase()}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-ink truncate">{c.name}</p>
+                    <p className="text-xs text-ink-muted truncate">{c.email}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className="text-xs font-medium text-gold-dark bg-gold/10 px-2.5 py-0.5 rounded-full">
+                    {c._count.appointments} cita{c._count.appointments === 1 ? '' : 's'}
+                  </span>
                   <span className="text-gold-light group-hover:text-gold transition-colors text-lg">›</span>
                 </div>
               </Link>

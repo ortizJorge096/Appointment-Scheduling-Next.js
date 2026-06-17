@@ -123,7 +123,7 @@ export default function AuditoriaPage() {
         <div>
           <h1 className="font-serif text-2xl text-ink">Auditoría</h1>
           <p className="text-sm text-ink-muted mt-0.5">
-            Registro de todas las acciones sobre citas, clientes y gastos.
+            Registro de todas las acciones sobre citas, clientes, gastos, servicios, horarios y galería.
           </p>
         </div>
         <span className="text-xs text-ink-muted bg-beige px-3 py-1.5 rounded-lg border border-beige-dark">
