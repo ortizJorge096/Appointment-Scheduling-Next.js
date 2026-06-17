@@ -50,11 +50,6 @@ interface FieldErrors {
 
 const STORAGE_KEY = 'vj_booking_client'
 
-function formatPrice(price: number): string {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency', currency: 'COP', minimumFractionDigits: 0,
-  }).format(price)
-}
 
 const STEPS: FormStep[] = ['category', 'service', 'datetime', 'info', 'confirm']
 const STEP_LABELS: Record<FormStep, string> = {
