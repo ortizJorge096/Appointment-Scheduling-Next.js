@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { formatPrice } from '@/lib/utils'
@@ -58,7 +59,7 @@ export default function NextAvailability() {
   return (
     <>
       {loading ? (
-        <div className="bg-white/[0.06] border border-white/10 rounded-2xl p-7">
+        <div className="bg-gradient-to-b from-white/[0.07] to-white/[0.02] border border-gold/25 backdrop-blur-md rounded-2xl p-[22px]">
           <div className="animate-pulse space-y-3">
             <div className="h-3 w-32 bg-white/10 rounded" />
             <div className="h-7 w-40 bg-white/10 rounded" />
@@ -68,32 +69,25 @@ export default function NextAvailability() {
           </div>
         </div>
       ) : slot ? (
-        <div className="bg-white/[0.06] border border-white/10 rounded-2xl p-7">
-          <div className="flex items-center gap-2.5 mb-5">
-            <div className="w-2 h-2 rounded-full bg-gold" />
-            <p className="text-xs text-white/40 tracking-widest uppercase">Próxima disponibilidad</p>
-          </div>
-          <p className="font-serif text-3xl text-white font-light mb-1">
-            {dateLabel} &middot; {slot.startTime}
-          </p>
-          <p className="text-white/50 text-sm">{slot.service.name}</p>
-          <div className="mt-5 pt-5 border-t border-white/10 flex items-center justify-between">
-            <span className="text-gold font-medium text-lg">
-              ${slot.service.price.toLocaleString('es-CO')}
+        <div className="bg-gradient-to-b from-white/[0.07] to-white/[0.02] border border-gold/25 backdrop-blur-md rounded-2xl p-[22px]">
+          <p className="font-serif text-xl text-gold-light mb-1">Próxima disponibilidad</p>
+          <p className="text-white/45 text-[13px] mb-1">{dateLabel}, elige tu hora</p>
+          <div className="flex justify-between items-center gap-3 px-3.5 py-[11px] rounded-xl bg-white/5 mt-2.5 text-sm text-white/85">
+            <span className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-gold-light shadow-[0_0_0_4px_rgba(212,173,90,0.18)]" />
+              {slot.service.name}
             </span>
-            <span className="text-xs text-white/30">{slot.service.durationMinutes} min &middot; Confirmación inmediata</span>
+            <b className="text-white font-medium">{slot.startTime}</b>
           </div>
         </div>
       ) : (
-        <div className="bg-white/[0.06] border border-white/10 rounded-2xl p-7">
-          <div className="flex items-center gap-2.5 mb-5">
-            <div className="w-2 h-2 rounded-full bg-gold" />
-            <p className="text-xs text-white/40 tracking-widest uppercase">Próxima disponibilidad</p>
-          </div>
-          <p className="font-serif text-2xl text-white/40 font-light">
-            No hay disponibilidad próxima
-          </p>
-          <p className="text-white/30 text-sm mt-1">Intenta con otra fecha</p>
+        <div className="bg-gradient-to-b from-white/[0.07] to-white/[0.02] border border-gold/25 backdrop-blur-md rounded-2xl p-[22px]">
+          <p className="font-serif text-xl text-gold-light mb-1">Próxima disponibilidad</p>
+          <p className="text-white/45 text-sm mt-1">No hay disponibilidad próxima</p>
+          <Link href="/agendar"
+            className="inline-block text-sm text-gold hover:text-gold-light transition-colors mt-3">
+            Ver disponibilidad completa →
+          </Link>
         </div>
       )}
 

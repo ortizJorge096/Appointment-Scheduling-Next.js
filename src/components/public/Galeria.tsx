@@ -1,18 +1,29 @@
+'use client'
 // src/components/public/Galeria.tsx
-// Server component. Reads active images from the DB and displays them with
-// elegant fallback to gradients if nothing has been uploaded yet.
+// Client component — fetches the public gallery endpoint (GET /api/gallery)
+// and falls back to elegant placeholder gradients if nothing has been
+// uploaded yet. Moved off direct Prisma access so the home page can be fully
+// static (no build-time DB dependency, no per-request SSR) — same pattern
+// already used by ServicesGrid and NextAvailability.
 
-import { prisma } from '@/lib/prisma'
+import { useEffect, useState } from 'react'
 import { categoryLabel, INSTAGRAM_URL, TIKTOK_URL } from '@/lib/config'
-import { getPublicUrl } from '@/lib/s3'
+
+interface GalleryImage {
+  id: string
+  url: string
+  title: string | null
+  description: string | null
+  category: string | null
+}
 
 const PLACEHOLDER_GRADIENTS = [
-  'linear-gradient(145deg,#F2EBD9 0%,#B8932A 60%,#111111 100%)',
-  'linear-gradient(145deg,#E8DCC4 0%,#D4AD5A 70%,#1E1E1E 100%)',
-  'linear-gradient(145deg,#111111 0%,#B8932A 50%,#F2EBD9 100%)',
-  'linear-gradient(145deg,#1E1E1E 0%,#D4AD5A 40%,#E8DCC4 100%)',
-  'linear-gradient(145deg,#F5EDDA 0%,#8A6E1E 50%,#111111 100%)',
-  'linear-gradient(145deg,#111111 30%,#B8932A 100%)',
+  'linear-gradient(145deg,#F2EBD9 0%,#B8932A 60%,#1A1209 100%)',
+  'linear-gradient(145deg,#E8DCC4 0%,#D4AD5A 70%,#2A2014 100%)',
+  'linear-gradient(145deg,#1A1209 0%,#B8932A 50%,#F2EBD9 100%)',
+  'linear-gradient(145deg,#2A2014 0%,#D4AD5A 40%,#E8DCC4 100%)',
+  'linear-gradient(145deg,#F5EDDA 0%,#8A6E1E 50%,#1A1209 100%)',
+  'linear-gradient(145deg,#1A1209 30%,#B8932A 100%)',
 ]
 
 const PLACEHOLDER_ITEMS = [
@@ -24,27 +35,21 @@ const PLACEHOLDER_ITEMS = [
   { label: 'Cejas con henna',         sub: 'Cejas · 45 min'     },
 ]
 
-export default async function Galeria() {
-  // Error-tolerant: if the bucket is not configured or the table is empty,
-  // we show placeholder gradients without breaking the page.
-  let realImages: Array<{ url: string; title: string | null; description: string | null; category: string | null }> = []
-  try {
-    const rows = await prisma.galleryImage.findMany({
-      where: { isActive: true },
-      orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
-      take: 12,
-    })
-    realImages = rows.map((r) => ({
-      url: getPublicUrl(r.s3Key),
-      title: r.title,
-      description: r.description,
-      category: r.category,
-    }))
-  } catch {
-    realImages = []
-  }
+const MAX_IMAGES = 12
 
-  const showPlaceholders = realImages.length === 0
+export default function Galeria() {
+  const [images, setImages]   = useState<GalleryImage[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch('/api/gallery')
+      .then((r) => r.json())
+      .then((json) => { if (json.success) setImages(json.data.slice(0, MAX_IMAGES)) })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+
+  const showPlaceholders = !loading && images.length === 0
 
   // Bento pattern: some pieces take up more space for an elegant mosaic.
   const spanFor = (i: number) => {
@@ -65,7 +70,11 @@ export default async function Galeria() {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 auto-rows-[140px] md:auto-rows-[170px] gap-3">
-          {showPlaceholders
+          {loading
+            ? [1, 2, 3, 4, 5, 6].map((n, i) => (
+                <div key={n} className={`rounded-2xl bg-beige-dark/60 animate-pulse ${spanFor(i)}`} />
+              ))
+            : showPlaceholders
             ? PLACEHOLDER_ITEMS.map((item, i) => (
                 <div key={item.label}
                   className={`relative overflow-hidden rounded-2xl shadow-md group cursor-pointer ${spanFor(i)}`}>
@@ -78,8 +87,8 @@ export default async function Galeria() {
                   </div>
                 </div>
               ))
-            : realImages.map((img, i) => (
-                <div key={i}
+            : images.map((img, i) => (
+                <div key={img.id}
                   className={`relative overflow-hidden rounded-2xl shadow-sm group cursor-pointer bg-beige-dark ${spanFor(i)}`}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={img.url}

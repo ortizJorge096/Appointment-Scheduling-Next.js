@@ -5,12 +5,12 @@ import Hero from '@/components/public/Hero'
 import WhatsAppFab from '@/components/public/WhatsAppFab'
 import ServicesGrid from '@/components/public/ServicesGrid'
 import Galeria from '@/components/public/Galeria'
+import Testimonios from '@/components/public/Testimonios'
 import BookingSection from '@/components/public/BookingSection'
 import FAQ from '@/components/public/FAQ'
 import Footer from '@/components/public/Footer'
 import { STUDIO, WHATSAPP_URL, MAILTO_URL } from '@/lib/config'
 
-export const dynamic = 'force-dynamic'
 export const metadata: Metadata = { title: `Uñas, pestañas y cejas en ${STUDIO.city}` }
 
 export default function HomePage() {
@@ -22,6 +22,7 @@ export default function HomePage() {
         <ServicesGrid />
         <BeneficiosSection />
         <Galeria />
+        <Testimonios />
         <NosotrosSection />
         <BookingSection />
         <ContactoSection />
@@ -86,9 +87,9 @@ function NosotrosSection() {
             </p>
             <div className="grid grid-cols-3 gap-6 pt-6 border-t border-beige-dark">
               {[
-                { value: '+3',   label: 'Años de experiencia'  },
-                { value: '+200', label: 'Clientas satisfechas'  },
-                { value: '+25',  label: 'Servicios disponibles' },
+                { value: '+3',  label: 'Años de experiencia'  },
+                { value: '+80', label: 'Clientas satisfechas'  },
+                { value: '+25', label: 'Servicios disponibles' },
               ].map((s) => (
                 <div key={s.label}>
                   <p className="font-serif text-3xl text-gold font-light">{s.value}</p>
@@ -121,22 +122,22 @@ function ContactoSection() {
           </p>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-          <div className="space-y-6">
-            <div className="flex gap-3">
-              <span className="text-gold-dark">📍</span>
+          <div>
+            <div className="flex gap-3 py-3.5 border-b border-beige-deeper items-start">
+              <span className="text-gold-dark text-lg w-6">📍</span>
               <div>
-                <p className="font-medium text-ink text-sm">Dirección</p>
+                <p className="font-medium text-ink text-[15px]">Dirección</p>
                 <p className="text-sm text-ink-muted">{STUDIO.address}</p>
               </div>
             </div>
-            <div className="flex gap-3">
-              <span className="text-gold-dark">🕐</span>
+            <div className="flex gap-3 py-3.5 border-b border-beige-deeper items-start">
+              <span className="text-gold-dark text-lg w-6">🕐</span>
               <div>
-                <p className="font-medium text-ink text-sm">Horario</p>
+                <p className="font-medium text-ink text-[15px]">Horario</p>
                 <p className="text-sm text-ink-muted">{STUDIO.hours}</p>
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
               <a href={WHATSAPP_URL} target="_blank" rel="noreferrer"
                 className="bg-white border border-beige-dark p-5 text-left hover:border-gold transition-colors">
                 <p className="text-2xl mb-2">📱</p>

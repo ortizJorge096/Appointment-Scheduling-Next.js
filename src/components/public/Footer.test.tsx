@@ -21,6 +21,10 @@ vi.mock('@/lib/config', () => ({
   MAILTO_URL: 'mailto:hola@valentinajimenez.com',
   INSTAGRAM_URL: 'https://instagram.com/_valebeautystudio_',
   TIKTOK_URL: 'https://tiktok.com/valebeautystudio1',
+  CATEGORY_ORDER: ['UNAS', 'PESTANAS', 'CEJAS', 'CORTE', 'PROMOS'],
+  categoryLabel: (key: string) => ({
+    UNAS: 'Uñas', PESTANAS: 'Pestañas', CEJAS: 'Cejas', CORTE: 'Corte de Cabello', PROMOS: 'Promos',
+  } as Record<string, string>)[key] ?? key,
 }))
 
 describe('Footer', () => {
@@ -34,9 +38,22 @@ describe('Footer', () => {
   })
 
   it('renders navigation links', () => {
-    expect(screen.getByText('Servicios')).toBeInTheDocument()
+    // "Servicios" appears twice: the services column and the nav column
+    expect(screen.getAllByText('Servicios').length).toBeGreaterThanOrEqual(2)
     expect(screen.getByText('Galería')).toBeInTheDocument()
     expect(screen.getByText('Agendar cita')).toBeInTheDocument()
+  })
+
+  it('renders the services column', () => {
+    expect(screen.getByText('Uñas')).toBeInTheDocument()
+    expect(screen.getByText('Pestañas')).toBeInTheDocument()
+    expect(screen.getByText('Cejas')).toBeInTheDocument()
+    expect(screen.getByText('Corte de Cabello')).toBeInTheDocument()
+    expect(screen.getByText('Promos')).toBeInTheDocument()
+  })
+
+  it('links each service category to its booking deep-link', () => {
+    expect(screen.getByText('Uñas').closest('a')).toHaveAttribute('href', '/agendar?categoria=UNAS')
   })
 
   it('renders contact info', () => {

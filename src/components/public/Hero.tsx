@@ -6,8 +6,12 @@ export default function Hero() {
   return (
     <section className="relative min-h-screen bg-ink flex items-center overflow-hidden">
       <div className="absolute inset-0 pointer-events-none"
-        style={{ background: 'radial-gradient(ellipse 80% 60% at 70% 40%, rgba(184,147,42,0.12) 0%, transparent 70%)' }}
+        style={{ background: 'radial-gradient(120% 120% at 80% 10%, #262017 0%, #1A1209 55%)' }}
       />
+      <div className="absolute -top-32 -right-20 w-[520px] h-[520px] rounded-full pointer-events-none blur-sm"
+        style={{ background: 'radial-gradient(circle, rgba(212,173,90,.32), transparent 65%)' }}
+      />
+      <div className="absolute -bottom-40 -left-32 w-[380px] h-[380px] rounded-full border border-gold/[0.22] pointer-events-none" />
       <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-10 pt-24 pb-16
                       grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
         <div>
@@ -19,8 +23,8 @@ export default function Hero() {
               {STUDIO.tagline} · {STUDIO.city}
             </p>
           </div>
-          <h1 className="font-serif text-5xl lg:text-7xl font-light text-white
-                         leading-[1.06] mb-6 animate-fade-up animation-delay-100">
+          <h1 className="font-serif text-5xl lg:text-[64px] font-light text-white
+                         leading-[1.08] mb-6 animate-fade-up animation-delay-100">
             Tu belleza,<br /><em className="text-gold italic">elevada al detalle</em>
           </h1>
           <p className="text-white/55 text-base leading-relaxed max-w-md mb-10
@@ -31,16 +35,16 @@ export default function Hero() {
             <Link href="/agendar" className="btn-cta">Agendar cita</Link>
             <a href="#servicios" className="btn-outline-gold">Ver servicios</a>
           </div>
-          <div className="flex gap-10 mt-14 pt-10 border-t border-white/10
+          <div className="flex gap-6 flex-wrap mt-7
                           animate-fade-up animation-delay-400">
             {[
-              { value: '+2.400', label: 'Citas realizadas' },
-              { value: '5★',     label: 'Calificación'     },
-              { value: '+25',    label: 'Servicios'        },
+              { value: '+150', label: 'Citas realizadas' },
+              { value: '4.8★', label: 'Calificación'     },
+              { value: '+25',  label: 'Servicios'        },
             ].map((s) => (
-              <div key={s.label}>
-                <p className="font-serif text-2xl text-gold font-light">{s.value}</p>
-                <p className="text-xs text-white/40 mt-0.5 tracking-wide">{s.label}</p>
+              <div key={s.label} className="text-[13px] text-white/55">
+                <p className="font-serif text-2xl text-gold font-light leading-none">{s.value}</p>
+                {s.label}
               </div>
             ))}
           </div>

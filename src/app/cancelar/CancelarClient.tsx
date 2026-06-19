@@ -119,7 +119,7 @@ export default function CancelarClient() {
                 <div key={label}
                   className="flex justify-between text-sm border-b border-beige-dark pb-3 last:border-0 last:pb-0">
                   <span className="text-ink-muted">{label}</span>
-                  <span className="text-ink font-medium capitalize">{value}</span>
+                  <span className="text-ink font-medium first-letter:uppercase">{value}</span>
                 </div>
               ))}
             </div>
