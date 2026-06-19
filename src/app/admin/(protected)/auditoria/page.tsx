@@ -46,15 +46,6 @@ const ACTION_COLORS: Record<AuditAction, string> = {
   STATUS_CHANGE: 'bg-amber-100 text-amber-700',
 }
 
-const ENTITY_COLORS: Record<AuditEntity, string> = {
-  APPOINTMENT: 'text-ink',
-  CLIENT:      'text-ink',
-  EXPENSE:     'text-ink',
-  SERVICE:     'text-ink',
-  GALLERY:     'text-ink',
-  SCHEDULE:    'text-ink',
-}
-
 function formatDate(iso: string) {
   return new Date(iso).toLocaleString('es-CO', {
     day: '2-digit', month: '2-digit', year: 'numeric',
@@ -199,7 +190,7 @@ export default function AuditoriaPage() {
                     </span>
                     <span className="sm:hidden text-xs text-ink-muted ml-1.5">{ENTITY_LABELS[log.entity]}</span>
                   </td>
-                  <td className={`px-4 py-3 text-xs font-medium hidden sm:table-cell ${ENTITY_COLORS[log.entity]}`}>
+                  <td className="px-4 py-3 text-xs font-medium text-ink hidden sm:table-cell">
                     {ENTITY_LABELS[log.entity]}
                   </td>
                   <td className="px-4 py-3 text-xs text-ink-muted hidden md:table-cell">
