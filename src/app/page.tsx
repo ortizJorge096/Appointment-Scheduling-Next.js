@@ -10,6 +10,7 @@ import BookingSection from '@/components/public/BookingSection'
 import FAQ from '@/components/public/FAQ'
 import Footer from '@/components/public/Footer'
 import { STUDIO, WHATSAPP_URL, MAILTO_URL } from '@/lib/config'
+import { PinIcon, ClockIcon, PhoneIcon, MailIcon } from '@/components/public/ServiceIcons'
 
 export const metadata: Metadata = { title: `Uñas, pestañas y cejas en ${STUDIO.city}` }
 
@@ -121,17 +122,17 @@ function ContactoSection() {
             Escríbenos por WhatsApp o al correo. Con gusto te asesoramos.
           </p>
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-stretch">
           <div>
             <div className="flex gap-3 py-3.5 border-b border-beige-deeper items-start">
-              <span className="text-gold-dark text-lg w-6">📍</span>
+              <PinIcon className="text-gold-dark w-5 h-5 shrink-0 mt-0.5" />
               <div>
                 <p className="font-medium text-ink text-[15px]">Dirección</p>
                 <p className="text-sm text-ink-muted">{STUDIO.address}</p>
               </div>
             </div>
             <div className="flex gap-3 py-3.5 border-b border-beige-deeper items-start">
-              <span className="text-gold-dark text-lg w-6">🕐</span>
+              <ClockIcon className="text-gold-dark w-5 h-5 shrink-0 mt-0.5" />
               <div>
                 <p className="font-medium text-ink text-[15px]">Horario</p>
                 <p className="text-sm text-ink-muted">{STUDIO.hours}</p>
@@ -140,7 +141,7 @@ function ContactoSection() {
             <div className="flex flex-col gap-3 mt-6">
               <a href={WHATSAPP_URL} target="_blank" rel="noreferrer"
                 className="flex items-center gap-4 bg-white border border-beige-dark p-5 text-left hover:border-gold transition-colors">
-                <p className="text-2xl shrink-0">📱</p>
+                <PhoneIcon className="text-gold-dark w-6 h-6 shrink-0" />
                 <div className="min-w-0">
                   <p className="text-xs text-gold tracking-widest uppercase mb-1">WhatsApp</p>
                   <p className="text-sm text-ink font-medium">{STUDIO.phone}</p>
@@ -148,7 +149,7 @@ function ContactoSection() {
               </a>
               <a href={MAILTO_URL} target="_blank" rel="noreferrer"
                 className="flex items-center gap-4 bg-white border border-beige-dark p-5 text-left hover:border-gold transition-colors">
-                <p className="text-2xl shrink-0">✉️</p>
+                <MailIcon className="text-gold-dark w-6 h-6 shrink-0" />
                 <div className="min-w-0">
                   <p className="text-xs text-gold tracking-widest uppercase mb-1">Email</p>
                   <p className="text-sm text-ink font-medium break-all">{STUDIO.email}</p>
@@ -156,17 +157,16 @@ function ContactoSection() {
               </a>
             </div>
           </div>
-          <div>
-            <div className="rounded-2xl overflow-hidden shadow-md border border-beige-dark/60 h-[340px]">
-              <iframe
-                src={embedUrl}
-                title="Mapa — Valentina Jimenez Beauty Studio"
-                width="100%" height="100%" loading="lazy"
-                style={{ border: 0 }}
-                referrerPolicy="no-referrer-when-downgrade"
-              />
-            </div>
-            <a href={mapsUrl} target="_blank" rel="noreferrer" className="btn-cta inline-flex mt-5">
+          <div className="relative rounded-2xl overflow-hidden shadow-md border border-beige-dark/60 h-full min-h-[400px]">
+            <iframe
+              src={embedUrl}
+              title="Mapa — Valentina Jimenez Beauty Studio"
+              width="100%" height="100%" loading="lazy"
+              style={{ border: 0 }}
+              referrerPolicy="no-referrer-when-downgrade"
+            />
+            <a href={mapsUrl} target="_blank" rel="noreferrer"
+              className="btn-cta absolute bottom-4 left-4 shadow-lg">
               Cómo llegar
             </a>
           </div>
