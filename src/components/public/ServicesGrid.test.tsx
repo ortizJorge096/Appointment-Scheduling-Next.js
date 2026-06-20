@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import ServicesGrid from './ServicesGrid'
 
 vi.mock('next/link', () => ({
@@ -7,37 +7,45 @@ vi.mock('next/link', () => ({
   ),
 }))
 
-vi.mock('@/lib/prisma', () => ({
-  prisma: {
-    service: {
-      findMany: vi.fn().mockResolvedValue([
-        { id: 'svc-1', name: 'Manicura tradicional', description: 'Limado y esmaltado', category: 'MANICURA', price: 35000, durationMinutes: 45, order: 1, isActive: true },
-        { id: 'svc-2', name: 'Lifting de pestañas',  description: null,                  category: 'CEJAS_PESTANAS', price: 80000, durationMinutes: 60, order: 2, isActive: true },
-      ]),
-    },
-  },
-}))
+const MOCK_SERVICES = [
+  { id: 'svc-1', name: 'Manicura tradicional', description: 'Limado y esmaltado', category: 'UNAS', price: 35000, durationMinutes: 45, order: 1, isActive: true },
+  { id: 'svc-2', name: 'Lifting de pestañas',  description: null,                  category: 'PESTANAS', price: 80000, durationMinutes: 60, order: 2, isActive: true },
+]
+
+function setupApiMocks() {
+  globalThis.fetch = vi.fn(() =>
+    Promise.resolve({ json: () => Promise.resolve({ success: true, data: MOCK_SERVICES }) })
+  ) as unknown as typeof fetch
+}
+
+beforeEach(() => {
+  setupApiMocks()
+})
 
 describe('ServicesGrid', () => {
-  it('renders one card per individual service', async () => {
-    render(await ServicesGrid())
-    expect(screen.getByText('Manicura tradicional')).toBeInTheDocument()
-    expect(screen.getByText('Lifting de pestañas')).toBeInTheDocument()
+  it('renders one category card per category with active services', async () => {
+    render(<ServicesGrid />)
+    expect(await screen.findByText('Uñas')).toBeInTheDocument()
+    expect(screen.getByText('Pestañas')).toBeInTheDocument()
+    // Plus the static VIP promo card
+    expect(screen.getByText('Paquete VIP')).toBeInTheDocument()
   })
 
-  it('each service card links to the booking flow filtered by service ID', async () => {
-    render(await ServicesGrid())
+  it('each category card links to the booking flow filtered by category', async () => {
+    render(<ServicesGrid />)
+    await screen.findByText('Uñas')
     const links = screen.getAllByRole('link', { name: /reservar/i })
-    expect(links.length).toBe(2)
-    expect(links[0]).toHaveAttribute('href', '/agendar?service=svc-1')
-    expect(links[1]).toHaveAttribute('href', '/agendar?service=svc-2')
+    expect(links.find((l) => l.getAttribute('href') === '/agendar?categoria=UNAS')).toBeTruthy()
+    expect(links.find((l) => l.getAttribute('href') === '/agendar?categoria=PESTANAS')).toBeTruthy()
   })
 
-  it('shows price and duration for each service', async () => {
-    render(await ServicesGrid())
-    expect(screen.getAllByText(/35\.000/).length).toBeGreaterThan(0)
-    expect(screen.getAllByText(/45 min/).length).toBeGreaterThan(0)
-    expect(screen.getAllByText(/80\.000/).length).toBeGreaterThan(0)
-    expect(screen.getAllByText(/60 min/).length).toBeGreaterThan(0)
+  it('shows the lowest price and duration range for each category', async () => {
+    render(<ServicesGrid />)
+    await waitFor(() => {
+      expect(screen.getByText(/35\.000/)).toBeInTheDocument()
+      expect(screen.getByText('45 min')).toBeInTheDocument()
+      expect(screen.getByText(/80\.000/)).toBeInTheDocument()
+      expect(screen.getByText('60 min')).toBeInTheDocument()
+    })
   })
 })

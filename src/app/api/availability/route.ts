@@ -18,6 +18,7 @@ export async function GET(
       date: searchParams.get('date') ?? '',
       serviceId: searchParams.get('serviceId') ?? undefined,
       durationMinutes: searchParams.get('durationMinutes') ?? undefined,
+      professionalId: searchParams.get('professionalId') ?? undefined,
     }
 
     // Validate parameters
@@ -29,10 +30,10 @@ export async function GET(
       )
     }
 
-    const { date, serviceId, durationMinutes } = parsed.data
+    const { date, serviceId, durationMinutes, professionalId } = parsed.data
     const result = serviceId
-      ? await getAvailableSlots(date, serviceId)
-      : await getAvailableSlotsByDuration(date, durationMinutes!)
+      ? await getAvailableSlots(date, serviceId, professionalId)
+      : await getAvailableSlotsByDuration(date, durationMinutes!, professionalId)
 
     return NextResponse.json({
       success: true,

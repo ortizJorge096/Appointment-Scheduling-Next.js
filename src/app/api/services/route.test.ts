@@ -16,8 +16,8 @@ const { getServerSession } = await import('next-auth')
 const { prisma }           = await import('@/lib/prisma')
 
 const MOCK_SERVICES = [
-  { id: 's1', name: 'Manicura', description: null, category: 'MANICURA', price: 35000, durationMinutes: 45, isActive: true,  order: 1 },
-  { id: 's2', name: 'Lifting',  description: null, category: 'CEJAS_PESTANAS', price: 80000, durationMinutes: 60, isActive: false, order: 2 },
+  { id: 's1', name: 'Manicura', description: null, category: 'UNAS', price: 35000, durationMinutes: 45, isActive: true,  order: 1 },
+  { id: 's2', name: 'Lifting',  description: null, category: 'PESTANAS', price: 80000, durationMinutes: 60, isActive: false, order: 2 },
 ]
 
 function makeRequest(body?: unknown): NextRequest {

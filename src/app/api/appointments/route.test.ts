@@ -14,6 +14,8 @@ vi.mock('@/lib/prisma', () => ({
       update:    vi.fn(),
     },
     service: { findUnique: vi.fn(), findMany: vi.fn() },
+    vipDiscountConfig: { findFirst: vi.fn() },
+    vipDiscountTier:   { findMany: vi.fn() },
     $transaction: vi.fn(),
   },
 }))

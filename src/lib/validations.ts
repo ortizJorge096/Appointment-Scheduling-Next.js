@@ -52,6 +52,13 @@ export const createAppointmentSchema = z.object({
     .max(480, 'Duración máxima 8 horas')
     .optional(),
 
+  // Omitido o null = "Primera disponible" (el servidor asigna el primer profesional libre)
+  professionalId: z
+    .string()
+    .cuid('ID de profesional inválido')
+    .nullable()
+    .optional(),
+
   date: dateString,
 
   startTime: timeString,
@@ -80,6 +87,7 @@ export const availabilityQuerySchema = z.object({
   date: dateString,
   serviceId: z.string().cuid('ID de servicio inválido').optional(),
   durationMinutes: z.coerce.number().int().min(15).max(480).optional(),
+  professionalId: z.string().cuid('ID de profesional inválido').optional(),
 }).refine(
   (data) => data.serviceId || data.durationMinutes,
   { message: 'Se requiere serviceId o durationMinutes' }
@@ -128,7 +136,7 @@ export const createServiceSchema = z.object({
     .optional(),
 
   category: z
-    .enum(['MANICURA', 'PEDICURA', 'CEJAS_PESTANAS', 'DEPILACION', 'CORTE', 'VIP'])
+    .enum(['UNAS', 'PESTANAS', 'CEJAS', 'CORTE', 'PROMOS'])
     .optional(),
 
   price: z
@@ -193,7 +201,7 @@ export const galleryCreateSchema = z.object({
   s3Key:       z.string().min(1).max(300),
   title:       z.string().max(120).optional(),
   description: z.string().max(300).optional(),
-  category:    z.enum(['MANICURA', 'PEDICURA', 'CEJAS_PESTANAS', 'DEPILACION', 'CORTE', 'VIP']).optional(),
+  category:    z.enum(['UNAS', 'PESTANAS', 'CEJAS', 'CORTE', 'PROMOS']).optional(),
   width:       z.number().int().positive().optional(),
   height:      z.number().int().positive().optional(),
 })
@@ -202,7 +210,7 @@ export const galleryUpdateSchema = z.object({
   s3Key:       z.string().min(1).max(300).optional(),
   title:       z.string().max(120).nullable().optional(),
   description: z.string().max(300).nullable().optional(),
-  category:    z.enum(['MANICURA', 'PEDICURA', 'CEJAS_PESTANAS', 'DEPILACION', 'CORTE', 'VIP']).nullable().optional(),
+  category:    z.enum(['UNAS', 'PESTANAS', 'CEJAS', 'CORTE', 'PROMOS']).nullable().optional(),
   order:       z.number().int().min(0).optional(),
   isActive:    z.boolean().optional(),
 })
@@ -264,3 +272,33 @@ export const createExpenseSchema = z.object({
 })
 
 export const updateExpenseSchema = createExpenseSchema.partial()
+
+// ─────────────────────────────────────────
+// PROFESSIONALS (admin)
+// ─────────────────────────────────────────
+
+export const createProfessionalSchema = z.object({
+  name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres').max(80),
+  specialty: z.string().max(120).optional(),
+  rating: z.number().min(0).max(5).optional(),
+  reviewCount: z.number().int().min(0).optional(),
+  order: z.number().int().min(0).optional(),
+})
+
+export const updateProfessionalSchema = createProfessionalSchema.partial().extend({
+  isActive: z.boolean().optional(),
+})
+
+// ─────────────────────────────────────────
+// VIP DISCOUNT CONFIG (admin)
+// ─────────────────────────────────────────
+
+export const vipConfigSchema = z.object({
+  enabled: z.boolean(),
+  tiers: z
+    .array(z.object({
+      minServices: z.number().int().min(2, 'El tramo mínimo es 2 servicios').max(20),
+      discountPct: z.number().int().min(0).max(100),
+    }))
+    .min(1, 'Debe haber al menos un tramo de descuento'),
+})

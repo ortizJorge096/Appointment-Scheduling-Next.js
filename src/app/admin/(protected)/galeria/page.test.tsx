@@ -6,7 +6,7 @@ const MOCK_IMAGES = [
     id: 'img-1',
     title: 'Diseño floral',
     description: 'Set completo de uñas',
-    category: 'MANICURA',
+    category: 'UNAS',
     width: 800,
     height: 800,
     order: 1,
@@ -60,38 +60,37 @@ describe('GaleriaAdminPage', () => {
 
   it('muestra "Sin título" para imágenes sin título', async () => {
     render(<GaleriaAdminPage />)
-    await screen.findByText('Manicura')
+    await screen.findByText('Uñas')
     expect(screen.getByText('Sin título')).toBeInTheDocument()
   })
 
   it('muestra la categoría de la imagen', async () => {
     render(<GaleriaAdminPage />)
-    await screen.findByText('Manicura')
-    expect(screen.getByText('Manicura')).toBeInTheDocument()
+    expect(await screen.findByText('Uñas')).toBeInTheDocument()
   })
 
   it('renderiza botón reemplazar (📷) en cada imagen', async () => {
     render(<GaleriaAdminPage />)
-    await screen.findByText('Manicura')
+    await screen.findByText('Uñas')
     expect(screen.getAllByText('📷')).toHaveLength(2)
   })
 
   it('renderiza botón Editar (✏️) en cada imagen', async () => {
     render(<GaleriaAdminPage />)
-    await screen.findByText('Manicura')
+    await screen.findByText('Uñas')
     expect(screen.getAllByText('✏️')).toHaveLength(2)
   })
 
   it('renderiza visibilidad: ✓ para imagen activa y 👁 para inactiva', async () => {
     render(<GaleriaAdminPage />)
-    await screen.findByText('Manicura')
+    await screen.findByText('Uñas')
     expect(screen.getByText('✓')).toBeInTheDocument()
     expect(screen.getByText('👁')).toBeInTheDocument()
   })
 
   it('renderiza botón Borrar (🗑) en cada imagen', async () => {
     render(<GaleriaAdminPage />)
-    await screen.findByText('Manicura')
+    await screen.findByText('Uñas')
     expect(screen.getAllByText('🗑')).toHaveLength(2)
   })
 })

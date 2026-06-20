@@ -8,6 +8,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createAppointmentSchema } from '@/lib/validations'
 import { isSlotAvailable, timeToMinutes, minutesToTime } from '@/lib/availability'
+import { getVipSettings, resolveDiscountPercent } from '@/lib/vip'
 import { sendConfirmationEmail } from '@/lib/email'
 import { createCalendarEvent } from '@/lib/calendar'
 import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
@@ -91,6 +92,9 @@ export async function GET(
               },
             },
           },
+          professional: {
+            select: { id: true, name: true },
+          },
         },
         orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
         skip: (page - 1) * limit,
@@ -152,8 +156,19 @@ export async function POST(
     )
   }
 
-  const { clientName, clientEmail, clientPhone, serviceId, serviceIds, totalDurationMinutes, date, startTime, notes } =
+  const { clientName, clientEmail, clientPhone, serviceId, serviceIds, totalDurationMinutes, professionalId, date, startTime, notes } =
     parsed.data
+
+  // If a specific professional was requested, make sure it exists and is active
+  if (professionalId) {
+    const professional = await prisma.professional.findUnique({ where: { id: professionalId } })
+    if (!professional || !professional.isActive) {
+      return NextResponse.json(
+        { success: false, error: 'El profesional seleccionado no está disponible' },
+        { status: 404 }
+      )
+    }
+  }
 
   // For multi-service bookings, verify all services exist
   const allServiceIds = serviceIds && serviceIds.length > 1 ? serviceIds : [serviceId]
@@ -181,17 +196,21 @@ export async function POST(
   // Calculate total duration
   const computedDuration = totalDurationMinutes ?? services.reduce((sum, s) => sum + s.durationMinutes, 0)
 
+  // VIP discount: 2+ services (any category) unlock a tiered discount, parametrized in the DB
+  const vipSettings = await getVipSettings()
+  const discountPercent = resolveDiscountPercent(allServiceIds.length, vipSettings)
+
   // Preliminary check (valid schedule, not in the past, open day, not blocked)
   let available
   try {
     // Use durationMinutes-based check for multi-service bookings
     if (serviceIds && serviceIds.length > 1) {
       const { getAvailableSlotsByDuration } = await import('@/lib/availability')
-      const { slots } = await getAvailableSlotsByDuration(date, computedDuration)
+      const { slots } = await getAvailableSlotsByDuration(date, computedDuration, professionalId ?? undefined)
       const slot = slots.find((s) => s.startTime === startTime)
       available = slot?.available ?? false
     } else {
-      available = await isSlotAvailable(date, startTime, serviceId)
+      available = await isSlotAvailable(date, startTime, serviceId, professionalId ?? undefined)
     }
   } catch (err) {
     if (isDbUnavailable(err)) return dbUnavailableResponse()
@@ -218,18 +237,38 @@ export async function POST(
   let appointment: AppointmentWithService
   try {
     appointment = await prisma.$transaction(async (tx) => {
-      const conflict = await tx.appointment.findFirst({
+      // Overlapping appointments in this date/time range, with their professional
+      const overlapping = await tx.appointment.findMany({
         where: {
           date: { gte: dayStart, lt: dayEnd },
           status: { in: ['PENDING', 'CONFIRMED'] },
           startTime: { lt: endTime },
           endTime: { gt: startTime },
         },
-        select: { id: true },
+        select: { professionalId: true },
       })
 
-      if (conflict) {
-        throw new SlotTakenError()
+      let assignedProfessionalId: string | null = null
+
+      if (professionalId) {
+        // Specific professional requested: re-check only their conflicts
+        if (overlapping.some((a) => a.professionalId === professionalId)) {
+          throw new SlotTakenError()
+        }
+        assignedProfessionalId = professionalId
+      } else {
+        // "Primera disponible": assign the first active professional free in this range
+        const busyIds = new Set(overlapping.map((a) => a.professionalId).filter(Boolean))
+        const activeProfessionals = await tx.professional.findMany({
+          where: { isActive: true },
+          orderBy: { order: 'asc' },
+          select: { id: true },
+        })
+        const free = activeProfessionals.find((p) => !busyIds.has(p.id))
+        if (activeProfessionals.length > 0 && !free) {
+          throw new SlotTakenError()
+        }
+        assignedProfessionalId = free?.id ?? null
       }
 
       return tx.appointment.create({
@@ -239,6 +278,8 @@ export async function POST(
           clientPhone: clientPhone.trim(),
           serviceId,
           totalDurationMinutes: computedDuration,
+          discountPercent,
+          professionalId: assignedProfessionalId,
           date: dayStart,
           startTime,
           endTime,
@@ -261,6 +302,9 @@ export async function POST(
                 select: { id: true, name: true, price: true, durationMinutes: true },
               },
             },
+          },
+          professional: {
+            select: { id: true, name: true },
           },
         },
       }) as unknown as AppointmentWithService

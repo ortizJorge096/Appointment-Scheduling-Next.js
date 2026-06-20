@@ -74,6 +74,7 @@ export interface CreateAppointmentInput {
   serviceId: string
   serviceIds?: string[]
   totalDurationMinutes?: number
+  professionalId?: string | null
   date: string        // "YYYY-MM-DD"
   startTime: string   // "HH:MM"
   notes?: string
@@ -102,6 +103,7 @@ export interface AppointmentWithService {
   reminderSentAt: string | null
   createdAt: string
   totalDurationMinutes: number
+  discountPercent: number
   service: {
     id: string
     name: string
@@ -119,6 +121,8 @@ export interface AppointmentWithService {
       durationMinutes: number
     }
   }>
+  professionalId?: string | null
+  professional?: { id: string; name: string } | null
 }
 
 export interface UpdateAppointmentInput {

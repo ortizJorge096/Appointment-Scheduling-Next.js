@@ -13,10 +13,11 @@ const MAIN_NAV = [
 
 // Grouped under "Configuración"
 const CONFIG_NAV = [
-  { href: '/admin/clientes',  label: 'Clientes',  icon: '◉' },
-  { href: '/admin/servicios', label: 'Servicios', icon: '✦' },
-  { href: '/admin/horarios',  label: 'Horarios',  icon: '◻' },
-  { href: '/admin/galeria',   label: 'Galería',   icon: '◫' },
+  { href: '/admin/clientes',      label: 'Clientes',      icon: '◉' },
+  { href: '/admin/servicios',     label: 'Servicios',     icon: '✦' },
+  { href: '/admin/profesionales', label: 'Profesionales', icon: '☆' },
+  { href: '/admin/horarios',      label: 'Horarios',      icon: '◻' },
+  { href: '/admin/galeria',       label: 'Galería',       icon: '◫' },
 ]
 
 export default function AdminSidebar() {
