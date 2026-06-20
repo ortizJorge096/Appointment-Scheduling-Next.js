@@ -68,6 +68,43 @@ function timesOverlap(
   return startA < endB && endA > startB
 }
 
+/**
+ * Number of active professionals — the studio's parallel capacity.
+ * A time slot is only fully booked once every active professional has
+ * an overlapping appointment. Falls back to capacity 1 (legacy single-
+ * resource behavior) if no professionals have been set up yet.
+ */
+async function getActiveProfessionalCount(): Promise<number> {
+  const count = await prisma.professional.count({ where: { isActive: true } })
+  return count > 0 ? count : 1
+}
+
+/**
+ * Given the appointments already booked on a date (optionally scoped to one
+ * professional) and the studio's capacity, returns a conflict-checker for a
+ * slot range. When `professionalId` is set, the slot is taken only if THAT
+ * professional already has an overlapping appointment. Otherwise, the slot
+ * is taken only once overlapping appointments reach the total capacity
+ * (every professional already has something booked in that range).
+ */
+function buildConflictChecker(
+  appointments: Array<{ startTime: string; endTime: string; professionalId: string | null }>,
+  capacity: number,
+  professionalId?: string
+) {
+  const relevant = professionalId
+    ? appointments.filter((a) => a.professionalId === professionalId)
+    : appointments
+
+  return (slotStart: number, slotEnd: number): boolean => {
+    const overlapping = relevant.filter((appt) =>
+      timesOverlap(slotStart, slotEnd, timeToMinutes(appt.startTime), timeToMinutes(appt.endTime))
+    )
+    if (professionalId) return overlapping.length > 0
+    return overlapping.length >= capacity
+  }
+}
+
 // ─────────────────────────────────────────
 // MAIN FUNCTION
 // ─────────────────────────────────────────
@@ -88,7 +125,8 @@ function timesOverlap(
  */
 export async function getAvailableSlots(
   dateStr: string,
-  serviceId: string
+  serviceId: string,
+  professionalId?: string
 ): Promise<{ slots: TimeSlot[]; durationMinutes: number }> {
 
   // 1. Load service
@@ -135,17 +173,22 @@ export async function getAvailableSlots(
     return { slots: [], durationMinutes }
   }
 
-  // 5. Load already confirmed/pending appointments for that date
-  const existingAppointments = await prisma.appointment.findMany({
-    where: {
-      date: {
-        gte: new Date(`${dateStr}T00:00:00`),
-        lt: new Date(`${dateStr}T23:59:59`),
+  // 5. Load already confirmed/pending appointments for that date, plus capacity
+  const [existingAppointments, capacity] = await Promise.all([
+    prisma.appointment.findMany({
+      where: {
+        date: {
+          gte: new Date(`${dateStr}T00:00:00`),
+          lt: new Date(`${dateStr}T23:59:59`),
+        },
+        status: { in: ['PENDING', 'CONFIRMED'] },
       },
-      status: { in: ['PENDING', 'CONFIRMED'] },
-    },
-    select: { startTime: true, endTime: true },
-  })
+      select: { startTime: true, endTime: true, professionalId: true },
+    }),
+    getActiveProfessionalCount(),
+  ])
+
+  const hasConflictAt = buildConflictChecker(existingAppointments, capacity, professionalId)
 
   // 6. Generate slots every [slotGranularityMin] within the schedule
   const scheduleStart = timeToMinutes(schedule.startTime)
@@ -173,17 +216,10 @@ export async function getAvailableSlots(
       continue
     }
 
-    // Check overlap with existing appointments
-    const hasConflict = existingAppointments.some((appt) => {
-      const apptStart = timeToMinutes(appt.startTime)
-      const apptEnd = timeToMinutes(appt.endTime)
-      return timesOverlap(slotStart, slotEnd, apptStart, apptEnd)
-    })
-
     slots.push({
       startTime: startTimeStr,
       endTime: endTimeStr,
-      available: !hasConflict,
+      available: !hasConflictAt(slotStart, slotEnd),
     })
   }
 
@@ -197,9 +233,10 @@ export async function getAvailableSlots(
 export async function isSlotAvailable(
   dateStr: string,
   startTime: string,
-  serviceId: string
+  serviceId: string,
+  professionalId?: string
 ): Promise<boolean> {
-  const { slots } = await getAvailableSlots(dateStr, serviceId)
+  const { slots } = await getAvailableSlots(dateStr, serviceId, professionalId)
   const slot = slots.find((s) => s.startTime === startTime)
   return slot?.available ?? false
 }
@@ -214,7 +251,8 @@ export async function isSlotAvailable(
  */
 export async function getAvailableSlotsByDuration(
   dateStr: string,
-  durationMinutes: number
+  durationMinutes: number,
+  professionalId?: string
 ): Promise<{ slots: TimeSlot[]; durationMinutes: number }> {
 
   // 1. Compute "today" in the business timezone and drop past dates
@@ -249,17 +287,22 @@ export async function getAvailableSlotsByDuration(
     return { slots: [], durationMinutes }
   }
 
-  // 4. Load already confirmed/pending appointments for that date
-  const existingAppointments = await prisma.appointment.findMany({
-    where: {
-      date: {
-        gte: new Date(`${dateStr}T00:00:00`),
-        lt: new Date(`${dateStr}T23:59:59`),
+  // 4. Load already confirmed/pending appointments for that date, plus capacity
+  const [existingAppointments, capacity] = await Promise.all([
+    prisma.appointment.findMany({
+      where: {
+        date: {
+          gte: new Date(`${dateStr}T00:00:00`),
+          lt: new Date(`${dateStr}T23:59:59`),
+        },
+        status: { in: ['PENDING', 'CONFIRMED'] },
       },
-      status: { in: ['PENDING', 'CONFIRMED'] },
-    },
-    select: { startTime: true, endTime: true },
-  })
+      select: { startTime: true, endTime: true, professionalId: true },
+    }),
+    getActiveProfessionalCount(),
+  ])
+
+  const hasConflictAt = buildConflictChecker(existingAppointments, capacity, professionalId)
 
   // 5. Generate slots every [slotGranularityMin] within the schedule
   const scheduleStart = timeToMinutes(schedule.startTime)
@@ -287,19 +330,24 @@ export async function getAvailableSlotsByDuration(
       continue
     }
 
-    // Check overlap with existing appointments
-    const hasConflict = existingAppointments.some((appt) => {
-      const apptStart = timeToMinutes(appt.startTime)
-      const apptEnd = timeToMinutes(appt.endTime)
-      return timesOverlap(slotStart, slotEnd, apptStart, apptEnd)
-    })
-
     slots.push({
       startTime: startTimeStr,
       endTime: endTimeStr,
-      available: !hasConflict,
+      available: !hasConflictAt(slotStart, slotEnd),
     })
   }
 
   return { slots, durationMinutes }
+}
+
+/**
+ * Counts how many bookable slots remain today across the whole studio
+ * (every professional, using the smallest service duration as a baseline).
+ * Powers the "Quedan X cupos para hoy" scarcity badge.
+ */
+export async function getRemainingSlotsToday(): Promise<number> {
+  const nowBogota = toZonedTime(new Date(), STUDIO.timezone)
+  const todayStr  = format(nowBogota, 'yyyy-MM-dd')
+  const { slots } = await getAvailableSlotsByDuration(todayStr, STUDIO.slotGranularityMin)
+  return slots.filter((s) => s.available).length
 }

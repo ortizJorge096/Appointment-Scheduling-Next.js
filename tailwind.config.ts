@@ -20,8 +20,8 @@ const config: Config = {
           deeper:  '#D9CCAF',
         },
         ink: {
-          DEFAULT: '#111111',
-          soft:    '#1E1E1E',
+          DEFAULT: '#1A1209',
+          soft:    '#2A2014',
           mid:     '#4A4035',
           muted:   '#7A7060',
         },

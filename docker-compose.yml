@@ -51,23 +51,23 @@ services:
       db:
         condition: service_healthy
 
-  # ── Migrations (runs once and exits) ──────────────────
-  # migrate:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile.migrate
+   #── Migrations (runs once and exits) ──────────────────
+  migrate:
+     build:
+       context: .
+       dockerfile: Dockerfile.migrate
 
-  #   container_name: valentinajimenez-migrate
+     container_name: valentinajimenez-migrate
 
-  #   env_file:
-  #     - .env.local
+     env_file:
+       - .env.local
 
-    # environment:
-    #   DATABASE_URL: postgresql://valentinajimenez:valentinajimenez123@db:5432/valentinajimenez
+     environment:
+       DATABASE_URL: postgresql://valentinajimenez:valentinajimenez123@db:5432/valentinajimenez
 
-    # depends_on:
-    #   db:
-    #     condition: service_healthy
+     depends_on:
+       db:
+         condition: service_healthy
 
 volumes:
   postgres_data:

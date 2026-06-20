@@ -6,6 +6,8 @@ import { useState, useEffect } from 'react'
 import { CATEGORY_ORDER, categoryLabel } from '@/lib/config'
 import { Pagination } from '@/components/admin/Pagination'
 import { formatPrice } from '@/lib/utils'
+import VipDiscountConfigCard from '@/components/admin/VipDiscountConfigCard'
+import { CategoryIcon } from '@/components/public/ServiceIcons'
 
 const PER_PAGE = 8
 
@@ -21,7 +23,7 @@ interface Service {
 }
 
 const EMPTY: Omit<Service, 'id' | 'isActive'> = {
-  name: '', description: '', category: 'MANICURA', price: 0, durationMinutes: 45, order: 0,
+  name: '', description: '', category: 'UNAS', price: 0, durationMinutes: 45, order: 0,
 }
 
 
@@ -38,8 +40,24 @@ export default function ServiciosPage() {
   const [form, setForm]         = useState(EMPTY)
   const [page, setPage]         = useState(1)
 
-  const totalPages = Math.ceil(services.length / PER_PAGE)
-  const paged      = services.slice((page - 1) * PER_PAGE, page * PER_PAGE)
+  // null = showing the category grid; a category key = drilled into that category's services
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+
+  const categories = CATEGORY_ORDER.map((cat) => ({
+    cat,
+    services: services.filter((s) => s.category === cat),
+  }))
+
+  const categoryServices = selectedCategory
+    ? services.filter((s) => s.category === selectedCategory)
+    : []
+  const totalPages = Math.ceil(categoryServices.length / PER_PAGE)
+  const paged       = categoryServices.slice((page - 1) * PER_PAGE, page * PER_PAGE)
+
+  function openCategory(cat: string) {
+    setSelectedCategory(cat)
+    setPage(1)
+  }
 
   function load() {
     fetch('/api/services')
@@ -53,7 +71,7 @@ export default function ServiciosPage() {
 
   function openNew() {
     setEditing(null)
-    setForm(EMPTY)
+    setForm({ ...EMPTY, category: selectedCategory ?? EMPTY.category })
     setShowForm(true)
     setError(null)
   }
@@ -63,7 +81,7 @@ export default function ServiciosPage() {
     setForm({
       name: svc.name,
       description: svc.description ?? '',
-      category: svc.category ?? 'MANICURA',
+      category: svc.category ?? 'UNAS',
       price: svc.price,
       durationMinutes: svc.durationMinutes,
       order: svc.order,
@@ -121,18 +139,34 @@ export default function ServiciosPage() {
       <div className="mb-6 sm:mb-8 flex items-center justify-between">
         <div>
           <p className="text-xs text-ink-muted tracking-widest uppercase mb-1">Catálogo</p>
-          <h1 className="font-serif text-2xl sm:text-3xl text-ink font-light">Servicios</h1>
+          {selectedCategory ? (
+            <div className="flex items-center gap-3">
+              <button onClick={() => setSelectedCategory(null)}
+                className="text-xs text-ink-muted hover:text-gold transition-colors">
+                ← Categorías
+              </button>
+              <h1 className="font-serif text-2xl sm:text-3xl text-ink font-light">
+                {categoryLabel(selectedCategory)}
+              </h1>
+            </div>
+          ) : (
+            <h1 className="font-serif text-2xl sm:text-3xl text-ink font-light">Servicios</h1>
+          )}
         </div>
-        <button onClick={openNew} className="btn-primary text-sm">+ Nuevo</button>
+        {selectedCategory && (
+          <button onClick={openNew} className="btn-primary text-sm">+ Nuevo</button>
+        )}
       </div>
 
       {/* Messages */}
       {error   && <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 mb-5">{error}</div>}
       {success && <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 mb-5">✓ {success}</div>}
 
+      {!selectedCategory && <VipDiscountConfigCard />}
+
       {/* Inline modal form */}
       {showForm && (
-        <div className="bg-white border border-beige-dark p-6 mb-8 animate-fade-in">
+        <div className="bg-white border border-beige-dark rounded-xl p-6 mb-8 animate-fade-in">
           <h2 className="font-serif text-xl text-ink font-light mb-6">
             {editing ? 'Editar servicio' : 'Nuevo servicio'}
           </h2>
@@ -205,13 +239,41 @@ export default function ServiciosPage() {
         </div>
       )}
 
-      {/* List */}
+      {/* Category grid — entry point */}
+      {!selectedCategory && (
+        loading ? (
+          <div className="py-10 text-center text-ink-muted text-sm">Cargando...</div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {categories.map(({ cat, services: svcs }) => {
+              const activeCount = svcs.filter((s) => s.isActive).length
+              return (
+                <button key={cat} type="button" onClick={() => openCategory(cat)}
+                  className="text-left p-6 rounded-xl border border-beige-dark bg-white transition-all duration-200
+                             hover:border-gold/50 hover:shadow-lg hover:-translate-y-0.5">
+                  <span className="inline-flex items-center justify-center w-14 h-14 rounded-xl mb-4 bg-gold-pale text-gold-dark">
+                    <CategoryIcon category={cat} className="w-7 h-7" />
+                  </span>
+                  <p className="font-serif text-xl text-ink">{categoryLabel(cat)}</p>
+                  <p className="text-sm text-ink-muted leading-snug mt-1.5">
+                    {svcs.length} servicio{svcs.length === 1 ? '' : 's'}
+                    {svcs.length > 0 && <> · {activeCount} activo{activeCount === 1 ? '' : 's'}</>}
+                  </p>
+                </button>
+              )
+            })}
+          </div>
+        )
+      )}
+
+      {/* List — services within the selected category */}
+      {selectedCategory && (
       <div className="bg-white rounded-xl border border-beige-dark overflow-hidden">
         {loading ? (
           <div className="py-10 text-center text-ink-muted text-sm">Cargando...</div>
-        ) : services.length === 0 ? (
+        ) : categoryServices.length === 0 ? (
           <div className="py-10 text-center text-ink-muted text-sm">
-            No hay servicios aún. Crea el primero.
+            No hay servicios en esta categoría aún. Crea el primero.
           </div>
         ) : (
           <>
@@ -294,8 +356,9 @@ export default function ServiciosPage() {
           </>
         )}
       </div>
+      )}
 
-      <Pagination page={page} totalPages={totalPages} onPage={setPage} />
+      {selectedCategory && <Pagination page={page} totalPages={totalPages} onPage={setPage} />}
 
     </div>
   )

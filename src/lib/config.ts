@@ -56,12 +56,11 @@ export const STUDIO = {
 // Keys match the Prisma ServiceCategory enum.
 // ─────────────────────────────────────────────────────────────
 export const SERVICE_CATEGORIES = {
-  MANICURA:       { label: 'Manicura',         order: 1 },
-  PEDICURA:       { label: 'Pedicura',         order: 2 },
-  CEJAS_PESTANAS: { label: 'Cejas y Pestañas', order: 3 },
-  DEPILACION:     { label: 'Depilación',       order: 4 },
-  CORTE:          { label: 'Corte de Cabello', order: 5 },
-  VIP:            { label: 'VIP',              order: 6 },
+  UNAS:     { label: 'Uñas',             order: 1 },
+  PESTANAS: { label: 'Pestañas',         order: 2 },
+  CEJAS:    { label: 'Cejas',            order: 3 },
+  CORTE:    { label: 'Corte de Cabello', order: 4 },
+  PROMOS:   { label: 'Promos',           order: 5 },
 } as const
 
 export type ServiceCategoryKey = keyof typeof SERVICE_CATEGORIES

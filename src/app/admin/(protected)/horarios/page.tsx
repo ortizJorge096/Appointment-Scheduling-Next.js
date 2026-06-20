@@ -3,6 +3,7 @@
 // Schedule management by weekday and blocked dates
 
 import { useState, useEffect } from 'react'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
 
 const DAYS = [
   { key: 'MONDAY',    label: 'Lunes'     },
@@ -29,6 +30,7 @@ interface BlockedDate {
 }
 
 export default function HorariosPage() {
+  const confirm = useConfirm()
   const [schedules, setSchedules]       = useState<Schedule[]>([])
   const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([])
   const [loading, setLoading]           = useState(true)
@@ -109,7 +111,8 @@ export default function HorariosPage() {
 
   // Remove blocked date
   async function removeBlockedDate(id: string) {
-    if (!confirm('¿Desbloquear esta fecha?')) return
+    const ok = await confirm({ message: '¿Desbloquear esta fecha? Volverá a estar disponible para reservas.', confirmLabel: 'Desbloquear' })
+    if (!ok) return
     const res = await fetch(`/api/schedules/blocked/${id}`, { method: 'DELETE' })
     const json = await res.json()
     if (json.success) { flash('ok', 'Fecha desbloqueada'); load() }

@@ -53,7 +53,7 @@ model Service {
   id              String              @id @default(cuid())
   name            String              @unique
   description     String?
-  category        ServiceCategory     @default(MANICURA)
+  category        ServiceCategory     @default(UNAS)
   price           Int
   durationMinutes Int
   isActive        Boolean             @default(true)
@@ -67,12 +67,55 @@ model Service {
 }
 
 enum ServiceCategory {
-  MANICURA
-  PEDICURA
-  CEJAS_PESTANAS
-  DEPILACION
+  UNAS
+  PESTANAS
+  CEJAS
   CORTE
-  VIP
+  PROMOS
+}
+
+// ─────────────────────────────────────────
+// DESCUENTO VIP (multi-servicio)
+// Regla parametrizable: a partir de N servicios seleccionados
+// en una misma cita (de cualquier categoría), se aplica un
+// porcentaje de descuento por tramos. Editable desde el panel
+// admin, sin tocar código.
+// ─────────────────────────────────────────
+
+model VipDiscountConfig {
+  id        String   @id @default(cuid())
+  enabled   Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+  @@map("vip_discount_config")
+}
+
+model VipDiscountTier {
+  id          String @id @default(cuid())
+  minServices Int    @unique // a partir de cuántos servicios aplica este tramo
+  discountPct Int    // porcentaje de descuento (0-100)
+  @@map("vip_discount_tiers")
+}
+
+// ─────────────────────────────────────────
+// PROFESIONALES
+// Cada profesional puede atender una cita a la vez; la capacidad
+// total del estudio en un horario = número de profesionales activos
+// sin una cita que se superponga en ese rango.
+// ─────────────────────────────────────────
+
+model Professional {
+  id           String        @id @default(cuid())
+  name         String
+  specialty    String?
+  rating       Float         @default(5.0)
+  reviewCount  Int           @default(0)
+  isActive     Boolean       @default(true)
+  order        Int           @default(0)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  appointments Appointment[]
+  @@index([isActive])
+  @@map("professionals")
 }
 
 // ─────────────────────────────────────────
@@ -92,6 +135,12 @@ model Appointment {
   service            Service           @relation(fields: [serviceId], references: [id])
   services           AppointmentService[] // all services (for multi-service VIP bookings)
   totalDurationMinutes Int             // sum of all service durations
+  discountPercent    Int               @default(0) // % de descuento VIP aplicado (snapshot al confirmar)
+  // Profesional asignado. Null = se eligió "Primera disponible" pero no se
+  // pudo determinar (no debería ocurrir en flujo normal; el servidor asigna
+  // el primer profesional libre en el momento de crear la cita).
+  professionalId     String?
+  professional       Professional?     @relation(fields: [professionalId], references: [id], onDelete: SetNull)
   date               DateTime
   startTime          String
   endTime            String
@@ -114,6 +163,7 @@ model Appointment {
   @@index([clientId])
   @@index([status])
   @@index([paymentStatus])
+  @@index([professionalId])
   @@map("appointments")
 }
 
@@ -274,4 +324,5 @@ enum AuditEntity {
   SERVICE
   GALLERY
   SCHEDULE
+  PROFESSIONAL
 }

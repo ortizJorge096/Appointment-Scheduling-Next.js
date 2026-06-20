@@ -9,6 +9,7 @@ import type { TimeSlot } from '@/types'
 interface Props {
   serviceId?:         string
   durationMinutes?:   number
+  professionalId?:    string
   selectedDate:       string
   selectedTime:       string
   onDateChange:       (date: string) => void
@@ -19,7 +20,7 @@ interface Props {
 const DAYS_TO_SHOW = 14
 
 export default function DateTimePicker({
-  serviceId, durationMinutes, selectedDate, selectedTime,
+  serviceId, durationMinutes, professionalId, selectedDate, selectedTime,
   onDateChange, onTimeChange, disabled = false,
 }: Props) {
   const [slots,   setSlots]   = useState<TimeSlot[]>([])
@@ -37,7 +38,8 @@ export default function DateTimePicker({
   )
 
   // Build availability URL params
-  const availParam = serviceId ? `serviceId=${serviceId}` : `durationMinutes=${durationMinutes}`
+  const availParam = (serviceId ? `serviceId=${serviceId}` : `durationMinutes=${durationMinutes}`)
+    + (professionalId ? `&professionalId=${professionalId}` : '')
 
   // ── Prefetch: availability of ALL visible days, single call ──
   useEffect(() => {
@@ -65,7 +67,7 @@ export default function DateTimePicker({
       .catch(() => { /* silent — the slot fetch will say if something fails */ })
       .finally(() => setRangeLoading(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serviceId, durationMinutes])
+  }, [serviceId, durationMinutes, professionalId])
 
   // ── Detailed fetch of schedules for the selected date ──
   // We don't depend on dateOpen here to avoid a loop (the source of truth
@@ -108,7 +110,7 @@ export default function DateTimePicker({
       })
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serviceId, durationMinutes, selectedDate])
+  }, [serviceId, durationMinutes, professionalId, selectedDate])
 
   function formatDateLabel(dateStr: string) {
     const d = new Date(`${dateStr}T12:00:00`)
@@ -145,9 +147,10 @@ export default function DateTimePicker({
 
             return (
               <button key={dateStr} type="button"
+                role="radio" aria-checked={isSelected}
                 disabled={isDisabled}
                 onClick={() => { onDateChange(dateStr); onTimeChange('') }}
-                className={`relative flex flex-col items-center min-w-[52px] py-3 px-2
+                className={`relative flex flex-col items-center min-w-[52px] py-3 px-2 rounded-xl
                             border text-xs font-medium transition-all duration-150
                             disabled:cursor-not-allowed
                             ${isSelected
@@ -204,11 +207,12 @@ export default function DateTimePicker({
               const isSelected = slot.startTime === selectedTime
               return (
                 <button key={slot.startTime} type="button"
+                  role="radio" aria-checked={isSelected}
                   disabled={disabled}
                   onClick={() => onTimeChange(slot.startTime)}
-                  className={`py-2.5 text-sm border transition-all duration-150 disabled:cursor-not-allowed
+                  className={`py-2.5 text-sm rounded-xl border transition-all duration-150 disabled:cursor-not-allowed
                     ${isSelected
-                      ? 'bg-gold border-gold text-white font-medium'
+                      ? 'bg-gold border-gold text-white font-semibold'
                       : 'bg-white border-beige-dark text-ink-muted hover:border-gold hover:text-gold'}`}>
                   {slot.startTime}
                 </button>

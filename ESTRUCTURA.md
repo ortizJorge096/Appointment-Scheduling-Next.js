@@ -67,17 +67,14 @@ valentinajimenez/
 │   │
 │   ├── components/
 │   │   ├── ui/                    # Componentes base reutilizables
-│   │   │   ├── Button.tsx
-│   │   │   ├── Input.tsx
-│   │   │   ├── Select.tsx
-│   │   │   ├── Modal.tsx
-│   │   │   ├── Badge.tsx
-│   │   │   └── Card.tsx
+│   │   │   ├── Card.tsx
+│   │   │   └── ConfirmDialog.tsx
 │   │   │
 │   │   ├── public/                # Componentes del sitio público
 │   │   │   ├── Navbar.tsx
 │   │   │   ├── Hero.tsx
 │   │   │   ├── ServicesGrid.tsx
+│   │   │   ├── Testimonios.tsx
 │   │   │   ├── BookingSection.tsx
 │   │   │   ├── BookingForm.tsx    # Formulario principal con validación
 │   │   │   ├── DateTimePicker.tsx # Selector de fecha/hora con disponibilidad real
@@ -85,11 +82,9 @@ valentinajimenez/
 │   │   │
 │   │   └── admin/                 # Componentes del panel admin
 │   │       ├── Sidebar.tsx
-│   │       ├── DashboardStats.tsx
-│   │       ├── AppointmentsTable.tsx
-│   │       ├── AppointmentCard.tsx
-│   │       ├── ServiceForm.tsx
-│   │       └── ScheduleEditor.tsx
+│   │       ├── Pagination.tsx
+│   │       ├── ManualAppointmentModal.tsx
+│   │       └── VipDiscountConfigCard.tsx
 │   │
 │   ├── lib/
 │   │   ├── prisma.ts             # Singleton de PrismaClient

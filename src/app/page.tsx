@@ -5,12 +5,13 @@ import Hero from '@/components/public/Hero'
 import WhatsAppFab from '@/components/public/WhatsAppFab'
 import ServicesGrid from '@/components/public/ServicesGrid'
 import Galeria from '@/components/public/Galeria'
+import Testimonios from '@/components/public/Testimonios'
 import BookingSection from '@/components/public/BookingSection'
 import FAQ from '@/components/public/FAQ'
 import Footer from '@/components/public/Footer'
 import { STUDIO, WHATSAPP_URL, MAILTO_URL } from '@/lib/config'
+import { PinIcon, ClockIcon, PhoneIcon, MailIcon } from '@/components/public/ServiceIcons'
 
-export const dynamic = 'force-dynamic'
 export const metadata: Metadata = { title: `Uñas, pestañas y cejas en ${STUDIO.city}` }
 
 export default function HomePage() {
@@ -22,6 +23,7 @@ export default function HomePage() {
         <ServicesGrid />
         <BeneficiosSection />
         <Galeria />
+        <Testimonios />
         <NosotrosSection />
         <BookingSection />
         <ContactoSection />
@@ -86,9 +88,9 @@ function NosotrosSection() {
             </p>
             <div className="grid grid-cols-3 gap-6 pt-6 border-t border-beige-dark">
               {[
-                { value: '+3',   label: 'Años de experiencia'  },
-                { value: '+200', label: 'Clientas satisfechas'  },
-                { value: '+25',  label: 'Servicios disponibles' },
+                { value: '+3',  label: 'Años de experiencia'  },
+                { value: '+80', label: 'Clientas satisfechas'  },
+                { value: '+25', label: 'Servicios disponibles' },
               ].map((s) => (
                 <div key={s.label}>
                   <p className="font-serif text-3xl text-gold font-light">{s.value}</p>
@@ -120,48 +122,42 @@ function ContactoSection() {
             Escríbenos por WhatsApp o al correo. Con gusto te asesoramos.
           </p>
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-          <div className="space-y-6">
-            <div className="flex gap-3">
-              <span className="text-gold-dark">📍</span>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-stretch">
+          <div>
+            <div className="flex gap-3 py-3.5 border-b border-beige-deeper items-start">
+              <PinIcon className="text-gold-dark w-5 h-5 shrink-0 mt-0.5" />
               <div>
-                <p className="font-medium text-ink text-sm">Dirección</p>
+                <p className="font-medium text-ink text-[15px]">Dirección</p>
                 <p className="text-sm text-ink-muted">{STUDIO.address}</p>
               </div>
             </div>
-            <div className="flex gap-3">
-              <span className="text-gold-dark">🕐</span>
+            <div className="flex gap-3 py-3.5 border-b border-beige-deeper items-start">
+              <ClockIcon className="text-gold-dark w-5 h-5 shrink-0 mt-0.5" />
               <div>
-                <p className="font-medium text-ink text-sm">Horario</p>
+                <p className="font-medium text-ink text-[15px]">Horario</p>
                 <p className="text-sm text-ink-muted">{STUDIO.hours}</p>
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-3 mt-6">
               <a href={WHATSAPP_URL} target="_blank" rel="noreferrer"
-                className="bg-white border border-beige-dark p-5 text-left hover:border-gold transition-colors">
-                <p className="text-2xl mb-2">📱</p>
-                <p className="text-xs text-gold tracking-widest uppercase mb-1">WhatsApp</p>
-                <p className="text-sm text-ink font-medium">{STUDIO.phone}</p>
-                <p className="text-xs text-ink-muted mt-1">{STUDIO.hours}</p>
+                className="flex items-center gap-4 bg-white border border-beige-dark p-5 text-left hover:border-gold transition-colors">
+                <PhoneIcon className="text-gold-dark w-6 h-6 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-xs text-gold tracking-widest uppercase mb-1">WhatsApp</p>
+                  <p className="text-sm text-ink font-medium">{STUDIO.phone}</p>
+                </div>
               </a>
               <a href={MAILTO_URL} target="_blank" rel="noreferrer"
-                className="bg-white border border-beige-dark p-5 text-left hover:border-gold transition-colors">
-                <p className="text-2xl mb-2">✉️</p>
-                <p className="text-xs text-gold tracking-widest uppercase mb-1">Email</p>
-                <p className="text-sm text-ink font-medium">{STUDIO.email}</p>
-                <p className="text-xs text-ink-muted mt-1">Respondemos en 24h</p>
-              </a>
-            </div>
-            <div className="flex gap-3 pt-2">
-              <a href={mapsUrl} target="_blank" rel="noreferrer" className="btn-cta inline-flex">
-                Cómo llegar
-              </a>
-              <a href={WHATSAPP_URL} target="_blank" rel="noreferrer" className="btn-primary inline-flex">
-                Escribir por WhatsApp
+                className="flex items-center gap-4 bg-white border border-beige-dark p-5 text-left hover:border-gold transition-colors">
+                <MailIcon className="text-gold-dark w-6 h-6 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-xs text-gold tracking-widest uppercase mb-1">Email</p>
+                  <p className="text-sm text-ink font-medium break-all">{STUDIO.email}</p>
+                </div>
               </a>
             </div>
           </div>
-          <div className="rounded-2xl overflow-hidden shadow-md border border-beige-dark/60 h-[340px]">
+          <div className="relative rounded-2xl overflow-hidden shadow-md border border-beige-dark/60 h-full min-h-[400px]">
             <iframe
               src={embedUrl}
               title="Mapa — Valentina Jimenez Beauty Studio"
@@ -169,6 +165,10 @@ function ContactoSection() {
               style={{ border: 0 }}
               referrerPolicy="no-referrer-when-downgrade"
             />
+            <a href={mapsUrl} target="_blank" rel="noreferrer"
+              className="btn-cta absolute bottom-4 left-4 shadow-lg">
+              Cómo llegar
+            </a>
           </div>
         </div>
       </div>

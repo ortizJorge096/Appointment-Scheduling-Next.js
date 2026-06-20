@@ -28,7 +28,29 @@ export default function ConfirmacionClient() {
       .finally(() => setLoading(false))
   }, [id])
 
-  if (loading) return null // the Suspense fallback already shows the spinner
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-beige flex items-center justify-center px-6 py-16">
+        <div className="max-w-md w-full animate-pulse">
+          <div className="w-16 h-16 rounded-full bg-beige-dark mx-auto mb-8" />
+          <div className="h-8 w-3/4 bg-beige-dark rounded mx-auto mb-3" />
+          <div className="h-4 w-1/2 bg-beige-dark rounded mx-auto mb-8" />
+          <div className="bg-white border border-beige-dark/60 rounded-2xl shadow-sm p-6 space-y-4 mb-6">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <div key={n} className="flex justify-between">
+                <div className="h-3 w-20 bg-beige-dark rounded" />
+                <div className="h-3 w-28 bg-beige-dark rounded" />
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-3 justify-center">
+            <div className="h-11 w-40 bg-beige-dark rounded-full" />
+            <div className="h-11 w-32 bg-beige-dark rounded-full" />
+          </div>
+        </div>
+      </main>
+    )
+  }
 
   if (error || !appointment) {
     return (
@@ -91,7 +113,7 @@ export default function ConfirmacionClient() {
             <div key={label}
               className="flex justify-between text-sm border-b border-beige-dark pb-3 last:border-0 last:pb-0">
               <span className="text-ink-muted">{label}</span>
-              <span className="text-ink font-medium capitalize">{value}</span>
+              <span className="text-ink font-medium first-letter:uppercase">{value}</span>
             </div>
           ))}
         </div>

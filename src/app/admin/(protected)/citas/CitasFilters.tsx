@@ -3,6 +3,7 @@
 // Client Component — handles interactive date filters
 
 import { useRouter } from 'next/navigation'
+import { STATUS_LABEL as APPOINTMENT_STATUS_LABEL } from '@/lib/appointmentStatus'
 
 interface Props {
   status?:   string
@@ -10,10 +11,9 @@ interface Props {
   dateTo?:   string
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  ALL: 'Todas', PENDING: 'Pendiente', CONFIRMED: 'Confirmada',
-  COMPLETED: 'Completada', CANCELLED: 'Cancelada',
-}
+// This filter strip doesn't offer a NO_SHOW button, but does need "Todas" —
+// derive from the canonical map instead of redefining the other four by hand.
+const STATUS_LABEL: Record<string, string> = { ALL: 'Todas', ...APPOINTMENT_STATUS_LABEL }
 
 export default function CitasFilters({ status, dateFrom, dateTo }: Props) {
   const router = useRouter()
@@ -38,7 +38,7 @@ export default function CitasFilters({ status, dateFrom, dateTo }: Props) {
           {['ALL', 'PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'].map((s) => (
             <button key={s} type="button"
               onClick={() => buildUrl({ status: s })}
-              className={`px-3 py-1.5 text-xs border transition-colors
+              className={`px-3 py-1.5 text-xs border rounded-lg transition-colors
                 ${(status ?? 'ALL') === s
                   ? 'bg-ink border-ink text-white'
                   : 'bg-white border-beige-dark text-ink-muted hover:border-gold'}`}>

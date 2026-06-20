@@ -36,6 +36,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const to = searchParams.get('to') ?? ''
     const serviceId = searchParams.get('serviceId') ?? undefined
     const durationMinutesParam = searchParams.get('durationMinutes')
+    const professionalId = searchParams.get('professionalId') ?? undefined
 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) {
       return NextResponse.json({ success: false, error: 'Fechas inválidas' }, { status: 400 })
@@ -77,7 +78,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const rangeStart = new Date(`${from}T00:00:00`)
     const rangeEnd   = new Date(`${to}T23:59:59`)
 
-    const [schedules, blocked, appointments] = await Promise.all([
+    const [schedules, blocked, appointments, professionalCount] = await Promise.all([
       prisma.schedule.findMany({}),
       prisma.blockedDate.findMany({
         where: { date: { gte: rangeStart, lte: rangeEnd } },
@@ -88,9 +89,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
           date: { gte: rangeStart, lte: rangeEnd },
           status: { in: ['PENDING', 'CONFIRMED'] },
         },
-        select: { date: true, startTime: true, endTime: true },
+        select: { date: true, startTime: true, endTime: true, professionalId: true },
       }),
+      prisma.professional.count({ where: { isActive: true } }),
     ])
+
+    // Capacity = number of active professionals (falls back to 1 — legacy
+    // single-resource behavior — if none have been set up yet).
+    const capacity = professionalCount > 0 ? professionalCount : 1
 
     const scheduleByDay = new Map(schedules.map((s) => [s.dayOfWeek, s]))
     // blocked/appointment dates are "date-only": compare them as a UTC calendar day
@@ -99,11 +105,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const blockedSet = new Set(blocked.map((b) => formatInTimeZone(b.date, 'UTC', 'yyyy-MM-dd')))
 
     // Group appointments by day (YYYY-MM-DD)
-    const apptsByDay = new Map<string, { startTime: string; endTime: string }[]>()
+    const apptsByDay = new Map<string, { startTime: string; endTime: string; professionalId: string | null }[]>()
     for (const a of appointments) {
       const key = formatInTimeZone(a.date, 'UTC', 'yyyy-MM-dd')
       const arr = apptsByDay.get(key) ?? []
-      arr.push({ startTime: a.startTime, endTime: a.endTime })
+      arr.push({ startTime: a.startTime, endTime: a.endTime, professionalId: a.professionalId })
       apptsByDay.set(key, arr)
     }
 
@@ -129,17 +135,20 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       const minStart = dateStr === todayStr ? nowMinutes : 0
 
       const appts = apptsByDay.get(dateStr) ?? []
-      const apptRanges = appts.map((a) => ({
+      const relevant = professionalId ? appts.filter((a) => a.professionalId === professionalId) : appts
+      const apptRanges = relevant.map((a) => ({
         s: timeToMinutes(a.startTime),
         e: timeToMinutes(a.endTime),
       }))
 
-      // Is there at least one free slot?
+      // Is there at least one free slot? Without a specific professional, a
+      // slot is taken only once overlapping appointments reach total capacity.
       for (let s = scheduleStart; s + duration <= scheduleEnd; s += step) {
         if (s < minStart) continue
         const e = s + duration
-        const overlaps = apptRanges.some((r) => s < r.e && e > r.s)
-        if (!overlaps) return { date: dateStr, open: true }
+        const overlapCount = apptRanges.filter((r) => s < r.e && e > r.s).length
+        const taken = professionalId ? overlapCount > 0 : overlapCount >= capacity
+        if (!taken) return { date: dateStr, open: true }
       }
       return { date: dateStr, open: false }
     })

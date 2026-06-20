@@ -60,7 +60,7 @@ function baseTemplate(content: string): string {
              style="background:#fff;border-radius:4px;overflow:hidden;">
         <!-- Header -->
         <tr>
-          <td style="background:#111111;padding:32px 40px;text-align:center;">
+          <td style="background:#1A1209;padding:32px 40px;text-align:center;">
             <p style="margin:0;color:#fff;font-size:22px;font-weight:300;letter-spacing:0.04em;">
               ${STUDIO.shortName}
               <em style="color:#B8932A;font-style:italic;"> ${STUDIO.tagline}</em>
@@ -101,7 +101,7 @@ export async function sendConfirmationEmail(
   const servicePrice = isMultiService ? services!.reduce((sum, s) => sum + s.price, 0) : service.price
 
   const content = `
-    <h1 style="margin:0 0 8px;font-size:28px;font-weight:300;color:#111111;">
+    <h1 style="margin:0 0 8px;font-size:28px;font-weight:300;color:#1A1209;">
       ¡Tu cita está confirmada!
     </h1>
     <p style="margin:0 0 32px;color:#7A7060;font-size:15px;line-height:1.7;">
@@ -111,15 +111,15 @@ export async function sendConfirmationEmail(
       style="background:#FAF7EE;padding:24px;margin-bottom:32px;">
       <tr>
         <td style="padding:8px 0;color:#7A7060;font-size:13px;width:40%;">Servicio${isMultiService ? 's' : ''}</td>
-        <td style="padding:8px 0;color:#111111;font-size:14px;font-weight:600;">${serviceName}</td>
+        <td style="padding:8px 0;color:#1A1209;font-size:14px;font-weight:600;">${serviceName}</td>
       </tr>
       <tr>
         <td style="padding:8px 0;color:#7A7060;font-size:13px;border-top:1px solid #E8DCC4;">Fecha y hora</td>
-        <td style="padding:8px 0;color:#111111;font-size:14px;border-top:1px solid #E8DCC4;">${formatDate(date, startTime)}</td>
+        <td style="padding:8px 0;color:#1A1209;font-size:14px;border-top:1px solid #E8DCC4;">${formatDate(date, startTime)}</td>
       </tr>
       <tr>
         <td style="padding:8px 0;color:#7A7060;font-size:13px;border-top:1px solid #E8DCC4;">Duración</td>
-        <td style="padding:8px 0;color:#111111;font-size:14px;border-top:1px solid #E8DCC4;">${serviceDuration} minutos</td>
+        <td style="padding:8px 0;color:#1A1209;font-size:14px;border-top:1px solid #E8DCC4;">${serviceDuration} minutos</td>
       </tr>
       <tr>
         <td style="padding:8px 0;color:#7A7060;font-size:13px;border-top:1px solid #E8DCC4;">Valor</td>
@@ -139,7 +139,7 @@ export async function sendConfirmationEmail(
       </a>
     </p>` : ''}
     <p style="color:#7A7060;font-size:13px;margin-top:16px;">
-      Código: <code style="background:#F2EBD9;padding:2px 6px;color:#111111;">
+      Código: <code style="background:#F2EBD9;padding:2px 6px;color:#1A1209;">
         ${id.slice(0, 8).toUpperCase()}
       </code>
     </p>`
@@ -162,7 +162,7 @@ export async function sendReminderEmail(
   const serviceName = isMultiService ? services!.map((s) => s.service.name).join(' + ') : service.name
 
   const content = `
-    <h1 style="margin:0 0 8px;font-size:28px;font-weight:300;color:#111111;">
+    <h1 style="margin:0 0 8px;font-size:28px;font-weight:300;color:#1A1209;">
       Tu cita es mañana
     </h1>
     <p style="margin:0 0 32px;color:#7A7060;font-size:15px;line-height:1.7;">
@@ -172,7 +172,7 @@ export async function sendReminderEmail(
       style="background:#FAF7EE;padding:24px;margin-bottom:32px;">
       <tr>
         <td style="padding:8px 0;color:#7A7060;font-size:13px;width:40%;">Servicio${isMultiService ? 's' : ''}</td>
-        <td style="padding:8px 0;color:#111111;font-size:14px;font-weight:600;">${serviceName}</td>
+        <td style="padding:8px 0;color:#1A1209;font-size:14px;font-weight:600;">${serviceName}</td>
       </tr>
       <tr>
         <td style="padding:8px 0;color:#7A7060;font-size:13px;border-top:1px solid #E8DCC4;">Cuándo</td>

@@ -9,7 +9,7 @@ WORKDIR /app
 RUN apk add --no-cache libc6-compat openssl
 
 COPY .npmrc package.json package-lock.json* ./
-RUN npm ci
+RUN npm install
 
 # ── Stage 2: build ─────────────────────────────────────
 FROM node:20-alpine AS builder
@@ -43,10 +43,15 @@ RUN adduser  --system --uid 1001 nextjs
 # ── Next.js standalone output ──
 # Includes server.js and ONLY the runtime dependencies the app imports
 # (traced by Next.js). Avoids copying the full node_modules with devDeps.
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static     ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static     ./.next/static
 # public/ is not included in standalone — copy it explicitly
-COPY --from=builder /app/public           ./public
+COPY --from=builder --chown=nextjs:nodejs /app/public           ./public
+
+# .next/cache is not part of the standalone output (it doesn't exist yet),
+# but Next.js writes to it at runtime (e.g. the image optimizer cache).
+# Create it now, owned by the runtime user, or `mkdir` fails with EACCES.
+RUN mkdir -p .next/cache && chown -R nextjs:nodejs .next
 
 # ── Prisma ──
 # Schema + migrations, plus the CLI and engines the init-container

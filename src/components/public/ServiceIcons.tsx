@@ -101,14 +101,52 @@ export function PromoIcon(props: IconProps) {
   )
 }
 
+/** Location pin — for address */
+export function PinIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M12 21s7-7.6 7-12.6A7 7 0 0 0 5 8.4C5 13.4 12 21 12 21z" />
+      <circle cx="12" cy="8.4" r="2.3" />
+    </svg>
+  )
+}
+
+/** Clock — for opening hours */
+export function ClockIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7.5V12l3.2 2" />
+    </svg>
+  )
+}
+
+/** Phone / WhatsApp handset */
+export function PhoneIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M5 4h3.3l1.4 3.8-2 1.6a11.2 11.2 0 0 0 5.1 5.1l1.6-2 3.8 1.4V17c0 1-.8 1.7-1.7 1.6C9.6 17.8 5.2 13.4 4.4 7.7 4.3 6.8 4 4 5 4z" />
+    </svg>
+  )
+}
+
+/** Envelope — for email */
+export function MailIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="3.5" y="6" width="17" height="12" rx="1.5" />
+      <path d="M4.5 7.5 12 13l7.5-5.5" />
+    </svg>
+  )
+}
+
 // ── Map: category key (Prisma enum) → icon ──
 export const CATEGORY_ICON: Record<string, IconComponent> = {
-  MANICURA:       ManicuraIcon,
-  PEDICURA:       PedicuraIcon,
-  CEJAS_PESTANAS: CejasIcon,
-  DEPILACION:     DepilacionIcon,
-  CORTE:          CorteIcon,
-  VIP:            PromoIcon,
+  UNAS:     ManicuraIcon,
+  PESTANAS: PestanasIcon,
+  CEJAS:    CejasIcon,
+  CORTE:    CorteIcon,
+  PROMOS:   PromoIcon,
 }
 
 export function CategoryIcon({ category, ...props }: IconProps & { category: string }) {

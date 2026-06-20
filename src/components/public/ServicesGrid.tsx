@@ -1,16 +1,48 @@
+'use client'
 // src/components/public/ServicesGrid.tsx
-// Renders individual service cards matching the prototype design.
-// Each card links to the booking flow pre-filtered by service ID.
+// Category-level cards (Uñas, Pestañas, Cejas, Corte, Promos + VIP), matching
+// the prototype's "Servicios" section. Data comes from GET /api/services —
+// each card aggregates the active services within its category (price "desde"
+// + duration range). Clicking a card jumps to the booking flow pre-filtered
+// by that category; the VIP card is a static promo for the multi-service flow.
+
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { prisma } from '@/lib/prisma'
 import { CategoryIcon } from './ServiceIcons'
+import { CATEGORY_ORDER, categoryLabel } from '@/lib/config'
 import { formatPrice } from '@/lib/utils'
 
-export default async function ServicesGrid() {
-  const services = await prisma.service.findMany({
-    where: { isActive: true },
-    orderBy: { order: 'asc' },
-  })
+interface Service {
+  id: string
+  category: string
+  price: number
+  durationMinutes: number
+  isActive: boolean
+}
+
+const CATEGORY_BLURBS: Record<string, string> = {
+  UNAS:     'Manicura, pedicura, gel, acrílico y nail art',
+  PESTANAS: 'Lifting, extensiones, volumen e híbridas',
+  CEJAS:    'Depilación, henna, diseño y laminado',
+  CORTE:    'Corte, peinado y diseño de flequillo',
+  PROMOS:   'Combos con precio especial',
+}
+
+export default function ServicesGrid() {
+  const [services, setServices] = useState<Service[]>([])
+  const [loading, setLoading]   = useState(true)
+
+  useEffect(() => {
+    fetch('/api/services')
+      .then((r) => r.json())
+      .then((json) => { if (json.success) setServices(json.data) })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+
+  const categories = CATEGORY_ORDER
+    .map((cat) => ({ cat, svcs: services.filter((s) => s.isActive && s.category === cat) }))
+    .filter((g) => g.svcs.length > 0)
 
   return (
     <section id="servicios" className="py-24 bg-beige/20 relative overflow-hidden">
@@ -31,53 +63,82 @@ export default async function ServicesGrid() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {services.map((svc) => {
-            const isVip = svc.category === 'VIP'
-            return (
-              <Link
-                key={svc.id}
-                href={`/agendar?service=${svc.id}`}
-                className={`group card-premium-hover accent-top p-8 flex flex-col gap-4
-                  ${isVip ? 'bg-ink text-white' : ''}`}
-              >
-                <span className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl
-                  ${isVip ? 'bg-[rgba(212,173,90,.15)] text-[var(--gold-light)]' : 'bg-gold-pale text-gold-dark'}`}>
-                  <CategoryIcon category={svc.category} className="w-7 h-7" />
+          {loading ? (
+            [1, 2, 3, 4, 5, 6].map((n) => (
+              <div key={n} className="h-[220px] rounded-2xl bg-beige-dark/60 animate-pulse" />
+            ))
+          ) : (
+            <>
+              {categories.map(({ cat, svcs }) => {
+                const minPrice = Math.min(...svcs.map((s) => s.price))
+                const minDur = Math.min(...svcs.map((s) => s.durationMinutes))
+                const maxDur = Math.max(...svcs.map((s) => s.durationMinutes))
+                const durationLabel = minDur === maxDur ? `${minDur} min` : `${minDur}–${maxDur} min`
+
+                return (
+                  <div
+                    key={cat}
+                    className="group card-premium-hover accent-top p-8 flex flex-col gap-4"
+                  >
+                    <span className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gold-pale text-gold-dark">
+                      <CategoryIcon category={cat} className="w-7 h-7" />
+                    </span>
+
+                    <div>
+                      <h3 className="font-serif text-2xl leading-tight text-ink">
+                        {categoryLabel(cat)}
+                      </h3>
+                      {CATEGORY_BLURBS[cat] && (
+                        <p className="text-sm leading-relaxed mt-2 text-ink-muted">
+                          {CATEGORY_BLURBS[cat]}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex items-end justify-between pt-4 mt-auto border-t border-beige-dark/60">
+                      <div>
+                        <p className="font-serif text-xl leading-none text-gold-dark">
+                          Desde {formatPrice(minPrice)}
+                        </p>
+                        <p className="text-[11px] mt-1.5 text-ink-muted">
+                          {durationLabel}
+                        </p>
+                      </div>
+                      <Link href={`/agendar?categoria=${cat}`}
+                        className="text-xs tracking-widest uppercase font-semibold transition-colors text-gold-dark hover:text-gold">
+                        Reservar →
+                      </Link>
+                    </div>
+                  </div>
+                )
+              })}
+
+              {/* Static VIP promo card — multi-service discount flow, not tied to a real category */}
+              <div className="group card-premium-hover accent-top p-8 flex flex-col gap-4 bg-ink text-white">
+                <span className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[rgba(212,173,90,.15)] text-[var(--gold-light)]">
+                  <CategoryIcon category="VIP" className="w-7 h-7" />
                 </span>
 
                 <div>
-                  <h3 className={`font-serif text-2xl leading-tight ${isVip ? 'text-white' : 'text-ink'}`}>
-                    {svc.name}
-                  </h3>
-                  {svc.description && (
-                    <p className={`text-sm leading-relaxed mt-2 ${isVip ? 'text-[#b7ae9c]' : 'text-ink-muted'}`}>
-                      {svc.description}
-                    </p>
-                  )}
+                  <h3 className="font-serif text-2xl leading-tight text-white">Paquete VIP</h3>
+                  <p className="text-sm leading-relaxed mt-2 text-[#b7ae9c]">
+                    Combina servicios y ahorra hasta 30%.
+                  </p>
                 </div>
 
-                <div className={`flex items-end justify-between pt-4 mt-auto border-t
-                  ${isVip ? 'border-[rgba(255,255,255,.08)]' : 'border-beige-dark/60'}`}>
+                <div className="flex items-end justify-between pt-4 mt-auto border-t border-[rgba(255,255,255,.08)]">
                   <div>
-                    <p className={`font-serif text-xl leading-none ${isVip ? 'text-[var(--gold-light)]' : 'text-gold-dark'}`}>
-                      {formatPrice(svc.price)}
-                    </p>
-                    <p className={`text-[11px] mt-1.5 ${isVip ? 'text-[#b7ae9c]' : 'text-ink-muted'}`}>
-                      {svc.durationMinutes} min
-                    </p>
+                    <p className="font-serif text-xl leading-none text-[var(--gold-light)]">Personalizado</p>
+                    <p className="text-[11px] mt-1.5 text-[#b7ae9c]">Reserva doble</p>
                   </div>
-                  <span className={`text-xs tracking-widest uppercase font-semibold transition-colors
-                    ${isVip ? 'text-[var(--gold-light)] group-hover:text-[var(--gold)]' : 'text-gold-dark group-hover:text-gold'}`}>
+                  <Link href="/agendar"
+                    className="text-xs tracking-widest uppercase font-semibold transition-colors text-[var(--gold-light)] hover:text-[var(--gold)]">
                     Reservar →
-                  </span>
+                  </Link>
                 </div>
-              </Link>
-            )
-          })}
-        </div>
-
-        <div className="text-center mt-16">
-          <Link href="/agendar" className="btn-cta">Agendar cita ✦</Link>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </section>

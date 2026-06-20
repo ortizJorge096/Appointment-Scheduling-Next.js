@@ -4,20 +4,11 @@
 
 import { useState, useEffect, use } from 'react'
 import Link from 'next/link'
+import { STATUS_LABEL, STATUS_CLASS } from '@/lib/appointmentStatus'
 import type { AppointmentWithService } from '@/types'
 
 const COP = (n: number) =>
   new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n)
-
-const STATUS_LABEL: Record<string, string> = {
-  PENDING: 'Pendiente', CONFIRMED: 'Confirmada',
-  COMPLETED: 'Completada', CANCELLED: 'Cancelada', NO_SHOW: 'No asistió',
-}
-const STATUS_COLOR: Record<string, string> = {
-  PENDING: 'bg-yellow-50 text-yellow-700', CONFIRMED: 'bg-blue-50 text-blue-700',
-  COMPLETED: 'bg-green-50 text-green-700', CANCELLED: 'bg-gray-100 text-gray-500',
-  NO_SHOW: 'bg-red-50 text-red-600',
-}
 const PAYMENT_LABEL: Record<string, string> = {
   PENDING: 'Sin pago', PAID: 'Pagado', PARTIAL: 'Parcial', WAIVED: 'Cortesía',
 }
@@ -215,7 +206,7 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
                       ? apt.services.map((s) => s.service.name).join(' + ')
                       : apt.service.name}
                   </p>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLOR[apt.status]}`}>
+                  <span className={STATUS_CLASS[apt.status]}>
                     {STATUS_LABEL[apt.status]}
                   </span>
                 </div>

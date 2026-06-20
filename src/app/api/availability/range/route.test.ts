@@ -8,6 +8,7 @@ vi.mock('@/lib/prisma', () => ({
     schedule:     { findMany: vi.fn() },
     blockedDate:  { findMany: vi.fn() },
     appointment:  { findMany: vi.fn() },
+    professional: { count: vi.fn() },
   },
 }))
 
@@ -35,6 +36,8 @@ function defaultMocks() {
   ])
   vi.mocked(prisma.blockedDate.findMany).mockResolvedValue([])
   vi.mocked(prisma.appointment.findMany).mockResolvedValue([])
+  // Legacy single-resource fallback: no professionals configured → capacity 1
+  vi.mocked(prisma.professional.count).mockResolvedValue(0)
 }
 
 describe('GET /api/availability/range', () => {

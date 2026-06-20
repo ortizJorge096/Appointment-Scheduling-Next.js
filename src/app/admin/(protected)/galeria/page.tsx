@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { CATEGORY_ORDER, categoryLabel } from '@/lib/config'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
 
 interface GalleryImage {
   id: string
@@ -21,6 +22,7 @@ interface GalleryImage {
 const MAX_BYTES = 5 * 1024 * 1024  // 5 MB
 
 export default function GaleriaAdminPage() {
+  const confirm = useConfirm()
   const fileInputRef    = useRef<HTMLInputElement>(null)
   const replaceInputRef = useRef<HTMLInputElement>(null)
   const replacingImgRef = useRef<GalleryImage | null>(null)
@@ -191,7 +193,12 @@ export default function GaleriaAdminPage() {
   }
 
   async function deleteImage(img: GalleryImage) {
-    if (!confirm(`¿Eliminar "${img.title ?? 'esta imagen'}" definitivamente?`)) return
+    const ok = await confirm({
+      message: `Vas a eliminar "${img.title ?? 'esta imagen'}" definitivamente. Esta acción no se puede deshacer.`,
+      confirmLabel: 'Eliminar imagen',
+      danger: true,
+    })
+    if (!ok) return
     const r = await fetch(`/api/gallery/${img.id}`, { method: 'DELETE' })
     if ((await r.json()).success) { flashSuccess('Imagen eliminada'); load() }
   }
