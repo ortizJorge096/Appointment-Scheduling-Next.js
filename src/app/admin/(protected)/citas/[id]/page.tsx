@@ -211,6 +211,11 @@ export default function CitaDetailPage() {
               <p className="text-xs text-ink-muted mt-0.5">{appt.service.durationMinutes} min</p>
             </>
           )}
+          {appt.extraAmount != null && appt.extraAmount > 0 && (
+            <p className="text-xs text-ink-muted mt-2 pt-2 border-t border-beige-dark">
+              + Adicional{appt.extraDescription ? ` (${appt.extraDescription})` : ''}: {formatPrice(appt.extraAmount)}
+            </p>
+          )}
         </div>
 
         {/* Date and time */}

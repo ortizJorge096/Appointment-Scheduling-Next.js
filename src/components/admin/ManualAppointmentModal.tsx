@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { formatPrice } from '@/lib/utils'
 
 interface Service { id: string; name: string; price: number; durationMinutes: number }
 interface ClientHit { id: string; name: string; email: string; phone: string | null }
@@ -14,22 +15,31 @@ const SOURCE_OPTIONS = [
   { value: 'ONLINE',     label: 'Online'     },
 ]
 
+const MODE_OPTIONS = [
+  { value: 'UPCOMING', label: 'Cita próxima' },
+  { value: 'PAST',     label: 'Cita pasada'  },
+] as const
+
 const EMPTY = {
   clientName: '', clientEmail: '', clientPhone: '',
   serviceId: '', date: '', startTime: '',
   source: 'PRESENCIAL', notes: '',
   skipAvailabilityCheck: false,
+  mode: 'UPCOMING' as 'UPCOMING' | 'PAST',
+  totalCharged: '', extraDescription: '', extraAmount: '',
 }
 
 type FieldErrors = Partial<Record<keyof typeof EMPTY, string>>
 
 // Earliest date allowed for manual backfill: 15 days ago
 const PAST_LIMIT_DAYS = 15
-function minManualDate() {
+function offsetDate(days: number) {
   const d = new Date()
-  d.setDate(d.getDate() - PAST_LIMIT_DAYS)
+  d.setDate(d.getDate() + days)
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
+function minManualDate() { return offsetDate(-PAST_LIMIT_DAYS) }
+function yesterday()     { return offsetDate(-1) }
 
 export default function ManualAppointmentModal() {
   const router = useRouter()
@@ -100,6 +110,11 @@ export default function ManualAppointmentModal() {
     if (!form.serviceId)          errs.serviceId   = 'Selecciona un servicio'
     if (!form.date)               errs.date        = 'La fecha es requerida'
     if (!form.startTime)          errs.startTime   = 'La hora es requerida'
+    if (form.mode === 'PAST') {
+      if (form.date >= offsetDate(0)) errs.date = 'Debe ser una fecha anterior a hoy'
+      if (form.totalCharged === '' || Number(form.totalCharged) < 0)
+        errs.totalCharged = 'El total cobrado es requerido'
+    }
     setFieldErrors(errs)
     return Object.keys(errs).length === 0
   }
@@ -110,20 +125,63 @@ export default function ManualAppointmentModal() {
 
     setSaving(true); setApiError(''); setSuccess('')
 
+    const isPast = form.mode === 'PAST'
+    const payload = {
+      clientName: form.clientName, clientEmail: form.clientEmail, clientPhone: form.clientPhone,
+      serviceId: form.serviceId, date: form.date, startTime: form.startTime,
+      source: form.source, notes: form.notes,
+      skipAvailabilityCheck: form.skipAvailabilityCheck,
+      mode: form.mode,
+      ...(isPast ? {
+        totalCharged: Number(form.totalCharged),
+        ...(form.extraAmount !== '' ? {
+          extraDescription: form.extraDescription.trim() || undefined,
+          extraAmount: Number(form.extraAmount),
+        } : {}),
+      } : {}),
+    }
+
     const res = await fetch('/api/appointments/manual', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
+      body: JSON.stringify(payload),
     })
     const j = await res.json()
     setSaving(false)
 
     if (!j.success) { setApiError(j.error ?? 'Error al crear la cita'); return }
 
-    setSuccess('Cita creada correctamente ✓')
+    setSuccess(isPast ? 'Cita registrada correctamente ✓' : 'Cita creada correctamente ✓')
     setForm(EMPTY)
     setTimeout(() => { setOpen(false); setSuccess(''); router.refresh() }, 1200)
   }
+
+  // Keep "Total cobrado" in sync with the selected service's default price
+  // while in "Cita pasada" mode (admin can still edit it afterwards).
+  function selectMode(mode: 'UPCOMING' | 'PAST') {
+    setForm(f => {
+      if (mode === 'PAST' && f.serviceId) {
+        const svc = services.find(s => s.id === f.serviceId)
+        return { ...f, mode, totalCharged: svc ? String(svc.price) : f.totalCharged }
+      }
+      return { ...f, mode }
+    })
+  }
+
+  function selectService(serviceId: string) {
+    setForm(f => {
+      const svc = services.find(s => s.id === serviceId)
+      return {
+        ...f, serviceId,
+        totalCharged: f.mode === 'PAST' && svc ? String(svc.price) : f.totalCharged,
+      }
+    })
+    if (fieldErrors.serviceId) setFieldErrors(fe => ({ ...fe, serviceId: undefined }))
+  }
+
+  const extraAmountNum = Number(form.extraAmount) || 0
+  const totalChargedNum = Number(form.totalCharged) || 0
+  const grandTotal = totalChargedNum + extraAmountNum
 
   const Err = ({ k }: { k: keyof typeof EMPTY }) =>
     fieldErrors[k] ? <p className="text-xs text-red-500 mt-0.5">{fieldErrors[k]}</p> : null
@@ -146,6 +204,28 @@ export default function ManualAppointmentModal() {
             </div>
 
             <form onSubmit={submit} noValidate className="px-6 py-5 space-y-5">
+
+              {/* Modo de creación */}
+              <fieldset>
+                <div className="flex gap-2">
+                  {MODE_OPTIONS.map(opt => (
+                    <button key={opt.value} type="button"
+                      onClick={() => selectMode(opt.value)}
+                      className={`flex-1 px-3 py-2 rounded-lg text-sm border transition-colors ${
+                        form.mode === opt.value
+                          ? 'bg-gold text-white border-gold'
+                          : 'border-beige-dark text-ink-muted hover:border-gold/50'
+                      }`}>
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                {form.mode === 'PAST' && (
+                  <p className="text-xs text-ink bg-gold-pale border border-gold/30 rounded-lg px-3 py-2 mt-2">
+                    Esta cita se marcará como completada y pagada al guardar
+                  </p>
+                )}
+              </fieldset>
 
               {/* Datos del cliente */}
               <fieldset>
@@ -231,7 +311,7 @@ export default function ManualAppointmentModal() {
                     <label className="form-label">
                       Servicio <span className="text-red-500">*</span>
                     </label>
-                    <select value={form.serviceId} onChange={field('serviceId')}
+                    <select value={form.serviceId} onChange={e => selectService(e.target.value)}
                       className={`input-field w-full bg-white ${fieldErrors.serviceId ? 'border-red-400' : ''}`}>
                       <option value="">— Selecciona un servicio —</option>
                       {services.map(s => (
@@ -250,8 +330,13 @@ export default function ManualAppointmentModal() {
                       <input type="date" value={form.date} onChange={field('date')}
                         aria-label="Fecha"
                         min={minManualDate()}
+                        max={form.mode === 'PAST' ? yesterday() : undefined}
                         className={`input-field w-full ${fieldErrors.date ? 'border-red-400' : ''}`} />
-                      <p className="text-[11px] text-ink-muted mt-1">Hasta {PAST_LIMIT_DAYS} días atrás</p>
+                      <p className="text-[11px] text-ink-muted mt-1">
+                        {form.mode === 'PAST'
+                          ? `Hasta ${PAST_LIMIT_DAYS} días atrás, antes de hoy`
+                          : `Hasta ${PAST_LIMIT_DAYS} días atrás`}
+                      </p>
                       <Err k="date" />
                     </div>
                     <div>
@@ -270,6 +355,55 @@ export default function ManualAppointmentModal() {
                   </div>
                 </div>
               </fieldset>
+
+              {/* Precio (solo cita pasada) */}
+              {form.mode === 'PAST' && (
+                <fieldset>
+                  <p className="text-xs font-medium text-ink-muted uppercase tracking-wider mb-3">
+                    Precio
+                  </p>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="form-label">
+                        Total cobrado (COP) <span className="text-red-500">*</span>
+                      </label>
+                      <input type="number" min={0} step={1000} value={form.totalCharged}
+                        onChange={field('totalCharged')}
+                        className={`input-field w-full ${fieldErrors.totalCharged ? 'border-red-400' : ''}`} />
+                      <Err k="totalCharged" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="form-label">Adicional — descripción</label>
+                        <input value={form.extraDescription} onChange={field('extraDescription')}
+                          placeholder="Ej: Tinte extra"
+                          className="input-field w-full" />
+                      </div>
+                      <div>
+                        <label className="form-label">Adicional — monto (COP)</label>
+                        <input type="number" min={0} step={1000} value={form.extraAmount}
+                          onChange={field('extraAmount')}
+                          placeholder="0"
+                          className="input-field w-full" />
+                      </div>
+                    </div>
+                    <div className="bg-beige-pale rounded-lg px-4 py-3 text-sm space-y-1">
+                      <div className="flex justify-between text-ink-muted">
+                        <span>Servicio</span><span>{formatPrice(totalChargedNum)}</span>
+                      </div>
+                      {extraAmountNum > 0 && (
+                        <div className="flex justify-between text-ink-muted">
+                          <span>Adicional{form.extraDescription.trim() ? ` (${form.extraDescription.trim()})` : ''}</span>
+                          <span>{formatPrice(extraAmountNum)}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between text-ink font-medium border-t border-beige-dark pt-1 mt-1">
+                        <span>Total</span><span>{formatPrice(grandTotal)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </fieldset>
+              )}
 
               {/* Origen */}
               <fieldset>
@@ -324,7 +458,7 @@ export default function ManualAppointmentModal() {
                   Cancelar
                 </button>
                 <button type="submit" disabled={saving} className="btn-primary flex-1 disabled:opacity-50">
-                  {saving ? 'Guardando…' : 'Crear cita'}
+                  {saving ? 'Guardando…' : form.mode === 'PAST' ? 'Registrar cita pasada' : 'Crear cita'}
                 </button>
               </div>
             </form>

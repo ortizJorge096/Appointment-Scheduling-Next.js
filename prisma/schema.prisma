@@ -151,6 +151,9 @@ model Appointment {
   paymentStatus      PaymentStatus     @default(PENDING)
   paymentMethod      PaymentMethod?
   amountPaid         Int?              // en pesos colombianos
+  // Cargo adicional sobre el precio del servicio (ej. registro de citas pasadas)
+  extraDescription   String?
+  extraAmount        Int?              // en pesos colombianos
   notes              String?
   cancelToken        String            @unique @default(cuid())
   calendarEventId    String?
