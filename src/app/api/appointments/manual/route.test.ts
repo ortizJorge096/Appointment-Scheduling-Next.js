@@ -127,4 +127,80 @@ describe('POST /api/appointments/manual', () => {
     expect(isSlotAvailable).not.toHaveBeenCalled()
     expect(res.status).toBe(201)
   })
+
+  describe('mode: PAST ("Cita pasada")', () => {
+    // The 15-day backfill window is relative to "today", so dates are computed at run time.
+    function recentPastDate(daysAgo: number) {
+      const d = new Date()
+      d.setDate(d.getDate() - daysAgo)
+      return d.toISOString().slice(0, 10)
+    }
+
+    it('rejects a PAST appointment without totalCharged', async () => {
+      vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
+      const res = await POST(makeRequest({ ...VALID_BODY, date: recentPastDate(2), mode: 'PAST' }))
+      expect(res.status).toBe(400)
+    })
+
+    it('rejects a PAST appointment dated today or later', async () => {
+      vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
+      const res = await POST(makeRequest({
+        ...VALID_BODY, date: recentPastDate(0), mode: 'PAST', totalCharged: 35000,
+      }))
+      expect(res.status).toBe(400)
+      const json = await res.json()
+      expect(json.error).toMatch(/anterior a hoy/)
+    })
+
+    it('creates the appointment as COMPLETED/PAID with service + extra total', async () => {
+      vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
+      vi.mocked(prisma.service.findUnique).mockResolvedValue(MOCK_SERVICE as never)
+      vi.mocked(prisma.appointment.findFirst).mockResolvedValue(null)
+      const create = vi.fn().mockResolvedValue({ ...MOCK_APPOINTMENT, status: 'COMPLETED', paymentStatus: 'PAID', amountPaid: 45000 })
+      vi.mocked(prisma.$transaction).mockImplementation(async (fn) => {
+        return fn({
+          appointment: { findFirst: vi.fn().mockResolvedValue(null), create },
+          client:      { upsert:    vi.fn().mockResolvedValue(MOCK_CLIENT) },
+        })
+      })
+
+      const res = await POST(makeRequest({
+        ...VALID_BODY,
+        date: recentPastDate(2),
+        mode: 'PAST',
+        totalCharged: 35000,
+        extraDescription: 'Tinte extra',
+        extraAmount: 10000,
+      }))
+
+      expect(res.status).toBe(201)
+      const createArgs = create.mock.calls[0][0]
+      expect(createArgs.data.status).toBe('COMPLETED')
+      expect(createArgs.data.paymentStatus).toBe('PAID')
+      expect(createArgs.data.amountPaid).toBe(45000)
+      expect(createArgs.data.extraDescription).toBe('Tinte extra')
+      expect(createArgs.data.extraAmount).toBe(10000)
+      expect(createArgs.data.services.create[0].price).toBe(35000)
+    })
+
+    it('does not change the UPCOMING (default) creation path', async () => {
+      vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
+      vi.mocked(prisma.service.findUnique).mockResolvedValue(MOCK_SERVICE as never)
+      vi.mocked(prisma.appointment.findFirst).mockResolvedValue(null)
+      const create = vi.fn().mockResolvedValue(MOCK_APPOINTMENT)
+      vi.mocked(prisma.$transaction).mockImplementation(async (fn) => {
+        return fn({
+          appointment: { findFirst: vi.fn().mockResolvedValue(null), create },
+          client:      { upsert:    vi.fn().mockResolvedValue(MOCK_CLIENT) },
+        })
+      })
+
+      const res = await POST(makeRequest(VALID_BODY))
+      expect(res.status).toBe(201)
+      const createArgs = create.mock.calls[0][0]
+      expect(createArgs.data.status).toBe('CONFIRMED')
+      expect(createArgs.data.paymentStatus).toBeUndefined()
+      expect(createArgs.data.services.create[0].price).toBe(MOCK_SERVICE.price)
+    })
+  })
 })

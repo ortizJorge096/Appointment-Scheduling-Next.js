@@ -45,15 +45,23 @@ export async function POST(
     clientName, clientEmail, clientPhone,
     serviceId, date, startTime, source, notes,
     skipAvailabilityCheck,
+    mode, totalCharged, extraDescription, extraAmount,
   } = parsed.data
 
   // Backfill window: allow past dates only up to PAST_LIMIT_DAYS days ago
   // (business timezone). Future dates are always allowed for scheduling.
   const todayBogota = toZonedTime(new Date(), STUDIO.timezone)
+  const todayStr    = format(todayBogota, 'yyyy-MM-dd')
   const minDateStr  = format(subDays(todayBogota, PAST_LIMIT_DAYS), 'yyyy-MM-dd')
   if (date < minDateStr) {
     return NextResponse.json(
       { success: false, error: `Solo puedes registrar citas de hasta ${PAST_LIMIT_DAYS} días atrás.` },
+      { status: 400 }
+    )
+  }
+  if (mode === 'PAST' && date >= todayStr) {
+    return NextResponse.json(
+      { success: false, error: 'Una cita pasada debe tener una fecha anterior a hoy.' },
       { status: 400 }
     )
   }
@@ -129,6 +137,9 @@ export async function POST(
         update: { name: clientName.trim(), phone: clientPhone.trim() },
       })
 
+      const servicePrice = mode === 'PAST' ? totalCharged! : service.price
+      const isPast = mode === 'PAST'
+
       return tx.appointment.create({
         data: {
           clientName:  clientName.trim(),
@@ -140,13 +151,19 @@ export async function POST(
           date:        dayStart,
           startTime,
           endTime,
-          status:      'CONFIRMED',
+          status:      isPast ? 'COMPLETED' : 'CONFIRMED',
           source,
           notes:       notes?.trim() ?? null,
+          ...(isPast ? {
+            paymentStatus:    'PAID',
+            amountPaid:       servicePrice + (extraAmount ?? 0),
+            extraDescription: extraDescription?.trim() || null,
+            extraAmount:      extraAmount ?? null,
+          } : {}),
           services: {
             create: [{
               serviceId,
-              price: service.price,
+              price: servicePrice,
             }],
           },
         },
@@ -185,6 +202,13 @@ export async function POST(
       date:        parsed.data.date,
       startTime:   appointment.startTime,
       source:      appointment.source,
+      mode,
+      ...(mode === 'PAST' ? {
+        totalCharged,
+        extraDescription: extraDescription?.trim() || undefined,
+        extraAmount,
+        amountPaid: appointment.amountPaid,
+      } : {}),
     },
   })
 

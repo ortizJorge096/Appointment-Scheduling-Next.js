@@ -244,7 +244,17 @@ export const createManualAppointmentSchema = z.object({
   source:      z.enum(['ONLINE','WHATSAPP','TELEFONO','PRESENCIAL']).default('PRESENCIAL'),
   notes:       z.string().max(500).optional(),
   skipAvailabilityCheck: z.boolean().optional().default(false),
-})
+
+  // "Cita pasada": registers an already-rendered appointment directly as
+  // completed and paid. Defaults to the existing ("Cita próxima") behavior.
+  mode:             z.enum(['UPCOMING', 'PAST']).optional().default('UPCOMING'),
+  totalCharged:     z.number().int().min(0).optional(),
+  extraDescription: z.string().max(200).optional(),
+  extraAmount:      z.number().int().min(0).optional(),
+}).refine(
+  (data) => data.mode !== 'PAST' || data.totalCharged !== undefined,
+  { message: 'El total cobrado es requerido para registrar una cita pasada', path: ['totalCharged'] }
+)
 
 // ─────────────────────────────────────────
 // CLIENTS (admin)
