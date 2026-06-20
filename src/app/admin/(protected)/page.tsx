@@ -6,18 +6,10 @@ import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, subDays } from 'd
 import { es } from 'date-fns/locale'
 import { StatCard } from '@/components/ui/Card'
 import { formatPrice } from '@/lib/utils'
+import { STATUS_LABEL, STATUS_CLASS } from '@/lib/appointmentStatus'
 
 export const metadata: Metadata = { title: 'Dashboard' }
 export const dynamic = 'force-dynamic'
-
-const STATUS_LABEL: Record<string, string> = {
-  PENDING: 'Pendiente', CONFIRMED: 'Confirmada',
-  COMPLETED: 'Completada', CANCELLED: 'Cancelada', NO_SHOW: 'No asistió',
-}
-const STATUS_CLASS: Record<string, string> = {
-  PENDING: 'badge-pending', CONFIRMED: 'badge-confirmed',
-  COMPLETED: 'badge-completed', CANCELLED: 'badge-cancelled', NO_SHOW: 'badge-no_show',
-}
 
 // Order used for the status-distribution bars
 const STATUS_ORDER = ['CONFIRMED', 'PENDING', 'COMPLETED', 'NO_SHOW'] as const
