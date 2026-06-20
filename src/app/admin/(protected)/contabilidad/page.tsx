@@ -5,6 +5,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { ExpenseSummary, AccountingSummary } from '@/types'
 import { Pagination } from '@/components/admin/Pagination'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
 
 const PER_PAGE = 10
 
@@ -29,6 +30,7 @@ function currentMonthRange() {
 const EMPTY_FORM = { description: '', amount: '', date: new Date().toISOString().slice(0, 10), category: 'OTROS', notes: '' }
 
 export default function ContabilidadPage() {
+  const confirm = useConfirm()
   const { from: initFrom, to: initTo } = currentMonthRange()
   const [dateFrom, setDateFrom]   = useState(initFrom)
   const [dateTo, setDateTo]       = useState(initTo)
@@ -89,6 +91,12 @@ export default function ContabilidadPage() {
   }
 
   async function deleteExpense(id: string) {
+    const ok = await confirm({
+      message: 'Esta acción no se puede deshacer.',
+      confirmLabel: 'Eliminar gasto',
+      danger: true,
+    })
+    if (!ok) return
     setDeleting(id)
     await fetch(`/api/expenses/${id}`, { method: 'DELETE' })
     setDeleting(null)

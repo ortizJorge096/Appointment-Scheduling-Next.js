@@ -8,23 +8,9 @@ import Link from 'next/link'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { formatPrice } from '@/lib/utils'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
+import { STATUS_LABEL, STATUS_CLASS } from '@/lib/appointmentStatus'
 import type { AppointmentWithService, AppointmentStatus } from '@/types'
-
-const STATUS_LABEL: Record<string, string> = {
-  PENDING:   'Pendiente',
-  CONFIRMED: 'Confirmada',
-  COMPLETED: 'Completada',
-  CANCELLED: 'Cancelada',
-  NO_SHOW:   'No asistió',
-}
-
-const STATUS_CLASS: Record<string, string> = {
-  PENDING:   'badge-pending',
-  CONFIRMED: 'badge-confirmed',
-  COMPLETED: 'badge-completed',
-  CANCELLED: 'badge-cancelled',
-  NO_SHOW:   'badge-no_show',
-}
 
 const PAYMENT_STATUS_OPTS = [
   { v: 'PENDING', l: 'Sin pago' },
@@ -59,6 +45,7 @@ const ACTIONS: Record<string, { label: string; status: AppointmentStatus; style:
 
 export default function CitaDetailPage() {
   const { id }    = useParams<{ id: string }>()
+  const confirm   = useConfirm()
 
   const [appt, setAppt]         = useState<AppointmentWithService | null>(null)
   const [loading, setLoading]   = useState(true)
@@ -93,7 +80,12 @@ export default function CitaDetailPage() {
   }, [appt])
 
   async function updateStatus(status: AppointmentStatus) {
-    if (!confirm(`¿Cambiar estado a "${STATUS_LABEL[status]}"?`)) return
+    const ok = await confirm({
+      message: `¿Cambiar el estado de esta cita a "${STATUS_LABEL[status]}"?`,
+      confirmLabel: STATUS_LABEL[status],
+      danger: status === 'CANCELLED',
+    })
+    if (!ok) return
     setUpdating(true)
     const res  = await fetch(`/api/appointments/${id}`, {
       method: 'PATCH',
@@ -224,7 +216,7 @@ export default function CitaDetailPage() {
         {/* Date and time */}
         <div className="bg-white rounded-xl border border-beige-dark p-5">
           <p className="text-xs text-ink-muted uppercase tracking-widest mb-3">Fecha y hora</p>
-          <p className="font-serif text-xl text-ink capitalize">
+          <p className="font-serif text-xl text-ink first-letter:uppercase">
             {format(new Date(appt.date), "EEEE d 'de' MMMM", { locale: es })}
           </p>
           <p className="text-ink-muted text-sm mt-1">
