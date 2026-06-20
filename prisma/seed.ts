@@ -82,7 +82,17 @@ async function main() {
   }
   for (const [oldName, newName] of Object.entries(RENAMES)) {
     const existing = await prisma.service.findUnique({ where: { name: oldName } })
-    if (existing) {
+    if (!existing) continue
+
+    const target = await prisma.service.findUnique({ where: { name: newName } })
+    if (target) {
+      // Another old name already claimed `newName` in a previous iteration
+      // (e.g. "Volumen 3D" y "Volumen 4D" colapsan ambos a "Volumen 3D/4D/5D/6D").
+      // Es un duplicado del catálogo viejo: desactivarlo en vez de renombrarlo
+      // (no se borra — puede haber citas históricas con este serviceId).
+      await prisma.service.update({ where: { id: existing.id }, data: { isActive: false } })
+      console.log(`  ⏸ Desactivado duplicado "${oldName}" (fusionado en "${newName}")`)
+    } else {
       await prisma.service.update({ where: { id: existing.id }, data: { name: newName } })
       console.log(`  ↻ Renombrado "${oldName}" → "${newName}"`)
     }
