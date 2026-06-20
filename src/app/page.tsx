@@ -137,39 +137,38 @@ function ContactoSection() {
                 <p className="text-sm text-ink-muted">{STUDIO.hours}</p>
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+            <div className="flex flex-col gap-3 mt-6">
               <a href={WHATSAPP_URL} target="_blank" rel="noreferrer"
-                className="bg-white border border-beige-dark p-5 text-left hover:border-gold transition-colors">
-                <p className="text-2xl mb-2">📱</p>
-                <p className="text-xs text-gold tracking-widest uppercase mb-1">WhatsApp</p>
-                <p className="text-sm text-ink font-medium">{STUDIO.phone}</p>
-                <p className="text-xs text-ink-muted mt-1">{STUDIO.hours}</p>
+                className="flex items-center gap-4 bg-white border border-beige-dark p-5 text-left hover:border-gold transition-colors">
+                <p className="text-2xl shrink-0">📱</p>
+                <div className="min-w-0">
+                  <p className="text-xs text-gold tracking-widest uppercase mb-1">WhatsApp</p>
+                  <p className="text-sm text-ink font-medium">{STUDIO.phone}</p>
+                </div>
               </a>
               <a href={MAILTO_URL} target="_blank" rel="noreferrer"
-                className="bg-white border border-beige-dark p-5 text-left hover:border-gold transition-colors">
-                <p className="text-2xl mb-2">✉️</p>
-                <p className="text-xs text-gold tracking-widest uppercase mb-1">Email</p>
-                <p className="text-sm text-ink font-medium">{STUDIO.email}</p>
-                <p className="text-xs text-ink-muted mt-1">Respondemos en 24h</p>
-              </a>
-            </div>
-            <div className="flex gap-3 pt-2">
-              <a href={mapsUrl} target="_blank" rel="noreferrer" className="btn-cta inline-flex">
-                Cómo llegar
-              </a>
-              <a href={WHATSAPP_URL} target="_blank" rel="noreferrer" className="btn-primary inline-flex">
-                Escribir por WhatsApp
+                className="flex items-center gap-4 bg-white border border-beige-dark p-5 text-left hover:border-gold transition-colors">
+                <p className="text-2xl shrink-0">✉️</p>
+                <div className="min-w-0">
+                  <p className="text-xs text-gold tracking-widest uppercase mb-1">Email</p>
+                  <p className="text-sm text-ink font-medium break-all">{STUDIO.email}</p>
+                </div>
               </a>
             </div>
           </div>
-          <div className="rounded-2xl overflow-hidden shadow-md border border-beige-dark/60 h-[340px]">
-            <iframe
-              src={embedUrl}
-              title="Mapa — Valentina Jimenez Beauty Studio"
-              width="100%" height="100%" loading="lazy"
-              style={{ border: 0 }}
-              referrerPolicy="no-referrer-when-downgrade"
-            />
+          <div>
+            <div className="rounded-2xl overflow-hidden shadow-md border border-beige-dark/60 h-[340px]">
+              <iframe
+                src={embedUrl}
+                title="Mapa — Valentina Jimenez Beauty Studio"
+                width="100%" height="100%" loading="lazy"
+                style={{ border: 0 }}
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+            </div>
+            <a href={mapsUrl} target="_blank" rel="noreferrer" className="btn-cta inline-flex mt-5">
+              Cómo llegar
+            </a>
           </div>
         </div>
       </div>
