@@ -1,9 +1,17 @@
 // src/app/admin/(protected)/clientes/page.test.tsx
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import ClientesPage from './page'
+import ClientesPage from './ClientesPageClient'
 
 vi.mock('next/link', () => ({
   default: ({ href, children }: { href: string; children: React.ReactNode }) => <a href={href}>{children}</a>,
+}))
+
+const replace = vi.fn()
+let currentSearch = ''
+vi.mock('next/navigation', () => ({
+  useRouter:       () => ({ replace }),
+  usePathname:     () => '/admin/clientes',
+  useSearchParams: () => new URLSearchParams(currentSearch),
 }))
 
 // fetch mock: GET → empty client list; POST → created client
@@ -23,7 +31,7 @@ function makeFetchMock() {
 }
 
 describe('ClientesPage — crear cliente', () => {
-  beforeEach(() => { vi.clearAllMocks() })
+  beforeEach(() => { vi.clearAllMocks(); currentSearch = '' })
 
   it('muestra el botón "+ Nuevo"', async () => {
     global.fetch = makeFetchMock() as unknown as typeof fetch
@@ -54,5 +62,45 @@ describe('ClientesPage — crear cliente', () => {
     const body = JSON.parse((postCall![1] as unknown as { body: string }).body)
     expect(body.name).toBe('María Ruiz')
     expect(body.email).toBe('maria@test.com')
+  })
+})
+
+describe('ClientesPage — paginación y búsqueda en la URL', () => {
+  beforeEach(() => { vi.clearAllMocks(); currentSearch = '' })
+
+  it('lee page/search desde la URL al cargar', async () => {
+    currentSearch = 'page=2&search=ana'
+    const fetchMock = makeFetchMock()
+    global.fetch = fetchMock as unknown as typeof fetch
+
+    render(<ClientesPage />)
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled())
+    const calledUrl = fetchMock.mock.calls[0][0] as string
+    expect(calledUrl).toContain('page=2')
+    expect(calledUrl).toContain('search=ana')
+    expect(screen.getByPlaceholderText('Buscar por nombre, email o teléfono…')).toHaveValue('ana')
+  })
+
+  it('al escribir en el buscador, actualiza la URL (sin page) tras el debounce', async () => {
+    vi.useFakeTimers()
+    global.fetch = makeFetchMock() as unknown as typeof fetch
+    render(<ClientesPage />)
+
+    fireEvent.change(screen.getByPlaceholderText('Buscar por nombre, email o teléfono…'), {
+      target: { value: 'maria' },
+    })
+
+    await vi.advanceTimersByTimeAsync(350)
+
+    expect(replace).toHaveBeenCalledWith(
+      expect.stringContaining('search=maria'),
+      { scroll: false }
+    )
+    expect(replace).toHaveBeenCalledWith(
+      expect.not.stringContaining('page='),
+      { scroll: false }
+    )
+    vi.useRealTimers()
   })
 })
