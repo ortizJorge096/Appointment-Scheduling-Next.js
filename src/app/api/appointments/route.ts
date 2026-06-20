@@ -9,7 +9,7 @@ import { prisma } from '@/lib/prisma'
 import { createAppointmentSchema } from '@/lib/validations'
 import { isSlotAvailable, timeToMinutes, minutesToTime } from '@/lib/availability'
 import { getVipSettings, resolveDiscountPercent } from '@/lib/vip'
-import { sendConfirmationEmail } from '@/lib/email'
+import { sendConfirmationEmail, sendAdminNewBookingEmail } from '@/lib/email'
 import { createCalendarEvent } from '@/lib/calendar'
 import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
 import type { ApiResponse, AppointmentWithService } from '@/types'
@@ -324,7 +324,7 @@ export async function POST(
     )
   }
 
-  // Non-blocking tasks: confirmation email + Google Calendar event
+  // Non-blocking tasks: confirmation email + admin notification + Google Calendar event
   Promise.all([
     sendConfirmationEmail(appointment as AppointmentWithService)
       .then(() => prisma.appointment.update({
@@ -332,6 +332,9 @@ export async function POST(
         data:  { confirmationSentAt: new Date() },
       }))
       .catch((err) => console.error('Error enviando confirmación:', err)),
+
+    sendAdminNewBookingEmail(appointment as AppointmentWithService)
+      .catch((err) => console.error('Error notificando al admin de nueva cita:', err)),
 
     createCalendarEvent(appointment as AppointmentWithService)
       .then((eventId) => {

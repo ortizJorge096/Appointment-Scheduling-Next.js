@@ -125,4 +125,24 @@ describe('ManualAppointmentModal', () => {
       expect(screen.getByText(/Este horario ya está ocupado/)).toBeInTheDocument()
     })
   })
+
+  it('premarca "Notificar al cliente" según el origen seleccionado', async () => {
+    vi.mocked(global.fetch).mockResolvedValueOnce({
+      json: () => Promise.resolve({ success: true, data: MOCK_SERVICES }),
+    } as Response)
+
+    render(<ManualAppointmentModal />)
+    fireEvent.click(screen.getByRole('button', { name: /cita manual/i }))
+    await waitFor(() => screen.getByText(/Manicura/))
+
+    const checkbox = screen.getByRole('checkbox', { name: /notificar al cliente por email/i })
+    // Origen por defecto es Presencial → desmarcado
+    expect(checkbox).not.toBeChecked()
+
+    fireEvent.click(screen.getByRole('button', { name: 'WhatsApp' }))
+    expect(checkbox).toBeChecked()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Presencial' }))
+    expect(checkbox).not.toBeChecked()
+  })
 })

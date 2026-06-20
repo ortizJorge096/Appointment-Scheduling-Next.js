@@ -25,6 +25,9 @@ const EMPTY = {
   serviceId: '', date: '', startTime: '',
   source: 'PRESENCIAL', notes: '',
   skipAvailabilityCheck: false,
+  // Premarcado según el origen: un cliente presencial ya sabe que su cita
+  // quedó agendada; los demás orígenes se benefician de recibirlo por mail.
+  notifyClient: false,
   mode: 'UPCOMING' as 'UPCOMING' | 'PAST',
   totalCharged: '', extraDescription: '', extraAmount: '',
 }
@@ -132,6 +135,7 @@ export default function ManualAppointmentModal() {
       source: form.source, notes: form.notes,
       skipAvailabilityCheck: form.skipAvailabilityCheck,
       mode: form.mode,
+      ...(!isPast ? { notifyClient: form.notifyClient } : {}),
       ...(isPast ? {
         totalCharged: Number(form.totalCharged),
         ...(form.extraAmount !== '' ? {
@@ -413,7 +417,10 @@ export default function ManualAppointmentModal() {
                 <div className="flex flex-wrap gap-2">
                   {SOURCE_OPTIONS.map(opt => (
                     <button key={opt.value} type="button"
-                      onClick={() => setForm(f => ({ ...f, source: opt.value }))}
+                      onClick={() => setForm(f => ({
+                        ...f, source: opt.value,
+                        notifyClient: opt.value !== 'PRESENCIAL',
+                      }))}
                       className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${
                         form.source === opt.value
                           ? 'bg-gold text-white border-gold'
@@ -424,6 +431,16 @@ export default function ManualAppointmentModal() {
                   ))}
                 </div>
               </fieldset>
+
+              {/* Notificar al cliente (no aplica a citas pasadas) */}
+              {form.mode === 'UPCOMING' && (
+                <label className="flex items-start gap-2 text-sm text-ink-muted cursor-pointer">
+                  <input type="checkbox" checked={form.notifyClient}
+                    onChange={e => setForm(f => ({ ...f, notifyClient: e.target.checked }))}
+                    className="mt-0.5 rounded border-beige-dark text-gold focus:ring-gold/40" />
+                  <span>Notificar al cliente por email</span>
+                </label>
+              )}
 
               {/* Notas */}
               <div>
