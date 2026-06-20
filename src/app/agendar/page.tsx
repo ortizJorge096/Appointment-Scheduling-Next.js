@@ -15,24 +15,19 @@ export default function AgendarPage() {
       <Navbar />
       <main className="min-h-screen bg-beige pt-24 pb-16">
         <div className="text-center mb-12 px-6">
-          <span className="section-tag justify-center mb-4">Reserva en línea</span>
+          <span className="section-tag justify-center mb-4">Flujo de reserva</span>
           <h1 className="font-serif text-4xl lg:text-5xl font-light text-ink">
-            Agenda tu <em className="text-gold italic">cita</em>
+            Agenda en menos de 60 segundos
           </h1>
-          <p className="text-ink-muted mt-3 text-sm">
-            En menos de 60 segundos · Confirmación inmediata por email
-          </p>
         </div>
         <div className="max-w-3xl mx-auto px-6">
-          <div className="bg-white border border-beige-dark/60 rounded-3xl p-8 lg:p-12 shadow-sm">
-            <Suspense fallback={
-              <div className="py-10 text-center text-ink-muted text-sm">
-                Cargando...
-              </div>
-            }>
-              <BookingForm />
-            </Suspense>
-          </div>
+          <Suspense fallback={
+            <div className="py-10 text-center text-ink-muted text-sm">
+              Cargando...
+            </div>
+          }>
+            <BookingForm />
+          </Suspense>
         </div>
       </main>
       <Footer />
