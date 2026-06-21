@@ -192,34 +192,68 @@ export default function ProfesionalesPage() {
         ) : (
           <div className="divide-y divide-beige-dark">
             {professionals.map((p) => (
-              <div key={p.id}
-                className={`flex items-center justify-between px-6 py-4 transition-opacity ${p.isActive ? '' : 'opacity-50'}`}>
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className="w-10 h-10 rounded-full bg-gradient-to-br from-gold-light to-gold
-                                   flex items-center justify-center text-white font-serif font-semibold shrink-0">
-                    {p.name.charAt(0)}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="font-medium text-ink truncate">{p.name}</p>
-                    <p className="text-xs text-ink-muted truncate">
-                      {p.specialty} {p.specialty && '·'} ★ {p.rating.toFixed(1)} · {p.reviewCount} citas
-                    </p>
+              <div key={p.id} className={`transition-opacity ${p.isActive ? '' : 'opacity-50'}`}>
+                {/* Desktop row */}
+                <div className="hidden md:flex items-center justify-between px-6 py-4">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="w-10 h-10 rounded-full bg-gradient-to-br from-gold-light to-gold
+                                     flex items-center justify-center text-white font-serif font-semibold shrink-0">
+                      {p.name.charAt(0)}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="font-medium text-ink truncate">{p.name}</p>
+                      <p className="text-xs text-ink-muted truncate">
+                        {p.specialty} {p.specialty && '·'} ★ {p.rating.toFixed(1)} · {p.reviewCount} citas
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-5 shrink-0">
+                    {!p.isActive && (
+                      <span className="text-[10px] tracking-widest uppercase bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full">
+                        Inactivo
+                      </span>
+                    )}
+                    <button onClick={() => openEdit(p)} className="btn-row-action text-xs text-ink-muted hover:text-gold">
+                      Editar
+                    </button>
+                    <button onClick={() => toggleActive(p)}
+                      className={`btn-row-action text-xs ${p.isActive ? 'text-ink-muted hover:text-red-500' : 'text-green-600 hover:text-green-700'}`}>
+                      {p.isActive ? 'Desactivar' : 'Activar'}
+                    </button>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-5 shrink-0">
-                  {!p.isActive && (
-                    <span className="text-[10px] tracking-widest uppercase bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full">
-                      Inactivo
+                {/* Mobile card */}
+                <div className="md:hidden px-4 py-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="w-10 h-10 rounded-full bg-gradient-to-br from-gold-light to-gold
+                                     flex items-center justify-center text-white font-serif font-semibold shrink-0">
+                      {p.name.charAt(0)}
                     </span>
-                  )}
-                  <button onClick={() => openEdit(p)} className="text-xs text-ink-muted hover:text-gold transition-colors">
-                    Editar
-                  </button>
-                  <button onClick={() => toggleActive(p)}
-                    className={`text-xs transition-colors ${p.isActive ? 'text-ink-muted hover:text-red-500' : 'text-green-600 hover:text-green-700'}`}>
-                    {p.isActive ? 'Desactivar' : 'Activar'}
-                  </button>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-medium text-ink text-sm truncate">{p.name}</p>
+                        {!p.isActive && (
+                          <span className="text-[10px] tracking-widest uppercase bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full shrink-0">
+                            Inactivo
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-ink-muted truncate">
+                        {p.specialty} {p.specialty && '·'} ★ {p.rating.toFixed(1)} · {p.reviewCount} citas
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 mt-1.5">
+                    <button onClick={() => openEdit(p)} className="btn-row-action text-xs text-ink-muted hover:text-gold">
+                      Editar
+                    </button>
+                    <button onClick={() => toggleActive(p)}
+                      className={`btn-row-action text-xs ${p.isActive ? 'text-ink-muted hover:text-red-500' : 'text-green-600 hover:text-green-700'}`}>
+                      {p.isActive ? 'Desactivar' : 'Activar'}
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}

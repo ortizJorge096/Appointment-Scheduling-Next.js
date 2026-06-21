@@ -228,7 +228,7 @@ export default function ContabilidadPage() {
                     <button
                       onClick={() => deleteExpense(exp.id)}
                       disabled={deleting === exp.id}
-                      className="text-xs text-ink-muted/50 hover:text-red-500 transition-colors mt-0.5">
+                      className="btn-row-action text-xs text-ink-muted/50 hover:text-red-500 mt-0.5">
                       {deleting === exp.id ? '…' : 'Eliminar'}
                     </button>
                   </div>

@@ -49,6 +49,12 @@
            transition-colors duration-150
            hover:bg-beige-dark hover:text-ink;
   }
+  /* Expands the tap target of small inline text actions (Editar, Eliminar, Ver →)
+     without changing their visual size or the row's layout — the negative
+     margin pulls the extra padding back so siblings don't shift. */
+  .btn-row-action {
+    @apply inline-flex items-center justify-center py-3 px-2 -my-3 -mx-2 transition-colors;
+  }
 
   /* ── Inputs ── */
   .input-field {
