@@ -245,6 +245,11 @@ export const createManualAppointmentSchema = z.object({
   notes:       z.string().max(500).optional(),
   skipAvailabilityCheck: z.boolean().optional().default(false),
 
+  // Sends the regular client-facing confirmation email (only applies to
+  // mode: 'UPCOMING' — a "Cita pasada" never gets a "your appointment is
+  // confirmed" email since it's already completed).
+  notifyClient: z.boolean().optional().default(false),
+
   // "Cita pasada": registers an already-rendered appointment directly as
   // completed and paid. Defaults to the existing ("Cita próxima") behavior.
   mode:             z.enum(['UPCOMING', 'PAST']).optional().default('UPCOMING'),
@@ -311,4 +316,12 @@ export const vipConfigSchema = z.object({
       discountPct: z.number().int().min(0).max(100),
     }))
     .min(1, 'Debe haber al menos un tramo de descuento'),
+})
+
+// ─────────────────────────────────────────
+// BOOKING SETTINGS (admin)
+// ─────────────────────────────────────────
+
+export const bookingSettingsSchema = z.object({
+  showProfessionalStep: z.boolean(),
 })
