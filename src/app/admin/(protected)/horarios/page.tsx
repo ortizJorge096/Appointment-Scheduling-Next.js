@@ -155,41 +155,43 @@ export default function HorariosPage() {
                 const dayLabel = DAYS.find((d) => d.key === sched.dayOfWeek)?.label ?? sched.dayOfWeek
                 return (
                   <div key={sched.dayOfWeek}
-                    className={`px-4 sm:px-6 py-3 sm:py-4 flex flex-wrap items-center gap-3 sm:gap-4 transition-opacity
+                    className={`px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 transition-opacity
                       ${sched.isActive ? '' : 'opacity-50'}`}>
 
-                    <label className="flex items-center gap-2 cursor-pointer min-w-[100px]">
-                      <input
-                        type="checkbox"
-                        checked={sched.isActive}
-                        onChange={(e) => updateSchedule(sched.dayOfWeek, 'isActive', e.target.checked)}
-                        className="accent-gold w-4 h-4"
-                      />
-                      <span className="text-sm font-medium text-ink">{dayLabel}</span>
-                    </label>
+                    <div className="flex items-center justify-between gap-3">
+                      <label className="flex items-center gap-2 cursor-pointer min-w-[100px]">
+                        <input
+                          type="checkbox"
+                          checked={sched.isActive}
+                          onChange={(e) => updateSchedule(sched.dayOfWeek, 'isActive', e.target.checked)}
+                          className="accent-gold w-4 h-4"
+                        />
+                        <span className="text-sm font-medium text-ink">{dayLabel}</span>
+                      </label>
 
-                    <div className="flex items-center gap-2 text-sm text-ink-muted">
-                      <input
-                        type="time"
-                        value={sched.startTime}
-                        disabled={!sched.isActive}
-                        onChange={(e) => updateSchedule(sched.dayOfWeek, 'startTime', e.target.value)}
-                        className="input-field py-1.5 w-24 sm:w-28 text-sm"
-                      />
-                      <span>–</span>
-                      <input
-                        type="time"
-                        value={sched.endTime}
-                        disabled={!sched.isActive}
-                        onChange={(e) => updateSchedule(sched.dayOfWeek, 'endTime', e.target.value)}
-                        className="input-field py-1.5 w-24 sm:w-28 text-sm"
-                      />
+                      <div className="flex items-center gap-2 text-sm text-ink-muted">
+                        <input
+                          type="time"
+                          value={sched.startTime}
+                          disabled={!sched.isActive}
+                          onChange={(e) => updateSchedule(sched.dayOfWeek, 'startTime', e.target.value)}
+                          className="input-field py-1.5 w-24 sm:w-28 text-sm"
+                        />
+                        <span>–</span>
+                        <input
+                          type="time"
+                          value={sched.endTime}
+                          disabled={!sched.isActive}
+                          onChange={(e) => updateSchedule(sched.dayOfWeek, 'endTime', e.target.value)}
+                          className="input-field py-1.5 w-24 sm:w-28 text-sm"
+                        />
+                      </div>
                     </div>
 
                     <button
                       onClick={() => saveSchedule(sched)}
                       disabled={saving === sched.dayOfWeek}
-                      className="ml-auto btn-primary text-xs px-3 py-1.5 disabled:opacity-50"
+                      className="btn-primary text-xs px-3 py-1.5 disabled:opacity-50 w-full sm:w-auto sm:ml-auto"
                     >
                       {saving === sched.dayOfWeek ? 'Guardando...' : 'Guardar'}
                     </button>
@@ -256,7 +258,7 @@ export default function HorariosPage() {
                     </div>
                     <button
                       onClick={() => removeBlockedDate(b.id)}
-                      className="text-xs text-red-400 hover:text-red-600 transition-colors shrink-0"
+                      className="btn-row-action text-xs text-red-400 hover:text-red-600 shrink-0"
                     >
                       Desbloquear
                     </button>

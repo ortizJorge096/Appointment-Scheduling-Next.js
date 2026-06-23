@@ -2,7 +2,7 @@
 // src/app/admin/(protected)/auditoria/AuditoriaPageClient.tsx
 // useSearchParams() requires this to be split out and wrapped in <Suspense> by page.tsx
 
-import { useState, useEffect, useCallback } from 'react'
+import { Fragment, useState, useEffect, useCallback } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { Pagination } from '@/components/admin/Pagination'
 
@@ -82,6 +82,9 @@ export default function AuditoriaPageClient() {
   const [logs, setLogs]             = useState<AuditLog[]>([])
   const [pagination, setPagination] = useState<PaginationInfo>({ total: 0, page: 1, totalPages: 1 })
   const [loading, setLoading]       = useState(true)
+  // Below `lg` the "Detalle" column is hidden — this tracks which row's
+  // detail is expanded inline instead, so that data isn't simply lost on mobile.
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   // The URL is the source of truth — survives refresh, back/forward, and
   // shared links. `replace` (not `push`) so paging/filtering doesn't spam history.
@@ -207,26 +210,49 @@ export default function AuditoriaPageClient() {
             </thead>
             <tbody className="divide-y divide-beige-dark/60">
               {logs.map(log => (
-                <tr key={log.id} className="hover:bg-beige/20 transition-colors">
-                  <td className="px-4 py-3 whitespace-nowrap text-xs text-ink-muted">
-                    {formatDate(log.createdAt)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-medium ${ACTION_COLORS[log.action]}`}>
-                      {ACTION_LABELS[log.action]}
-                    </span>
-                    <span className="sm:hidden text-xs text-ink-muted ml-1.5">{ENTITY_LABELS[log.entity]}</span>
-                  </td>
-                  <td className="px-4 py-3 text-xs font-medium text-ink hidden sm:table-cell">
-                    {ENTITY_LABELS[log.entity]}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-ink-muted hidden md:table-cell">
-                    {log.userEmail ?? '—'}
-                  </td>
-                  <td className="px-4 py-3 max-w-[260px] hidden lg:table-cell">
-                    <MetadataPreview data={log.metadata} />
-                  </td>
-                </tr>
+                <Fragment key={log.id}>
+                  <tr className="hover:bg-beige/20 transition-colors">
+                    <td className="px-4 py-3 whitespace-nowrap text-xs text-ink-muted">
+                      {formatDate(log.createdAt)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-medium ${ACTION_COLORS[log.action]}`}>
+                          {ACTION_LABELS[log.action]}
+                        </span>
+                        <span className="sm:hidden text-xs text-ink-muted">{ENTITY_LABELS[log.entity]}</span>
+                        {log.metadata && (
+                          <button
+                            type="button"
+                            onClick={() => setExpandedId(id => id === log.id ? null : log.id)}
+                            className="btn-row-action lg:hidden text-[11px] text-gold hover:underline"
+                          >
+                            {expandedId === log.id ? 'Ocultar' : 'Ver detalle'}
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-xs font-medium text-ink hidden sm:table-cell">
+                      {ENTITY_LABELS[log.entity]}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-ink-muted hidden md:table-cell">
+                      {log.userEmail ?? '—'}
+                    </td>
+                    <td className="px-4 py-3 max-w-[260px] hidden lg:table-cell">
+                      <MetadataPreview data={log.metadata} />
+                    </td>
+                  </tr>
+                  {expandedId === log.id && (
+                    <tr className="lg:hidden bg-beige/10">
+                      <td colSpan={5} className="px-4 pb-3 pt-0">
+                        <div className="md:hidden text-[11px] text-ink-muted mb-1.5">
+                          {log.userEmail ?? '—'}
+                        </div>
+                        <MetadataPreview data={log.metadata} />
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               ))}
             </tbody>
           </table>

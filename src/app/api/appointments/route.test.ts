@@ -31,7 +31,10 @@ vi.mock('@/lib/availability', () => ({
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
   }),
 }))
-vi.mock('@/lib/email',    () => ({ sendConfirmationEmail: vi.fn().mockResolvedValue(undefined) }))
+vi.mock('@/lib/email',    () => ({
+  sendConfirmationEmail:    vi.fn().mockResolvedValue(undefined),
+  sendAdminNewBookingEmail: vi.fn().mockResolvedValue(undefined),
+}))
 vi.mock('@/lib/calendar', () => ({ createCalendarEvent:  vi.fn().mockResolvedValue(null) }))
 
 const { getServerSession } = await import('next-auth')
