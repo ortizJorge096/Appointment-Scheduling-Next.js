@@ -42,6 +42,10 @@ runner_labels = "self-hosted,linux,x64,k3s-deploy,k3s-dev"
 enable_letsencrypt = false
 letsencrypt_email  = ""
 
+# Hostname público del entorno (A record → EIP). Lo lee el CI desde SSM
+# para fijar el host del ingress, NEXTAUTH_URL y NEXT_PUBLIC_APP_URL.
+app_host = "dev.vjbeautystudio.com"
+
 # Emails de la app (SES). Vacíos hasta que verifiques un remitente.
 ses_from_email = ""
 enable_emails  = false
