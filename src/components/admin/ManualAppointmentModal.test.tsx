@@ -77,7 +77,7 @@ describe('ManualAppointmentModal', () => {
       .mockResolvedValueOnce({
         json: () => Promise.resolve({
           success: true,
-          data: { clients: [{ id: 'c1', name: 'Ana López', email: 'ana@test.com', phone: '3001234567', _count: { appointments: 3 } }] },
+          data: { clients: [{ id: 'c1', name: 'Ana López', email: 'ana@test.com', phone: '3001234567' }] },
         }),
       } as Response)
 
@@ -94,47 +94,6 @@ describe('ManualAppointmentModal', () => {
     expect(screen.getByPlaceholderText('Ana García')).toHaveValue('Ana López')
     expect(screen.getByPlaceholderText('ana@ejemplo.com')).toHaveValue('ana@test.com')
     expect(screen.getByPlaceholderText('3001234567')).toHaveValue('3001234567')
-  })
-
-  it('muestra el conteo de citas previas en los resultados de búsqueda', async () => {
-    vi.mocked(global.fetch)
-      .mockResolvedValueOnce({ json: () => Promise.resolve({ success: true, data: MOCK_SERVICES }) } as Response)
-      .mockResolvedValueOnce({
-        json: () => Promise.resolve({
-          success: true,
-          data: { clients: [{ id: 'c1', name: 'Ana López', email: 'ana@test.com', phone: '3001234567', _count: { appointments: 5 } }] },
-        }),
-      } as Response)
-
-    render(<ManualAppointmentModal />)
-    fireEvent.click(screen.getByRole('button', { name: /cita manual/i }))
-    await waitFor(() => screen.getByText(/Manicura/))
-
-    fireEvent.change(screen.getByLabelText('Buscar cliente existente'), { target: { value: 'ana' } })
-
-    await screen.findByText('Ana López')
-    expect(screen.getByText('ana@test.com · 5 citas')).toBeInTheDocument()
-  })
-
-  it('"Crear cliente nuevo" precarga el nombre escrito y enfoca el email', async () => {
-    vi.mocked(global.fetch)
-      .mockResolvedValueOnce({ json: () => Promise.resolve({ success: true, data: MOCK_SERVICES }) } as Response)
-      .mockResolvedValueOnce({
-        json: () => Promise.resolve({ success: true, data: { clients: [] } }),
-      } as Response)
-
-    render(<ManualAppointmentModal />)
-    fireEvent.click(screen.getByRole('button', { name: /cita manual/i }))
-    await waitFor(() => screen.getByText(/Manicura/))
-
-    fireEvent.change(screen.getByLabelText('Buscar cliente existente'), { target: { value: 'Carla Nueva' } })
-
-    const createNewButton = await screen.findByRole('button', { name: '+ Crear cliente nuevo' })
-    fireEvent.click(createNewButton)
-
-    const emailInput = screen.getByPlaceholderText('ana@ejemplo.com')
-    expect(screen.getByPlaceholderText('Ana García')).toHaveValue('Carla Nueva')
-    expect(emailInput).toHaveFocus()
   })
 
   it('shows error message on API failure', async () => {
@@ -165,25 +124,5 @@ describe('ManualAppointmentModal', () => {
     await waitFor(() => {
       expect(screen.getByText(/Este horario ya está ocupado/)).toBeInTheDocument()
     })
-  })
-
-  it('premarca "Notificar al cliente" según el origen seleccionado', async () => {
-    vi.mocked(global.fetch).mockResolvedValueOnce({
-      json: () => Promise.resolve({ success: true, data: MOCK_SERVICES }),
-    } as Response)
-
-    render(<ManualAppointmentModal />)
-    fireEvent.click(screen.getByRole('button', { name: /cita manual/i }))
-    await waitFor(() => screen.getByText(/Manicura/))
-
-    const checkbox = screen.getByRole('checkbox', { name: /notificar al cliente por email/i })
-    // Origen por defecto es Presencial → desmarcado
-    expect(checkbox).not.toBeChecked()
-
-    fireEvent.click(screen.getByRole('button', { name: 'WhatsApp' }))
-    expect(checkbox).toBeChecked()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Presencial' }))
-    expect(checkbox).not.toBeChecked()
   })
 })

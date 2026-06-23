@@ -76,6 +76,7 @@ interface FieldErrors {
 
 const STORAGE_KEY = 'vj_booking_client'
 
+const STEPS: FormStep[] = ['service', 'professional', 'datetime', 'confirm']
 const STEP_LABELS: Record<FormStep, string> = {
   service: 'Servicio', professional: 'Profesional', datetime: 'Fecha y hora', confirm: 'Confirmar',
 }
@@ -98,9 +99,6 @@ export default function BookingForm() {
   const [loadingPro, setLoadingPro]   = useState(true)
   const [cupos, setCupos]             = useState<number | null>(null)
   const [vipSettings, setVipSettings] = useState<VipSettings>({ enabled: false, tiers: [] })
-  // Admin toggle (/admin/profesionales): when off, the client never picks a
-  // professional — the server already auto-assigns "primera disponible".
-  const [showProfessionalStep, setShowProfessionalStep] = useState(true)
   const [submitting, setSubmitting]   = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [stepError,   setStepError]   = useState<string | null>(null)
@@ -177,11 +175,6 @@ export default function BookingForm() {
       .then((r) => r.json())
       .then((json) => { if (json.success) setCupos(json.data.remaining) })
       .catch(() => {})
-
-    fetch('/api/booking-settings')
-      .then((r) => r.json())
-      .then((json) => { if (json.success) setShowProfessionalStep(json.data.showProfessionalStep) })
-      .catch(() => {})
   }, [])
 
   // 5. Pre-selection via URL: /agendar?service=ID or /agendar?categoria=UNAS
@@ -215,17 +208,6 @@ export default function BookingForm() {
       formTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }, 50)
   }, [step])
-
-  // Steps adjust automatically when the admin toggles professional selection.
-  const STEPS: FormStep[] = showProfessionalStep
-    ? ['service', 'professional', 'datetime', 'confirm']
-    : ['service', 'datetime', 'confirm']
-
-  // Defensive: if the setting flips off while the client is on that step
-  // (e.g. it loaded a beat late), bump them forward instead of stranding them.
-  useEffect(() => {
-    if (!showProfessionalStep && step === 'professional') setStep('datetime')
-  }, [showProfessionalStep, step])
 
   const selectedService = services.find((s) => s.id === form.serviceId)
   const isVipCategory = form.category === VIP_PSEUDO_CATEGORY
@@ -772,12 +754,10 @@ export default function BookingForm() {
                 <span className="font-serif text-ink font-semibold text-right max-w-[60%]">{summaryServices[0]?.name ?? ''}</span>
               </div>
             )}
-            {showProfessionalStep && (
-              <div className="flex justify-between text-[15px] border-b border-dashed border-beige-deeper py-3">
-                <span className="text-ink-muted">Profesional</span>
-                <span className="text-ink font-medium text-right max-w-[60%]">{selectedProfessional?.name ?? 'Primera disponible'}</span>
-              </div>
-            )}
+            <div className="flex justify-between text-[15px] border-b border-dashed border-beige-deeper py-3">
+              <span className="text-ink-muted">Profesional</span>
+              <span className="text-ink font-medium text-right max-w-[60%]">{selectedProfessional?.name ?? 'Primera disponible'}</span>
+            </div>
             {[
               { label: 'Fecha',     value: format(new Date(`${form.date}T12:00:00`), "EEEE d 'de' MMMM", { locale: es }) },
               { label: 'Hora',      value: form.startTime },

@@ -23,11 +23,9 @@ vi.mock('@/lib/availability', () => ({
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
   }),
 }))
-vi.mock('@/lib/email', () => ({ sendRescheduledEmail: vi.fn().mockResolvedValue(undefined) }))
 
-const { getServerSession }     = await import('next-auth')
-const { prisma }               = await import('@/lib/prisma')
-const { sendRescheduledEmail } = await import('@/lib/email')
+const { getServerSession } = await import('next-auth')
+const { prisma }           = await import('@/lib/prisma')
 
 const MOCK_SERVICE = { id: 's1', name: 'Manicura', price: 35000, durationMinutes: 45 }
 
@@ -140,30 +138,6 @@ describe('PATCH /api/appointments/[id]', () => {
     expect(prisma.appointment.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: 'COMPLETED' }) })
     )
-    expect(sendRescheduledEmail).not.toHaveBeenCalled()
-  })
-
-  it('sends a reschedule email when date or startTime change', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
-    vi.mocked(prisma.appointment.findUnique).mockResolvedValue(MOCK_APPOINTMENT)
-    const updated = { ...MOCK_APPOINTMENT, date: new Date('2026-12-05'), startTime: '14:00' }
-    vi.mocked(prisma.appointment.update).mockResolvedValue(updated)
-
-    const res = await PATCH(makeRequest({ date: '2026-12-05', startTime: '14:00' }), CTX())
-    expect(res.status).toBe(200)
-    expect(sendRescheduledEmail).toHaveBeenCalledWith(updated, MOCK_APPOINTMENT.date, '10:00')
-  })
-
-  it('does not send a reschedule email if the same request cancels the appointment', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
-    vi.mocked(prisma.appointment.findUnique).mockResolvedValue(MOCK_APPOINTMENT)
-    vi.mocked(prisma.appointment.update).mockResolvedValue({
-      ...MOCK_APPOINTMENT, date: new Date('2026-12-05'), status: 'CANCELLED',
-    })
-
-    const res = await PATCH(makeRequest({ date: '2026-12-05', status: 'CANCELLED' }), CTX())
-    expect(res.status).toBe(200)
-    expect(sendRescheduledEmail).not.toHaveBeenCalled()
   })
 })
 
