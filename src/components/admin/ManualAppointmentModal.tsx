@@ -1,12 +1,12 @@
 'use client'
 // src/components/admin/ManualAppointmentModal.tsx
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatPrice } from '@/lib/utils'
-import ClientSearchInput, { type ClientHit } from './ClientSearchInput'
 
 interface Service { id: string; name: string; price: number; durationMinutes: number }
+interface ClientHit { id: string; name: string; email: string; phone: string | null }
 
 const SOURCE_OPTIONS = [
   { value: 'PRESENCIAL', label: 'Presencial' },
@@ -25,9 +25,6 @@ const EMPTY = {
   serviceId: '', date: '', startTime: '',
   source: 'PRESENCIAL', notes: '',
   skipAvailabilityCheck: false,
-  // Premarcado según el origen: un cliente presencial ya sabe que su cita
-  // quedó agendada; los demás orígenes se benefician de recibirlo por mail.
-  notifyClient: false,
   mode: 'UPCOMING' as 'UPCOMING' | 'PAST',
   totalCharged: '', extraDescription: '', extraAmount: '',
 }
@@ -54,7 +51,10 @@ export default function ManualAppointmentModal() {
   const [apiError, setApiError] = useState('')
   const [success, setSuccess]   = useState('')
 
-  const emailInputRef = useRef<HTMLInputElement>(null)
+  // Existing-client search (prefills the form when one is picked)
+  const [clientQuery, setClientQuery]     = useState('')
+  const [clientResults, setClientResults] = useState<ClientHit[]>([])
+  const [searching, setSearching]         = useState(false)
 
   const loadServices = useCallback(async () => {
     const res = await fetch('/api/services')
@@ -66,21 +66,30 @@ export default function ManualAppointmentModal() {
     if (open) {
       loadServices()
       setFieldErrors({}); setApiError(''); setSuccess('')
+      setClientQuery(''); setClientResults([])
     }
   }, [open, loadServices])
 
+  // Debounced search of existing clients via /api/clients?search=
+  useEffect(() => {
+    const q = clientQuery.trim()
+    if (q.length < 2) { setClientResults([]); setSearching(false); return }
+    setSearching(true)
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/clients?search=${encodeURIComponent(q)}&limit=6`)
+        const j   = await res.json()
+        if (j.success) setClientResults(j.data.clients ?? [])
+      } catch { /* ignore network errors in the picker */ }
+      finally { setSearching(false) }
+    }, 300)
+    return () => clearTimeout(t)
+  }, [clientQuery])
+
   function pickClient(c: ClientHit) {
     setForm(f => ({ ...f, clientName: c.name, clientEmail: c.email, clientPhone: c.phone ?? '' }))
+    setClientQuery(''); setClientResults([])
     setFieldErrors(fe => ({ ...fe, clientName: undefined, clientEmail: undefined, clientPhone: undefined }))
-  }
-
-  // "Crear cliente nuevo" — no existing match, so just hand the typed text
-  // to the regular fields and let the admin keep filling them. The actual
-  // Client record gets created (upserted by email) when the appointment is saved.
-  function startNewClient(query: string) {
-    setForm(f => ({ ...f, clientName: query }))
-    if (fieldErrors.clientName) setFieldErrors(fe => ({ ...fe, clientName: undefined }))
-    emailInputRef.current?.focus()
   }
 
   function field(key: keyof typeof EMPTY) {
@@ -123,7 +132,6 @@ export default function ManualAppointmentModal() {
       source: form.source, notes: form.notes,
       skipAvailabilityCheck: form.skipAvailabilityCheck,
       mode: form.mode,
-      ...(!isPast ? { notifyClient: form.notifyClient } : {}),
       ...(isPast ? {
         totalCharged: Number(form.totalCharged),
         ...(form.extraAmount !== '' ? {
@@ -225,12 +233,42 @@ export default function ManualAppointmentModal() {
                   Datos del cliente
                 </p>
 
-                {/* Existing-client search — pick one to prefill, or create a new one */}
-                <ClientSearchInput
-                  className="mb-3"
-                  onSelect={pickClient}
-                  onCreateNew={startNewClient}
-                />
+                {/* Existing-client search — pick one to prefill, or just type a new one */}
+                <div className="relative mb-3">
+                  <input
+                    type="text"
+                    value={clientQuery}
+                    onChange={(e) => setClientQuery(e.target.value)}
+                    placeholder="Buscar cliente existente por nombre, email o teléfono…"
+                    aria-label="Buscar cliente existente"
+                    className="input-field w-full pr-9"
+                    autoComplete="off"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-muted text-sm">
+                    {searching ? '…' : '⌕'}
+                  </span>
+                  {clientResults.length > 0 && (
+                    <ul className="absolute z-10 left-0 right-0 mt-1 bg-white border border-beige-dark
+                                   rounded-xl shadow-lg max-h-56 overflow-y-auto">
+                      {clientResults.map((c) => (
+                        <li key={c.id}>
+                          <button type="button" onClick={() => pickClient(c)}
+                            className="w-full text-left px-4 py-2.5 hover:bg-gold-pale transition-colors">
+                            <span className="block text-sm text-ink font-medium">{c.name}</span>
+                            <span className="block text-xs text-ink-muted">
+                              {c.email}{c.phone ? ` · ${c.phone}` : ''}
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {clientQuery.trim().length >= 2 && !searching && clientResults.length === 0 && (
+                    <p className="text-xs text-ink-muted mt-1.5 px-1">
+                      Sin coincidencias — completa los datos para crear un cliente nuevo.
+                    </p>
+                  )}
+                </div>
 
                 <div className="space-y-3">
                   <div>
@@ -246,7 +284,7 @@ export default function ManualAppointmentModal() {
                     <label className="form-label">
                       Email <span className="text-red-500">*</span>
                     </label>
-                    <input ref={emailInputRef} type="email" value={form.clientEmail} onChange={field('clientEmail')}
+                    <input type="email" value={form.clientEmail} onChange={field('clientEmail')}
                       placeholder="ana@ejemplo.com"
                       className={`input-field w-full ${fieldErrors.clientEmail ? 'border-red-400 focus:ring-red-300' : ''}`} />
                     <Err k="clientEmail" />
@@ -375,10 +413,7 @@ export default function ManualAppointmentModal() {
                 <div className="flex flex-wrap gap-2">
                   {SOURCE_OPTIONS.map(opt => (
                     <button key={opt.value} type="button"
-                      onClick={() => setForm(f => ({
-                        ...f, source: opt.value,
-                        notifyClient: opt.value !== 'PRESENCIAL',
-                      }))}
+                      onClick={() => setForm(f => ({ ...f, source: opt.value }))}
                       className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${
                         form.source === opt.value
                           ? 'bg-gold text-white border-gold'
@@ -389,16 +424,6 @@ export default function ManualAppointmentModal() {
                   ))}
                 </div>
               </fieldset>
-
-              {/* Notificar al cliente (no aplica a citas pasadas) */}
-              {form.mode === 'UPCOMING' && (
-                <label className="flex items-start gap-2 text-sm text-ink-muted cursor-pointer">
-                  <input type="checkbox" checked={form.notifyClient}
-                    onChange={e => setForm(f => ({ ...f, notifyClient: e.target.checked }))}
-                    className="mt-0.5 rounded border-beige-dark text-gold focus:ring-gold/40" />
-                  <span>Notificar al cliente por email</span>
-                </label>
-              )}
 
               {/* Notas */}
               <div>

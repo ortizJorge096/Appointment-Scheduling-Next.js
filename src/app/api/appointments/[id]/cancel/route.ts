@@ -4,8 +4,6 @@ import { STUDIO } from '@/lib/config'
 import { toZonedTime, fromZonedTime } from 'date-fns-tz'
 import { format } from 'date-fns'
 import { deleteCalendarEvent } from '@/lib/calendar'
-import { sendAdminCancellationEmail } from '@/lib/email'
-import type { AppointmentWithService } from '@/types'
 
 export async function POST(
   _request: NextRequest,
@@ -77,10 +75,6 @@ export async function POST(
   const updated = await prisma.appointment.update({
     where: { id },
     data: { status: 'CANCELLED' },
-    include: {
-      service:  { select: { id: true, name: true, price: true, durationMinutes: true } },
-      services: { include: { service: { select: { id: true, name: true, price: true, durationMinutes: true } } } },
-    },
   })
 
   // Delete the calendar event (non-blocking)
@@ -88,10 +82,6 @@ export async function POST(
     deleteCalendarEvent(updated.calendarEventId)
       .catch((err) => console.error('Error eliminando evento de calendario:', err))
   }
-
-  // Notify the admin — this cancellation was initiated by the client, not by the admin
-  sendAdminCancellationEmail(updated as unknown as AppointmentWithService)
-    .catch((err) => console.error('Error notificando al admin de la cancelación:', err))
 
   return NextResponse.json({ success: true, data: { id } })
 }

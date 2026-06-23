@@ -317,3 +317,11 @@ export const vipConfigSchema = z.object({
     }))
     .min(1, 'Debe haber al menos un tramo de descuento'),
 })
+
+// ─────────────────────────────────────────
+// BOOKING SETTINGS (admin)
+// ─────────────────────────────────────────
+
+export const bookingSettingsSchema = z.object({
+  showProfessionalStep: z.boolean(),
+})

@@ -6,12 +6,11 @@ vi.mock('@/lib/auth',   () => ({ authOptions: {} }))
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     service:     { findUnique: vi.fn() },
-    appointment: { findFirst: vi.fn(), update: vi.fn().mockResolvedValue(undefined) },
+    appointment: { findFirst: vi.fn() },
     client:      { upsert: vi.fn() },
     $transaction: vi.fn(),
   },
 }))
-vi.mock('@/lib/email', () => ({ sendConfirmationEmail: vi.fn().mockResolvedValue(undefined) }))
 vi.mock('@/lib/availability', () => ({
   isSlotAvailable: vi.fn(),
   timeToMinutes:   vi.fn((t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m }),
@@ -22,11 +21,10 @@ vi.mock('@/lib/db-error', () => ({
   dbUnavailableResponse: vi.fn(),
 }))
 
-const { getServerSession }    = await import('next-auth')
-const { prisma }              = await import('@/lib/prisma')
-const { isSlotAvailable }     = await import('@/lib/availability')
-const { sendConfirmationEmail } = await import('@/lib/email')
-const { POST }                = await import('./route')
+const { getServerSession } = await import('next-auth')
+const { prisma }           = await import('@/lib/prisma')
+const { isSlotAvailable }  = await import('@/lib/availability')
+const { POST }             = await import('./route')
 
 beforeEach(() => { vi.clearAllMocks() })
 
@@ -203,50 +201,6 @@ describe('POST /api/appointments/manual', () => {
       expect(createArgs.data.status).toBe('CONFIRMED')
       expect(createArgs.data.paymentStatus).toBeUndefined()
       expect(createArgs.data.services.create[0].price).toBe(MOCK_SERVICE.price)
-    })
-  })
-
-  describe('notifyClient (checkbox de notificación)', () => {
-    function mockTransaction(appt = MOCK_APPOINTMENT) {
-      vi.mocked(prisma.service.findUnique).mockResolvedValue(MOCK_SERVICE as never)
-      vi.mocked(prisma.appointment.findFirst).mockResolvedValue(null)
-      vi.mocked(prisma.$transaction).mockImplementation(async (fn) => {
-        return fn({
-          appointment: { findFirst: vi.fn().mockResolvedValue(null), create: vi.fn().mockResolvedValue(appt) },
-          client:      { upsert:    vi.fn().mockResolvedValue(MOCK_CLIENT) },
-        })
-      })
-    }
-
-    it('does not send a confirmation email by default (notifyClient unset)', async () => {
-      vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
-      mockTransaction()
-      const res = await POST(makeRequest(VALID_BODY))
-      expect(res.status).toBe(201)
-      expect(sendConfirmationEmail).not.toHaveBeenCalled()
-    })
-
-    it('sends a confirmation email when notifyClient=true on an UPCOMING appointment', async () => {
-      vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
-      mockTransaction()
-      const res = await POST(makeRequest({ ...VALID_BODY, notifyClient: true }))
-      expect(res.status).toBe(201)
-      expect(sendConfirmationEmail).toHaveBeenCalledWith(MOCK_APPOINTMENT)
-    })
-
-    it('never sends a confirmation email for a PAST appointment, even if notifyClient=true', async () => {
-      vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
-      function recentPastDate(daysAgo: number) {
-        const d = new Date()
-        d.setDate(d.getDate() - daysAgo)
-        return d.toISOString().slice(0, 10)
-      }
-      mockTransaction({ ...MOCK_APPOINTMENT, status: 'COMPLETED', paymentStatus: 'PAID', amountPaid: 35000 })
-      const res = await POST(makeRequest({
-        ...VALID_BODY, date: recentPastDate(2), mode: 'PAST', totalCharged: 35000, notifyClient: true,
-      }))
-      expect(res.status).toBe(201)
-      expect(sendConfirmationEmail).not.toHaveBeenCalled()
     })
   })
 })
