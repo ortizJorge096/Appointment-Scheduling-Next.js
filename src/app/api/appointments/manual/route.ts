@@ -13,6 +13,7 @@ import { createManualAppointmentSchema } from '@/lib/validations'
 import { timeToMinutes, minutesToTime } from '@/lib/availability'
 import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
 import { audit, getClientIp } from '@/lib/audit'
+import { sendConfirmationEmail } from '@/lib/email'
 import type { ApiResponse, AppointmentWithService } from '@/types'
 import { toZonedTime } from 'date-fns-tz'
 import { format, subDays } from 'date-fns'
@@ -44,7 +45,7 @@ export async function POST(
   const {
     clientName, clientEmail, clientPhone,
     serviceId, date, startTime, source, notes,
-    skipAvailabilityCheck,
+    skipAvailabilityCheck, notifyClient,
     mode, totalCharged, extraDescription, extraAmount,
   } = parsed.data
 
@@ -189,6 +190,17 @@ export async function POST(
     return NextResponse.json({ success: false, error: 'No se pudo crear la cita.' }, { status: 500 })
   }
 
+  // Confirmation email is opt-in for manual bookings (the admin controls it via
+  // the "Notificar al cliente" checkbox) and never applies to "Cita pasada".
+  if (mode !== 'PAST' && notifyClient) {
+    sendConfirmationEmail(appointment)
+      .then(() => prisma.appointment.update({
+        where: { id: appointment.id },
+        data:  { confirmationSentAt: new Date() },
+      }))
+      .catch((err) => console.error('Error enviando confirmación (cita manual):', err))
+  }
+
   await audit({
     action:    'CREATE',
     entity:    'APPOINTMENT',
@@ -203,6 +215,7 @@ export async function POST(
       startTime:   appointment.startTime,
       source:      appointment.source,
       mode,
+      notifyClient: mode !== 'PAST' ? notifyClient : undefined,
       ...(mode === 'PAST' ? {
         totalCharged,
         extraDescription: extraDescription?.trim() || undefined,
