@@ -10,6 +10,8 @@ import { prisma } from '@/lib/prisma'
 import { updateAppointmentSchema } from '@/lib/validations'
 import { timeToMinutes, minutesToTime } from '@/lib/availability'
 import { audit, getClientIp } from '@/lib/audit'
+import { sendRescheduledEmail } from '@/lib/email'
+import type { AppointmentWithService } from '@/types'
 
 export const dynamic = 'force-dynamic'
 // ─────────────────────────────────────────
@@ -114,6 +116,16 @@ export async function PATCH(
   const { status, notes, date, startTime, paymentStatus, paymentMethod, amountPaid } = parsed.data
   const updateData: Record<string, unknown> = {}
 
+  // Capture the previous date/time before mutating, to detect a reschedule
+  // and to know what to show as "antes" in the notification email.
+  // Compared as Date instants (not formatted strings) to stay consistent
+  // with how `date` is parsed/stored everywhere else (new Date(`${date}T00:00:00`)),
+  // independent of the server's local timezone.
+  const oldStartTime = appointment.startTime
+  const isReschedule =
+    (date !== undefined && new Date(`${date}T00:00:00`).getTime() !== appointment.date.getTime()) ||
+    (startTime !== undefined && startTime !== oldStartTime)
+
   if (status !== undefined) updateData.status = status
   if (notes  !== undefined) updateData.notes  = notes
 
@@ -152,6 +164,14 @@ export async function PATCH(
     console.log(`✅ Cita ${id} confirmada. El cron enviará recordatorio 24h antes.`)
   }
 
+  // Notify the client when the admin actually moved the date/time —
+  // skip if the same request also cancels it (no point notifying a move
+  // for an appointment that no longer stands).
+  if (isReschedule && updated.status !== 'CANCELLED') {
+    sendRescheduledEmail(updated as unknown as AppointmentWithService, appointment.date, oldStartTime)
+      .catch((err) => console.error('Error enviando email de reprogramación:', err))
+  }
+
   await audit({
     action:    status !== undefined ? 'STATUS_CHANGE' : 'UPDATE',
     entity:    'APPOINTMENT',
@@ -162,6 +182,10 @@ export async function PATCH(
       ...(status !== undefined ? { statusFrom: appointment.status, statusTo: status } : {}),
       ...(paymentStatus !== undefined ? { paymentStatus } : {}),
       ...(notes !== undefined ? { notes } : {}),
+      ...(isReschedule ? {
+        rescheduledFrom: `${appointment.date.toISOString().slice(0, 10)} ${oldStartTime}`,
+        rescheduledTo:   `${date ?? appointment.date.toISOString().slice(0, 10)} ${startTime ?? oldStartTime}`,
+      } : {}),
     },
   })
 

@@ -9,8 +9,10 @@ vi.mock('@/lib/prisma', () => ({
     },
   },
 }))
+vi.mock('@/lib/email', () => ({ sendAdminCancellationEmail: vi.fn().mockResolvedValue(undefined) }))
 
 const { prisma } = await import('@/lib/prisma')
+const { sendAdminCancellationEmail } = await import('@/lib/email')
 
 interface MockAppointment {
   id: string
@@ -111,8 +113,10 @@ describe('POST /api/appointments/[id]/cancel', () => {
     expect(prisma.appointment.update).toHaveBeenCalledWith({
       where: { id: '1' },
       data: { status: 'CANCELLED' },
+      include: expect.any(Object),
     })
     const json = await res.json()
     expect(json.success).toBe(true)
+    expect(sendAdminCancellationEmail).toHaveBeenCalled()
   })
 })
