@@ -55,6 +55,16 @@ resource "aws_ssm_parameter" "app_host" {
   }
 }
 
+# ─── Derived values ──────────────────────────────────────────────────────
+locals {
+  # Browser origins allowed to upload/read gallery assets in S3 (CORS).
+  # Derived from app_host so they never go stale; localhost stays for local dev.
+  app_cors_origins = concat(
+    ["http://localhost:3000"],
+    var.app_host != "" ? ["https://${var.app_host}", "http://${var.app_host}"] : [],
+  )
+}
+
 # ─── Modules ─────────────────────────────────────────────────────────────
 module "network" {
   source = "../../modules/network"
@@ -102,12 +112,8 @@ module "ses" {
 module "s3_assets" {
   source      = "../../modules/s3-assets"
   bucket_name = "${var.name_prefix}-assets"
-  allowed_origins = [
-    "http://localhost:3000",
-    "http://appointment-scheduling-dev.54-157-5-72.nip.io",
-    "https://appointment-scheduling-dev.54-157-5-72.nip.io"
-  ]
-  tags = { Component = "storage" }
+  allowed_origins = local.app_cors_origins
+  tags            = { Component = "storage" }
 }
 
 module "rds" {
