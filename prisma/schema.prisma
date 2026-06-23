@@ -118,16 +118,6 @@ model Professional {
   @@map("professionals")
 }
 
-// Toggle (singleton): whether /agendar lets the client pick a professional.
-// When off, the booking form never sends professionalId — the existing
-// "Primera disponible" auto-assignment in /api/appointments already covers it.
-model BookingSettings {
-  id                  String   @id @default(cuid())
-  showProfessionalStep Boolean @default(true)
-  updatedAt           DateTime @updatedAt
-  @@map("booking_settings")
-}
-
 // ─────────────────────────────────────────
 // CITAS
 // ─────────────────────────────────────────
@@ -169,8 +159,6 @@ model Appointment {
   calendarEventId    String?
   confirmationSentAt DateTime?
   reminderSentAt     DateTime?
-  reminder2hSentAt   DateTime?
-  followUpSentAt     DateTime?
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
   @@index([date])

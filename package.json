@@ -21,8 +21,6 @@
     "db:seed": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts",
     "db:studio": "prisma studio",
     "reminders": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/send-reminders.ts",
-    "reminders:2h": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/send-reminders-2h.ts",
-    "follow-ups": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/send-follow-ups.ts",
     "fill-day": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/fill-day.ts",
     "clear-demo": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/clear-demo.ts"
   },

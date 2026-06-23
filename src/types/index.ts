@@ -103,8 +103,6 @@ export interface AppointmentWithService {
   calendarEventId?: string | null
   confirmationSentAt: string | null
   reminderSentAt: string | null
-  reminder2hSentAt?: string | null
-  followUpSentAt?: string | null
   createdAt: string
   totalDurationMinutes: number
   discountPercent: number
