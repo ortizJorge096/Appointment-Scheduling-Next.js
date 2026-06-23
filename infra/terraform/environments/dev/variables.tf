@@ -117,6 +117,12 @@ variable "ses_from_email" {
   default     = ""
 }
 
+variable "app_host" {
+  description = "Public hostname for this environment (A record → Elastic IP). Single source of truth: feeds the module's resolved host (outputs + first-boot user-data) and the SSM param the CI reads for the ingress host, NEXTAUTH_URL and NEXT_PUBLIC_APP_URL. Empty = falls back to <name_prefix>.<ip>.nip.io."
+  type        = string
+  default     = ""
+}
+
 variable "enable_emails" {
   description = "ENABLE_EMAILS for the app."
   type        = bool

@@ -41,6 +41,20 @@ resource "aws_ssm_parameter" "google_calendar_key" {
   }
 }
 
+# ─── Public hostname in SSM (non-secret String) ──────────────────────────
+# Single source of truth for the environment's host. CI reads this at deploy
+# time (same pattern as db/url and the secrets above) to set the ingress host,
+# NEXTAUTH_URL and NEXT_PUBLIC_APP_URL — no hostname hardcoded in the pipeline.
+resource "aws_ssm_parameter" "app_host" {
+  name        = "/${var.name_prefix}/app/host"
+  description = "Public hostname (A record → EIP) for ${var.name_prefix}"
+  type        = "String"
+  value       = var.app_host
+  tags = {
+    Component = "app"
+  }
+}
+
 # ─── Modules ─────────────────────────────────────────────────────────────
 module "network" {
   source = "../../modules/network"
@@ -157,7 +171,10 @@ module "k3s" {
 
   image_ref     = var.image_ref != "" ? var.image_ref : "${module.ecr.repository_url}:latest"
   aws_region    = var.region
-  public_host          = ""
+  # app_host (e.g. dev.vjbeautystudio.com) becomes the resolved host for the
+  # outputs, the first-boot user-data, AND the SSM param the CI reads. Empty
+  # falls back to <name_prefix>.<ip>.nip.io inside the module.
+  public_host          = var.app_host
   public_host_prefix   = var.name_prefix
   app_namespace = "appointment-scheduling-dev"
 

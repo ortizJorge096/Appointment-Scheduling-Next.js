@@ -243,23 +243,14 @@ jobs:
           fi
           kustomize version
 
-      - name: Resolve nip.io host (IMDSv2)
-        id: host
-        run: |
-          set -euo pipefail
-          TOKEN=$(curl -fsSL -X PUT "http://169.254.169.254/latest/api/token" \
-            -H "X-aws-ec2-metadata-token-ttl-seconds: 60")
-          IP=$(curl -fsSL -H "X-aws-ec2-metadata-token: $TOKEN" \
-            http://169.254.169.254/latest/meta-data/public-ipv4)
-          HOST="appointment-scheduling-dev.${IP//./-}.nip.io"
-          echo "host=$HOST" >> "$GITHUB_OUTPUT"
-
       - name: Set image tag, host and apply
         env:
           IMG: ${{ needs.build-push.outputs.sha_tag }}
-          DEV_HOST: ${{ steps.host.outputs.host }}
         run: |
           set -euxo pipefail
+          # Host is the single source of truth in Terraform/SSM (non-secret String),
+          # same fetch pattern as the secrets below.
+          DEV_HOST=$(aws ssm get-parameter --region us-east-1 --name /appointment-scheduling-dev/app/host --query Parameter.Value --output text)
           sed -i "s|appointment-scheduling.example.com|${DEV_HOST}|g" \
             infra/k8s/overlays/dev/kustomization.yaml \
             infra/k8s/overlays/dev/tls-patch.yaml

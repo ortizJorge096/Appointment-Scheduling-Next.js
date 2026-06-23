@@ -76,7 +76,7 @@ patches:
         value: "true"
       - op: replace
         path: /data/SES_FROM_EMAIL
-        value: "valentinajimenezbeautystudio@gmail.com"
+        value: "no-reply@dev.vjbeautystudio.com"
       - op: replace
         path: /data/GOOGLE_CLIENT_EMAIL
         value: "vj-beauty-studio@vj-beauty-studio-498718.iam.gserviceaccount.com"
