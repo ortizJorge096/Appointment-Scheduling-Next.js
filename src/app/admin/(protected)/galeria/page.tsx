@@ -301,26 +301,26 @@ export default function GaleriaAdminPage() {
                         <div className="flex items-center gap-1">
                           <button disabled={idx === 0}
                             onClick={() => move(img, -1)}
-                            className="text-xs text-ink-muted hover:text-gold disabled:opacity-20 px-1">↑</button>
+                            className="btn-row-action text-xs text-ink-muted hover:text-gold disabled:opacity-20">↑</button>
                           <button disabled={idx === arr.length - 1}
                             onClick={() => move(img, +1)}
-                            className="text-xs text-ink-muted hover:text-gold disabled:opacity-20 px-1">↓</button>
+                            className="btn-row-action text-xs text-ink-muted hover:text-gold disabled:opacity-20">↓</button>
                         </div>
                         <div className="flex items-center gap-2 sm:gap-3 text-xs">
                           <button
                             onClick={() => { replacingImgRef.current = img; replaceInputRef.current?.click() }}
                             disabled={replacingId === img.id}
-                            className="text-ink-muted hover:text-gold disabled:opacity-40">
+                            className="btn-row-action text-ink-muted hover:text-gold disabled:opacity-40">
                             {replacingId === img.id ? `${progress}%` : '📷'}
                           </button>
                           <button onClick={() => { setEditing(img.id); setEditForm({ title: img.title ?? '', description: img.description ?? '', category: img.category ?? '' }) }}
-                            className="text-ink-muted hover:text-gold">✏️</button>
+                            className="btn-row-action text-ink-muted hover:text-gold">✏️</button>
                           <button onClick={() => toggleActive(img)}
-                            className={img.isActive ? 'text-ink-muted hover:text-red-500' : 'text-green-600 hover:text-green-700'}>
+                            className={`btn-row-action ${img.isActive ? 'text-ink-muted hover:text-red-500' : 'text-green-600 hover:text-green-700'}`}>
                             {img.isActive ? '👁' : '✓'}
                           </button>
                           <button onClick={() => deleteImage(img)}
-                            className="text-ink-muted hover:text-red-500">🗑</button>
+                            className="btn-row-action text-ink-muted hover:text-red-500 border-l border-beige-dark pl-3 ml-1">🗑</button>
                         </div>
                       </div>
                   </>

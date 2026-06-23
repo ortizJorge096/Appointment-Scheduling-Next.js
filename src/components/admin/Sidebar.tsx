@@ -54,7 +54,7 @@ export default function AdminSidebar() {
       <div className="md:hidden fixed top-0 left-0 right-0 z-30 h-14 bg-ink border-b border-white/10
                       flex items-center gap-3 px-4">
         <button onClick={() => setOpen(true)} aria-label="Abrir menú"
-          className="text-gold text-2xl leading-none">≡</button>
+          className="text-gold text-2xl leading-none min-w-[44px] min-h-[44px] flex items-center justify-center -ml-2">≡</button>
         <span className="logo-script text-gold text-xl leading-none">Valentina Jimenez</span>
       </div>
 
@@ -83,7 +83,7 @@ export default function AdminSidebar() {
           </div>
           {/* Close button (mobile) */}
           <button onClick={() => setOpen(false)} aria-label="Cerrar menú"
-            className="md:hidden text-white/40 hover:text-white text-2xl leading-none">×</button>
+            className="md:hidden text-white/40 hover:text-white text-2xl leading-none min-w-[44px] min-h-[44px] flex items-center justify-center -mr-2">×</button>
         </div>
 
         <nav className="flex-1 px-3 py-4 overflow-y-auto">

@@ -307,14 +307,14 @@ export default function ServiciosPage() {
 
                     <button
                       onClick={() => openEdit(svc)}
-                      className="text-xs text-ink-muted hover:text-gold transition-colors"
+                      className="btn-row-action text-xs text-ink-muted hover:text-gold"
                     >
                       Editar
                     </button>
 
                     <button
                       onClick={() => toggleActive(svc)}
-                      className={`text-xs transition-colors ${
+                      className={`btn-row-action text-xs ${
                         svc.isActive
                           ? 'text-ink-muted hover:text-red-500'
                           : 'text-green-600 hover:text-green-700'
@@ -343,9 +343,9 @@ export default function ServiciosPage() {
                   <div className="flex items-center justify-between mt-1.5">
                     <span className="text-xs text-ink-muted">{svc.durationMinutes} min</span>
                     <div className="flex items-center gap-3">
-                      <button onClick={() => openEdit(svc)} className="text-xs text-ink-muted hover:text-gold transition-colors">Editar</button>
+                      <button onClick={() => openEdit(svc)} className="btn-row-action text-xs text-ink-muted hover:text-gold">Editar</button>
                       <button onClick={() => toggleActive(svc)}
-                        className={`text-xs transition-colors ${svc.isActive ? 'text-ink-muted hover:text-red-500' : 'text-green-600 hover:text-green-700'}`}>
+                        className={`btn-row-action text-xs ${svc.isActive ? 'text-ink-muted hover:text-red-500' : 'text-green-600 hover:text-green-700'}`}>
                         {svc.isActive ? 'Desactivar' : 'Activar'}
                       </button>
                     </div>

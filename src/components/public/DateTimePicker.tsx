@@ -210,7 +210,7 @@ export default function DateTimePicker({
                   role="radio" aria-checked={isSelected}
                   disabled={disabled}
                   onClick={() => onTimeChange(slot.startTime)}
-                  className={`py-2.5 text-sm rounded-xl border transition-all duration-150 disabled:cursor-not-allowed
+                  className={`py-3 text-sm rounded-xl border transition-all duration-150 disabled:cursor-not-allowed
                     ${isSelected
                       ? 'bg-gold border-gold text-white font-semibold'
                       : 'bg-white border-beige-dark text-ink-muted hover:border-gold hover:text-gold'}`}>

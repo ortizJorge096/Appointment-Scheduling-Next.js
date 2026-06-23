@@ -37,7 +37,8 @@ export default function NosotrosImage() {
         )}
       </div>
 
-      <div className="absolute -bottom-6 -left-6 bg-ink border border-gold/30 p-5 shadow-lg rounded-xl">
+      <div className="absolute -bottom-3 -left-3 sm:-bottom-6 sm:-left-6 max-w-[calc(100%-1.5rem)]
+                      bg-ink border border-gold/30 p-4 sm:p-5 shadow-lg rounded-xl">
         <p className="text-xs text-gold/60 tracking-widest uppercase mb-1">Especialistas en</p>
         <p className="font-serif text-lg text-white">Uñas · Pestañas · Cejas</p>
       </div>

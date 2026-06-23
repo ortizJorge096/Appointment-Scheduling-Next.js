@@ -141,7 +141,7 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
               <>
                 <div className="flex items-center gap-3 flex-wrap">
                   <h1 className="text-2xl font-serif text-ink">{client.name}</h1>
-                  <button onClick={openEditInfo} className="text-xs text-gold hover:underline">Editar datos</button>
+                  <button onClick={openEditInfo} className="btn-row-action text-xs text-gold hover:underline">Editar datos</button>
                 </div>
                 <p className="text-sm text-ink-muted mt-1">{client.email}</p>
                 {client.phone && <p className="text-sm text-ink-muted">{client.phone}</p>}
@@ -226,7 +226,7 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
                   </p>
                 </div>
                 <Link href={`/admin/citas/${apt.id}`}
-                  className="text-xs text-gold hover:underline shrink-0">
+                  className="btn-row-action text-xs text-gold hover:underline shrink-0">
                   Ver →
                 </Link>
               </div>

@@ -96,18 +96,27 @@ export default function VipDiscountConfigCard() {
         {tiers
           .sort((a, b) => a.minServices - b.minServices)
           .map((t, i) => (
-          <div key={i} className="flex items-center gap-3 bg-beige/40 rounded-lg px-4 py-2.5">
-            <span className="text-sm text-ink-muted">A partir de</span>
+          <div key={i} className="flex flex-wrap items-center gap-y-2 gap-x-2 sm:gap-3 bg-beige/40 rounded-lg px-4 py-2.5">
+            <span className="text-sm text-ink-muted whitespace-nowrap">
+              <span className="sm:hidden">Desde</span>
+              <span className="hidden sm:inline">A partir de</span>
+            </span>
             <input type="number" min={2} max={20} value={t.minServices}
               onChange={(e) => updateTier(i, 'minServices', parseInt(e.target.value) || 2)}
-              className="input-field w-20 py-1.5 text-center" />
-            <span className="text-sm text-ink-muted">servicios →</span>
+              className="input-field w-16 sm:w-20 py-1.5 text-center" />
+            <span className="text-sm text-ink-muted whitespace-nowrap">
+              <span className="sm:hidden">serv. →</span>
+              <span className="hidden sm:inline">servicios →</span>
+            </span>
             <input type="number" min={0} max={100} value={t.discountPct}
               onChange={(e) => updateTier(i, 'discountPct', parseInt(e.target.value) || 0)}
-              className="input-field w-20 py-1.5 text-center" />
-            <span className="text-sm text-ink-muted">% de descuento</span>
+              className="input-field w-16 sm:w-20 py-1.5 text-center" />
+            <span className="text-sm text-ink-muted whitespace-nowrap">
+              <span className="sm:hidden">% desc.</span>
+              <span className="hidden sm:inline">% de descuento</span>
+            </span>
             <button onClick={() => removeTier(i)}
-              className="ml-auto text-xs text-ink-muted hover:text-red-500 transition-colors">
+              className="btn-row-action ml-auto text-xs text-ink-muted hover:text-red-500">
               Eliminar
             </button>
           </div>
