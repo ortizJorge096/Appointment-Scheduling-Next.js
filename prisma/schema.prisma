@@ -155,6 +155,9 @@ model Professional {
 model BookingSettings {
   id                  String   @id @default(cuid())
   showProfessionalStep Boolean @default(true)
+  // How many days into the future clients can book (booking horizon).
+  // Drives the date strip in /agendar. Editable from the admin (7–365).
+  maxAdvanceDays      Int      @default(90)
   updatedAt           DateTime @updatedAt
   @@map("booking_settings")
 }

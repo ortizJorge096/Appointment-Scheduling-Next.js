@@ -355,8 +355,17 @@ export const vipConfigSchema = z.object({
 // ─────────────────────────────────────────
 
 export const bookingSettingsSchema = z.object({
-  showProfessionalStep: z.boolean(),
-})
+  showProfessionalStep: z.boolean().optional(),
+  maxAdvanceDays: z
+    .number()
+    .int()
+    .min(7, 'El mínimo es 7 días')
+    .max(365, 'El máximo es 365 días')
+    .optional(),
+}).refine(
+  (d) => d.showProfessionalStep !== undefined || d.maxAdvanceDays !== undefined,
+  { message: 'No hay nada que actualizar' }
+)
 
 // ─────────────────────────────────────────
 // LANDING STATS (admin)

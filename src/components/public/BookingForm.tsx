@@ -103,6 +103,7 @@ export default function BookingForm() {
   // Admin toggle (/admin/profesionales): when off, the client never picks a
   // professional — the server already auto-assigns "primera disponible".
   const [showProfessionalStep, setShowProfessionalStep] = useState(true)
+  const [maxAdvanceDays, setMaxAdvanceDays] = useState(90)
   const [submitting, setSubmitting]   = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [stepError,   setStepError]   = useState<string | null>(null)
@@ -187,7 +188,12 @@ export default function BookingForm() {
 
     fetch('/api/booking-settings')
       .then((r) => r.json())
-      .then((json) => { if (json.success) setShowProfessionalStep(json.data.showProfessionalStep) })
+      .then((json) => {
+        if (json.success) {
+          setShowProfessionalStep(json.data.showProfessionalStep)
+          if (typeof json.data.maxAdvanceDays === 'number') setMaxAdvanceDays(json.data.maxAdvanceDays)
+        }
+      })
       .catch(() => {})
   }, [])
 
@@ -703,7 +709,7 @@ export default function BookingForm() {
 
       {/* STEP 3 — Date and time */}
       {step === 'datetime' && (
-        <div className="animate-fade-in">
+        <div className="animate-fade-in max-w-[480px] mx-auto">
           <div className="mb-6">
             <h2 className="font-serif text-2xl text-ink">Elige fecha y hora</h2>
             <p className="text-sm text-ink-muted mt-1">Selecciona el día y un horario disponible. <span className="text-red-500">*</span></p>
@@ -753,6 +759,7 @@ export default function BookingForm() {
             serviceId={availabilityServiceId}
             durationMinutes={availabilityDuration}
             professionalId={form.professionalId || undefined}
+            maxAdvanceDays={maxAdvanceDays}
             selectedDate={form.date}
             selectedTime={form.startTime}
             onDateChange={(d) => updateForm('date', d)}

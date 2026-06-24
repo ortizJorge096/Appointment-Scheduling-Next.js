@@ -13,7 +13,10 @@ import { toZonedTime, formatInTimeZone } from 'date-fns-tz'
 
 export const dynamic = 'force-dynamic'
 
-const MAX_RANGE_DAYS = 60
+// Safety cap on how many days a single range query computes. Must be >= the
+// booking horizon (BookingSettings.maxAdvanceDays, max 365) so the date strip
+// never has "phantom" days the prefetch didn't resolve.
+const MAX_RANGE_DAYS = 365
 
 interface DayAvailability {
   date: string  // YYYY-MM-DD

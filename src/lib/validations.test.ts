@@ -10,6 +10,7 @@ import {
   galleryCreateSchema,
   galleryUpdateSchema,
   loginSchema,
+  bookingSettingsSchema,
 } from './validations'
 
 // ── createAppointmentSchema ──────────────────────────────────────────────
@@ -194,5 +195,28 @@ describe('loginSchema', () => {
 
   it('rechaza contraseña muy corta', () => {
     expect(loginSchema.safeParse({ email: 'admin@test.com', password: '123' }).success).toBe(false)
+  })
+})
+
+// ── bookingSettingsSchema ─────────────────────────────────────────────────
+describe('bookingSettingsSchema', () => {
+  it('acepta maxAdvanceDays dentro del rango', () => {
+    expect(bookingSettingsSchema.safeParse({ maxAdvanceDays: 90 }).success).toBe(true)
+  })
+
+  it('acepta solo showProfessionalStep (update parcial)', () => {
+    expect(bookingSettingsSchema.safeParse({ showProfessionalStep: false }).success).toBe(true)
+  })
+
+  it('rechaza maxAdvanceDays menor a 7', () => {
+    expect(bookingSettingsSchema.safeParse({ maxAdvanceDays: 6 }).success).toBe(false)
+  })
+
+  it('rechaza maxAdvanceDays mayor a 365', () => {
+    expect(bookingSettingsSchema.safeParse({ maxAdvanceDays: 366 }).success).toBe(false)
+  })
+
+  it('rechaza un objeto vacío (nada que actualizar)', () => {
+    expect(bookingSettingsSchema.safeParse({}).success).toBe(false)
   })
 })

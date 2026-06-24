@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { STUDIO } from '@/lib/config'
 import NextAvailability from './NextAvailability'
 import HeroStats from './HeroStats'
+import HeroImage from './HeroImage'
 
 export default function Hero() {
   return (
@@ -39,7 +40,9 @@ export default function Hero() {
           <HeroStats />
         </div>
 
-        <div className="hidden lg:flex flex-col gap-3">
+        {/* Editorial photo + the dynamic differentiators (now visible on mobile too) */}
+        <div className="flex flex-col gap-5 animate-fade-up animation-delay-200">
+          <HeroImage />
           <NextAvailability />
           <div className="border-l-2 border-gold bg-white/[0.04] rounded-r-xl px-4 py-3">
             <p className="text-xs text-white/35">Incluye</p>

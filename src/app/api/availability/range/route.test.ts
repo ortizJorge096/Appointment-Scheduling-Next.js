@@ -108,13 +108,14 @@ describe('GET /api/availability/range', () => {
     })
   })
 
-  it('caps range at 60 days', async () => {
+  it('caps range at 365 days', async () => {
     defaultMocks()
 
-    const res  = await GET(makeRequest({ from: '2026-01-01', to: '2026-12-31', serviceId: 's1' }))
+    // Two-year span — far beyond the cap — to prove the limit triggers.
+    const res  = await GET(makeRequest({ from: '2026-01-01', to: '2027-12-31', serviceId: 's1' }))
     const json = await res.json()
 
     expect(res.status).toBe(200)
-    expect(json.data.dates.length).toBeLessThanOrEqual(60)
+    expect(json.data.dates.length).toBe(365)
   })
 })

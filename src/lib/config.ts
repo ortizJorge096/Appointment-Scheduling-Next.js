@@ -29,6 +29,13 @@ export const STUDIO = {
   // Business hours (display text for the UI)
   hours: 'Lun–Sáb 9am–6pm',
 
+  // Hero image (editorial split layout). Empty string = elegant gradient
+  // placeholder (no broken image). To use a real photo, drop a file in /public
+  // and set its path here, e.g. '/hero.jpg' — next/image optimizes it and the
+  // component falls back to the gradient if it ever fails to load. Easy to wire
+  // to an admin upload (S3) later, same pattern as the gallery.
+  heroImage: '' as string,
+
   // Business timezone (used for availability calculations and reminders)
   timezone: 'America/Bogota',
 
