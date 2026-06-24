@@ -56,19 +56,30 @@ export async function PATCH(
       }
     }
 
+    const before = await prisma.galleryImage.findUnique({
+      where: { id },
+      select: { title: true, description: true, categoryId: true, order: true, isActive: true },
+    })
+
     const updated = await prisma.galleryImage.update({
       where: { id },
       data: parsed.data,
     })
 
+    const verb = parsed.data.isActive === false ? 'ocultada'
+               : parsed.data.isActive === true  ? 'mostrada'
+               : 'actualizada'
+
     const session = await getServerSession(authOptions)
     await audit({
-      action:    'UPDATE',
-      entity:    'GALLERY',
-      entityId:  id,
-      userEmail: session?.user?.email ?? undefined,
-      ip:        getClientIp(request),
-      metadata:  { fields: Object.keys(parsed.data) },
+      action:      'UPDATE',
+      entity:      'GALLERY',
+      entityId:    id,
+      userEmail:   session?.user?.email ?? undefined,
+      ip:          getClientIp(request),
+      description: `Imagen ${before?.title ? `"${before.title}" ` : ''}${verb}`,
+      before:      before ?? undefined,
+      after:       parsed.data,
     })
 
     return NextResponse.json({
@@ -106,11 +117,12 @@ export async function DELETE(
 
   const session = await getServerSession(authOptions)
   await audit({
-    action:    'DELETE',
-    entity:    'GALLERY',
-    entityId:  id,
-    userEmail: session?.user?.email ?? undefined,
-    ip:        getClientIp(_request),
+    action:      'DELETE',
+    entity:      'GALLERY',
+    entityId:    id,
+    userEmail:   session?.user?.email ?? undefined,
+    ip:          getClientIp(_request),
+    description: `Imagen ${image.title ? `"${image.title}" ` : ''}eliminada de la galería`,
   })
 
   return NextResponse.json({ success: true, data: { id, deleted: true } })

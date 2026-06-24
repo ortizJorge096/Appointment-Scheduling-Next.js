@@ -7,8 +7,9 @@ vi.mock('@/lib/auth', () => ({ authOptions: {} }))
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     schedule: {
-      findMany: vi.fn(),
-      upsert:   vi.fn(),
+      findMany:   vi.fn(),
+      findUnique: vi.fn(),
+      upsert:     vi.fn(),
     },
   },
 }))

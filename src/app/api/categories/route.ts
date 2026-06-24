@@ -89,12 +89,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   })
 
   await audit({
-    action:    'CREATE',
-    entity:    'CATEGORY',
-    entityId:  category.id,
-    userEmail: session.user?.email ?? undefined,
-    ip:        getClientIp(request),
-    metadata:  { name: category.name },
+    action:      'CREATE',
+    entity:      'CATEGORY',
+    entityId:    category.id,
+    userEmail:   session.user?.email ?? undefined,
+    ip:          getClientIp(request),
+    description: `Categoría "${category.name}" creada`,
   })
 
   return NextResponse.json({ success: true, data: category }, { status: 201 })

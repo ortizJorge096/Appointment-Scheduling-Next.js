@@ -51,18 +51,32 @@ export async function PATCH(
     }
   }
 
+  const before = await prisma.service.findUnique({
+    where: { id },
+    select: { name: true, description: true, categoryId: true, price: true, durationMinutes: true, order: true, isActive: true },
+  })
+  if (!before) {
+    return NextResponse.json({ success: false, error: 'Servicio no encontrado' }, { status: 404 })
+  }
+
   const service = await prisma.service.update({
     where: { id },
     data: parsed.data,
   })
 
+  const verb = parsed.data.isActive === false ? 'desactivado'
+             : parsed.data.isActive === true  ? 'activado'
+             : 'actualizado'
+
   await audit({
-    action:    'UPDATE',
-    entity:    'SERVICE',
-    entityId:  id,
-    userEmail: session.user?.email ?? undefined,
-    ip:        getClientIp(request),
-    metadata:  { fields: Object.keys(parsed.data) },
+    action:      'UPDATE',
+    entity:      'SERVICE',
+    entityId:    id,
+    userEmail:   session.user?.email ?? undefined,
+    ip:          getClientIp(request),
+    description: `Servicio "${before.name}" ${verb}`,
+    before,
+    after:       parsed.data,
   })
 
   return NextResponse.json({ success: true, data: service })
@@ -81,6 +95,8 @@ export async function DELETE(
       { status: 401 }
     )
   }
+
+  const target = await prisma.service.findUnique({ where: { id }, select: { name: true } })
 
   // Block while it still has upcoming appointments.
   const upcoming = await prisma.appointment.count({
@@ -109,11 +125,12 @@ export async function DELETE(
   })
 
   await audit({
-    action:    'DELETE',
-    entity:    'SERVICE',
-    entityId:  id,
-    userEmail: session.user?.email ?? undefined,
-    ip:        getClientIp(_req),
+    action:      'DELETE',
+    entity:      'SERVICE',
+    entityId:    id,
+    userEmail:   session.user?.email ?? undefined,
+    ip:          getClientIp(_req),
+    description: `Servicio "${target?.name ?? 'desconocido'}" eliminado`,
   })
 
   return NextResponse.json({

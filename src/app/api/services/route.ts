@@ -72,12 +72,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const service = await prisma.service.create({ data: parsed.data })
 
   await audit({
-    action:    'CREATE',
-    entity:    'SERVICE',
-    entityId:  service.id,
-    userEmail: session.user?.email ?? undefined,
-    ip:        getClientIp(request),
-    metadata:  { name: service.name, price: service.price },
+    action:      'CREATE',
+    entity:      'SERVICE',
+    entityId:    service.id,
+    userEmail:   session.user?.email ?? undefined,
+    ip:          getClientIp(request),
+    description: `Servicio "${service.name}" creado`,
   })
 
   return NextResponse.json({ success: true, data: service }, { status: 201 })

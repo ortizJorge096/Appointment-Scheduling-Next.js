@@ -75,7 +75,7 @@ function timesOverlap(
  * resource behavior) if no professionals have been set up yet.
  */
 async function getActiveProfessionalCount(): Promise<number> {
-  const count = await prisma.professional.count({ where: { isActive: true } })
+  const count = await prisma.professional.count({ where: { isActive: true, deletedAt: null } })
   return count > 0 ? count : 1
 }
 

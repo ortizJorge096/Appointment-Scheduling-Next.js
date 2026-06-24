@@ -137,10 +137,15 @@ model Professional {
   reviewCount  Int           @default(0)
   isActive     Boolean       @default(true)
   order        Int           @default(0)
+  // Soft delete: a deleted professional disappears from the admin list, the
+  // public booking flow and availability, but the row persists so historical
+  // appointments keep their professionalId reference intact.
+  deletedAt    DateTime?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   appointments Appointment[]
   @@index([isActive])
+  @@index([deletedAt])
   @@map("professionals")
 }
 

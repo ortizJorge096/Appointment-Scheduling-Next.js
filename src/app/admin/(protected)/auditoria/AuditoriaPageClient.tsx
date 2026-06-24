@@ -10,7 +10,7 @@ type AuditAction =
   | 'CREATE' | 'UPDATE' | 'DELETE' | 'STATUS_CHANGE' | 'CANCEL'
   | 'LOGIN' | 'LOGIN_FAILED' | 'LOGOUT' | 'EMAIL_SENT' | 'EMAIL_FAILED'
 type AuditEntity =
-  | 'APPOINTMENT' | 'CLIENT' | 'EXPENSE' | 'SERVICE' | 'GALLERY'
+  | 'APPOINTMENT' | 'CLIENT' | 'EXPENSE' | 'SERVICE' | 'CATEGORY' | 'GALLERY'
   | 'SCHEDULE' | 'PROFESSIONAL' | 'AUTH' | 'EMAIL'
 type AuditActor = 'ADMIN' | 'CLIENT' | 'SYSTEM'
 
@@ -43,12 +43,12 @@ const ACTION_LABELS: Record<AuditAction, string> = {
 }
 
 const ENTITY_LABELS: Record<AuditEntity, string> = {
-  APPOINTMENT: 'Cita', CLIENT: 'Cliente', EXPENSE: 'Gasto', SERVICE: 'Servicio',
+  APPOINTMENT: 'Cita', CLIENT: 'Cliente', EXPENSE: 'Gasto', SERVICE: 'Servicio', CATEGORY: 'Categoría',
   GALLERY: 'Galería', SCHEDULE: 'Horario', PROFESSIONAL: 'Profesional', AUTH: 'Acceso', EMAIL: 'Email',
 }
 
 const ENTITY_ICONS: Record<AuditEntity, string> = {
-  APPOINTMENT: '◷', CLIENT: '◉', EXPENSE: '◈', SERVICE: '✦',
+  APPOINTMENT: '◷', CLIENT: '◉', EXPENSE: '◈', SERVICE: '✦', CATEGORY: '✧',
   GALLERY: '◫', SCHEDULE: '◻', PROFESSIONAL: '☆', AUTH: '⚿', EMAIL: '✉',
 }
 
@@ -300,7 +300,7 @@ export default function AuditoriaPageClient() {
                         )}
                       </td>
                       <td className="px-4 py-3 text-ink">
-                        <span className="text-[13px]">{log.description ?? <span className="text-ink-muted/60 italic">{ENTITY_LABELS[log.entity]} · {log.entityId.slice(0, 8)}</span>}</span>
+                        <span className="text-[13px]">{log.description ?? <span className="text-ink-muted/60 italic">{ENTITY_LABELS[log.entity]} · {ACTION_LABELS[log.action]}</span>}</span>
                         <span className="sm:hidden block mt-0.5">
                           <span className={`inline-block px-1.5 py-0.5 rounded-full text-[10px] ${ACTOR_COLORS[actor]}`}>{ACTOR_LABELS[actor]}</span>
                         </span>

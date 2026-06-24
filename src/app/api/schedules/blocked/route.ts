@@ -40,12 +40,12 @@ export async function POST(request: NextRequest) {
   })
 
   await audit({
-    action:    'CREATE',
-    entity:    'SCHEDULE',
-    entityId:  blocked.id,
-    userEmail: session.user?.email ?? undefined,
-    ip:        getClientIp(request),
-    metadata:  { blockedDate: parsed.data.date, reason: parsed.data.reason ?? null },
+    action:      'CREATE',
+    entity:      'SCHEDULE',
+    entityId:    blocked.id,
+    userEmail:   session.user?.email ?? undefined,
+    ip:          getClientIp(request),
+    description: `Fecha bloqueada: ${parsed.data.date}${parsed.data.reason ? ` (${parsed.data.reason})` : ''}`,
   })
 
   return NextResponse.json({ success: true, data: blocked }, { status: 201 })

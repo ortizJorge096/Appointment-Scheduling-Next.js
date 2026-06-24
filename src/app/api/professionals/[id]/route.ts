@@ -33,18 +33,32 @@ export async function PATCH(
     )
   }
 
+  const before = await prisma.professional.findUnique({
+    where: { id },
+    select: { name: true, specialty: true, rating: true, reviewCount: true, isActive: true, order: true },
+  })
+  if (!before) {
+    return NextResponse.json({ success: false, error: 'Profesional no encontrado' }, { status: 404 })
+  }
+
   const professional = await prisma.professional.update({
     where: { id },
     data: parsed.data,
   })
 
+  const verb = parsed.data.isActive === false ? 'desactivado'
+             : parsed.data.isActive === true  ? 'activado'
+             : 'actualizado'
+
   await audit({
-    action:    'UPDATE',
-    entity:    'PROFESSIONAL',
-    entityId:  id,
-    userEmail: session.user?.email ?? undefined,
-    ip:        getClientIp(request),
-    metadata:  { fields: Object.keys(parsed.data) },
+    action:      'UPDATE',
+    entity:      'PROFESSIONAL',
+    entityId:    id,
+    userEmail:   session.user?.email ?? undefined,
+    ip:          getClientIp(request),
+    description: `Profesional "${before.name}" ${verb}`,
+    before,
+    after:       parsed.data,
   })
 
   return NextResponse.json({ success: true, data: professional })
@@ -61,28 +75,43 @@ export async function DELETE(
     return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 })
   }
 
-  const active = await prisma.appointment.count({
-    where: { professionalId: id, status: { in: ['PENDING', 'CONFIRMED'] } },
+  const target = await prisma.professional.findUnique({ where: { id }, select: { name: true } })
+
+  // Block while it still has upcoming appointments (avoids deleting someone
+  // with pending work). Past appointments are fine — soft delete keeps the row,
+  // so their professionalId reference stays intact.
+  const upcoming = await prisma.appointment.count({
+    where: {
+      professionalId: id,
+      status: { in: ['PENDING', 'CONFIRMED'] },
+      date: { gte: new Date(new Date().toDateString()) },
+    },
   })
 
-  if (active > 0) {
+  if (upcoming > 0) {
     return NextResponse.json(
       {
         success: false,
-        error: 'No puedes eliminar un profesional con citas activas. Desactívalo en su lugar.',
+        error: `Este profesional tiene ${upcoming} cita${upcoming === 1 ? '' : 's'} próxima${upcoming === 1 ? '' : 's'}. Desactívalo o reasigna esas citas antes de eliminarlo.`,
       },
       { status: 409 }
     )
   }
 
-  await prisma.professional.delete({ where: { id } })
+  // Soft delete: hide it everywhere but keep the row so historical appointments
+  // retain their professional reference (no SetNull, no orphaned records).
+  await prisma.professional.update({
+    where: { id },
+    data: { deletedAt: new Date(), isActive: false },
+  })
 
   await audit({
-    action:    'DELETE',
-    entity:    'PROFESSIONAL',
-    entityId:  id,
-    userEmail: session.user?.email ?? undefined,
-    ip:        getClientIp(_req),
+    action:      'DELETE',
+    entity:      'PROFESSIONAL',
+    entityId:    id,
+    userEmail:   session.user?.email ?? undefined,
+    ip:          getClientIp(_req),
+    description: `Profesional "${target?.name ?? 'desconocido'}" eliminado`,
   })
 
   return NextResponse.json({ success: true, data: { id } })

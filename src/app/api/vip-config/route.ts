@@ -54,12 +54,13 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
   ])
 
   await audit({
-    action:    'UPDATE',
-    entity:    'SERVICE',
-    entityId:  'vip-discount-config',
-    userEmail: session.user?.email ?? undefined,
-    ip:        getClientIp(request),
-    metadata:  { enabled, tiers },
+    action:      'UPDATE',
+    entity:      'SERVICE',
+    entityId:    'vip-discount-config',
+    userEmail:   session.user?.email ?? undefined,
+    ip:          getClientIp(request),
+    description: `Descuento VIP ${enabled ? 'activado' : 'desactivado'} · ${tiers.length} tramo${tiers.length === 1 ? '' : 's'}`,
+    after:       { enabled, tiers },
   })
 
   const settings = await getVipSettings()

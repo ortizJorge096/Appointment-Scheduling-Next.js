@@ -84,12 +84,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   })
 
   await audit({
-    action:    'CREATE',
-    entity:    'GALLERY',
-    entityId:  created.id,
-    userEmail: session.user?.email ?? undefined,
-    ip:        getClientIp(request),
-    metadata:  { s3Key: created.s3Key },
+    action:      'CREATE',
+    entity:      'GALLERY',
+    entityId:    created.id,
+    userEmail:   session.user?.email ?? undefined,
+    ip:          getClientIp(request),
+    description: `Imagen ${created.title ? `"${created.title}" ` : ''}agregada a la galería`,
   })
 
   return NextResponse.json(
