@@ -79,14 +79,18 @@ function NosotrosSection() {
               Pasión por<br />realzar tu <em className="text-gold italic">belleza</em>
             </h2>
             <p className="text-ink-muted text-base leading-relaxed mb-4">
-              Somos un beauty studio especializado en uñas, pestañas y cejas, ubicados en el
-              corazón de {STUDIO.city}. Con más de 3 años de experiencia, combinamos técnicas
-              actualizadas y productos de alta calidad para ofrecerte resultados que duran.
+              {STUDIO.name} es un espacio pensado para ti, nació de un sueño sencillo pero
+              poderoso: hacer que cada persona que entre por nuestra puerta salga sintiéndose
+              mejor de lo que llegó.
+            </p>
+            <p className="text-ink-muted text-base leading-relaxed mb-4">
+              Más de 3 años embelleciendo uñas, miradas y rostros en {STUDIO.city} nos han
+              enseñado que la belleza va mucho más allá de la apariencia. Es el momento en que
+              te permites descansar, cuidarte y recordar lo maravillosa que eres.
             </p>
             <p className="text-ink-muted text-base leading-relaxed mb-8">
-              Creemos que cada clienta merece un espacio donde sentirse cuidada, escuchada y
-              hermosa. Por eso cada detalle en nuestro studio está pensado para brindarte una
-              experiencia premium, higiénica y completamente personalizada.
+              Aquí encontrarás técnicas actualizadas, productos de calidad y, sobre todo, manos
+              que trabajan con amor y dedicación.
             </p>
             <NosotrosStats />
           </div>
