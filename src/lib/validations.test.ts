@@ -99,10 +99,20 @@ describe('updateAppointmentSchema', () => {
 
 // ── createServiceSchema ──────────────────────────────────────────────────
 describe('createServiceSchema', () => {
-  const valid = { name: 'Manicura', price: 35000, durationMinutes: 45 }
+  const valid = { name: 'Manicura', categoryId: 'cjld2cjxh0000qzrmn831i7rn', price: 35000, durationMinutes: 45 }
 
   it('acepta servicio válido', () => {
     expect(createServiceSchema.safeParse(valid).success).toBe(true)
+  })
+
+  it('exige categoryId', () => {
+    const { categoryId, ...withoutCategory } = valid
+    void categoryId
+    expect(createServiceSchema.safeParse(withoutCategory).success).toBe(false)
+  })
+
+  it('rechaza categoryId que no es cuid', () => {
+    expect(createServiceSchema.safeParse({ ...valid, categoryId: '123' }).success).toBe(false)
   })
 
   it('rechaza precio negativo', () => {
