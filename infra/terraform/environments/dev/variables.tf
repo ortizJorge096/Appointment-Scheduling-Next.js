@@ -140,3 +140,20 @@ variable "enable_rds_scheduler" {
   type        = bool
   default     = false
 }
+
+# Horario del scheduler, pasado al módulo (cron + timezone). Default de dev:
+# apaga cada hora y NO enciende solo (lo arrancas a mano cuando lo necesitas).
+variable "rds_stop_schedule" {
+  type    = string
+  default = "cron(0 * * * ? *)"
+}
+
+variable "rds_start_schedule" {
+  type    = string
+  default = ""   # "" = sin encendido automático (manual)
+}
+
+variable "rds_schedule_timezone" {
+  type    = string
+  default = "UTC"
+}

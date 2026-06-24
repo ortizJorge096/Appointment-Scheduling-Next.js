@@ -228,7 +228,7 @@ module "monitoring" {
   tags = { Component = "observability" }
 }
 
-# ── RDS Scheduler — shuts down DB every hour (dev only) ─────────────────
+# ── RDS Scheduler — apaga la BD por horario para ahorrar (dev) ──────────
 # Enable with: enable_rds_scheduler = true in terraform.tfvars
 module "rds_scheduler" {
   count  = var.enable_rds_scheduler ? 1 : 0
@@ -237,6 +237,11 @@ module "rds_scheduler" {
   name_prefix            = var.name_prefix
   db_instance_identifier = module.rds.db_instance_identifier
   db_instance_arn        = module.rds.db_instance_arn
+
+  # Horario parametrizado desde el ambiente (cron + timezone)
+  stop_schedule     = var.rds_stop_schedule
+  start_schedule    = var.rds_start_schedule
+  schedule_timezone = var.rds_schedule_timezone
 
   tags = { Component = "cost-optimization" }
 }
