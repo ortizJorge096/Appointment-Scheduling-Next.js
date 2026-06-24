@@ -82,8 +82,24 @@ export const ICON_LABELS: Record<IconKey, string> = {
 
 export const DEFAULT_ICON: IconKey = 'promo'
 
+// ─────────────────────────────────────────────────────────────
+// WHATSAPP — deep link with a preloaded message.
+// Number and default message are configurable via env (fall back to STUDIO so
+// nothing breaks if the env vars aren't set). NEXT_PUBLIC_* vars are available
+// both client- and server-side. Never hardcode the number elsewhere — use this.
+// ─────────────────────────────────────────────────────────────
+const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? STUDIO.whatsapp
+const DEFAULT_WHATSAPP_MESSAGE =
+  process.env.NEXT_PUBLIC_WHATSAPP_MESSAGE ?? '¡Hola! Quiero más información.'
+
+/** Builds a wa.me link with a URL-encoded preloaded message. */
+export function getWhatsAppUrl(message?: string): string {
+  const text = message ?? DEFAULT_WHATSAPP_MESSAGE
+  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`
+}
+
 // Derived helpers
-export const WHATSAPP_URL  = `https://wa.me/${STUDIO.whatsapp}`
+export const WHATSAPP_URL  = getWhatsAppUrl()
 export const MAILTO_URL    = `mailto:${STUDIO.email}`
 export const INSTAGRAM_URL = `https://www.instagram.com/${STUDIO.instagram}/`
 export const TIKTOK_URL    = `https://www.tiktok.com/@${STUDIO.tiktok}`
