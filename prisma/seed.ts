@@ -154,10 +154,12 @@ async function main() {
   // ─────────────────────────────────────────────────────────────
   // PROFESIONALES — cada uno puede atender una cita a la vez.
   // ─────────────────────────────────────────────────────────────
+  // reviewCount = nº de citas atendidas por cada profesional. Coherente con el
+  // total del estudio (+300 citas en el Home): la suma se mantiene por debajo.
   const professionals = [
-    { name: 'Valentina J.', specialty: 'Especialista master',   rating: 4.9, reviewCount: 1200, order: 1 },
-    { name: 'Sofía L.',     specialty: 'Uñas & nail art',       rating: 4.8, reviewCount: 740,  order: 2 },
-    { name: 'Mariana T.',   specialty: 'Pestañas & cejas',      rating: 4.9, reviewCount: 610,  order: 3 },
+    { name: 'Valentina J.', specialty: 'Especialista master',   rating: 4.9, reviewCount: 130, order: 1 },
+    { name: 'Sofía L.',     specialty: 'Uñas & nail art',       rating: 4.8, reviewCount: 90,  order: 2 },
+    { name: 'Mariana T.',   specialty: 'Pestañas & cejas',      rating: 4.8, reviewCount: 70,  order: 3 },
   ]
   for (const p of professionals) {
     const existing = await prisma.professional.findFirst({ where: { name: p.name } })
