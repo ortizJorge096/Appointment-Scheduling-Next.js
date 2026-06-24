@@ -50,6 +50,10 @@ app_host = "dev.vjbeautystudio.com"
 ses_from_email = ""
 enable_emails  = false
 
-# RDS Scheduler — apaga la BD a las 22:00 COL y la enciende a las 07:00 COL.
-# Activa para ahorrar ~65% del costo de RDS en dev. NO usar en prod.
-enable_rds_scheduler = false
+# RDS Scheduler — apaga la BD por horario para ahorrar costo en dev.
+# Default: apaga cada hora y NO enciende solo (la arrancas a mano cuando la usas).
+# Cambia el cron si quieres otro horario (mismo patrón que prod).
+enable_rds_scheduler  = false
+rds_stop_schedule     = "cron(0 * * * ? *)"   # cada hora
+rds_start_schedule    = ""                     # "" = sin auto-encendido
+rds_schedule_timezone = "UTC"

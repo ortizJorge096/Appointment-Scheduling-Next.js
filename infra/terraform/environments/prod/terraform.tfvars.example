@@ -13,10 +13,20 @@ create_oidc_provider = false
 git_branch        = "main"
 kustomize_overlay = "prod"
 
+# Hostname público de prod (A record → EIP). Lo lee el CI desde SSM para fijar
+# el host del ingress, NEXTAUTH_URL y NEXT_PUBLIC_APP_URL.
+app_host = "vjbeautystudio.com"
+
 image_ref = ""
 
 enable_ec2_k3s    = true
-enable_monitoring = true
+
+# Alertas/monitoring APAGADAS por elección del negocio (sin CloudWatch alarms ni SNS).
+enable_monitoring = false
+
+# Backups: el módulo AWS Backup (vault 30/90/365 días) queda APAGADO.
+# La BD conserva 7 días de point-in-time recovery gratis (ver backup_retention_days en main.tf).
+enable_aws_backup = false
 
 alarm_email = ""
 
@@ -40,3 +50,10 @@ enable_emails  = true
 # Protección contra borrado accidental de la BD.
 db_deletion_protection = true
 db_skip_final_snapshot = false
+
+# RDS scheduler (apaga/enciende la BD por horario para ahorrar). Off por ahora;
+# ponlo en true cuando quieras activarlo. Horarios en cron + timezone:
+enable_rds_scheduler  = false
+rds_stop_schedule     = "cron(0 23 * * ? *)"   # apaga 23:00
+rds_start_schedule    = "cron(0 6 * * ? *)"    # enciende 06:00 ("" = sin auto-encendido)
+rds_schedule_timezone = "America/Bogota"

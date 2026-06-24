@@ -37,6 +37,26 @@ resource "aws_ssm_parameter" "google_calendar_key" {
   }
 }
 
+# ─── Public hostname in SSM (non-secret String) ──────────────────────────
+# Single source of truth for the prod host. CI reads it at deploy time to set
+# the ingress host, NEXTAUTH_URL and NEXT_PUBLIC_APP_URL — no host hardcoded.
+resource "aws_ssm_parameter" "app_host" {
+  name        = "/${var.name_prefix}/app/host"
+  description = "Public hostname (A record → EIP) for ${var.name_prefix}"
+  type        = "String"
+  value       = var.app_host
+  tags        = { Component = "app" }
+}
+
+locals {
+  # Browser origins allowed to upload/read gallery assets in S3 (CORS), derived
+  # from app_host so they never go stale; localhost stays for local dev.
+  app_cors_origins = concat(
+    ["http://localhost:3000"],
+    var.app_host != "" ? ["https://${var.app_host}", "http://${var.app_host}"] : [],
+  )
+}
+
 module "network" {
   source = "../../modules/network"
 
@@ -82,11 +102,9 @@ module "ses" {
 
 module "s3_assets" {
   source      = "../../modules/s3-assets"
-  bucket_name = "${var.name_prefix}-assets"
-  allowed_origins = [
-    "https://${var.name_prefix}.example.com",  # placeholder: replace with real host
-  ]
-  tags = { Component = "storage" }
+  bucket_name     = "${var.name_prefix}-assets"
+  allowed_origins = local.app_cors_origins
+  tags            = { Component = "storage" }
 }
 
 module "rds" {
@@ -110,13 +128,19 @@ module "rds" {
   skip_final_snapshot   = var.db_skip_final_snapshot
   multi_az              = false  # change to true when leaving Free Tier
   publicly_accessible   = false
-  backup_retention_days = 14    # 14 days of automated backups in prod
+  # Minimal safety net only: 7 days of FREE point-in-time recovery (RDS automated
+  # backups up to the DB size cost nothing). The long-retention AWS Backup vault
+  # below is disabled by default (var.enable_aws_backup) to save its storage cost.
+  backup_retention_days = 7
 
   tags = { Component = "database" }
 }
 
-# ─── Backups with AWS Backup (vault + daily/weekly/monthly plan) ─────────
+# ─── Long-retention backups via AWS Backup (vault + daily/weekly/monthly) ──
+# Disabled by default — the DB still has 7-day PITR above. Set
+# enable_aws_backup = true to bring back the 30/90/365-day vault.
 module "rds_backup" {
+  count  = var.enable_aws_backup ? 1 : 0
   source = "../../modules/rds-backup"
 
   name_prefix     = var.name_prefix
@@ -165,7 +189,9 @@ module "k3s" {
 
   image_ref     = var.image_ref != "" ? var.image_ref : "${module.ecr.repository_url}:latest"
   aws_region    = var.region
-  public_host   = ""
+  # app_host (vjbeautystudio.com) becomes the resolved host for outputs, the
+  # first-boot user-data AND the SSM param the CI reads. Empty → nip.io fallback.
+  public_host   = var.app_host
   app_namespace = "appointment-scheduling"
 
   database_url_ssm_parameter    = module.rds.database_url_ssm_parameter
@@ -207,4 +233,23 @@ module "monitoring" {
   enable_memory_disk_alarms = true
 
   tags = { Component = "observability" }
+}
+
+# ── RDS Scheduler — apaga/enciende la BD por horario (ahorro de costo) ───
+# Off por defecto. Activar con enable_rds_scheduler = true.
+# TODO: parametrizar los horarios de apagado/encendido (hoy fijos en el módulo).
+module "rds_scheduler" {
+  count  = var.enable_rds_scheduler ? 1 : 0
+  source = "../../modules/rds-scheduler"
+
+  name_prefix            = var.name_prefix
+  db_instance_identifier = module.rds.db_instance_identifier
+  db_instance_arn        = module.rds.db_instance_arn
+
+  # Horario parametrizado desde el ambiente (cron + timezone)
+  stop_schedule     = var.rds_stop_schedule
+  start_schedule    = var.rds_start_schedule
+  schedule_timezone = var.rds_schedule_timezone
+
+  tags = { Component = "cost-optimization" }
 }

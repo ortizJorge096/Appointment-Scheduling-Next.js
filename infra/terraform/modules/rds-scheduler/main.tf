@@ -1,11 +1,13 @@
 # ─────────────────────────────────────────────────────────────────────────
-# rds-scheduler — shuts down the RDS instance every hour.
+# rds-scheduler — stops (and optionally starts) the RDS instance on a schedule
+# to save cost. Both schedules are parametrized per environment (cron + tz):
+#   - stop_schedule  (required, defaults to hourly)
+#   - start_schedule (optional; empty = no auto-start, start manually)
+#   - schedule_timezone
 #
-# Use it in dev to minimize RDS cost.
-# When you need the DB, start it manually and it will shut down in < 1h.
-# Do NOT use this module in prod.
-#
-# AWS ignores StopDBInstance if the instance is already stopped — no errors.
+# Usable in any environment. In prod, pair a nightly stop with a morning start
+# so the DB is up during business hours (an online booking can't write while the
+# DB is stopped). AWS ignores Stop/Start if the instance is already in that state.
 # Note: AWS RDS automatically restarts after 7 days stopped — AWS behavior.
 # ─────────────────────────────────────────────────────────────────────────
 
@@ -20,11 +22,12 @@ data "aws_iam_policy_document" "scheduler_assume" {
   }
 }
 
-data "aws_iam_policy_document" "rds_stop" {
+data "aws_iam_policy_document" "rds_control" {
   statement {
-    sid       = "RdsStop"
+    sid       = "RdsControl"
     effect    = "Allow"
-    actions   = ["rds:StopDBInstance"]
+    # Grant Start only when an auto-start schedule is configured.
+    actions   = var.start_schedule != "" ? ["rds:StopDBInstance", "rds:StartDBInstance"] : ["rds:StopDBInstance"]
     resources = [var.db_instance_arn]
   }
 }
@@ -35,24 +38,45 @@ resource "aws_iam_role" "scheduler" {
   tags               = var.tags
 }
 
-resource "aws_iam_role_policy" "rds_stop" {
-  name   = "rds-stop"
+resource "aws_iam_role_policy" "rds_control" {
+  name   = "rds-control"
   role   = aws_iam_role.scheduler.id
-  policy = data.aws_iam_policy_document.rds_stop.json
+  policy = data.aws_iam_policy_document.rds_control.json
 }
 
-# Shut down hourly — if already stopped, AWS does nothing
-resource "aws_scheduler_schedule" "stop_hourly" {
-  name       = "${var.name_prefix}-rds-stop-hourly"
+# Stop on the configured schedule — if already stopped, AWS does nothing.
+resource "aws_scheduler_schedule" "stop" {
+  name       = "${var.name_prefix}-rds-stop"
   group_name = "default"
 
   flexible_time_window { mode = "OFF" }
 
-  schedule_expression          = "cron(0 * * * ? *)"
-  schedule_expression_timezone = "UTC"
+  schedule_expression          = var.stop_schedule
+  schedule_expression_timezone = var.schedule_timezone
 
   target {
     arn      = "arn:aws:scheduler:::aws-sdk:rds:stopDBInstance"
+    role_arn = aws_iam_role.scheduler.arn
+
+    input = jsonencode({
+      DbInstanceIdentifier = var.db_instance_identifier
+    })
+  }
+}
+
+# Optional auto-start — only created when start_schedule is set.
+resource "aws_scheduler_schedule" "start" {
+  count      = var.start_schedule != "" ? 1 : 0
+  name       = "${var.name_prefix}-rds-start"
+  group_name = "default"
+
+  flexible_time_window { mode = "OFF" }
+
+  schedule_expression          = var.start_schedule
+  schedule_expression_timezone = var.schedule_timezone
+
+  target {
+    arn      = "arn:aws:scheduler:::aws-sdk:rds:startDBInstance"
     role_arn = aws_iam_role.scheduler.arn
 
     input = jsonencode({
