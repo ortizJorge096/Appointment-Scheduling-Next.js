@@ -18,6 +18,7 @@ const CONFIG_NAV = [
   { href: '/admin/profesionales', label: 'Profesionales', icon: '☆' },
   { href: '/admin/horarios',      label: 'Horarios',      icon: '◻' },
   { href: '/admin/galeria',       label: 'Galería',       icon: '◫' },
+  { href: '/admin/testimonios',   label: 'Testimonios',   icon: '❝' },
   { href: '/admin/sitio',         label: 'Métricas',      icon: '▤' },
 ]
 
@@ -25,14 +26,24 @@ export default function AdminSidebar() {
   const pathname = usePathname()
   const { data: session } = useSession()
   const [open, setOpen] = useState(false)
+  const [pendingTestimonials, setPendingTestimonials] = useState(0)
 
   // Close the mobile drawer whenever the route changes
   useEffect(() => { setOpen(false) }, [pathname])
+
+  // Pending-testimonials count for the moderation badge.
+  useEffect(() => {
+    fetch('/api/testimonials?status=PENDING')
+      .then((r) => r.json())
+      .then((json) => { if (json.success && Array.isArray(json.data)) setPendingTestimonials(json.data.length) })
+      .catch(() => {})
+  }, [pathname])
 
   function renderNavItem(item: { href: string; label: string; icon: string }) {
     const active =
       pathname === item.href ||
       (item.href !== '/admin' && pathname.startsWith(item.href))
+    const badge = item.href === '/admin/testimonios' && pendingTestimonials > 0 ? pendingTestimonials : null
     return (
       <Link
         key={item.href}
@@ -44,7 +55,13 @@ export default function AdminSidebar() {
         }`}
       >
         <span className="w-4 text-center">{item.icon}</span>
-        {item.label}
+        <span className="flex-1">{item.label}</span>
+        {badge !== null && (
+          <span className="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5
+                           rounded-full bg-gold text-ink text-[11px] font-semibold">
+            {badge}
+          </span>
+        )}
       </Link>
     )
   }
