@@ -3,20 +3,25 @@
 // Gallery management: upload, list, edit title/category, reorder, delete.
 
 import { useState, useEffect, useRef } from 'react'
-import { CATEGORY_ORDER, categoryLabel } from '@/lib/config'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
 
 interface GalleryImage {
   id: string
   title: string | null
   description: string | null
-  category: string | null
+  categoryId: string | null
+  category: { id: string; name: string; slug: string } | null
   width: number | null
   height: number | null
   order: number
   isActive: boolean
   url: string
   s3Key?: string
+}
+
+interface Category {
+  id: string
+  name: string
 }
 
 const MAX_BYTES = 5 * 1024 * 1024  // 5 MB
@@ -28,6 +33,7 @@ export default function GaleriaAdminPage() {
   const replacingImgRef = useRef<GalleryImage | null>(null)
 
   const [images, setImages]   = useState<GalleryImage[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [replacingId, setReplacingId] = useState<string | null>(null)
@@ -37,13 +43,18 @@ export default function GaleriaAdminPage() {
 
   // Inline editing state
   const [editing, setEditing] = useState<string | null>(null)
-  const [editForm, setEditForm] = useState<{ title: string; description: string; category: string }>({ title: '', description: '', category: '' })
+  const [editForm, setEditForm] = useState<{ title: string; description: string; categoryId: string }>({ title: '', description: '', categoryId: '' })
 
   function load() {
     setLoading(true)
-    fetch('/api/gallery')
-      .then((r) => r.json())
-      .then((json) => { if (json.success) setImages(json.data) })
+    Promise.all([
+      fetch('/api/gallery').then((r) => r.json()),
+      fetch('/api/categories').then((r) => r.json()),
+    ])
+      .then(([galJson, catJson]) => {
+        if (galJson.success) setImages(galJson.data)
+        if (catJson.success) setCategories(catJson.data)
+      })
       .catch(() => setError('Error al cargar la galería'))
       .finally(() => setLoading(false))
   }
@@ -169,7 +180,7 @@ export default function GaleriaAdminPage() {
       body: JSON.stringify({
         title: editForm.title.trim() || null,
         description: editForm.description.trim() || null,
-        category: editForm.category || null,
+        categoryId: editForm.categoryId || null,
       }),
     })
     const j = await r.json()
@@ -279,10 +290,10 @@ export default function GaleriaAdminPage() {
                       onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
                     />
                     <select className="select-field"
-                      value={editForm.category}
-                      onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}>
+                      value={editForm.categoryId}
+                      onChange={(e) => setEditForm({ ...editForm, categoryId: e.target.value })}>
                       <option value="">— Sin categoría —</option>
-                      {CATEGORY_ORDER.map((c) => <option key={c} value={c}>{categoryLabel(c)}</option>)}
+                      {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
                     <div className="flex gap-2 mt-1">
                       <button onClick={() => saveEdit(img.id)} className="btn-primary flex-1 text-xs py-2">Guardar</button>
@@ -295,7 +306,7 @@ export default function GaleriaAdminPage() {
                       {img.title || <span className="italic text-ink-muted/60">Sin título</span>}
                     </p>
                     <p className="text-xs text-gold tracking-widest uppercase">
-                      {img.category ? categoryLabel(img.category) : '—'}
+                      {img.category ? img.category.name : '—'}
                     </p>
                       <div className="flex items-center justify-between mt-2 pt-3 border-t border-beige-dark/60">
                         <div className="flex items-center gap-1">
@@ -313,7 +324,7 @@ export default function GaleriaAdminPage() {
                             className="btn-row-action text-ink-muted hover:text-gold disabled:opacity-40">
                             {replacingId === img.id ? `${progress}%` : '📷'}
                           </button>
-                          <button onClick={() => { setEditing(img.id); setEditForm({ title: img.title ?? '', description: img.description ?? '', category: img.category ?? '' }) }}
+                          <button onClick={() => { setEditing(img.id); setEditForm({ title: img.title ?? '', description: img.description ?? '', categoryId: img.categoryId ?? '' }) }}
                             className="btn-row-action text-ink-muted hover:text-gold">✏️</button>
                           <button onClick={() => toggleActive(img)}
                             className={`btn-row-action ${img.isActive ? 'text-ink-muted hover:text-red-500' : 'text-green-600 hover:text-green-700'}`}>

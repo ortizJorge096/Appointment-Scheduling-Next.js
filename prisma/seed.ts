@@ -1,8 +1,11 @@
 // prisma/seed.ts
-import { PrismaClient, DayOfWeek, ServiceCategory } from '@prisma/client'
+import { PrismaClient, DayOfWeek } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
+
+// Category slugs match what the migration seeds; keep them stable.
+type CategorySlug = 'UNAS' | 'PESTANAS' | 'CEJAS' | 'CORTE' | 'PROMOS'
 
 async function main() {
   console.log('🌱 Iniciando seed...')
@@ -16,14 +19,35 @@ async function main() {
   console.log('✅ Admin — admin@vjbeautystudio.com / Admin123!')
 
   // ─────────────────────────────────────────────────────────────
+  // CATEGORÍAS — ahora viven en DB. Upsert por slug (estable) para que
+  // el seed sea idempotente y conviva con la migración inicial.
+  // ─────────────────────────────────────────────────────────────
+  const categorySeed: Array<{ slug: CategorySlug; name: string; description: string; icon: string; order: number }> = [
+    { slug: 'UNAS',     name: 'Uñas',             description: 'Manicura, pedicura, gel, acrílico y nail art', icon: 'manicura', order: 1 },
+    { slug: 'PESTANAS', name: 'Pestañas',         description: 'Lifting, extensiones, volumen e híbridas',     icon: 'pestanas', order: 2 },
+    { slug: 'CEJAS',    name: 'Cejas',            description: 'Depilación, henna, diseño y laminado',         icon: 'cejas',    order: 3 },
+    { slug: 'CORTE',    name: 'Corte de Cabello', description: 'Corte, peinado y diseño de flequillo',         icon: 'corte',    order: 4 },
+    { slug: 'PROMOS',   name: 'Promos',           description: 'Combos con precio especial',                   icon: 'promo',    order: 5 },
+  ]
+  const categoryId: Record<CategorySlug, string> = {} as Record<CategorySlug, string>
+  for (const c of categorySeed) {
+    const cat = await prisma.category.upsert({
+      where:  { slug: c.slug },
+      update: { name: c.name, description: c.description, icon: c.icon, order: c.order },
+      create: { slug: c.slug, name: c.name, description: c.description, icon: c.icon, order: c.order },
+    })
+    categoryId[c.slug] = cat.id
+  }
+  console.log(`✅ ${categorySeed.length} categorías creadas/actualizadas`)
+
+  // ─────────────────────────────────────────────────────────────
   // CATÁLOGO REAL (lista de precios Valentina Jimenez Beauty Studio)
-  // Categorías: UNAS, PESTANAS, CEJAS, CORTE, PROMOS.
   // Las duraciones y precios son estimaciones — ajústalas desde el panel admin.
   // ─────────────────────────────────────────────────────────────
   const services: Array<{
     name: string
     description?: string
-    category: ServiceCategory
+    category: CategorySlug
     price: number
     durationMinutes: number
     order: number
@@ -99,7 +123,9 @@ async function main() {
   }
 
   for (const s of services) {
-    await prisma.service.upsert({ where: { name: s.name }, update: s, create: s })
+    const { category, ...rest } = s
+    const data = { ...rest, categoryId: categoryId[category] }
+    await prisma.service.upsert({ where: { name: s.name }, update: data, create: data })
   }
   console.log(`✅ ${services.length} servicios creados/actualizados`)
 

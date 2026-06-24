@@ -48,6 +48,33 @@ model Client {
 }
 
 // ─────────────────────────────────────────
+// CATEGORÍAS DE SERVICIO
+// Antes eran un enum hardcodeado; ahora viven en DB para poder
+// crearlas/editarlas/eliminarlas desde el panel admin sin tocar código.
+// `slug` es la clave estable usada en URLs (?categoria=...) y agrupación.
+// `icon` guarda la clave de un set de íconos predefinidos (ver ICON_KEYS).
+// Soft delete: nunca se borran físicamente para no romper el historial.
+// ─────────────────────────────────────────
+
+model Category {
+  id            String         @id @default(cuid())
+  name          String         @unique
+  slug          String         @unique
+  description   String?
+  icon          String         @default("promo")
+  order         Int            @default(0)
+  isActive      Boolean        @default(true)
+  deletedAt     DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  services      Service[]
+  galleryImages GalleryImage[]
+  @@index([isActive])
+  @@index([deletedAt])
+  @@map("categories")
+}
+
+// ─────────────────────────────────────────
 // SERVICIOS
 // ─────────────────────────────────────────
 
@@ -55,25 +82,22 @@ model Service {
   id              String              @id @default(cuid())
   name            String              @unique
   description     String?
-  category        ServiceCategory     @default(UNAS)
+  categoryId      String?
+  category        Category?           @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   price           Int
   durationMinutes Int
   isActive        Boolean             @default(true)
   order           Int                 @default(0)
+  // Soft delete: el servicio desaparece del catálogo pero la fila persiste,
+  // de modo que las citas históricas mantienen su referencia y nombre.
+  deletedAt       DateTime?
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
   appointments    Appointment[]
   appointmentServices AppointmentService[]
-  @@index([category])
+  @@index([categoryId])
+  @@index([deletedAt])
   @@map("services")
-}
-
-enum ServiceCategory {
-  UNAS
-  PESTANAS
-  CEJAS
-  CORTE
-  PROMOS
 }
 
 // ─────────────────────────────────────────
@@ -190,6 +214,7 @@ model AppointmentService {
   appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
   serviceId     String
   service       Service     @relation(fields: [serviceId], references: [id])
+  serviceName   String?     // snapshot del nombre al reservar (preserva el historial si el servicio se renombra/elimina)
   price         Int         // price at time of booking (snapshot)
   @@unique([appointmentId, serviceId])
   @@map("appointment_services")
@@ -294,7 +319,8 @@ model GalleryImage {
   id          String           @id @default(cuid())
   title       String?
   description String?
-  category    ServiceCategory?
+  categoryId  String?
+  category    Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   s3Key       String           @unique
   width       Int?
   height      Int?
@@ -303,7 +329,7 @@ model GalleryImage {
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
   @@index([isActive])
-  @@index([category])
+  @@index([categoryId])
   @@map("gallery_images")
 }
 
@@ -351,6 +377,7 @@ enum AuditEntity {
   CLIENT
   EXPENSE
   SERVICE
+  CATEGORY
   GALLERY
   SCHEDULE
   PROFESSIONAL

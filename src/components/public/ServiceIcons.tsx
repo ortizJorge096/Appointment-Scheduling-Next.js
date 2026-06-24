@@ -140,18 +140,22 @@ export function MailIcon(props: IconProps) {
   )
 }
 
-// ── Map: category key (Prisma enum) → icon ──
-export const CATEGORY_ICON: Record<string, IconComponent> = {
-  UNAS:     ManicuraIcon,
-  PESTANAS: PestanasIcon,
-  CEJAS:    CejasIcon,
-  CORTE:    CorteIcon,
-  PROMOS:   PromoIcon,
+// ── Predefined icon set — keys match ICON_KEYS in src/lib/config.ts ──
+// Categories store one of these keys in their `icon` field. Keep both in sync.
+export const ICON_REGISTRY: Record<string, IconComponent> = {
+  manicura:   ManicuraIcon,
+  pedicura:   PedicuraIcon,
+  pestanas:   PestanasIcon,
+  cejas:      CejasIcon,
+  depilacion: DepilacionIcon,
+  corte:      CorteIcon,
+  promo:      PromoIcon,
 }
 
-export function CategoryIcon({ category, ...props }: IconProps & { category: string }) {
-  const Icon = CATEGORY_ICON[category] ?? PromoIcon
-  return <Icon {...props} />
+/** Renders an icon by its registry key. Falls back to the promo icon. */
+export function Icon({ name, ...props }: IconProps & { name: string | null | undefined }) {
+  const Cmp = (name && ICON_REGISTRY[name]) || PromoIcon
+  return <Cmp {...props} />
 }
 
 // ── List for marketing sections (the 5 services from the banner) ──

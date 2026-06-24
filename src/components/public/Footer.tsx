@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { STUDIO, WHATSAPP_URL, MAILTO_URL, INSTAGRAM_URL, TIKTOK_URL, CATEGORY_ORDER, categoryLabel } from '@/lib/config'
+import { STUDIO, WHATSAPP_URL, MAILTO_URL, INSTAGRAM_URL, TIKTOK_URL } from '@/lib/config'
+import FooterServiceLinks from './FooterServiceLinks'
 
 export default function Footer() {
   return (
@@ -18,16 +19,7 @@ export default function Footer() {
 
         <div>
           <p className="text-xs text-gold/50 uppercase tracking-widest mb-4">Servicios</p>
-          <ul className="space-y-2.5">
-            {CATEGORY_ORDER.map((cat) => (
-              <li key={cat}>
-                <Link href={`/agendar?categoria=${cat}`}
-                  className="text-sm text-white/40 hover:text-gold transition-colors">
-                  {categoryLabel(cat)}
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <FooterServiceLinks />
         </div>
 
         <div>

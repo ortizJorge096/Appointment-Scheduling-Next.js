@@ -8,40 +8,46 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { CategoryIcon } from './ServiceIcons'
-import { CATEGORY_ORDER, categoryLabel } from '@/lib/config'
+import { Icon } from './ServiceIcons'
 import { formatPrice } from '@/lib/utils'
 
 interface Service {
   id: string
-  category: string
+  categoryId: string | null
   price: number
   durationMinutes: number
   isActive: boolean
 }
 
-const CATEGORY_BLURBS: Record<string, string> = {
-  UNAS:     'Manicura, pedicura, gel, acrílico y nail art',
-  PESTANAS: 'Lifting, extensiones, volumen e híbridas',
-  CEJAS:    'Depilación, henna, diseño y laminado',
-  CORTE:    'Corte, peinado y diseño de flequillo',
-  PROMOS:   'Combos con precio especial',
+interface Category {
+  id: string
+  name: string
+  slug: string
+  description: string | null
+  icon: string
+  order: number
 }
 
 export default function ServicesGrid() {
-  const [services, setServices] = useState<Service[]>([])
-  const [loading, setLoading]   = useState(true)
+  const [services, setServices]   = useState<Service[]>([])
+  const [cats, setCats]           = useState<Category[]>([])
+  const [loading, setLoading]     = useState(true)
 
   useEffect(() => {
-    fetch('/api/services')
-      .then((r) => r.json())
-      .then((json) => { if (json.success) setServices(json.data) })
+    Promise.all([
+      fetch('/api/services').then((r) => r.json()),
+      fetch('/api/categories').then((r) => r.json()),
+    ])
+      .then(([svcJson, catJson]) => {
+        if (svcJson.success) setServices(svcJson.data)
+        if (catJson.success) setCats(catJson.data)
+      })
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
 
-  const categories = CATEGORY_ORDER
-    .map((cat) => ({ cat, svcs: services.filter((s) => s.isActive && s.category === cat) }))
+  const categories = cats
+    .map((cat) => ({ cat, svcs: services.filter((s) => s.isActive && s.categoryId === cat.id) }))
     .filter((g) => g.svcs.length > 0)
 
   return (
@@ -77,20 +83,20 @@ export default function ServicesGrid() {
 
                 return (
                   <div
-                    key={cat}
+                    key={cat.id}
                     className="group card-premium-hover accent-top p-8 flex flex-col gap-4"
                   >
                     <span className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gold-pale text-gold-dark">
-                      <CategoryIcon category={cat} className="w-7 h-7" />
+                      <Icon name={cat.icon} className="w-7 h-7" />
                     </span>
 
                     <div>
                       <h3 className="font-serif text-2xl leading-tight text-ink">
-                        {categoryLabel(cat)}
+                        {cat.name}
                       </h3>
-                      {CATEGORY_BLURBS[cat] && (
+                      {cat.description && (
                         <p className="text-sm leading-relaxed mt-2 text-ink-muted">
-                          {CATEGORY_BLURBS[cat]}
+                          {cat.description}
                         </p>
                       )}
                     </div>
@@ -104,7 +110,7 @@ export default function ServicesGrid() {
                           {durationLabel}
                         </p>
                       </div>
-                      <Link href={`/agendar?categoria=${cat}`}
+                      <Link href={`/agendar?categoria=${cat.slug}`}
                         className="text-xs tracking-widest uppercase font-semibold transition-colors text-gold-dark hover:text-gold">
                         Reservar →
                       </Link>
@@ -116,7 +122,7 @@ export default function ServicesGrid() {
               {/* Static VIP promo card — multi-service discount flow, not tied to a real category */}
               <div className="group card-premium-hover accent-top p-8 flex flex-col gap-4 bg-ink text-white">
                 <span className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[rgba(212,173,90,.15)] text-[var(--gold-light)]">
-                  <CategoryIcon category="VIP" className="w-7 h-7" />
+                  <Icon name="promo" className="w-7 h-7" />
                 </span>
 
                 <div>
