@@ -77,21 +77,33 @@ export async function DELETE(
 
   const target = await prisma.professional.findUnique({ where: { id }, select: { name: true } })
 
-  const active = await prisma.appointment.count({
-    where: { professionalId: id, status: { in: ['PENDING', 'CONFIRMED'] } },
+  // Block while it still has upcoming appointments (avoids deleting someone
+  // with pending work). Past appointments are fine — soft delete keeps the row,
+  // so their professionalId reference stays intact.
+  const upcoming = await prisma.appointment.count({
+    where: {
+      professionalId: id,
+      status: { in: ['PENDING', 'CONFIRMED'] },
+      date: { gte: new Date(new Date().toDateString()) },
+    },
   })
 
-  if (active > 0) {
+  if (upcoming > 0) {
     return NextResponse.json(
       {
         success: false,
-        error: 'No puedes eliminar un profesional con citas activas. Desactívalo en su lugar.',
+        error: `Este profesional tiene ${upcoming} cita${upcoming === 1 ? '' : 's'} próxima${upcoming === 1 ? '' : 's'}. Desactívalo o reasigna esas citas antes de eliminarlo.`,
       },
       { status: 409 }
     )
   }
 
-  await prisma.professional.delete({ where: { id } })
+  // Soft delete: hide it everywhere but keep the row so historical appointments
+  // retain their professional reference (no SetNull, no orphaned records).
+  await prisma.professional.update({
+    where: { id },
+    data: { deletedAt: new Date(), isActive: false },
+  })
 
   await audit({
     action:      'DELETE',

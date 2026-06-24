@@ -77,24 +77,31 @@ describe('DELETE /api/professionals/[id]', () => {
     expect(res.status).toBe(401)
   })
 
-  it('blocks deletion (409) when there are active appointments', async () => {
+  it('blocks deletion (409) when there are upcoming appointments', async () => {
     vi.mocked(getServerSession).mockResolvedValue({ user: {} })
     vi.mocked(prisma.professional.findUnique).mockResolvedValue({ name: 'Valentina Jiménez' })
     vi.mocked(prisma.appointment.count).mockResolvedValue(1)
 
     const res = await DELETE(makeRequest(), CTX())
     expect(res.status).toBe(409)
+    expect(prisma.professional.update).not.toHaveBeenCalled()
     expect(prisma.professional.delete).not.toHaveBeenCalled()
   })
 
-  it('deletes and audits a readable description (no id)', async () => {
+  it('soft-deletes (never hard-deletes) and audits a readable description (no id)', async () => {
     vi.mocked(getServerSession).mockResolvedValue({ user: {} })
     vi.mocked(prisma.professional.findUnique).mockResolvedValue({ name: 'Valentina Jiménez' })
     vi.mocked(prisma.appointment.count).mockResolvedValue(0)
-    vi.mocked(prisma.professional.delete).mockResolvedValue({ id: 'pro-1' })
+    vi.mocked(prisma.professional.update).mockResolvedValue({ id: 'pro-1' })
 
     const res = await DELETE(makeRequest(), CTX())
     expect(res.status).toBe(200)
+
+    // Soft delete: keeps the row (no hard delete), sets isActive=false + deletedAt
+    expect(prisma.professional.delete).not.toHaveBeenCalled()
+    expect(prisma.professional.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ isActive: false }) })
+    )
 
     const entry = vi.mocked(audit).mock.calls[0][0]
     expect(entry.action).toBe('DELETE')

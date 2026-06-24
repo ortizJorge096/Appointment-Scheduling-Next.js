@@ -17,7 +17,8 @@ export async function GET(): Promise<NextResponse> {
 
   try {
     const professionals = await prisma.professional.findMany({
-      where: session ? {} : { isActive: true },
+      // Soft-deleted professionals never show. Public also hides inactive ones.
+      where: session ? { deletedAt: null } : { deletedAt: null, isActive: true },
       orderBy: { order: 'asc' },
     })
     return NextResponse.json({ success: true, data: professionals })
