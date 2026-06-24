@@ -34,7 +34,7 @@ export const STUDIO = {
   // and set its path here, e.g. '/hero.jpg' — next/image optimizes it and the
   // component falls back to the gradient if it ever fails to load. Easy to wire
   // to an admin upload (S3) later, same pattern as the gallery.
-  heroImage: '' as string,
+  heroImage: '/hero.jpg' as string,
 
   // Business timezone (used for availability calculations and reminders)
   timezone: 'America/Bogota',
