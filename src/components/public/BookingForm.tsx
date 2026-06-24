@@ -709,7 +709,7 @@ export default function BookingForm() {
 
       {/* STEP 3 — Date and time */}
       {step === 'datetime' && (
-        <div className="animate-fade-in">
+        <div className="animate-fade-in max-w-[480px] mx-auto">
           <div className="mb-6">
             <h2 className="font-serif text-2xl text-ink">Elige fecha y hora</h2>
             <p className="text-sm text-ink-muted mt-1">Selecciona el día y un horario disponible. <span className="text-red-500">*</span></p>

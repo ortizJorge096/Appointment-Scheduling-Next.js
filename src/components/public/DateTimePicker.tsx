@@ -158,23 +158,25 @@ export default function DateTimePicker({
           )}
         </label>
 
-        <div className="bg-white border border-beige-dark rounded-2xl p-3 sm:p-4">
-          {/* Header: month nav */}
+        <div className="w-full bg-white border border-beige-dark rounded-[18px] p-5 shadow-sm">
+          {/* Header: month nav (44×44 touch targets, chevron icons) */}
           <div className="flex items-center justify-between mb-3">
             <button type="button" onClick={() => changeMonth(-1)} disabled={!canPrev || disabled}
               aria-label="Mes anterior"
-              className="w-9 h-9 flex items-center justify-center rounded-lg text-ink-muted
+              className="w-11 h-11 flex items-center justify-center rounded-lg text-ink-muted
                          hover:text-gold hover:bg-beige/60 transition-colors
                          disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent">
-              ‹
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+                strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
             </button>
             <p className="font-serif text-lg text-ink capitalize">{monthLabel}</p>
             <button type="button" onClick={() => changeMonth(1)} disabled={!canNext || disabled}
               aria-label="Mes siguiente"
-              className="w-9 h-9 flex items-center justify-center rounded-lg text-ink-muted
+              className="w-11 h-11 flex items-center justify-center rounded-lg text-ink-muted
                          hover:text-gold hover:bg-beige/60 transition-colors
                          disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent">
-              ›
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+                strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
             </button>
           </div>
 
@@ -187,7 +189,7 @@ export default function DateTimePicker({
             ))}
           </div>
 
-          {/* Day cells */}
+          {/* Day cells — all the same size; only the style changes per state */}
           <div className="grid grid-cols-7 gap-1">
             {gridDays.map((day) => {
               const dayStr      = format(day, 'yyyy-MM-dd')
@@ -197,14 +199,25 @@ export default function DateTimePicker({
               const closed      = dateOpen[dayStr] === false
               const isSelected  = dayStr === selectedDate && inMonth
               const isTodayCell = isToday(day)
-              const isDisabled  = disabled || !inMonth || past || beyond || closed
+              const selectable  = inMonth && !past && !beyond && !closed && !disabled
 
-              // State-based styling (paleta: dorado #b8935a / crema / negro)
-              let cls = 'bg-white border border-beige-dark text-ink hover:border-gold hover:text-gold'
-              if (!inMonth)          cls = 'text-ink-muted/25 border border-transparent cursor-default'
-              else if (isSelected)   cls = 'bg-gold border border-gold text-white font-medium'
-              else if (isDisabled)   cls = 'text-ink-muted/30 border border-transparent cursor-not-allowed'
-              else if (isTodayCell)  cls = 'bg-white border border-gold text-gold font-medium hover:bg-gold-pale'
+              // Precedence: other-month → selected → today (ring always) →
+              // available → in-month disabled (past = default cursor, closed/
+              // beyond = not-allowed). Paleta: dorado #b8935a / crema / negro.
+              let cls: string
+              if (!inMonth) {
+                cls = 'text-ink-muted/25 cursor-default'
+              } else if (isSelected) {
+                cls = 'bg-gold text-white font-medium'
+              } else if (isTodayCell) {
+                cls = `border border-gold text-gold font-medium ${
+                  selectable ? 'bg-white hover:bg-gold-pale cursor-pointer' : 'cursor-not-allowed'
+                }`
+              } else if (selectable) {
+                cls = 'bg-white border border-beige-dark text-ink hover:bg-beige hover:border-gold hover:text-gold cursor-pointer'
+              } else {
+                cls = `text-ink-muted/30 ${past ? 'cursor-default' : 'cursor-not-allowed'}`
+              }
 
               return (
                 <button
@@ -213,10 +226,10 @@ export default function DateTimePicker({
                   role="radio"
                   aria-checked={isSelected}
                   aria-label={format(day, "EEEE d 'de' MMMM", { locale: es })}
-                  disabled={isDisabled}
-                  onClick={() => { if (!isDisabled) { onDateChange(dayStr); onTimeChange('') } }}
-                  title={inMonth && closed ? 'Sin disponibilidad este día' : undefined}
-                  className={`aspect-square min-h-[44px] flex items-center justify-center rounded-lg
+                  disabled={!selectable}
+                  onClick={() => { if (selectable) { onDateChange(dayStr); onTimeChange('') } }}
+                  title={inMonth && closed && !past ? 'Sin disponibilidad este día' : undefined}
+                  className={`aspect-square flex items-center justify-center rounded-[10px]
                               text-sm transition-colors duration-150 ${cls}`}
                 >
                   {format(day, 'd')}
