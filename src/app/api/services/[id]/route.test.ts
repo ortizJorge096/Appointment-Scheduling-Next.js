@@ -1,7 +1,8 @@
 // src/app/api/services/[id]/route.test.ts
 // Regression coverage for the soft-delete change: deleting a service must NOT
 // hard-delete (which broke on FK constraints with historical appointments) and
-// must be blocked while it has upcoming appointments.
+// must be blocked while it has upcoming appointments. Also asserts the audit
+// log records a human-readable description instead of a raw id.
 import { NextRequest } from 'next/server'
 import { PATCH, DELETE } from './route'
 
@@ -10,8 +11,9 @@ vi.mock('@/lib/auth', () => ({ authOptions: {} }))
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     service: {
-      update: vi.fn(),
-      delete: vi.fn(),
+      findUnique: vi.fn(),
+      update:     vi.fn(),
+      delete:     vi.fn(),
     },
     category: {
       findFirst: vi.fn(),
@@ -21,11 +23,18 @@ vi.mock('@/lib/prisma', () => ({
     },
   },
 }))
+vi.mock('@/lib/audit', () => ({
+  audit:        vi.fn(),
+  getClientIp:  vi.fn(),
+  getUserAgent: vi.fn(),
+}))
 
 const { getServerSession } = await import('next-auth')
 const { prisma }           = await import('@/lib/prisma')
+const { audit }            = await import('@/lib/audit')
 
 const VALID_CATEGORY_ID = 'cjld2cjxh0000qzrmn831i7rn'
+const BEFORE = { name: 'Manicura', description: null, categoryId: VALID_CATEGORY_ID, price: 35000, durationMinutes: 45, order: 1, isActive: true }
 const CTX = (id = 'svc-1') => ({ params: Promise.resolve({ id }) })
 
 function makeRequest(body?: unknown): NextRequest {
@@ -41,13 +50,21 @@ describe('PATCH /api/services/[id]', () => {
     expect(res.status).toBe(401)
   })
 
-  it('updates a service (no category change)', async () => {
+  it('updates a service and audits a readable description with a diff', async () => {
     vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(prisma.service.findUnique).mockResolvedValue(BEFORE)
     vi.mocked(prisma.service.update).mockResolvedValue({ id: 'svc-1', price: 50000 })
 
     const res = await PATCH(makeRequest({ price: 50000 }), CTX())
     expect(res.status).toBe(200)
     expect(prisma.category.findFirst).not.toHaveBeenCalled()
+
+    const entry = vi.mocked(audit).mock.calls[0][0]
+    expect(entry.entity).toBe('SERVICE')
+    expect(entry.description).toMatch(/Manicura/)
+    expect(entry.description).not.toMatch(/svc-1/)
+    expect(entry.before).toBeDefined()
+    expect(entry.after).toBeDefined()
   })
 
   it('returns 400 when reassigning to a non-existent category', async () => {
@@ -71,6 +88,7 @@ describe('DELETE /api/services/[id]', () => {
 
   it('blocks deletion (409) when there are upcoming appointments', async () => {
     vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(prisma.service.findUnique).mockResolvedValue({ name: 'Manicura' })
     vi.mocked(prisma.appointment.count).mockResolvedValue(1)
 
     const res  = await DELETE(makeRequest(), CTX())
@@ -82,8 +100,9 @@ describe('DELETE /api/services/[id]', () => {
     expect(prisma.service.delete).not.toHaveBeenCalled()
   })
 
-  it('soft-deletes (never hard-deletes) when no upcoming appointments', async () => {
+  it('soft-deletes (never hard-deletes) and audits a readable description', async () => {
     vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(prisma.service.findUnique).mockResolvedValue({ name: 'Manicura' })
     vi.mocked(prisma.appointment.count).mockResolvedValue(0)
     vi.mocked(prisma.service.update).mockResolvedValue({ id: 'svc-1' })
 
@@ -96,5 +115,10 @@ describe('DELETE /api/services/[id]', () => {
     expect(prisma.service.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ isActive: false }) })
     )
+
+    const entry = vi.mocked(audit).mock.calls[0][0]
+    expect(entry.action).toBe('DELETE')
+    expect(entry.description).toMatch(/Manicura/)
+    expect(entry.description).not.toMatch(/svc-1/)
   })
 })

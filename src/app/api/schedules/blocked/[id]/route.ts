@@ -21,6 +21,8 @@ export async function DELETE(
     )
   }
 
+  const target = await prisma.blockedDate.findUnique({ where: { id }, select: { date: true } })
+
   try {
     await prisma.blockedDate.delete({ where: { id } })
   } catch {
@@ -30,13 +32,15 @@ export async function DELETE(
     )
   }
 
+  const dateLabel = target ? target.date.toISOString().slice(0, 10) : 'desconocida'
+
   await audit({
-    action:    'DELETE',
-    entity:    'SCHEDULE',
-    entityId:  id,
-    userEmail: session.user?.email ?? undefined,
-    ip:        getClientIp(_req),
-    metadata:  { blockedDateId: id },
+    action:      'DELETE',
+    entity:      'SCHEDULE',
+    entityId:    id,
+    userEmail:   session.user?.email ?? undefined,
+    ip:          getClientIp(_req),
+    description: `Fecha desbloqueada: ${dateLabel}`,
   })
 
   return NextResponse.json({

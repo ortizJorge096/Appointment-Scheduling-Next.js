@@ -51,12 +51,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const professional = await prisma.professional.create({ data: parsed.data })
 
   await audit({
-    action:    'CREATE',
-    entity:    'PROFESSIONAL',
-    entityId:  professional.id,
-    userEmail: session.user?.email ?? undefined,
-    ip:        getClientIp(request),
-    metadata:  { name: professional.name },
+    action:      'CREATE',
+    entity:      'PROFESSIONAL',
+    entityId:    professional.id,
+    userEmail:   session.user?.email ?? undefined,
+    ip:          getClientIp(request),
+    description: `Profesional "${professional.name}" creado`,
   })
 
   return NextResponse.json({ success: true, data: professional }, { status: 201 })

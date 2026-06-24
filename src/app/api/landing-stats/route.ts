@@ -46,12 +46,19 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
   }
 
   await audit({
-    action:    'UPDATE',
-    entity:    'SERVICE',          // no dedicated entity; mirrors booking-settings convention
-    entityId:  'landing-stats',
-    userEmail: session.user?.email ?? undefined,
-    ip:        getClientIp(request),
-    metadata:  { ...parsed.data },
+    action:      'UPDATE',
+    entity:      'SERVICE',          // no dedicated entity; mirrors booking-settings convention
+    entityId:    'landing-stats',
+    userEmail:   session.user?.email ?? undefined,
+    ip:          getClientIp(request),
+    description: 'Métricas del sitio actualizadas',
+    before:      existing ? {
+      appointmentsCount: existing.appointmentsCount,
+      clientsCount:      existing.clientsCount,
+      yearsExperience:   existing.yearsExperience,
+      rating:            existing.rating,
+    } : undefined,
+    after:       { ...parsed.data },
   })
 
   const stats = await getLandingStats()

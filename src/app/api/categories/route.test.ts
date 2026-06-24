@@ -15,8 +15,15 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 
+vi.mock('@/lib/audit', () => ({
+  audit:        vi.fn(),
+  getClientIp:  vi.fn(),
+  getUserAgent: vi.fn(),
+}))
+
 const { getServerSession } = await import('next-auth')
 const { prisma }           = await import('@/lib/prisma')
+const { audit }            = await import('@/lib/audit')
 
 const MOCK_CATEGORIES = [
   { id: 'c1', name: 'Uñas', slug: 'unas', description: null, icon: 'manicura', order: 1, isActive: true, _count: { services: 3 } },
@@ -93,6 +100,12 @@ describe('POST /api/categories', () => {
     expect(prisma.category.create).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ slug: 'spa' }) })
     )
+
+    // Audit records a readable description with the display name, never the id
+    const entry = vi.mocked(audit).mock.calls[0][0]
+    expect(entry.action).toBe('CREATE')
+    expect(entry.description).toMatch(/Spa/)
+    expect(entry.description).not.toMatch(/c2/)
   })
 
   it('rejects an invalid icon key', async () => {

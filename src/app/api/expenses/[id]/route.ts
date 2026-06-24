@@ -29,6 +29,11 @@ export async function PATCH(request: NextRequest, { params }: Ctx): Promise<Next
     return NextResponse.json({ success: false, error: parsed.error.errors[0].message }, { status: 400 })
   }
 
+  const before = await prisma.expense.findUnique({
+    where: { id },
+    select: { description: true, amount: true, category: true, notes: true },
+  })
+
   let expense
   try {
     expense = await prisma.expense.update({
@@ -50,12 +55,14 @@ export async function PATCH(request: NextRequest, { params }: Ctx): Promise<Next
   }
 
   await audit({
-    action:    'UPDATE',
-    entity:    'EXPENSE',
-    entityId:  id,
-    userEmail: session.user?.email ?? undefined,
-    ip:        getClientIp(request),
-    metadata:  parsed.data,
+    action:      'UPDATE',
+    entity:      'EXPENSE',
+    entityId:    id,
+    userEmail:   session.user?.email ?? undefined,
+    ip:          getClientIp(request),
+    description: `Gasto "${expense.description}" actualizado`,
+    before:      before ?? undefined,
+    after:       parsed.data,
   })
 
   return NextResponse.json({ success: true, data: expense })
@@ -66,6 +73,8 @@ export async function DELETE(_req: NextRequest, { params }: Ctx): Promise<NextRe
   if (!session) return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 })
 
   const { id } = await params
+
+  const target = await prisma.expense.findUnique({ where: { id }, select: { description: true } })
 
   try {
     await prisma.expense.delete({ where: { id } })
@@ -78,11 +87,12 @@ export async function DELETE(_req: NextRequest, { params }: Ctx): Promise<NextRe
   }
 
   await audit({
-    action:    'DELETE',
-    entity:    'EXPENSE',
-    entityId:  id,
-    userEmail: session.user?.email ?? undefined,
-    ip:        getClientIp(_req),
+    action:      'DELETE',
+    entity:      'EXPENSE',
+    entityId:    id,
+    userEmail:   session.user?.email ?? undefined,
+    ip:          getClientIp(_req),
+    description: `Gasto "${target?.description ?? 'desconocido'}" eliminado`,
   })
 
   return NextResponse.json({ success: true, data: { id } })

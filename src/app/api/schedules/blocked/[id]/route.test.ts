@@ -6,7 +6,7 @@ vi.mock('next-auth', () => ({ getServerSession: vi.fn() }))
 vi.mock('@/lib/auth', () => ({ authOptions: {} }))
 vi.mock('@/lib/prisma', () => ({
   prisma: {
-    blockedDate: { delete: vi.fn() },
+    blockedDate: { findUnique: vi.fn(), delete: vi.fn() },
   },
 }))
 
@@ -38,7 +38,8 @@ describe('DELETE /api/schedules/blocked/[id]', () => {
 
   it('deletes blocked date and returns id', async () => {
     vi.mocked(getServerSession).mockResolvedValue({ user: {} })
-    vi.mocked(prisma.blockedDate.delete).mockResolvedValue({ id: 'bd-1', date: new Date(), reason: null })
+    vi.mocked(prisma.blockedDate.findUnique).mockResolvedValue({ id: 'bd-1', date: new Date('2026-07-01T12:00:00'), reason: null })
+    vi.mocked(prisma.blockedDate.delete).mockResolvedValue({ id: 'bd-1', date: new Date('2026-07-01T12:00:00'), reason: null })
 
     const res  = await DELETE(makeRequest(), CTX())
     const json = await res.json()

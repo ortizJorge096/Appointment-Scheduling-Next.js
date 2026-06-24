@@ -37,6 +37,14 @@ export async function PATCH(
     )
   }
 
+  const before = await prisma.category.findUnique({
+    where: { id },
+    select: { name: true, description: true, icon: true, order: true, isActive: true },
+  })
+  if (!before) {
+    return NextResponse.json({ success: false, error: 'Categoría no encontrada' }, { status: 404 })
+  }
+
   // If the name changes, guard against duplicates (the slug stays stable so
   // existing ?categoria= links keep working).
   if (parsed.data.name) {
@@ -69,13 +77,19 @@ export async function PATCH(
     return NextResponse.json({ success: false, error: 'Categoría no encontrada' }, { status: 404 })
   }
 
+  const verb = parsed.data.isActive === false ? 'desactivada'
+             : parsed.data.isActive === true  ? 'activada'
+             : 'actualizada'
+
   await audit({
-    action:    'UPDATE',
-    entity:    'CATEGORY',
-    entityId:  id,
-    userEmail: session.user?.email ?? undefined,
-    ip:        getClientIp(request),
-    metadata:  { fields: Object.keys(parsed.data) },
+    action:      'UPDATE',
+    entity:      'CATEGORY',
+    entityId:    id,
+    userEmail:   session.user?.email ?? undefined,
+    ip:          getClientIp(request),
+    description: `Categoría "${before.name}" ${verb}`,
+    before,
+    after:       parsed.data,
   })
 
   return NextResponse.json({ success: true, data: category })
@@ -91,6 +105,8 @@ export async function DELETE(
   if (!session) {
     return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 })
   }
+
+  const target = await prisma.category.findUnique({ where: { id }, select: { name: true } })
 
   // Block deletion while the category still has (non-deleted) services.
   const serviceCount = await prisma.service.count({
@@ -117,11 +133,12 @@ export async function DELETE(
   }
 
   await audit({
-    action:    'DELETE',
-    entity:    'CATEGORY',
-    entityId:  id,
-    userEmail: session.user?.email ?? undefined,
-    ip:        getClientIp(request),
+    action:      'DELETE',
+    entity:      'CATEGORY',
+    entityId:    id,
+    userEmail:   session.user?.email ?? undefined,
+    ip:          getClientIp(request),
+    description: `Categoría "${target?.name ?? 'desconocida'}" eliminada`,
   })
 
   return NextResponse.json({ success: true, data: { id } })
