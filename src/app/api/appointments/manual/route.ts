@@ -163,6 +163,7 @@ export async function POST(
           services: {
             create: [{
               serviceId,
+              serviceName: service.name, // snapshot — preserves history
               price: servicePrice,
             }],
           },

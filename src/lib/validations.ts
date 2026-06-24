@@ -2,6 +2,9 @@
 // Zod validation schemas — valentinajimenez
 
 import { z } from 'zod'
+import { ICON_KEYS } from '@/lib/config'
+
+const iconEnum = z.enum(ICON_KEYS as unknown as [string, ...string[]])
 
 // ─────────────────────────────────────────
 // HELPERS
@@ -126,6 +129,30 @@ export const updateAppointmentSchema = z.object({
 })
 
 // ─────────────────────────────────────────
+// CATEGORIES (admin)
+// ─────────────────────────────────────────
+
+export const createCategorySchema = z.object({
+  name: z
+    .string()
+    .min(2, 'El nombre debe tener al menos 2 caracteres')
+    .max(60, 'El nombre es demasiado largo'),
+
+  description: z
+    .string()
+    .max(300)
+    .optional(),
+
+  icon: iconEnum.optional(),
+
+  order: z.number().int().min(0).optional(),
+})
+
+export const updateCategorySchema = createCategorySchema.partial().extend({
+  isActive: z.boolean().optional(),
+})
+
+// ─────────────────────────────────────────
 // SERVICES (admin)
 // ─────────────────────────────────────────
 
@@ -140,9 +167,9 @@ export const createServiceSchema = z.object({
     .max(300)
     .optional(),
 
-  category: z
-    .enum(['UNAS', 'PESTANAS', 'CEJAS', 'CORTE', 'PROMOS'])
-    .optional(),
+  categoryId: z
+    .string()
+    .cuid('Selecciona una categoría válida'),
 
   price: z
     .number()
@@ -206,7 +233,7 @@ export const galleryCreateSchema = z.object({
   s3Key:       z.string().min(1).max(300),
   title:       z.string().max(120).optional(),
   description: z.string().max(300).optional(),
-  category:    z.enum(['UNAS', 'PESTANAS', 'CEJAS', 'CORTE', 'PROMOS']).optional(),
+  categoryId:  z.string().cuid('Categoría inválida').nullable().optional(),
   width:       z.number().int().positive().optional(),
   height:      z.number().int().positive().optional(),
 })
@@ -215,7 +242,7 @@ export const galleryUpdateSchema = z.object({
   s3Key:       z.string().min(1).max(300).optional(),
   title:       z.string().max(120).nullable().optional(),
   description: z.string().max(300).nullable().optional(),
-  category:    z.enum(['UNAS', 'PESTANAS', 'CEJAS', 'CORTE', 'PROMOS']).nullable().optional(),
+  categoryId:  z.string().cuid('Categoría inválida').nullable().optional(),
   order:       z.number().int().min(0).optional(),
   isActive:    z.boolean().optional(),
 })

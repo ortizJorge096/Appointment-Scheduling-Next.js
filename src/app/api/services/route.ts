@@ -15,14 +15,17 @@ export async function GET(): Promise<NextResponse> {
   const session = await getServerSession(authOptions)
 
   const services = await prisma.service.findMany({
-    // Admin sees all (active and inactive); public sees only active
-    where: session ? {} : { isActive: true },
+    // Soft-deleted services never show. Admin sees active+inactive; public only active.
+    where: session ? { deletedAt: null } : { deletedAt: null, isActive: true },
     orderBy: { order: 'asc' },
     select: {
       id: true,
       name: true,
       description: true,
-      category: true,
+      categoryId: true,
+      category: {
+        select: { id: true, name: true, slug: true, icon: true, order: true },
+      },
       price: true,
       durationMinutes: true,
       isActive: true,
@@ -50,6 +53,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!parsed.success) {
     return NextResponse.json(
       { success: false, error: parsed.error.errors[0].message },
+      { status: 400 }
+    )
+  }
+
+  // The category must exist and be available (not soft-deleted).
+  const category = await prisma.category.findFirst({
+    where: { id: parsed.data.categoryId, deletedAt: null },
+    select: { id: true },
+  })
+  if (!category) {
+    return NextResponse.json(
+      { success: false, error: 'La categoría seleccionada no existe.' },
       { status: 400 }
     )
   }

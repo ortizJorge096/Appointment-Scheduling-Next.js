@@ -49,3 +49,14 @@ export function isPast(date: Date | string): boolean {
 export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
+
+/** Builds a URL-safe slug from a name (lowercase, accents stripped, dashes). */
+export function slugify(input: string): string {
+  return input
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '') // strip diacritics (á → a, ñ → n…)
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')     // non-alphanumerics → dash
+    .replace(/^-+|-+$/g, '')         // trim leading/trailing dashes
+}

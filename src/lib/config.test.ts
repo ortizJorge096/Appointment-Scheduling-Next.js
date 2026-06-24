@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { INSTAGRAM_URL, TIKTOK_URL, WHATSAPP_URL, MAILTO_URL, STUDIO, categoryLabel, CATEGORY_ORDER } from './config'
+import { INSTAGRAM_URL, TIKTOK_URL, WHATSAPP_URL, MAILTO_URL, STUDIO, ICON_KEYS, ICON_LABELS } from './config'
 
 describe('INSTAGRAM_URL', () => {
   it('incluye el handle de instagram', () => {
@@ -37,22 +37,14 @@ describe('MAILTO_URL', () => {
   })
 })
 
-describe('categoryLabel', () => {
-  it('devuelve la etiqueta de una categoría existente', () => {
-    expect(categoryLabel('UNAS')).toBe('Uñas')
+describe('ICON_KEYS / ICON_LABELS', () => {
+  it('cada clave de ícono tiene una etiqueta legible', () => {
+    for (const key of ICON_KEYS) {
+      expect(ICON_LABELS[key]).toBeTruthy()
+    }
   })
 
-  it('devuelve la clave si la categoría no existe', () => {
-    expect(categoryLabel('INVENTADA')).toBe('INVENTADA')
-  })
-})
-
-describe('CATEGORY_ORDER', () => {
-  it('contiene todas las categorías', () => {
-    expect(CATEGORY_ORDER).toContain('UNAS')
-    expect(CATEGORY_ORDER).toContain('PESTANAS')
-    expect(CATEGORY_ORDER).toContain('CEJAS')
-    expect(CATEGORY_ORDER).toContain('CORTE')
-    expect(CATEGORY_ORDER).toContain('PROMOS')
+  it('incluye el ícono por defecto "promo"', () => {
+    expect(ICON_KEYS).toContain('promo')
   })
 })

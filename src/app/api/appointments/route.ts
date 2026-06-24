@@ -296,6 +296,7 @@ export async function POST(
           services: {
             create: services.map((s) => ({
               serviceId: s.id,
+              serviceName: s.name, // snapshot — preserves history if the service changes later
               price: s.price,
             })),
           },

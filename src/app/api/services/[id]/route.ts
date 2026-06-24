@@ -37,6 +37,20 @@ export async function PATCH(
     )
   }
 
+  // If the category is being changed, make sure the target exists and is available.
+  if (parsed.data.categoryId !== undefined) {
+    const category = await prisma.category.findFirst({
+      where: { id: parsed.data.categoryId, deletedAt: null },
+      select: { id: true },
+    })
+    if (!category) {
+      return NextResponse.json(
+        { success: false, error: 'La categoría seleccionada no existe.' },
+        { status: 400 }
+      )
+    }
+  }
+
   const service = await prisma.service.update({
     where: { id },
     data: parsed.data,
@@ -68,22 +82,31 @@ export async function DELETE(
     )
   }
 
-  // Make sure it has no active appointments
-  const active = await prisma.appointment.count({
-    where: { serviceId: id, status: { in: ['PENDING', 'CONFIRMED'] } },
+  // Block while it still has upcoming appointments.
+  const upcoming = await prisma.appointment.count({
+    where: {
+      serviceId: id,
+      status: { in: ['PENDING', 'CONFIRMED'] },
+      date: { gte: new Date(new Date().toDateString()) },
+    },
   })
 
-  if (active > 0) {
+  if (upcoming > 0) {
     return NextResponse.json(
       {
         success: false,
-        error: 'No puedes eliminar un servicio con citas activas. Desactívalo en su lugar.',
+        error: `Este servicio tiene ${upcoming} cita${upcoming === 1 ? '' : 's'} próxima${upcoming === 1 ? '' : 's'}. No puedes eliminarlo hasta que pasen o se cancelen.`,
       },
       { status: 409 }
     )
   }
 
-  await prisma.service.delete({ where: { id } })
+  // Soft delete: hide it from the catalog and the public flow, but keep the row
+  // so historical appointments retain their service reference and name.
+  await prisma.service.update({
+    where: { id },
+    data: { deletedAt: new Date(), isActive: false },
+  })
 
   await audit({
     action:    'DELETE',

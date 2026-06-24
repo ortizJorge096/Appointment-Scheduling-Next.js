@@ -52,27 +52,28 @@ export const STUDIO = {
 } as const
 
 // ─────────────────────────────────────────────────────────────
-// SERVICE CATEGORIES — visible label and display order.
-// Keys match the Prisma ServiceCategory enum.
+// CATEGORY ICONS — predefined set the admin can pick from.
+// Categories are now stored in the DB (see prisma `Category`); each one
+// holds an `icon` key from this list. The keys map to SVG components in
+// src/components/public/ServiceIcons.tsx (ICON_REGISTRY). Keep both in sync.
 // ─────────────────────────────────────────────────────────────
-export const SERVICE_CATEGORIES = {
-  UNAS:     { label: 'Uñas',             order: 1 },
-  PESTANAS: { label: 'Pestañas',         order: 2 },
-  CEJAS:    { label: 'Cejas',            order: 3 },
-  CORTE:    { label: 'Corte de Cabello', order: 4 },
-  PROMOS:   { label: 'Promos',           order: 5 },
-} as const
+export const ICON_KEYS = [
+  'manicura', 'pedicura', 'pestanas', 'cejas', 'depilacion', 'corte', 'promo',
+] as const
 
-export type ServiceCategoryKey = keyof typeof SERVICE_CATEGORIES
+export type IconKey = typeof ICON_KEYS[number]
 
-// Ordered list of category keys, for iterating in the UI
-export const CATEGORY_ORDER = (Object.keys(SERVICE_CATEGORIES) as ServiceCategoryKey[])
-  .sort((a, b) => SERVICE_CATEGORIES[a].order - SERVICE_CATEGORIES[b].order)
-
-export function categoryLabel(key: string): string {
-  const cat = SERVICE_CATEGORIES[key as keyof typeof SERVICE_CATEGORIES]
-  return cat?.label ?? key
+export const ICON_LABELS: Record<IconKey, string> = {
+  manicura:   'Manicura / Uñas',
+  pedicura:   'Pedicura',
+  pestanas:   'Pestañas',
+  cejas:      'Cejas',
+  depilacion: 'Depilación',
+  corte:      'Corte de cabello',
+  promo:      'Promo / Combo',
 }
+
+export const DEFAULT_ICON: IconKey = 'promo'
 
 // Derived helpers
 export const WHATSAPP_URL  = `https://wa.me/${STUDIO.whatsapp}`
