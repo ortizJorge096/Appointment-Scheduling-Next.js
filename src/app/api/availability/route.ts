@@ -1,10 +1,12 @@
 // src/app/api/availability/route.ts
 // GET /api/availability?date=YYYY-MM-DD&serviceId=xxx
-// Retorna los slots disponibles para una fecha y servicio
+// GET /api/availability?date=YYYY-MM-DD&durationMinutes=60
+// Returns available slots for a date and service
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getAvailableSlots } from '@/lib/availability'
+import { getAvailableSlots, getAvailableSlotsByDuration } from '@/lib/availability'
 import { availabilityQuerySchema } from '@/lib/validations'
+import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
 import type { ApiResponse, AvailabilityResponse } from '@/types'
 
 export async function GET(
@@ -14,10 +16,12 @@ export async function GET(
     const { searchParams } = new URL(request.url)
     const params = {
       date: searchParams.get('date') ?? '',
-      serviceId: searchParams.get('serviceId') ?? '',
+      serviceId: searchParams.get('serviceId') ?? undefined,
+      durationMinutes: searchParams.get('durationMinutes') ?? undefined,
+      professionalId: searchParams.get('professionalId') ?? undefined,
     }
 
-    // Validar parámetros
+    // Validate parameters
     const parsed = availabilityQuerySchema.safeParse(params)
     if (!parsed.success) {
       return NextResponse.json(
@@ -26,14 +30,17 @@ export async function GET(
       )
     }
 
-    const { date, serviceId } = parsed.data
-    const { slots, durationMinutes } = await getAvailableSlots(date, serviceId)
+    const { date, serviceId, durationMinutes, professionalId } = parsed.data
+    const result = serviceId
+      ? await getAvailableSlots(date, serviceId, professionalId)
+      : await getAvailableSlotsByDuration(date, durationMinutes!, professionalId)
 
     return NextResponse.json({
       success: true,
-      data: { date, slots, serviceDuration: durationMinutes },
+      data: { date, slots: result.slots, serviceDuration: result.durationMinutes },
     })
   } catch (error) {
+    if (isDbUnavailable(error)) return dbUnavailableResponse()
     const message = error instanceof Error ? error.message : 'Error interno'
     return NextResponse.json(
       { success: false, error: message },

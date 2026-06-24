@@ -1,22 +1,21 @@
 // src/app/api/appointments/[id]/route.ts
-// GET    /api/appointments/:id   → obtener cita por ID (admin)
-// PATCH  /api/appointments/:id   → actualizar estado/notas (admin)
-// DELETE /api/appointments/:id   → eliminar cita (admin)
+// GET    /api/appointments/:id   → get appointment by ID (admin)
+// PATCH  /api/appointments/:id   → update status/notes (admin)
+// DELETE /api/appointments/:id   → delete appointment (admin)
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { updateAppointmentSchema } from '@/lib/validations'
-import { sendReminderEmail } from '@/lib/email'
 import { timeToMinutes, minutesToTime } from '@/lib/availability'
+import { audit, getClientIp, getUserAgent } from '@/lib/audit'
+import { sendRescheduledEmail } from '@/lib/email'
 import type { AppointmentWithService } from '@/types'
-
-type Params = { params: { id: string } }
 
 export const dynamic = 'force-dynamic'
 // ─────────────────────────────────────────
-// GET — detalle de una cita
+// GET — appointment detail
 // ─────────────────────────────────────────
 
 export async function GET(
@@ -25,19 +24,18 @@ export async function GET(
 ): Promise<NextResponse> {
   const { id } = await context.params
 
-  const session = await getServerSession(authOptions)
-  if (!session) {
-    return NextResponse.json(
-      { success: false, error: 'No autorizado' },
-      { status: 401 }
-    )
-  }
-
   const appointment = await prisma.appointment.findUnique({
     where: { id },
     include: {
       service: {
         select: { id: true, name: true, price: true, durationMinutes: true },
+      },
+      services: {
+        include: {
+          service: {
+            select: { id: true, name: true, price: true, durationMinutes: true },
+          },
+        },
       },
     },
   })
@@ -49,11 +47,22 @@ export async function GET(
     )
   }
 
-  return NextResponse.json({ success: true, data: appointment })
+  // Admin sees everything; the public (confirmation / cancellation page)
+  // receives only non-sensitive fields. The id is an unguessable cuid.
+  const session = await getServerSession(authOptions)
+  if (session) {
+    return NextResponse.json({ success: true, data: appointment })
+  }
+
+  const { clientName, clientEmail, service, services, date, startTime, endTime, status } = appointment
+  return NextResponse.json({
+    success: true,
+    data: { id, clientName, clientEmail, service, services, date, startTime, endTime, status },
+  })
 }
 
 // ─────────────────────────────────────────
-// PATCH — actualizar cita
+// PATCH — update appointment
 // ─────────────────────────────────────────
 
 export async function PATCH(
@@ -104,18 +113,33 @@ export async function PATCH(
     )
   }
 
-  const { status, notes, date, startTime } = parsed.data
+  const { status, notes, date, startTime, paymentStatus, paymentMethod, amountPaid } = parsed.data
   const updateData: Record<string, unknown> = {}
 
-  if (status) updateData.status = status
-  if (notes !== undefined) updateData.notes = notes
+  // Capture the previous date/time before mutating, to detect a reschedule
+  // and to know what to show as "antes" in the notification email.
+  // Compared as Date instants (not formatted strings) to stay consistent
+  // with how `date` is parsed/stored everywhere else (new Date(`${date}T00:00:00`)),
+  // independent of the server's local timezone.
+  const oldStartTime = appointment.startTime
+  const isReschedule =
+    (date !== undefined && new Date(`${date}T00:00:00`).getTime() !== appointment.date.getTime()) ||
+    (startTime !== undefined && startTime !== oldStartTime)
 
-  // Si se cambia fecha/hora, recalcular endTime
+  if (status !== undefined) updateData.status = status
+  if (notes  !== undefined) updateData.notes  = notes
+
+  // Pago
+  if (paymentStatus !== undefined) updateData.paymentStatus = paymentStatus
+  if (paymentMethod !== undefined) updateData.paymentMethod = paymentMethod
+  if (amountPaid    !== undefined) updateData.amountPaid    = amountPaid
+
+  // If date/time changes, recalculate endTime
   if (date) updateData.date = new Date(`${date}T00:00:00`)
   if (startTime) {
     updateData.startTime = startTime
     updateData.endTime = minutesToTime(
-      timeToMinutes(startTime) + appointment.service.durationMinutes
+      timeToMinutes(startTime) + appointment.totalDurationMinutes
     )
   }
 
@@ -126,6 +150,13 @@ export async function PATCH(
       service: {
         select: { id: true, name: true, price: true, durationMinutes: true },
       },
+      services: {
+        include: {
+          service: {
+            select: { id: true, name: true, price: true, durationMinutes: true },
+          },
+        },
+      },
     },
   })
 
@@ -133,15 +164,55 @@ export async function PATCH(
     console.log(`✅ Cita ${id} confirmada. El cron enviará recordatorio 24h antes.`)
   }
 
+  // Notify the client when the admin actually moved the date/time —
+  // skip if the same request also cancels it (no point notifying a move
+  // for an appointment that no longer stands).
+  if (isReschedule && updated.status !== 'CANCELLED') {
+    sendRescheduledEmail(updated as unknown as AppointmentWithService, appointment.date, oldStartTime)
+      .catch((err) => console.error('Error enviando email de reprogramación:', err))
+  }
+
+  const auditDescription =
+    status !== undefined        ? `Admin cambió el estado de la cita de ${updated.clientName} a ${status}` :
+    isReschedule                ? `Admin reprogramó la cita de ${updated.clientName}` :
+    paymentStatus !== undefined ? `Admin actualizó el pago de la cita de ${updated.clientName}` :
+                                  `Admin editó la cita de ${updated.clientName}`
+
+  await audit({
+    action:    status !== undefined ? 'STATUS_CHANGE' : 'UPDATE',
+    entity:    'APPOINTMENT',
+    entityId:  id,
+    actorType: 'ADMIN',
+    userEmail: session.user?.email ?? undefined,
+    ip:        getClientIp(request),
+    userAgent: getUserAgent(request),
+    description: auditDescription,
+    before: {
+      status:        appointment.status,
+      paymentStatus: appointment.paymentStatus,
+      amountPaid:    appointment.amountPaid,
+      date:          appointment.date.toISOString().slice(0, 10),
+      startTime:     appointment.startTime,
+    },
+    after: {
+      ...(status        !== undefined ? { status } : {}),
+      ...(paymentStatus !== undefined ? { paymentStatus } : {}),
+      ...(amountPaid    !== undefined ? { amountPaid } : {}),
+      ...(date          ? { date } : {}),
+      ...(startTime     ? { startTime } : {}),
+      ...(notes         !== undefined ? { notes } : {}),
+    },
+  })
+
   return NextResponse.json({ success: true, data: updated })
 }
 
 // ─────────────────────────────────────────
-// DELETE — eliminar cita (soft delete via cancelación)
+// DELETE — delete appointment (soft delete via cancellation)
 // ─────────────────────────────────────────
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   const { id } = await context.params
@@ -165,10 +236,24 @@ export async function DELETE(
     )
   }
 
-  // Soft delete: marcar como cancelada en lugar de eliminar
+  // Soft delete: mark as cancelled instead of deleting
   await prisma.appointment.update({
     where: { id },
     data: { status: 'CANCELLED' },
+  })
+
+  await audit({
+    action:    'STATUS_CHANGE',
+    entity:    'APPOINTMENT',
+    entityId:  id,
+    actorType: 'ADMIN',
+    userEmail: session.user?.email ?? undefined,
+    ip:        getClientIp(request),
+    userAgent: getUserAgent(request),
+    description: `Admin canceló la cita de ${appointment.clientName} (desde el panel)`,
+    before:    { status: appointment.status },
+    after:     { status: 'CANCELLED' },
+    metadata:  { via: 'DELETE' },
   })
 
   return NextResponse.json({

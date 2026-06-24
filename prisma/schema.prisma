@@ -8,6 +8,10 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ─────────────────────────────────────────
+// USUARIOS (admin)
+// ─────────────────────────────────────────
+
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
@@ -24,40 +28,171 @@ enum Role {
   SUPER_ADMIN
 }
 
+// ─────────────────────────────────────────
+// CLIENTES
+// ─────────────────────────────────────────
+
+model Client {
+  id           String        @id @default(cuid())
+  name         String
+  // Optional: in Postgres a unique index allows multiple NULLs, so several
+  // clients without email never collide, while real emails stay unique.
+  email        String?       @unique
+  phone        String?
+  notes        String?       // alergias, preferencias, observaciones internas
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  appointments Appointment[]
+  @@index([email])
+  @@map("clients")
+}
+
+// ─────────────────────────────────────────
+// SERVICIOS
+// ─────────────────────────────────────────
+
 model Service {
-  id              String        @id @default(cuid())
-  name            String        @unique
+  id              String              @id @default(cuid())
+  name            String              @unique
   description     String?
+  category        ServiceCategory     @default(UNAS)
   price           Int
   durationMinutes Int
-  isActive        Boolean       @default(true)
-  order           Int           @default(0)
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  isActive        Boolean             @default(true)
+  order           Int                 @default(0)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
   appointments    Appointment[]
+  appointmentServices AppointmentService[]
+  @@index([category])
   @@map("services")
 }
 
+enum ServiceCategory {
+  UNAS
+  PESTANAS
+  CEJAS
+  CORTE
+  PROMOS
+}
+
+// ─────────────────────────────────────────
+// DESCUENTO VIP (multi-servicio)
+// Regla parametrizable: a partir de N servicios seleccionados
+// en una misma cita (de cualquier categoría), se aplica un
+// porcentaje de descuento por tramos. Editable desde el panel
+// admin, sin tocar código.
+// ─────────────────────────────────────────
+
+model VipDiscountConfig {
+  id        String   @id @default(cuid())
+  enabled   Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+  @@map("vip_discount_config")
+}
+
+model VipDiscountTier {
+  id          String @id @default(cuid())
+  minServices Int    @unique // a partir de cuántos servicios aplica este tramo
+  discountPct Int    // porcentaje de descuento (0-100)
+  @@map("vip_discount_tiers")
+}
+
+// ─────────────────────────────────────────
+// PROFESIONALES
+// Cada profesional puede atender una cita a la vez; la capacidad
+// total del estudio en un horario = número de profesionales activos
+// sin una cita que se superponga en ese rango.
+// ─────────────────────────────────────────
+
+model Professional {
+  id           String        @id @default(cuid())
+  name         String
+  specialty    String?
+  rating       Float         @default(5.0)
+  reviewCount  Int           @default(0)
+  isActive     Boolean       @default(true)
+  order        Int           @default(0)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  appointments Appointment[]
+  @@index([isActive])
+  @@map("professionals")
+}
+
+// Toggle (singleton): whether /agendar lets the client pick a professional.
+// When off, the booking form never sends professionalId — the existing
+// "Primera disponible" auto-assignment in /api/appointments already covers it.
+model BookingSettings {
+  id                  String   @id @default(cuid())
+  showProfessionalStep Boolean @default(true)
+  updatedAt           DateTime @updatedAt
+  @@map("booking_settings")
+}
+
+// ─────────────────────────────────────────
+// CITAS
+// ─────────────────────────────────────────
+
 model Appointment {
   id                 String            @id @default(cuid())
+  // Datos del cliente (desnormalizados para no perder info si el cliente cambia)
   clientName         String
-  clientEmail        String
+  clientEmail        String?
   clientPhone        String
-  serviceId          String
+  // Referencia al perfil de cliente (opcional: se une automáticamente si existe)
+  clientId           String?
+  client             Client?           @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  serviceId          String            // primary service (always set for backward compat)
   service            Service           @relation(fields: [serviceId], references: [id])
+  services           AppointmentService[] // all services (for multi-service VIP bookings)
+  totalDurationMinutes Int             // sum of all service durations
+  discountPercent    Int               @default(0) // % de descuento VIP aplicado (snapshot al confirmar)
+  // Profesional asignado. Null = se eligió "Primera disponible" pero no se
+  // pudo determinar (no debería ocurrir en flujo normal; el servidor asigna
+  // el primer profesional libre en el momento de crear la cita).
+  professionalId     String?
+  professional       Professional?     @relation(fields: [professionalId], references: [id], onDelete: SetNull)
   date               DateTime
   startTime          String
   endTime            String
   status             AppointmentStatus @default(PENDING)
+  // Origen de la cita
+  source             AppointmentSource @default(ONLINE)
+  // Pago
+  paymentStatus      PaymentStatus     @default(PENDING)
+  paymentMethod      PaymentMethod?
+  amountPaid         Int?              // en pesos colombianos
+  // Cargo adicional sobre el precio del servicio (ej. registro de citas pasadas)
+  extraDescription   String?
+  extraAmount        Int?              // en pesos colombianos
   notes              String?
+  cancelToken        String            @unique @default(cuid())
+  calendarEventId    String?
   confirmationSentAt DateTime?
   reminderSentAt     DateTime?
+  reminder2hSentAt   DateTime?
+  followUpSentAt     DateTime?
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
   @@index([date])
   @@index([clientEmail])
+  @@index([clientId])
   @@index([status])
+  @@index([paymentStatus])
+  @@index([professionalId])
   @@map("appointments")
+}
+
+model AppointmentService {
+  id            String      @id @default(cuid())
+  appointmentId String
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  serviceId     String
+  service       Service     @relation(fields: [serviceId], references: [id])
+  price         Int         // price at time of booking (snapshot)
+  @@unique([appointmentId, serviceId])
+  @@map("appointment_services")
 }
 
 enum AppointmentStatus {
@@ -67,6 +202,32 @@ enum AppointmentStatus {
   CANCELLED
   NO_SHOW
 }
+
+enum AppointmentSource {
+  ONLINE
+  WHATSAPP
+  TELEFONO
+  PRESENCIAL
+}
+
+enum PaymentStatus {
+  PENDING   // sin registrar pago
+  PAID      // pagado completo
+  PARTIAL   // pago parcial / abono
+  WAIVED    // cortesía / sin cobro
+}
+
+enum PaymentMethod {
+  EFECTIVO
+  TRANSFERENCIA
+  TARJETA
+  NEQUI
+  DAVIPLATA
+}
+
+// ─────────────────────────────────────────
+// HORARIOS Y FECHAS BLOQUEADAS
+// ─────────────────────────────────────────
 
 model Schedule {
   id        String    @id @default(cuid())
@@ -96,4 +257,109 @@ model BlockedDate {
   createdAt DateTime @default(now())
   @@index([date])
   @@map("blocked_dates")
+}
+
+// ─────────────────────────────────────────
+// GASTOS
+// ─────────────────────────────────────────
+
+model Expense {
+  id          String          @id @default(cuid())
+  description String
+  amount      Int             // en pesos colombianos
+  date        DateTime
+  category    ExpenseCategory @default(OTROS)
+  notes       String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  @@index([date])
+  @@index([category])
+  @@map("expenses")
+}
+
+enum ExpenseCategory {
+  INSUMOS     // esmaltes, geles, adhesivos, etc.
+  EQUIPOS     // herramientas, lámparas, etc.
+  SERVICIOS   // luz, internet, plataformas
+  ARRIENDO
+  MARKETING
+  OTROS
+}
+
+// ─────────────────────────────────────────
+// GALERÍA
+// ─────────────────────────────────────────
+
+model GalleryImage {
+  id          String           @id @default(cuid())
+  title       String?
+  description String?
+  category    ServiceCategory?
+  s3Key       String           @unique
+  width       Int?
+  height      Int?
+  order       Int              @default(0)
+  isActive    Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  @@index([isActive])
+  @@index([category])
+  @@map("gallery_images")
+}
+
+// ─────────────────────────────────────────
+// AUDITORÍA
+// ─────────────────────────────────────────
+
+model AuditLog {
+  id          String       @id @default(cuid())
+  action      AuditAction
+  entity      AuditEntity
+  entityId    String
+  actorType   AuditActor?  // ADMIN | CLIENT | SYSTEM (null = registros legacy)
+  userEmail   String?      // admin que ejecutó (o email intentado en login fallido)
+  ip          String?
+  userAgent   String?      // dispositivo/navegador
+  before      Json?        // estado previo (ediciones, cambios de estado, cancelaciones)
+  after       Json?        // estado nuevo
+  description String?      // texto legible: "Admin marcó la cita de Juan Pérez como pagada"
+  metadata    Json?        // contexto extra
+  createdAt   DateTime     @default(now())
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+  @@index([userEmail])
+  @@index([actorType])
+  @@map("audit_logs")
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  STATUS_CHANGE
+  CANCEL
+  LOGIN
+  LOGIN_FAILED
+  LOGOUT
+  EMAIL_SENT
+  EMAIL_FAILED
+}
+
+enum AuditEntity {
+  APPOINTMENT
+  CLIENT
+  EXPENSE
+  SERVICE
+  GALLERY
+  SCHEDULE
+  PROFESSIONAL
+  AUTH
+  EMAIL
+}
+
+enum AuditActor {
+  ADMIN
+  CLIENT
+  SYSTEM
 }

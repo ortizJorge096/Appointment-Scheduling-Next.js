@@ -2,29 +2,70 @@
 // src/components/public/BookingForm.tsx
 
 import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import DateTimePicker from './DateTimePicker'
+import { CategoryIcon } from './ServiceIcons'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { CATEGORY_ORDER, categoryLabel } from '@/lib/config'
+import { formatPrice } from '@/lib/utils'
 
 interface Service {
   id: string
   name: string
   description: string | null
+  category: string
   price: number
   durationMinutes: number
 }
 
-type FormStep = 'service' | 'datetime' | 'info' | 'confirm'
+interface Professional {
+  id: string
+  name: string
+  specialty: string | null
+  rating: number
+  reviewCount: number
+}
+
+type FormStep = 'service' | 'professional' | 'datetime' | 'confirm'
 
 interface FormData {
-  serviceId:   string
-  date:        string
-  startTime:   string
-  clientName:  string
-  clientEmail: string
-  clientPhone: string
-  notes:       string
+  category:      string
+  serviceId:     string
+  serviceIds:    string[]
+  professionalId: string // '' = "Primera disponible"
+  date:          string
+  startTime:     string
+  clientName:    string
+  clientEmail:   string
+  clientPhone:   string
+  notes:         string
+}
+
+// Pseudo-category: not a real Service.category in the DB. Selecting it
+// unlocks multi-service selection across all real categories, with the
+// tiered VIP discount. Every other service stays single-select.
+const VIP_PSEUDO_CATEGORY = 'VIP'
+
+const CATEGORY_BLURBS: Record<string, string> = {
+  UNAS:     'Manicura, pedicura, gel, acrílico y nail art',
+  PESTANAS: 'Lifting, extensiones, volumen e híbridas',
+  CEJAS:    'Depilación, henna, diseño y laminado',
+  CORTE:    'Corte, peinado y diseño de flequillo',
+  PROMOS:   'Combos con precio especial',
+  [VIP_PSEUDO_CATEGORY]: 'Combina 2 o más servicios de cualquier categoría y ahorra hasta 30%',
+}
+
+interface VipTier { minServices: number; discountPct: number }
+interface VipSettings { enabled: boolean; tiers: VipTier[] }
+
+/** Mirrors src/lib/vip.ts#resolveDiscountPercent, without the Prisma import (client-safe). */
+function resolveDiscountPercent(serviceCount: number, settings: VipSettings): number {
+  if (!settings.enabled || serviceCount < 2) return 0
+  const applicable = settings.tiers
+    .filter((t) => serviceCount >= t.minServices)
+    .sort((a, b) => b.minServices - a.minServices)[0]
+  return applicable?.discountPct ?? 0
 }
 
 interface FieldErrors {
@@ -35,28 +76,31 @@ interface FieldErrors {
 
 const STORAGE_KEY = 'vj_booking_client'
 
-function formatPrice(price: number): string {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency', currency: 'COP', minimumFractionDigits: 0,
-  }).format(price)
-}
-
-const STEPS: FormStep[]                     = ['service', 'datetime', 'info', 'confirm']
 const STEP_LABELS: Record<FormStep, string> = {
-  service: 'Servicio', datetime: 'Fecha y hora', info: 'Tus datos', confirm: 'Confirmar',
+  service: 'Servicio', professional: 'Profesional', datetime: 'Fecha y hora', confirm: 'Confirmar',
 }
 
 export default function BookingForm() {
-  const router      = useRouter()
-  const continueRef = useRef<HTMLButtonElement>(null)
+  const router       = useRouter()
+  const searchParams = useSearchParams()
+  const continueRef  = useRef<HTMLButtonElement>(null)
+  const formTopRef   = useRef<HTMLDivElement>(null)
 
-  // mounted evita mismatch de hidratación SSR vs cliente
-  const [mounted, setMounted]         = useState(false)
-  const [hasSavedData, setHasSavedData] = useState(false)
+  // mounted prevents SSR vs client hydration mismatch
+  const [mounted, setMounted]                 = useState(false)
+  const [savedClientData, setSavedClientData] = useState({ clientName: '', clientEmail: '', clientPhone: '' })
+  const [appliedPreselect, setAppliedPreselect] = useState(false)
 
   const [step, setStep]               = useState<FormStep>('service')
   const [services, setServices]       = useState<Service[]>([])
   const [loadingSvc, setLoadingSvc]   = useState(true)
+  const [professionals, setProfessionals] = useState<Professional[]>([])
+  const [loadingPro, setLoadingPro]   = useState(true)
+  const [cupos, setCupos]             = useState<number | null>(null)
+  const [vipSettings, setVipSettings] = useState<VipSettings>({ enabled: false, tiers: [] })
+  // Admin toggle (/admin/profesionales): when off, the client never picks a
+  // professional — the server already auto-assigns "primera disponible".
+  const [showProfessionalStep, setShowProfessionalStep] = useState(true)
   const [submitting, setSubmitting]   = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [stepError,   setStepError]   = useState<string | null>(null)
@@ -64,33 +108,39 @@ export default function BookingForm() {
   const [attempted,   setAttempted]   = useState(false)
 
   const [form, setForm] = useState<FormData>({
-    serviceId:   '',
-    date:        format(new Date(), 'yyyy-MM-dd'),
-    startTime:   '',
-    clientName:  '',
-    clientEmail: '',
-    clientPhone: '',
-    notes:       '',
+    category:       '',
+    serviceId:      '',
+    serviceIds:     [],
+    professionalId: '',
+    date:           format(new Date(), 'yyyy-MM-dd'),
+    startTime:      '',
+    clientName:     '',
+    clientEmail:    '',
+    clientPhone:    '',
+    notes:          '',
   })
 
-  // 1. Señalar que ya estamos en el cliente
+  // 1. Signal we are already on the client
   useEffect(() => { setMounted(true) }, [])
 
-  // 2. Leer localStorage solo después de montar (nunca en SSR)
+  // 2. Read localStorage only after mounting (never in SSR).
+  //    Data feeds the <datalist> of each field — they appear as
+  //    dropdown suggestions on click, but the field starts empty.
   useEffect(() => {
     if (!mounted) return
     try {
       const saved = localStorage.getItem(STORAGE_KEY)
       if (!saved) return
-      const { clientName = '', clientEmail = '', clientPhone = '' } = JSON.parse(saved)
-      if (clientName || clientEmail || clientPhone) {
-        setForm((prev) => ({ ...prev, clientName, clientEmail, clientPhone }))
-        setHasSavedData(true)
-      }
-    } catch { /* localStorage no disponible */ }
+      const data = JSON.parse(saved)
+      setSavedClientData({
+        clientName:  data.clientName  || '',
+        clientEmail: data.clientEmail || '',
+        clientPhone: data.clientPhone || '',
+      })
+    } catch { /* localStorage not available */ }
   }, [mounted])
 
-  // 3. Guardar datos del cliente al escribir
+  // 3. Persist client data to localStorage on write
   useEffect(() => {
     if (!mounted) return
     if (!form.clientName && !form.clientEmail && !form.clientPhone) return
@@ -103,59 +153,152 @@ export default function BookingForm() {
     } catch { /* ok */ }
   }, [mounted, form.clientName, form.clientEmail, form.clientPhone])
 
-  // 4. Cargar catálogo de servicios
+  // 4. Load the service catalog, the VIP discount settings, the active
+  //    professionals, and today's remaining-slots count (scarcity badge)
   useEffect(() => {
     fetch('/api/services')
       .then((r) => r.json())
       .then((json) => { if (json.success) setServices(json.data) })
       .catch(() => setSubmitError('No se pudieron cargar los servicios.'))
       .finally(() => setLoadingSvc(false))
+
+    fetch('/api/vip-config')
+      .then((r) => r.json())
+      .then((json) => { if (json.success) setVipSettings(json.data) })
+      .catch(() => {})
+
+    fetch('/api/professionals')
+      .then((r) => r.json())
+      .then((json) => { if (json.success) setProfessionals(json.data) })
+      .catch(() => {})
+      .finally(() => setLoadingPro(false))
+
+    fetch('/api/availability/today')
+      .then((r) => r.json())
+      .then((json) => { if (json.success) setCupos(json.data.remaining) })
+      .catch(() => {})
+
+    fetch('/api/booking-settings')
+      .then((r) => r.json())
+      .then((json) => { if (json.success) setShowProfessionalStep(json.data.showProfessionalStep) })
+      .catch(() => {})
   }, [])
 
-  // Limpiar errores al cambiar de paso
+  // 5. Pre-selection via URL: /agendar?service=ID or /agendar?categoria=UNAS
+  useEffect(() => {
+    if (appliedPreselect || services.length === 0) return
+
+    const preService = searchParams.get('service')
+    if (preService) {
+      const svc = services.find((s) => s.id === preService)
+      if (svc) {
+        setForm((prev) => ({ ...prev, category: svc.category, serviceId: svc.id, serviceIds: [svc.id] }))
+        setStep('datetime')
+        setAppliedPreselect(true)
+        return
+      }
+    }
+
+    const preCat = searchParams.get('categoria')
+    if (preCat && (CATEGORY_ORDER as string[]).includes(preCat)) {
+      setForm((prev) => ({ ...prev, category: preCat }))
+      setAppliedPreselect(true)
+    }
+  }, [services, searchParams, appliedPreselect])
+
+  // Clear errors and scroll to top when step changes
   useEffect(() => {
     setStepError(null)
     setFieldErrors({})
     setAttempted(false)
+    setTimeout(() => {
+      formTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 50)
   }, [step])
 
-  const selectedService = services.find((s) => s.id === form.serviceId)
+  // Steps adjust automatically when the admin toggles professional selection.
+  const STEPS: FormStep[] = showProfessionalStep
+    ? ['service', 'professional', 'datetime', 'confirm']
+    : ['service', 'datetime', 'confirm']
 
-  function updateForm(field: keyof FormData, value: string) {
+  // Defensive: if the setting flips off while the client is on that step
+  // (e.g. it loaded a beat late), bump them forward instead of stranding them.
+  useEffect(() => {
+    if (!showProfessionalStep && step === 'professional') setStep('datetime')
+  }, [showProfessionalStep, step])
+
+  const selectedService = services.find((s) => s.id === form.serviceId)
+  const isVipCategory = form.category === VIP_PSEUDO_CATEGORY
+  const isMulti = isVipCategory && form.serviceIds.length > 1
+
+  // Selected services (any category) and computed totals
+  const selectedServices = services.filter((s) => form.serviceIds.includes(s.id))
+  const totalDuration = selectedServices.reduce((sum, s) => sum + s.durationMinutes, 0)
+  const subtotal = selectedServices.reduce((sum, s) => sum + s.price, 0)
+
+  // VIP discount: only inside the VIP pseudo-category, 2+ services unlock a tiered discount (parametrized in admin)
+  const discountPercent = isVipCategory ? resolveDiscountPercent(form.serviceIds.length, vipSettings) : 0
+  const discountAmount = Math.round(subtotal * discountPercent / 100)
+
+  // Use totalDuration for availability when multiple services are selected
+  const availabilityDuration = isMulti ? totalDuration : undefined
+  const availabilityServiceId = isMulti ? undefined : form.serviceId
+
+  function updateForm(field: keyof FormData, value: string | string[]) {
     setForm((prev) => ({ ...prev, [field]: value }))
-    if (field in fieldErrors) setFieldErrors((prev) => ({ ...prev, [field]: undefined }))
+    if (typeof value === 'string' && field in fieldErrors) {
+      setFieldErrors((prev) => ({ ...prev, [field]: undefined }))
+    }
     setStepError(null)
   }
 
-  function clearSavedData() {
-    setForm((p) => ({ ...p, clientName: '', clientEmail: '', clientPhone: '' }))
-    setHasSavedData(false)
-    try { localStorage.removeItem(STORAGE_KEY) } catch { /* ok */ }
+  function toggleService(id: string) {
+    setForm((prev) => {
+      const ids = prev.serviceIds.includes(id)
+        ? prev.serviceIds.filter((i) => i !== id)
+        : [...prev.serviceIds, id]
+      return { ...prev, serviceIds: ids, serviceId: ids[0] ?? '' }
+    })
+    setStepError(null)
+    setTimeout(() => continueRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 80)
   }
 
   function selectService(id: string) {
     updateForm('serviceId', id)
+    updateForm('serviceIds', [id])
     setStepError(null)
-    setTimeout(() => {
-      continueRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    }, 80)
+    setTimeout(() => continueRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 80)
+  }
+
+  // Selects a category card (or the VIP combo card). Clicking the
+  // already-active one toggles it off, returning to the category grid.
+  function selectCategory(cat: string) {
+    setForm((prev) => ({
+      ...prev,
+      category:   prev.category === cat ? '' : cat,
+      serviceId:  '',
+      serviceIds: [],
+    }))
+    setStepError(null)
   }
 
   function validate(): boolean {
     setAttempted(true)
     if (step === 'service') {
-      if (!form.serviceId) { setStepError('Por favor selecciona un servicio para continuar.'); return false }
+      if (!form.category) { setStepError('Por favor selecciona una categoría para continuar.'); return false }
+      if (form.serviceIds.length === 0) { setStepError('Por favor selecciona al menos un servicio para continuar.'); return false }
       return true
     }
     if (step === 'datetime') {
       if (!form.startTime) { setStepError('Por favor selecciona una hora disponible.'); return false }
       return true
     }
-    if (step === 'info') {
+    if (step === 'confirm') {
       const errors: FieldErrors = {}
       if (form.clientName.trim().length < 2)
         errors.clientName = 'Ingresa tu nombre completo (mínimo 2 caracteres).'
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.clientEmail.trim()))
+      // Email is optional — only validate the format if something was typed.
+      if (form.clientEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.clientEmail.trim()))
         errors.clientEmail = 'Ingresa un email válido (ej: correo@dominio.com).'
       if (form.clientPhone.trim().length < 7)
         errors.clientPhone = 'Ingresa un número de teléfono válido.'
@@ -172,32 +315,78 @@ export default function BookingForm() {
   }
 
   function handlePrev() {
+    if (step === 'service' && form.category) {
+      selectCategory(form.category) // toggle off -> back to the category grid
+      return
+    }
     const idx = STEPS.indexOf(step)
     if (idx > 0) setStep(STEPS[idx - 1])
+    else router.push('/')   // from the first step, leave the booking back to home
   }
 
   async function handleSubmit() {
+    if (!validate()) return
     setSubmitting(true)
     setSubmitError(null)
+
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 12_000) // 12s máximo
+
     try {
+      const body: Record<string, unknown> = {
+        date:        form.date,
+        startTime:   form.startTime,
+        clientName:  form.clientName.trim(),
+        clientEmail: form.clientEmail.toLowerCase().trim(),
+        clientPhone: form.clientPhone.trim(),
+        notes:       form.notes.trim() || undefined,
+      }
+
+      if (form.professionalId) body.professionalId = form.professionalId
+
+      if (isMulti) {
+        body.serviceId = form.serviceIds[0]
+        body.serviceIds = form.serviceIds
+        body.totalDurationMinutes = totalDuration
+      } else {
+        body.serviceId = form.serviceId
+      }
+
       const res = await fetch('/api/appointments', {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          serviceId:   form.serviceId,
-          date:        form.date,
-          startTime:   form.startTime,
-          clientName:  form.clientName.trim(),
-          clientEmail: form.clientEmail.toLowerCase().trim(),
-          clientPhone: form.clientPhone.trim(),
-          notes:       form.notes.trim() || undefined,
-        }),
+        signal:  controller.signal,
+        body: JSON.stringify(body),
       })
+
+      clearTimeout(timeout)
       const json = await res.json()
-      if (!json.success) { setSubmitError(json.error ?? 'Ocurrió un error. Intenta de nuevo.'); return }
-      router.push(`/confirmacion?id=${json.data.id}`)
-    } catch {
-      setSubmitError('Error de conexión. Por favor intenta de nuevo.')
+
+      if (!json.success) {
+        if (res.status === 409) {
+          setForm((prev) => ({ ...prev, startTime: '' }))
+          setStep('datetime')
+          setSubmitError(json.error ?? 'Este horario acaba de ser reservado. Por favor elige otro.')
+          return
+        }
+        if (res.status === 503) {
+          setSubmitError('El sistema está en mantenimiento. Por favor intenta en unos minutos.')
+          return
+        }
+        setSubmitError(json.error ?? 'Ocurrió un error. Intenta de nuevo.')
+        return
+      }
+      // Pass the cancel token in the URL (only for the person who just booked)
+      // so the confirmation screen can show the cancel link without exposing the
+      // token via a public GET — essential for clients who left no email.
+      router.push(`/confirmacion?id=${json.data.id}${json.data.cancelToken ? `&token=${json.data.cancelToken}` : ''}`)
+    } catch (err) {
+      clearTimeout(timeout)
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        setSubmitError('La solicitud tardó demasiado. Verifica tu conexión e intenta de nuevo.')
+      } else {
+        setSubmitError('Error de conexión. Por favor intenta de nuevo.')
+      }
     } finally {
       setSubmitting(false)
     }
@@ -207,11 +396,17 @@ export default function BookingForm() {
     return `input-field ${error ? 'border-red-400 focus:border-red-400 bg-red-50/30' : ''}`
   }
 
-  return (
-    <div className="max-w-2xl mx-auto">
+  // Summary data for confirm step
+  const summaryServices = isMulti ? selectedServices : selectedService ? [selectedService] : []
+  const summaryDuration = isMulti ? totalDuration : selectedService?.durationMinutes ?? 0
+  const summaryTotal = subtotal - discountAmount
+  const selectedProfessional = professionals.find((p) => p.id === form.professionalId)
 
-      {/* Indicador de pasos */}
-      <div className="flex items-center mb-10">
+  return (
+    <div ref={formTopRef} className="max-w-2xl mx-auto">
+
+      {/* Step indicator */}
+      <div className="flex items-center mb-6">
         {STEPS.map((s, i) => {
           const current  = STEPS.indexOf(step)
           const isDone   = i < current
@@ -219,11 +414,13 @@ export default function BookingForm() {
           return (
             <div key={s} className="flex items-center flex-1">
               <div className="flex flex-col items-center">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium border transition-all
-                  ${isDone ? 'bg-gold border-gold text-white' : isActive ? 'bg-white border-gold text-gold' : 'bg-white border-beige-dark text-ink-muted'}`}>
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all
+                  ${isDone ? 'bg-gold border-gold text-white'
+                    : isActive ? 'bg-ink border-ink text-gold-light shadow-[0_0_0_5px_rgba(184,147,42,0.18)]'
+                    : 'bg-white border-beige-dark text-ink-muted'}`}>
                   {isDone ? '✓' : i + 1}
                 </div>
-                <span className={`text-[10px] mt-1 tracking-wide uppercase hidden sm:block ${isActive ? 'text-gold font-medium' : 'text-ink-muted'}`}>
+                <span className={`text-[11px] mt-1.5 font-semibold hidden sm:block ${isActive ? 'text-ink' : 'text-ink-muted'}`}>
                   {STEP_LABELS[s]}
                 </span>
               </div>
@@ -235,18 +432,104 @@ export default function BookingForm() {
         })}
       </div>
 
+      {/* Urgency badge — only on step 1, count comes from real today's availability */}
+      {step === 'service' && cupos !== null && (
+        <div className="inline-flex items-center gap-2 bg-gold-pale text-gold-dark text-xs font-semibold px-3.5 py-1.5 rounded-full mb-6">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+          Quedan {cupos} cupo{cupos === 1 ? '' : 's'} para hoy
+        </div>
+      )}
+
       {submitError && (
         <div className="flex items-start gap-3 bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 mb-6">
           <span className="mt-0.5">⚠</span> {submitError}
         </div>
       )}
 
-      {/* PASO 1 — Servicio */}
-      {step === 'service' && (
+      {/* STEP 1a — Category cards. Picking one (or the VIP combo) reveals the service list below. */}
+      {step === 'service' && !form.category && (
+        <div className="animate-fade-in">
+          <div className="mb-6">
+            <h2 className="font-serif text-2xl text-ink">¿Cómo te quieres consentir?</h2>
+            <p className="text-sm text-ink-muted mt-1">Elige la categoría que mejor describe tu servicio. <span className="text-red-500">*</span></p>
+          </div>
+          {stepError && (
+            <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 border border-red-200 px-4 py-3 mb-4">
+              <span>⚠</span> {stepError}
+            </div>
+          )}
+          {loadingSvc ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {[1,2,3,4].map((n) => <div key={n} className="h-28 bg-beige-dark animate-pulse rounded-2xl" />)}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {CATEGORY_ORDER
+                .map((cat) => ({ cat, count: services.filter((s) => s.category === cat).length }))
+                .filter((g) => g.count > 0)
+                .map(({ cat, count }) => (
+                  <button key={cat} type="button" onClick={() => selectCategory(cat)}
+                    className="text-left p-6 rounded-2xl border border-beige-dark bg-white hover:border-gold/50
+                               transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5">
+                    <span className="inline-flex items-center justify-center w-14 h-14 rounded-full mb-4 bg-gold-pale text-gold-dark">
+                      <CategoryIcon category={cat} className="w-7 h-7" />
+                    </span>
+                    <p className="font-serif text-xl text-ink">{categoryLabel(cat)}</p>
+                    <p className="text-sm text-ink-muted leading-snug mt-1.5">
+                      {CATEGORY_BLURBS[cat] ?? ''}
+                    </p>
+                    <p className="text-[11px] tracking-widest uppercase text-gold-dark font-semibold mt-3">
+                      {count} servicio{count === 1 ? '' : 's'}
+                    </p>
+                  </button>
+                ))}
+
+              {/* VIP pseudo-category: the only path that unlocks multi-service selection + tiered discount */}
+              {services.length >= 2 && (
+                <button type="button" onClick={() => selectCategory(VIP_PSEUDO_CATEGORY)}
+                  className="text-left p-6 rounded-2xl border border-ink bg-ink hover:border-gold/60
+                             transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5">
+                  <span className="inline-flex items-center justify-center w-14 h-14 rounded-full mb-4 bg-[rgba(212,173,90,.15)] text-[var(--gold-light)]">
+                    <CategoryIcon category={VIP_PSEUDO_CATEGORY} className="w-7 h-7" />
+                  </span>
+                  <p className="font-serif text-xl text-white">Paquete VIP</p>
+                  <p className="text-sm text-[#b7ae9c] leading-snug mt-1.5">
+                    {CATEGORY_BLURBS[VIP_PSEUDO_CATEGORY]}
+                  </p>
+                  <p className="text-[11px] tracking-widest uppercase text-[var(--gold-light)] font-semibold mt-3">
+                    Reserva doble
+                  </p>
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* STEP 1b — Service. VIP: every active service, multi-select. Other categories: single-select. */}
+      {step === 'service' && form.category && (
         <div className="space-y-3 animate-fade-in">
           <div className="mb-6">
-            <h2 className="font-serif text-2xl text-ink">¿Qué servicio deseas?</h2>
-            <p className="text-sm text-ink-muted mt-1">Selecciona uno de los servicios disponibles. <span className="text-red-500">*</span></p>
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <h2 className="font-serif text-2xl text-ink">
+                {isVipCategory ? (
+                  'Elige tus servicios'
+                ) : (
+                  <>Servicios de <em className="text-gold italic">{categoryLabel(form.category).toLowerCase()}</em></>
+                )}
+              </h2>
+              <button type="button" onClick={() => selectCategory(form.category)}
+                className="text-xs tracking-widest uppercase font-semibold text-gold-dark hover:text-gold
+                           border border-gold/40 rounded-full px-3 py-1.5 transition-colors">
+                ← Cambiar categoría
+              </button>
+            </div>
+            <p className="text-sm text-ink-muted mt-1">
+              {isVipCategory
+                ? 'Selecciona 2 o más servicios (de cualquier categoría) para activar el descuento VIP.'
+                : 'Selecciona uno de los servicios disponibles. '}
+              <span className="text-red-500">*</span>
+            </p>
           </div>
           {stepError && (
             <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 border border-red-200 px-4 py-3">
@@ -255,170 +538,385 @@ export default function BookingForm() {
           )}
           {loadingSvc ? (
             <div className="space-y-3">{[1,2,3].map((n) => <div key={n} className="h-20 bg-beige-dark animate-pulse" />)}</div>
+          ) : isVipCategory ? (
+            CATEGORY_ORDER
+              .filter((cat) => services.some((s) => s.category === cat))
+              .map((cat) => (
+                <div key={cat}>
+                  <p className="text-[11px] tracking-widest uppercase text-ink-muted font-semibold mb-2 mt-4">
+                    {categoryLabel(cat)}
+                  </p>
+                  {services.filter((svc) => svc.category === cat).map((svc) => {
+                    const isSelected = form.serviceIds.includes(svc.id)
+                    return (
+                      <button key={svc.id} type="button"
+                        role="checkbox" aria-checked={isSelected}
+                        onClick={() => toggleService(svc.id)}
+                        className={`w-full text-left p-5 rounded-2xl border transition-all duration-150 hover:shadow-sm mb-2
+                          ${isSelected ? 'border-gold bg-gold-pale ring-1 ring-gold'
+                          : attempted && form.serviceIds.length === 0 ? 'border-red-300 bg-white hover:border-gold/50'
+                          : 'border-beige-dark bg-white hover:border-gold/50'}`}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors
+                              ${isSelected ? 'border-gold bg-gold' : 'border-beige-deeper'}`}>
+                              {isSelected && <span className="text-white text-xs">✓</span>}
+                            </div>
+                            <div>
+                              <p className="font-medium text-ink">{svc.name}</p>
+                              {svc.description && <p className="text-sm text-ink-muted mt-0.5">{svc.description}</p>}
+                            </div>
+                          </div>
+                          <div className="text-right ml-4 shrink-0">
+                            <p className="text-gold font-medium">{formatPrice(svc.price)}</p>
+                            <p className="text-xs text-ink-muted">{svc.durationMinutes} min</p>
+                          </div>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              ))
           ) : (
-            services.map((svc) => {
-              const isSelected = form.serviceId === svc.id
-              return (
-                <button key={svc.id} type="button" onClick={() => selectService(svc.id)}
-                  className={`w-full text-left p-5 border transition-all duration-150
-                    ${isSelected ? 'border-gold bg-gold-pale ring-1 ring-gold'
-                    : attempted && !form.serviceId ? 'border-red-300 bg-white hover:border-gold/50'
-                    : 'border-beige-dark bg-white hover:border-gold/50'}`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors
-                        ${isSelected ? 'border-gold' : 'border-beige-deeper'}`}>
-                        {isSelected && <div className="w-2 h-2 rounded-full bg-gold" />}
+            services
+              .filter((svc) => svc.category === form.category)
+              .map((svc) => {
+                const isSelected = form.serviceId === svc.id
+                return (
+                  <button key={svc.id} type="button"
+                    role="radio" aria-checked={isSelected}
+                    onClick={() => selectService(svc.id)}
+                    className={`w-full text-left p-5 rounded-2xl border transition-all duration-150 hover:shadow-sm
+                      ${isSelected ? 'border-gold bg-gold-pale ring-1 ring-gold'
+                      : attempted && !form.serviceId ? 'border-red-300 bg-white hover:border-gold/50'
+                      : 'border-beige-dark bg-white hover:border-gold/50'}`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors
+                          ${isSelected ? 'border-gold' : 'border-beige-deeper'}`}>
+                          {isSelected && <div className="w-2 h-2 rounded-full bg-gold" />}
+                        </div>
+                        <div>
+                          <p className="font-medium text-ink">{svc.name}</p>
+                          {svc.description && <p className="text-sm text-ink-muted mt-0.5">{svc.description}</p>}
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium text-ink">{svc.name}</p>
-                        {svc.description && <p className="text-sm text-ink-muted mt-0.5">{svc.description}</p>}
+                      <div className="text-right ml-4 shrink-0">
+                        <p className="text-gold font-medium">{formatPrice(svc.price)}</p>
+                        <p className="text-xs text-ink-muted">{svc.durationMinutes} min</p>
                       </div>
                     </div>
-                    <div className="text-right ml-4 shrink-0">
-                      <p className="text-gold font-medium">{formatPrice(svc.price)}</p>
-                      <p className="text-xs text-ink-muted">{svc.durationMinutes} min</p>
-                    </div>
+                  </button>
+                )
+              })
+          )}
+
+          {/* VIP multi-service cart with live discount preview */}
+          {isVipCategory && form.serviceIds.length > 0 && (
+            <div className="bg-gold-pale/60 border border-gold/20 rounded-xl px-4 py-3 mt-4 space-y-2">
+              {selectedServices.map((s) => (
+                <div key={s.id} className="flex justify-between items-center text-sm">
+                  <span className="text-ink">{s.name}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-gold-dark font-medium">{formatPrice(s.price)}</span>
+                    <button type="button" onClick={() => toggleService(s.id)}
+                      className="text-ink-muted hover:text-red-500 transition-colors text-xs">
+                      Quitar
+                    </button>
                   </div>
-                </button>
-              )
-            })
+                </div>
+              ))}
+              <div className="flex justify-between items-center text-sm border-t border-gold/20 pt-2 mt-1">
+                <span className="text-ink-muted">
+                  {form.serviceIds.length} servicio{form.serviceIds.length === 1 ? '' : 's'} · {totalDuration} min
+                  {discountPercent > 0 && (
+                    <span className="text-gold-dark font-semibold"> · {discountPercent}% descuento VIP</span>
+                  )}
+                </span>
+                <span className="font-serif text-gold-dark font-medium">
+                  {formatPrice(subtotal - discountAmount)}
+                </span>
+              </div>
+            </div>
           )}
         </div>
       )}
 
-      {/* PASO 2 — Fecha y hora */}
+      {/* STEP 2 — Professional, or "Primera disponible" */}
+      {step === 'professional' && (
+        <div className="animate-fade-in">
+          <div className="mb-6">
+            <h2 className="font-serif text-2xl text-ink">Elige tu profesional</h2>
+            <p className="text-sm text-ink-muted mt-1">O deja que asignemos la primera disponible.</p>
+          </div>
+          {loadingPro ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {[1,2,3,4].map((n) => <div key={n} className="h-28 bg-beige-dark animate-pulse rounded-2xl" />)}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {professionals.map((pro) => {
+                const isSelected = form.professionalId === pro.id
+                return (
+                  <button key={pro.id} type="button"
+                    role="radio" aria-checked={isSelected}
+                    onClick={() => updateForm('professionalId', pro.id)}
+                    className={`text-left p-5 rounded-2xl border transition-all duration-200 hover:shadow-sm
+                      ${isSelected ? 'border-gold bg-gold-pale ring-1 ring-gold' : 'border-beige-dark bg-white hover:border-gold/50'}`}>
+                    <span className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-gold-pale text-gold-dark font-serif text-lg mb-3">
+                      {pro.name.charAt(0)}
+                    </span>
+                    <p className="font-medium text-ink">{pro.name}</p>
+                    {pro.specialty && <p className="text-sm text-ink-muted mt-0.5">{pro.specialty}</p>}
+                    <p className="text-xs text-gold-dark mt-2">★ {pro.rating.toFixed(1)} · {pro.reviewCount} citas</p>
+                  </button>
+                )
+              })}
+              <button type="button"
+                role="radio" aria-checked={form.professionalId === ''}
+                onClick={() => updateForm('professionalId', '')}
+                className={`text-left p-5 rounded-2xl border transition-all duration-200 hover:shadow-sm
+                  ${form.professionalId === '' ? 'border-gold bg-gold-pale ring-1 ring-gold' : 'border-beige-dark bg-white hover:border-gold/50'}`}>
+                <span className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-gold-pale text-gold-dark text-lg mb-3">
+                  ✦
+                </span>
+                <p className="font-medium text-ink">Primera disponible</p>
+                <p className="text-sm text-ink-muted mt-0.5">La hora más rápida</p>
+                <p className="text-[11px] tracking-widest uppercase text-gold-dark font-semibold mt-2">Recomendado</p>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* STEP 3 — Date and time */}
       {step === 'datetime' && (
         <div className="animate-fade-in">
           <div className="mb-6">
             <h2 className="font-serif text-2xl text-ink">Elige fecha y hora</h2>
             <p className="text-sm text-ink-muted mt-1">Selecciona el día y un horario disponible. <span className="text-red-500">*</span></p>
           </div>
+
+          {/* Service summary */}
+          {isMulti ? (
+            <div className="flex items-center justify-between bg-gold-pale/60 border border-gold/20 rounded-xl px-4 py-3 mb-6">
+              <div className="min-w-0">
+                <p className="text-[10px] tracking-widest uppercase text-gold-dark mb-0.5">
+                  Servicios elegidos
+                </p>
+                <p className="text-sm text-ink font-medium truncate">
+                  {selectedServices.map((s) => s.name).join(' + ')}
+                  <span className="text-ink-muted font-normal"> · {totalDuration} min</span>
+                </p>
+              </div>
+              <button type="button" onClick={() => setStep('service')}
+                className="shrink-0 text-xs tracking-widest uppercase text-ink-muted hover:text-gold transition-colors">
+                Cambiar
+              </button>
+            </div>
+          ) : selectedService && (
+            <div className="flex items-center justify-between bg-gold-pale/60 border border-gold/20 rounded-xl px-4 py-3 mb-6">
+              <div className="min-w-0">
+                <p className="text-[10px] tracking-widest uppercase text-gold-dark mb-0.5">
+                  Servicio elegido
+                </p>
+                <p className="text-sm text-ink font-medium truncate">
+                  {selectedService.name}
+                  <span className="text-ink-muted font-normal"> · {selectedService.durationMinutes} min</span>
+                </p>
+              </div>
+              <button type="button" onClick={() => setStep('service')}
+                className="shrink-0 text-xs tracking-widest uppercase text-ink-muted hover:text-gold transition-colors">
+                Cambiar
+              </button>
+            </div>
+          )}
+
           {stepError && (
             <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 border border-red-200 px-4 py-3 mb-4">
               <span>⚠</span> {stepError}
             </div>
           )}
           <DateTimePicker
-            serviceId={form.serviceId}
+            serviceId={availabilityServiceId}
+            durationMinutes={availabilityDuration}
+            professionalId={form.professionalId || undefined}
             selectedDate={form.date}
             selectedTime={form.startTime}
             onDateChange={(d) => updateForm('date', d)}
-            onTimeChange={(t) => { updateForm('startTime', t); setStepError(null) }}
+            onTimeChange={(t) => {
+              updateForm('startTime', t)
+              setStepError(null)
+              setSubmitError(null)
+              setTimeout(() => continueRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 80)
+            }}
           />
         </div>
       )}
 
-      {/* PASO 3 — Datos */}
-      {step === 'info' && (
-        <div className="animate-fade-in space-y-5">
+      {/* STEP 4 — Confirm: summary + contact data + submit, in one screen */}
+      {step === 'confirm' && (
+        <div className="animate-fade-in space-y-6">
           <div className="mb-2">
-            <h2 className="font-serif text-2xl text-ink">Tus datos</h2>
-            <p className="text-sm text-ink-muted mt-1">
-              Los campos marcados con <span className="text-red-500 font-medium">*</span> son obligatorios.
-            </p>
-          </div>
-
-          {/* Banner datos recordados — solo tras montar en cliente */}
-          {mounted && hasSavedData && (
-            <div className="flex items-center justify-between bg-gold-pale border border-gold/30 px-4 py-2.5 text-xs text-ink-mid">
-              <span>✦ Datos cargados de tu visita anterior</span>
-              <button type="button" onClick={clearSavedData}
-                className="text-ink-muted hover:text-red-500 transition-colors underline">
-                Borrar
-              </button>
-            </div>
-          )}
-
-          <div>
-            <label className="form-label">Nombre completo <span className="text-red-500">*</span></label>
-            <input type="text" className={inputClass(fieldErrors.clientName)}
-              placeholder="Tu nombre y apellido" value={form.clientName}
-              onChange={(e) => updateForm('clientName', e.target.value)} autoComplete="name" />
-            {fieldErrors.clientName && (
-              <p className="flex items-center gap-1.5 text-red-500 text-xs mt-1.5"><span>⚠</span> {fieldErrors.clientName}</p>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="form-label">Email <span className="text-red-500">*</span></label>
-              <input type="email" className={inputClass(fieldErrors.clientEmail)}
-                placeholder="tu@email.com" value={form.clientEmail}
-                onChange={(e) => updateForm('clientEmail', e.target.value)} autoComplete="email" />
-              {fieldErrors.clientEmail && (
-                <p className="flex items-center gap-1.5 text-red-500 text-xs mt-1.5"><span>⚠</span> {fieldErrors.clientEmail}</p>
-              )}
-            </div>
-            <div>
-              <label className="form-label">Teléfono / WhatsApp <span className="text-red-500">*</span></label>
-              <input type="tel" className={inputClass(fieldErrors.clientPhone)}
-                placeholder="300 000 0000" value={form.clientPhone}
-                onChange={(e) => updateForm('clientPhone', e.target.value)} autoComplete="tel" />
-              {fieldErrors.clientPhone && (
-                <p className="flex items-center gap-1.5 text-red-500 text-xs mt-1.5"><span>⚠</span> {fieldErrors.clientPhone}</p>
-              )}
-            </div>
-          </div>
-
-          <div>
-            <label className="form-label">
-              Notas adicionales{' '}
-              <span className="text-ink-muted/60 normal-case font-normal tracking-normal">(opcional)</span>
-            </label>
-            <textarea className="input-field resize-none" rows={3}
-              placeholder="Ej: prefiero esmalte nude, tengo uñas acrílicas previas..."
-              value={form.notes} onChange={(e) => updateForm('notes', e.target.value)} maxLength={500} />
-            <p className="text-xs text-ink-muted/50 mt-1 text-right">{form.notes.length}/500</p>
-          </div>
-        </div>
-      )}
-
-      {/* PASO 4 — Confirmar */}
-      {step === 'confirm' && selectedService && (
-        <div className="animate-fade-in">
-          <div className="mb-6">
             <h2 className="font-serif text-2xl text-ink">Confirma tu cita</h2>
             <p className="text-sm text-ink-muted mt-1">Revisa los datos antes de confirmar.</p>
           </div>
-          <div className="bg-beige border border-beige-dark p-6 space-y-3 mb-6">
+
+          <div className="bg-white border border-beige-dark rounded-2xl p-6 shadow-sm">
+            {summaryServices.length > 1 ? (
+              <div className="flex justify-between text-[15px] border-b border-dashed border-beige-deeper py-3">
+                <span className="text-ink-muted">Servicios</span>
+                <span className="font-serif text-ink font-semibold text-right max-w-[60%]">
+                  {summaryServices.map((s) => s.name).join(' + ')}
+                </span>
+              </div>
+            ) : (
+              <div className="flex justify-between text-[15px] border-b border-dashed border-beige-deeper py-3">
+                <span className="text-ink-muted">Servicio</span>
+                <span className="font-serif text-ink font-semibold text-right max-w-[60%]">{summaryServices[0]?.name ?? ''}</span>
+              </div>
+            )}
+            {showProfessionalStep && (
+              <div className="flex justify-between text-[15px] border-b border-dashed border-beige-deeper py-3">
+                <span className="text-ink-muted">Profesional</span>
+                <span className="text-ink font-medium text-right max-w-[60%]">{selectedProfessional?.name ?? 'Primera disponible'}</span>
+              </div>
+            )}
             {[
-              { label: 'Servicio',  value: selectedService.name },
               { label: 'Fecha',     value: format(new Date(`${form.date}T12:00:00`), "EEEE d 'de' MMMM", { locale: es }) },
               { label: 'Hora',      value: form.startTime },
-              { label: 'Duración',  value: `${selectedService.durationMinutes} minutos` },
-              { label: 'Valor',     value: formatPrice(selectedService.price) },
-              { label: 'Nombre',    value: form.clientName },
-              { label: 'Email',     value: form.clientEmail },
-              { label: 'Teléfono', value: form.clientPhone },
+              { label: 'Duración',  value: `${summaryDuration} minutos` },
             ].map(({ label, value }) => (
-              <div key={label} className="flex justify-between text-sm border-b border-beige-dark pb-3 last:border-0 last:pb-0">
+              <div key={label} className="flex justify-between text-[15px] border-b border-dashed border-beige-deeper py-3">
                 <span className="text-ink-muted">{label}</span>
-                <span className="text-ink font-medium text-right max-w-[60%] capitalize">{value}</span>
+                <span className="text-ink font-medium text-right max-w-[60%] first-letter:uppercase">{value}</span>
               </div>
             ))}
-          </div>
-          {form.notes && (
-            <div className="text-sm text-ink-muted bg-white border border-beige-dark p-4 mb-6">
-              <span className="font-medium text-ink">Notas: </span>{form.notes}
+            <div className="flex justify-between text-[15px] border-b border-dashed border-beige-deeper py-3">
+              <span className="text-ink-muted">Subtotal</span>
+              <span className="text-ink font-medium">{formatPrice(subtotal)}</span>
             </div>
+            {discountPercent > 0 && (
+              <div className="flex justify-between text-[15px] border-b border-dashed border-beige-deeper py-3">
+                <span className="text-gold-dark font-medium">Descuento VIP ({discountPercent}%)</span>
+                <span className="text-gold-dark font-medium">-{formatPrice(discountAmount)}</span>
+              </div>
+            )}
+            <div className="flex justify-between items-center pt-4 mt-1 border-t-2 border-ink">
+              <span className="text-ink-muted text-sm">Total</span>
+              <span className="font-serif text-2xl text-gold-dark font-semibold">{formatPrice(summaryTotal)}</span>
+            </div>
+          </div>
+
+          {/* datalists: feed dropdown suggestions for each field.
+              The field starts empty — the user chooses whether to use the saved value. */}
+          {mounted && (
+            <>
+              <datalist id="dl-name">
+                {savedClientData.clientName  && <option value={savedClientData.clientName} />}
+              </datalist>
+              <datalist id="dl-email">
+                {savedClientData.clientEmail && <option value={savedClientData.clientEmail} />}
+              </datalist>
+              <datalist id="dl-phone">
+                {savedClientData.clientPhone && <option value={savedClientData.clientPhone} />}
+              </datalist>
+            </>
           )}
-          <p className="text-xs text-ink-muted leading-relaxed mb-6">
-            Recibirás un <strong className="text-ink">email de confirmación</strong> de inmediato.
+
+          <div className="space-y-5">
+            <div>
+              <label className="form-label">Nombre completo <span className="text-red-500">*</span></label>
+              <input
+                type="text"
+                list="dl-name"
+                className={inputClass(fieldErrors.clientName)}
+                placeholder="Tu nombre y apellido"
+                value={form.clientName}
+                onChange={(e) => updateForm('clientName', e.target.value)}
+                autoComplete="name"
+              />
+              {fieldErrors.clientName && (
+                <p className="flex items-center gap-1.5 text-red-500 text-xs mt-1.5"><span>⚠</span> {fieldErrors.clientName}</p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="form-label">
+                  Email <span className="text-ink-muted/60 normal-case font-normal tracking-normal">(opcional)</span>
+                </label>
+                <input
+                  type="email"
+                  list="dl-email"
+                  className={inputClass(fieldErrors.clientEmail)}
+                  placeholder="tu@email.com"
+                  value={form.clientEmail}
+                  onChange={(e) => updateForm('clientEmail', e.target.value)}
+                  autoComplete="email"
+                />
+                {fieldErrors.clientEmail ? (
+                  <p className="flex items-center gap-1.5 text-red-500 text-xs mt-1.5"><span>⚠</span> {fieldErrors.clientEmail}</p>
+                ) : (
+                  <p className="text-xs text-ink-muted/60 mt-1.5">
+                    Si lo proporcionas, recibirás confirmación y recordatorios automáticos de tu cita.
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="form-label">Teléfono / WhatsApp <span className="text-red-500">*</span></label>
+                <input
+                  type="tel"
+                  list="dl-phone"
+                  className={inputClass(fieldErrors.clientPhone)}
+                  placeholder="300 000 0000"
+                  value={form.clientPhone}
+                  onChange={(e) => updateForm('clientPhone', e.target.value)}
+                  autoComplete="tel"
+                />
+                {fieldErrors.clientPhone && (
+                  <p className="flex items-center gap-1.5 text-red-500 text-xs mt-1.5"><span>⚠</span> {fieldErrors.clientPhone}</p>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <label className="form-label">
+                Notas adicionales{' '}
+                <span className="text-ink-muted/60 normal-case font-normal tracking-normal">(opcional)</span>
+              </label>
+              <textarea
+                className="input-field resize-none"
+                rows={3}
+                placeholder="Ej: prefiero esmalte nude, tengo uñas acrílicas previas..."
+                value={form.notes}
+                onChange={(e) => updateForm('notes', e.target.value)}
+                maxLength={500}
+              />
+              <p className="text-xs text-ink-muted/50 mt-1 text-right">{form.notes.length}/500</p>
+            </div>
+          </div>
+
+          <p className="text-xs text-ink-muted leading-relaxed">
+            {form.clientEmail.trim() ? (
+              <>Recibirás un <strong className="text-ink">email de confirmación</strong> de inmediato. </>
+            ) : (
+              <>Sin email no recibirás notificaciones — en la siguiente pantalla podrás <strong className="text-ink">guardar el enlace de tu cita</strong>. </>
+            )}
             Si necesitas cancelar, hazlo con al menos 24 horas de anticipación.
           </p>
         </div>
       )}
 
-      {/* Navegación */}
+      {/* Navigation */}
       <div className="flex justify-between mt-10 pt-6 border-t border-beige-dark">
-        {step !== 'service' ? (
-          <button type="button" onClick={handlePrev} className="btn-secondary" disabled={submitting}>← Atrás</button>
-        ) : <span />}
+        <button type="button" onClick={handlePrev} className="btn-secondary" disabled={submitting}>
+          {step === 'service' && !form.category ? '← Volver al inicio' : '← Atrás'}
+        </button>
         {step !== 'confirm' ? (
-          <button ref={continueRef} type="button" onClick={handleNext} className="btn-primary">Continuar →</button>
+          <button ref={continueRef} type="button" onClick={handleNext} className="btn-cta">Continuar →</button>
         ) : (
-          <button type="button" onClick={handleSubmit} disabled={submitting} className="btn-primary disabled:opacity-70">
+          <button type="button" onClick={handleSubmit} disabled={submitting} className="btn-cta disabled:opacity-70">
             {submitting ? 'Confirmando...' : 'Confirmar cita'}
           </button>
         )}

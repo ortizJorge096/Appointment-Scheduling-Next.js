@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -23,24 +24,24 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen bg-ink flex items-center justify-center px-6">
 
-      {/* Decoración */}
+      {/* Decoration */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
                         w-[600px] h-[600px] rounded-full opacity-5"
-          style={{ background: 'radial-gradient(circle, #C9A84C 0%, transparent 70%)' }} />
+          style={{ background: 'radial-gradient(circle, #D4AD5A 0%, transparent 70%)' }} />
       </div>
 
       <div className="relative w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-10">
-          <p className="font-serif text-3xl text-white font-light tracking-wide">
+          <p className="logo-script text-gold text-4xl leading-none">
             Valentina Jimenez
           </p>
-          <p className="text-gold text-sm italic font-light mt-0.5">Beauty Studio</p>
+          <p className="logo-studio text-white/70 text-[0.6rem] mt-1">Beauty Studio</p>
           <p className="text-white/20 text-xs mt-3 tracking-widest uppercase">Panel de administración</p>
         </div>
 
-        {/* Separador dorado */}
+        {/* Gold separator */}
         <div className="flex items-center gap-3 mb-8">
           <div className="flex-1 h-px bg-white/10" />
           <div className="w-1.5 h-1.5 bg-gold rotate-45" />
@@ -78,9 +79,9 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center mt-6">
-          <a href="/" className="text-xs text-white/20 hover:text-white/50 transition-colors">
+          <Link href="/" className="text-xs text-white/20 hover:text-white/50 transition-colors">
             ← Volver al sitio
-          </a>
+          </Link>
         </p>
       </div>
     </main>

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&family=Great+Vibes&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -11,8 +11,8 @@
   --gold-dark:   #8A6E1E;
   --beige:       #F2EBD9;
   --beige-dark:  #E8DCC4;
-  --ink:         #111111;
-  --ink-soft:    #1E1E1E;
+  --ink:         #1A1209;
+  --ink-soft:    #2A2014;
   --ink-mid:     #4A4035;
   --ink-muted:   #7A7060;
 }
@@ -26,44 +26,50 @@
 
 @layer components {
 
-  /* ── Botones ── */
+  /* ── Buttons ── */
   .btn-primary {
-    @apply bg-gold text-white px-8 py-3.5 text-xs font-medium
-           tracking-widest uppercase transition-all duration-200
-           hover:bg-gold-dark hover:-translate-y-px
+    @apply bg-gold text-white rounded-full px-8 py-3.5 text-xs font-medium
+           tracking-widest uppercase transition-all duration-200 shadow-sm
+           hover:bg-gold-dark hover:-translate-y-0.5
            disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-secondary {
-    @apply bg-transparent text-ink border border-ink
+    @apply bg-transparent text-ink border border-ink rounded-full
            px-8 py-3.5 text-xs font-medium tracking-widest uppercase
            transition-all duration-200 hover:bg-ink hover:text-white
            disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-outline-gold {
-    @apply bg-transparent text-gold border border-gold
+    @apply bg-transparent text-gold border border-gold rounded-full
            px-8 py-3.5 text-xs font-medium tracking-widest uppercase
            transition-all duration-200 hover:bg-gold hover:text-white;
   }
   .btn-ghost {
-    @apply bg-transparent text-ink-muted px-4 py-2 text-sm
+    @apply bg-transparent text-ink-muted rounded-full px-4 py-2 text-sm
            transition-colors duration-150
            hover:bg-beige-dark hover:text-ink;
+  }
+  /* Expands the tap target of small inline text actions (Editar, Eliminar, Ver →)
+     without changing their visual size or the row's layout — the negative
+     margin pulls the extra padding back so siblings don't shift. */
+  .btn-row-action {
+    @apply inline-flex items-center justify-center py-3 px-2 -my-3 -mx-2 transition-colors;
   }
 
   /* ── Inputs ── */
   .input-field {
-    @apply w-full bg-white border border-beige-dark text-ink
+    @apply w-full bg-white border border-beige-dark text-ink rounded-lg
            px-4 py-3 text-sm font-sans
            placeholder:text-ink-muted/50
-           focus:outline-none focus:border-gold focus:ring-0
-           transition-colors duration-150
+           focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/15
+           transition-all duration-150
            disabled:bg-beige disabled:cursor-not-allowed;
   }
   .input-dark {
-    @apply w-full bg-white/5 border border-white/10 text-white
+    @apply w-full bg-white/5 border border-white/10 text-white rounded-lg
            px-4 py-3 text-sm font-sans placeholder:text-white/30
-           focus:outline-none focus:border-gold focus:ring-0
-           transition-colors duration-150;
+           focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20
+           transition-all duration-150;
   }
   .select-field {
     @apply input-field appearance-none cursor-pointer;
@@ -77,20 +83,89 @@
   }
 
   /* ── Badges ── */
-  .badge-pending   { @apply bg-amber-50   text-amber-700   text-xs px-2.5 py-1 font-medium; }
-  .badge-confirmed { @apply bg-emerald-50 text-emerald-700 text-xs px-2.5 py-1 font-medium; }
-  .badge-completed { @apply bg-blue-50    text-blue-700    text-xs px-2.5 py-1 font-medium; }
-  .badge-cancelled { @apply bg-red-50     text-red-600     text-xs px-2.5 py-1 font-medium; }
-  .badge-no_show   { @apply bg-gray-100   text-gray-500    text-xs px-2.5 py-1 font-medium; }
+  .badge-pending   { @apply bg-amber-50   text-amber-700   text-xs px-3 py-1 font-medium rounded-full; }
+  .badge-confirmed { @apply bg-emerald-50 text-emerald-700 text-xs px-3 py-1 font-medium rounded-full; }
+  .badge-completed { @apply bg-blue-50    text-blue-700    text-xs px-3 py-1 font-medium rounded-full; }
+  .badge-cancelled { @apply bg-red-50     text-red-600     text-xs px-3 py-1 font-medium rounded-full; }
+  .badge-no_show   { @apply bg-gray-100   text-gray-500    text-xs px-3 py-1 font-medium rounded-full; }
 
-  /* ── Decorativos ── */
+  /* ── Decorative ── */
   .section-tag {
     @apply text-xs font-medium tracking-widest uppercase text-gold
            flex items-center gap-2
            before:content-[''] before:block before:w-5 before:h-px before:bg-gold;
   }
-  .card { @apply bg-white border border-beige-dark p-6; }
+  .card { @apply bg-white border border-beige-dark rounded-2xl shadow-sm p-6; }
   .divider { @apply border-t border-beige-dark my-8; }
+
+  /* ── Logo (brand script typeface) ──
+     Placeholder using Great Vibes; replace with the exact logo font once the .woff2 is available. */
+  .logo-script {
+    font-family: 'Great Vibes', 'Cormorant Garamond', cursive;
+    @apply font-normal leading-none;
+    line-height: 0.9;
+  }
+  .logo-studio {
+    @apply font-serif uppercase tracking-[0.42em];
+  }
+
+  /* ── Premium CTA (gold gradient, pill-shaped) ── */
+  .btn-cta {
+    @apply inline-flex items-center justify-center gap-2 rounded-full
+           px-8 py-3.5 text-xs font-semibold tracking-widest uppercase
+           text-ink transition-all duration-200
+           hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed;
+    background-image: linear-gradient(135deg, #D4AD5A 0%, #B8932A 100%);
+    box-shadow: 0 10px 30px rgba(184, 147, 42, 0.28);
+  }
+  .btn-cta:hover { box-shadow: 0 16px 40px rgba(184, 147, 42, 0.4); }
+
+  /* ── Circular service icon ── */
+  .svc-icon-ring {
+    @apply inline-flex items-center justify-center rounded-full
+           border border-gold/70 text-gold;
+  }
+
+  /* ── Premium card (rounded, soft shadow, hover lift) ── */
+  .card-premium {
+    @apply bg-white rounded-2xl border border-beige-dark/60 shadow-sm
+           transition-all duration-300;
+  }
+  .card-premium-hover {
+    @apply card-premium hover:shadow-xl hover:-translate-y-1;
+  }
+  /* Top gold accent revealed on hover */
+  .accent-top {
+    @apply relative overflow-hidden;
+  }
+  .accent-top::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--gold-light), var(--gold));
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform .35s ease;
+  }
+  .accent-top:hover::after { transform: scaleX(1); }
+
+  /* Centered eyebrow with lines on both sides (section headings) */
+  .eyebrow-center {
+    @apply inline-flex items-center gap-3 text-xs font-medium tracking-[0.28em]
+           uppercase text-gold-dark
+           before:content-[''] before:block before:w-8 before:h-px before:bg-gold/50
+           after:content-[''] after:block after:w-8 after:h-px after:bg-gold/50;
+  }
+
+  /* ── WhatsApp FAB ── */
+  .wa-fab {
+    @apply fixed bottom-6 right-6 z-50 flex items-center justify-center
+           w-14 h-14 rounded-full text-white shadow-lg transition-transform;
+    background-color: #25D366;
+    box-shadow: 0 10px 30px rgba(37, 211, 102, 0.45);
+  }
+  .wa-fab:hover { transform: scale(1.06); }
 }
 
 @layer utilities {
@@ -99,4 +174,16 @@
   .animation-delay-200 { animation-delay: 200ms; }
   .animation-delay-300 { animation-delay: 300ms; }
   .animation-delay-400 { animation-delay: 400ms; }
+}
+
+/* Accessibility: respect the reduced-motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }

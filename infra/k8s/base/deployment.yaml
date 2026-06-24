@@ -1,0 +1,138 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: appointment-scheduling
+  labels:
+    app.kubernetes.io/name: appointment-scheduling
+    app.kubernetes.io/component: web
+    app.kubernetes.io/managed-by: kustomize
+spec:
+  # ≥ 2 replicas. HPA can scale within the range configured in the overlay.
+  replicas: 2
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: appointment-scheduling
+      app.kubernetes.io/component: web
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: appointment-scheduling
+        app.kubernetes.io/component: web
+      annotations:
+        prometheus.io/scrape: "false"
+    spec:
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: appointment-scheduling
+              app.kubernetes.io/component: web
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
+      # ── Init container — Prisma migrate deploy ───────────────────────────
+      # Uses the same image as the app. Reads DATABASE_URL from the Secret.
+      # Idempotent; already-applied migrations are skipped automatically.
+      initContainers:
+        - name: prisma-migrate
+          image: appointment-scheduling:placeholder
+          imagePullPolicy: IfNotPresent
+          command: ["sh", "-c"]
+          args:
+            - |
+              set -e
+              echo "── Running prisma migrate deploy ──"
+              node node_modules/prisma/build/index.js migrate deploy --schema=./prisma/schema.prisma
+              echo "── Migrations applied ──"
+          envFrom:
+            - secretRef:
+                name: appointment-scheduling-secret
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            runAsNonRoot: true
+            runAsUser: 1001
+            capabilities:
+              drop: ["ALL"]
+      containers:
+        - name: web
+          # Placeholder replaced by kustomize set image from overlay/CI.
+          image: appointment-scheduling:placeholder
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: appointment-scheduling-config
+            - secretRef:
+                name: appointment-scheduling-secret
+          env:
+            - name: AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE
+              value: IPv4
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/health?readiness
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 30   # up to 150s for Next.js to start
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1001
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 100Mi
+      terminationGracePeriodSeconds: 30

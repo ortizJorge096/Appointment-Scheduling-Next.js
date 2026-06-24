@@ -5,8 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-
-
+import { audit, getClientIp } from '@/lib/audit'
 
 export async function DELETE(
   _req: NextRequest,
@@ -22,8 +21,22 @@ export async function DELETE(
     )
   }
 
-  await prisma.blockedDate.delete({
-    where: { id },
+  try {
+    await prisma.blockedDate.delete({ where: { id } })
+  } catch {
+    return NextResponse.json(
+      { success: false, error: 'Fecha bloqueada no encontrada' },
+      { status: 404 }
+    )
+  }
+
+  await audit({
+    action:    'DELETE',
+    entity:    'SCHEDULE',
+    entityId:  id,
+    userEmail: session.user?.email ?? undefined,
+    ip:        getClientIp(_req),
+    metadata:  { blockedDateId: id },
   })
 
   return NextResponse.json({

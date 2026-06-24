@@ -1,25 +1,31 @@
 // src/app/api/services/route.ts
-// GET  /api/services  → listar servicios activos (público)
-// POST /api/services  → crear servicio (admin)
+// GET  /api/services  → list active services (public)
+// POST /api/services  → create service (admin)
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createServiceSchema } from '@/lib/validations'
+import { audit, getClientIp } from '@/lib/audit'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(): Promise<NextResponse> {
+  const session = await getServerSession(authOptions)
+
   const services = await prisma.service.findMany({
-    where: { isActive: true },
+    // Admin sees all (active and inactive); public sees only active
+    where: session ? {} : { isActive: true },
     orderBy: { order: 'asc' },
     select: {
       id: true,
       name: true,
       description: true,
+      category: true,
       price: true,
       durationMinutes: true,
+      isActive: true,
       order: true,
     },
   })
@@ -49,5 +55,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   const service = await prisma.service.create({ data: parsed.data })
+
+  await audit({
+    action:    'CREATE',
+    entity:    'SERVICE',
+    entityId:  service.id,
+    userEmail: session.user?.email ?? undefined,
+    ip:        getClientIp(request),
+    metadata:  { name: service.name, price: service.price },
+  })
+
   return NextResponse.json({ success: true, data: service }, { status: 201 })
 }

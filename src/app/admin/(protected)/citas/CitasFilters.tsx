@@ -1,8 +1,9 @@
 'use client'
 // src/app/admin/(protected)/citas/CitasFilters.tsx
-// Client Component — maneja los filtros interactivos de fecha
+// Client Component — handles interactive date filters
 
 import { useRouter } from 'next/navigation'
+import { STATUS_LABEL as APPOINTMENT_STATUS_LABEL } from '@/lib/appointmentStatus'
 
 interface Props {
   status?:   string
@@ -10,10 +11,9 @@ interface Props {
   dateTo?:   string
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  ALL: 'Todas', PENDING: 'Pendiente', CONFIRMED: 'Confirmada',
-  COMPLETED: 'Completada', CANCELLED: 'Cancelada',
-}
+// This filter strip doesn't offer a NO_SHOW button, but does need "Todas" —
+// derive from the canonical map instead of redefining the other four by hand.
+const STATUS_LABEL: Record<string, string> = { ALL: 'Todas', ...APPOINTMENT_STATUS_LABEL }
 
 export default function CitasFilters({ status, dateFrom, dateTo }: Props) {
   const router = useRouter()
@@ -29,16 +29,16 @@ export default function CitasFilters({ status, dateFrom, dateTo }: Props) {
   }
 
   return (
-    <div className="bg-white border border-beige-dark p-4 mb-6 flex flex-wrap gap-3 items-end">
+    <div className="bg-white rounded-xl border border-beige-dark p-3 sm:p-4 mb-6 flex flex-wrap gap-3 items-end">
 
-      {/* Estado */}
+      {/* Status */}
       <div>
         <label className="form-label text-[10px]">Estado</label>
         <div className="flex gap-1.5 flex-wrap">
           {['ALL', 'PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'].map((s) => (
             <button key={s} type="button"
               onClick={() => buildUrl({ status: s })}
-              className={`px-3 py-1.5 text-xs border transition-colors
+              className={`px-3 py-1.5 text-xs border rounded-lg transition-colors
                 ${(status ?? 'ALL') === s
                   ? 'bg-ink border-ink text-white'
                   : 'bg-white border-beige-dark text-ink-muted hover:border-gold'}`}>
@@ -48,7 +48,7 @@ export default function CitasFilters({ status, dateFrom, dateTo }: Props) {
         </div>
       </div>
 
-      {/* Desde */}
+      {/* From */}
       <div>
         <label className="form-label text-[10px]">Desde</label>
         <input type="date" defaultValue={dateFrom}
@@ -56,7 +56,7 @@ export default function CitasFilters({ status, dateFrom, dateTo }: Props) {
           onChange={(e) => buildUrl({ dateFrom: e.target.value })} />
       </div>
 
-      {/* Hasta */}
+      {/* To */}
       <div>
         <label className="form-label text-[10px]">Hasta</label>
         <input type="date" defaultValue={dateTo}
@@ -64,7 +64,7 @@ export default function CitasFilters({ status, dateFrom, dateTo }: Props) {
           onChange={(e) => buildUrl({ dateTo: e.target.value })} />
       </div>
 
-      {/* Limpiar */}
+      {/* Clear */}
       {(status && status !== 'ALL' || dateFrom || dateTo) && (
         <button type="button"
           onClick={() => router.push('/admin/citas')}

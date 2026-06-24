@@ -1,0 +1,96 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: appointment-scheduling-dev
+
+resources:
+  - ../../base
+
+patches:
+  - target:
+      kind: Namespace
+      name: appointment-scheduling
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: appointment-scheduling-dev
+
+  - target:
+      kind: Deployment
+      name: appointment-scheduling
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 2
+
+  - target:
+      kind: Ingress
+      name: appointment-scheduling
+    patch: |-
+      - op: add
+        path: /spec/ingressClassName
+        value: traefik
+      - op: replace
+        path: /spec/rules/0/host
+        value: appointment-scheduling.example.com   # rewritten by user-data / deploy
+      # The namespace is renamed to appointment-scheduling-dev in this overlay,
+      # but kustomize doesn't rewrite string values inside annotations —
+      # you must point the middleware to the correct namespace manually.
+      - op: replace
+        path: /metadata/annotations/traefik.ingress.kubernetes.io~1router.middlewares
+        value: appointment-scheduling-dev-error-pages@kubernetescrd
+
+  - path: tls-patch.yaml
+    target:
+      kind: Ingress
+      name: appointment-scheduling
+
+  - target:
+      kind: PodDisruptionBudget
+      name: appointment-scheduling
+    patch: |-
+      - op: replace
+        path: /spec/minAvailable
+        value: 1
+
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: appointment-scheduling
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 2
+      - op: replace
+        path: /spec/maxReplicas
+        value: 3
+
+  - target:
+      kind: ConfigMap
+      name: appointment-scheduling-config
+    patch: |-
+      - op: replace
+        path: /data/AWS_S3_BUCKET
+        value: "appointment-scheduling-dev-assets"
+      - op: replace
+        path: /data/ENABLE_EMAILS
+        value: "true"
+      - op: replace
+        path: /data/SES_FROM_EMAIL
+        value: "no-reply@dev.vjbeautystudio.com"
+      - op: replace
+        path: /data/GOOGLE_CLIENT_EMAIL
+        value: "vj-beauty-studio@vj-beauty-studio-498718.iam.gserviceaccount.com"
+      - op: replace
+        path: /data/GOOGLE_CALENDAR_ID
+        value: "valentinajimenezbeautystudio@gmail.com"
+      - op: replace
+        path: /data/NEXT_PUBLIC_APP_URL
+        value: "https://appointment-scheduling.example.com"
+      - op: replace
+        path: /data/NEXTAUTH_URL
+        value: "https://appointment-scheduling.example.com"
+
+images:
+  - name: appointment-scheduling
+    newName: ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/appointment-scheduling-dev-nextjs
+    newTag: latest

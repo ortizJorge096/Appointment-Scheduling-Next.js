@@ -1,13 +1,18 @@
 import type { Metadata } from 'next'
 import Navbar from '@/components/public/Navbar'
+import NosotrosImage from '@/components/public/NosotrosImage'
 import Hero from '@/components/public/Hero'
+import WhatsAppFab from '@/components/public/WhatsAppFab'
 import ServicesGrid from '@/components/public/ServicesGrid'
+import Galeria from '@/components/public/Galeria'
+import Testimonios from '@/components/public/Testimonios'
 import BookingSection from '@/components/public/BookingSection'
+import FAQ from '@/components/public/FAQ'
 import Footer from '@/components/public/Footer'
 import { STUDIO, WHATSAPP_URL, MAILTO_URL } from '@/lib/config'
+import { PinIcon, ClockIcon, PhoneIcon, MailIcon } from '@/components/public/ServiceIcons'
 
-export const dynamic = 'force-dynamic'
-export const metadata: Metadata = { title: `Manicure profesional en ${STUDIO.city}` }
+export const metadata: Metadata = { title: `Uñas, pestañas y cejas en ${STUDIO.city}` }
 
 export default function HomePage() {
   return (
@@ -16,65 +21,47 @@ export default function HomePage() {
       <main>
         <Hero />
         <ServicesGrid />
-        <GaleriaSection />
+        <BeneficiosSection />
+        <Galeria />
+        <Testimonios />
         <NosotrosSection />
         <BookingSection />
         <ContactoSection />
+        <FAQ />
       </main>
       <Footer />
+      <WhatsAppFab />
     </>
   )
 }
 
-function GaleriaSection() {
+function BeneficiosSection() {
   const items = [
-    { id: 1, label: 'Nail art floral',     sub: 'Gel · 60 min'      },
-    { id: 2, label: 'Gel nude clásico',    sub: 'Gel · 60 min'      },
-    { id: 3, label: 'Acrílico french',     sub: 'Acrílico · 90 min' },
-    { id: 4, label: 'Nail art geométrico', sub: 'Nail art · 60 min' },
-    { id: 5, label: 'Gel holográfico',     sub: 'Gel · 60 min'      },
-    { id: 6, label: 'Manicure clásica',    sub: 'Clásica · 45 min'  },
-  ]
-  const grads = [
-    'linear-gradient(145deg,#F2EBD9 0%,#B8932A 60%,#111111 100%)',
-    'linear-gradient(145deg,#E8DCC4 0%,#D4AD5A 70%,#1E1E1E 100%)',
-    'linear-gradient(145deg,#111111 0%,#B8932A 50%,#F2EBD9 100%)',
-    'linear-gradient(145deg,#1E1E1E 0%,#D4AD5A 40%,#E8DCC4 100%)',
-    'linear-gradient(145deg,#F5EDDA 0%,#8A6E1E 50%,#111111 100%)',
-    'linear-gradient(145deg,#111111 30%,#B8932A 100%)',
+    { icon: '✦', title: 'Productos premium',       text: 'Marcas profesionales e insumos de primera en cada servicio.' },
+    { icon: '✛', title: 'Bioseguridad',            text: 'Material esterilizado y protocolos de higiene estrictos.' },
+    { icon: '♥', title: 'Atención personalizada',  text: 'Asesoría según tu estilo, tus rasgos y lo que buscas.' },
+    { icon: '⏱', title: 'Puntualidad',             text: 'Agenda controlada para que nunca esperes de más.' },
   ]
   return (
-    <section id="galeria" className="py-24 bg-beige">
+    <section className="py-24 bg-beige/30">
       <div className="max-w-7xl mx-auto px-6 lg:px-10">
         <div className="text-center mb-14">
-          <span className="section-tag justify-center mb-4">Nuestro trabajo</span>
-          <h2 className="text-4xl lg:text-5xl font-serif font-light text-ink">
-            Galería de <em className="text-gold italic">diseños</em>
+          <span className="eyebrow-center">Por qué elegirnos</span>
+          <h2 className="text-4xl lg:text-5xl font-serif font-light text-ink mt-5">
+            Lujo accesible, sin <em className="text-gold italic">compromisos</em>
           </h2>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {items.map((item, i) => (
-            <div key={item.id}
-              className="aspect-square relative overflow-hidden group cursor-pointer">
-              <div className="w-full h-full transition-transform duration-500 group-hover:scale-105"
-                style={{ background: grads[i] }} />
-              <div className="absolute inset-0 bg-ink/50 opacity-0 group-hover:opacity-100
-                              transition-opacity duration-300 flex flex-col justify-end p-5">
-                <p className="text-white text-sm font-medium">{item.label}</p>
-                <p className="text-gold text-xs mt-0.5">{item.sub}</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {items.map((b) => (
+            <div key={b.title} className="card-premium p-7 text-center">
+              <div className="flex justify-center mb-4">
+                <span className="svc-icon-ring w-14 h-14 text-2xl">{b.icon}</span>
               </div>
+              <h3 className="font-serif text-xl text-ink mb-2">{b.title}</h3>
+              <p className="text-sm text-ink-muted leading-relaxed">{b.text}</p>
             </div>
           ))}
         </div>
-        <p className="text-center text-xs text-ink-muted mt-8 italic">
-          Síguenos en Instagram{' '}
-          <a href={`https://instagram.com/${STUDIO.instagram}`}
-            target="_blank" rel="noreferrer"
-            className="text-gold hover:underline">
-            @{STUDIO.instagram}
-          </a>
-          {' '}para ver todos nuestros trabajos
-        </p>
       </div>
     </section>
   )
@@ -88,12 +75,12 @@ function NosotrosSection() {
           <div>
             <span className="section-tag mb-6">Quiénes somos</span>
             <h2 className="text-4xl lg:text-5xl font-serif font-light text-ink mb-6">
-              Pasión por el arte<br />en tus <em className="text-gold italic">manos</em>
+              Pasión por<br />realzar tu <em className="text-gold italic">belleza</em>
             </h2>
             <p className="text-ink-muted text-base leading-relaxed mb-4">
-              Somos un beauty studio especializado en manicure profesional en {STUDIO.city}.
-              Más de 3 años dedicados al cuidado y embellecimiento de las manos con
-              productos de alta calidad y técnicas actualizadas.
+              Somos un beauty studio especializado en uñas, pestañas y cejas en {STUDIO.city}.
+              Más de 3 años dedicados al cuidado y embellecimiento de manos, mirada y rostro
+              con productos de alta calidad y técnicas actualizadas.
             </p>
             <p className="text-ink-muted text-base leading-relaxed mb-8">
               Nuestro compromiso es ofrecerte una experiencia premium, higiénica y con
@@ -101,9 +88,9 @@ function NosotrosSection() {
             </p>
             <div className="grid grid-cols-3 gap-6 pt-6 border-t border-beige-dark">
               {[
-                { value: '+3',   label: 'Años de experiencia'  },
-                { value: '+200', label: 'Clientas satisfechas'  },
-                { value: '6',    label: 'Servicios disponibles' },
+                { value: '+3',  label: 'Años de experiencia'  },
+                { value: '+80', label: 'Clientas satisfechas'  },
+                { value: '+25', label: 'Servicios disponibles' },
               ].map((s) => (
                 <div key={s.label}>
                   <p className="font-serif text-3xl text-gold font-light">{s.value}</p>
@@ -112,14 +99,7 @@ function NosotrosSection() {
               ))}
             </div>
           </div>
-          <div className="relative">
-            <div className="w-full aspect-[4/5]"
-              style={{ background: 'linear-gradient(160deg,#F2EBD9 0%,#B8932A 50%,#111111 100%)' }} />
-            <div className="absolute -bottom-6 -left-6 bg-ink border border-gold/30 p-5 shadow-lg">
-              <p className="text-xs text-gold/60 tracking-widest uppercase mb-1">Certificadas en</p>
-              <p className="font-serif text-lg text-white">Nail art · Gel · Acrílico</p>
-            </div>
-          </div>
+          <NosotrosImage />
         </div>
       </div>
     </section>
@@ -127,58 +107,70 @@ function NosotrosSection() {
 }
 
 function ContactoSection() {
+  const q       = encodeURIComponent(STUDIO.address)
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${q}`
+  const embedUrl = `https://www.google.com/maps?q=${q}&output=embed`
   return (
     <section id="contacto" className="py-24 bg-beige">
-      <div className="max-w-3xl mx-auto px-6 lg:px-10 text-center">
-        <span className="section-tag justify-center mb-6">Contáctanos</span>
-        <h2 className="text-4xl lg:text-5xl font-serif font-light text-ink mb-4">
-          ¿Tienes <em className="text-gold italic">preguntas</em>?
-        </h2>
-        <p className="text-ink-muted text-base leading-relaxed mb-12 max-w-md mx-auto">
-          Escríbenos por WhatsApp o al correo. Con gusto te asesoramos.
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-12">
-          {[
-            {
-              icon: '📍',
-              label: 'Ubicación',
-              value: STUDIO.city,
-              sub: `${STUDIO.state}, ${STUDIO.country}`,
-              href: undefined,
-            },
-            {
-              icon: '📱',
-              label: 'WhatsApp',
-              value: STUDIO.phone,
-              sub: STUDIO.hours,
-              href: WHATSAPP_URL,
-            },
-            {
-              icon: '✉️',
-              label: 'Email',
-              value: STUDIO.email,
-              sub: 'Respondemos en 24h',
-              href: MAILTO_URL,
-            },
-          ].map((item) => (
-            <div key={item.label} className="bg-white border border-beige-dark p-6 text-left">
-              <p className="text-2xl mb-3">{item.icon}</p>
-              <p className="text-xs text-gold tracking-widest uppercase mb-2">{item.label}</p>
-              {item.href ? (
-                <a href={item.href} target="_blank" rel="noreferrer"
-                  className="text-sm text-ink font-medium hover:text-gold transition-colors block">
-                  {item.value}
-                </a>
-              ) : (
-                <p className="text-sm text-ink font-medium">{item.value}</p>
-              )}
-              <p className="text-xs text-ink-muted mt-1">{item.sub}</p>
-            </div>
-          ))}
+      <div className="max-w-7xl mx-auto px-6 lg:px-10">
+        <div className="text-center mb-14">
+          <span className="section-tag justify-center mb-6">Contáctanos</span>
+          <h2 className="text-4xl lg:text-5xl font-serif font-light text-ink mb-4">
+            ¿Tienes <em className="text-gold italic">preguntas</em>?
+          </h2>
+          <p className="text-ink-muted text-base leading-relaxed max-w-md mx-auto">
+            Escríbenos por WhatsApp o al correo. Con gusto te asesoramos.
+          </p>
         </div>
-        <a href={WHATSAPP_URL} target="_blank" rel="noreferrer" className="btn-primary inline-block">
-          Escribir por WhatsApp
-        </a>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-stretch">
+          <div>
+            <div className="flex gap-3 py-3.5 border-b border-beige-deeper items-start">
+              <PinIcon className="text-gold-dark w-5 h-5 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-ink text-[15px]">Dirección</p>
+                <p className="text-sm text-ink-muted">{STUDIO.address}</p>
+              </div>
+            </div>
+            <div className="flex gap-3 py-3.5 border-b border-beige-deeper items-start">
+              <ClockIcon className="text-gold-dark w-5 h-5 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-ink text-[15px]">Horario</p>
+                <p className="text-sm text-ink-muted">{STUDIO.hours}</p>
+              </div>
+            </div>
+            <div className="flex flex-col gap-3 mt-6">
+              <a href={WHATSAPP_URL} target="_blank" rel="noreferrer"
+                className="flex items-center gap-4 bg-white border border-beige-dark p-5 text-left hover:border-gold transition-colors">
+                <PhoneIcon className="text-gold-dark w-6 h-6 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-xs text-gold tracking-widest uppercase mb-1">WhatsApp</p>
+                  <p className="text-sm text-ink font-medium">{STUDIO.phone}</p>
+                </div>
+              </a>
+              <a href={MAILTO_URL} target="_blank" rel="noreferrer"
+                className="flex items-center gap-4 bg-white border border-beige-dark p-5 text-left hover:border-gold transition-colors">
+                <MailIcon className="text-gold-dark w-6 h-6 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-xs text-gold tracking-widest uppercase mb-1">Email</p>
+                  <p className="text-sm text-ink font-medium break-all">{STUDIO.email}</p>
+                </div>
+              </a>
+            </div>
+          </div>
+          <div className="relative rounded-2xl overflow-hidden shadow-md border border-beige-dark/60 h-full min-h-[400px]">
+            <iframe
+              src={embedUrl}
+              title="Mapa — Valentina Jimenez Beauty Studio"
+              width="100%" height="100%" loading="lazy"
+              style={{ border: 0 }}
+              referrerPolicy="no-referrer-when-downgrade"
+            />
+            <a href={mapsUrl} target="_blank" rel="noreferrer"
+              className="btn-cta absolute bottom-4 left-4 shadow-lg">
+              Cómo llegar
+            </a>
+          </div>
+        </div>
       </div>
     </section>
   )

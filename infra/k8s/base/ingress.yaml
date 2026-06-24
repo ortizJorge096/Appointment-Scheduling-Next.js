@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: appointment-scheduling
+  annotations:
+    # When the backend has no ready pods (DB down = pods NotReady),
+    # Traefik intercepts 5xx responses and redirects to the error-pages service,
+    # which serves the branded maintenance page.
+    traefik.ingress.kubernetes.io/router.middlewares: appointment-scheduling-error-pages@kubernetescrd
+spec:
+  rules:
+    - host: appointment-scheduling.example.com   # replaced by overlay/CI
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: appointment-scheduling
+                port:
+                  number: 80

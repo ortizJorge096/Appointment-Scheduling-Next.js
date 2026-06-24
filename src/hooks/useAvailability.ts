@@ -14,11 +14,12 @@ interface UseAvailabilityResult {
 }
 
 export function useAvailability(
-  serviceId: string,
-  date: string
+  serviceId: string | undefined,
+  date: string,
+  durationMinutes?: number
 ): UseAvailabilityResult {
   const [slots, setSlots]               = useState<TimeSlot[]>([])
-  const [durationMinutes, setDuration]  = useState(0)
+  const [duration, setDuration]         = useState(0)
   const [loading, setLoading]           = useState(false)
   const [error, setError]               = useState<string | null>(null)
   const [trigger, setTrigger]           = useState(0)
@@ -26,15 +27,21 @@ export function useAvailability(
   const refetch = useCallback(() => setTrigger((n) => n + 1), [])
 
   useEffect(() => {
-    if (!serviceId || !date) { setSlots([]); return }
+    if ((!serviceId && !durationMinutes) || !date) return
 
     const controller = new AbortController()
-    setLoading(true)
-    setError(null)
 
-    fetch(`/api/availability?date=${date}&serviceId=${serviceId}`, {
-      signal: controller.signal,
-    })
+    // Build URL based on what we have
+    let url: string
+    if (serviceId) {
+      url = `/api/availability?date=${date}&serviceId=${serviceId}`
+    } else if (durationMinutes) {
+      url = `/api/availability?date=${date}&durationMinutes=${durationMinutes}`
+    } else {
+      return
+    }
+
+    fetch(url, { signal: controller.signal })
       .then((r) => r.json())
       .then((json) => {
         if (json.success) {
@@ -54,12 +61,12 @@ export function useAvailability(
       .finally(() => setLoading(false))
 
     return () => controller.abort()
-  }, [serviceId, date, trigger])
+  }, [serviceId, date, durationMinutes, trigger])
 
   return {
     slots,
     availableSlots: slots.filter((s) => s.available),
-    durationMinutes,
+    durationMinutes: duration,
     loading,
     error,
     refetch,

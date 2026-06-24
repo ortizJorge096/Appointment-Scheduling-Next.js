@@ -5,17 +5,19 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: {
-    default: `${STUDIO.name} — Manicure profesional en ${STUDIO.city}`,
+    default:  `${STUDIO.name} — Uñas, pestañas y cejas en ${STUDIO.city}`,
     template: `%s · ${STUDIO.name}`,
   },
-  description: STUDIO.description,
-  keywords:    [...STUDIO.keywords],
-  authors:     [{ name: STUDIO.name }],
+  description:  STUDIO.description,
+  keywords:     [...STUDIO.keywords],
+  authors:      [{ name: STUDIO.name }],
   metadataBase: new URL(STUDIO.url),
   openGraph: {
-    type: 'website', locale: 'es_CO',
-    url: STUDIO.url, siteName: STUDIO.name,
-    title: `${STUDIO.name} — Manicure profesional en ${STUDIO.city}`,
+    type:        'website',
+    locale:      'es_CO',
+    url:         STUDIO.url,
+    siteName:    STUDIO.name,
+    title:       `${STUDIO.name} — Uñas, pestañas y cejas en ${STUDIO.city}`,
     description: STUDIO.description,
   },
   robots: { index: true, follow: true },
@@ -24,6 +26,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
+      <head>
+        {/* Preconnect removes DNS/TLS latency before CSS requests the fonts */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+      </head>
       <body className="antialiased">{children}</body>
     </html>
   )

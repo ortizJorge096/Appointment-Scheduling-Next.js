@@ -1,38 +1,39 @@
 // scripts/send-reminders.ts
-// Cron job — envía recordatorios 24h antes de cada cita confirmada
+// Cron job — sends reminders 24h before each confirmed appointment
 //
 // Configurar en EC2 con crontab:
-//   0 8 * * * cd /app && npx ts-node scripts/send-reminders.ts >> /var/log/valentinajimenez-reminders.log 2>&1
+//   0 8 * * * cd /app && npx ts-node scripts/send-reminders.ts >> /var/log/vj-reminders.log 2>&1
 //
-// Esto se ejecuta todos los días a las 8:00 AM y envía recordatorios
-// para las citas del día siguiente.
+// Runs every morning and sends reminders for the next day's appointments
+// (día siguiente calculado en zona horaria America/Bogota).
 
-import { PrismaClient } from '@prisma/client'
-import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses'
-export const dynamic = 'force-dynamic'
-
-// Cargar variables de entorno en scripts
 import * as dotenv from 'dotenv'
 dotenv.config({ path: '.env.local' })
 
+import { PrismaClient } from '@prisma/client'
+import { addDays, format } from 'date-fns'
+import { toZonedTime } from 'date-fns-tz'
+import { sendReminderEmail } from '../src/lib/email'
+import type { AppointmentWithService } from '../src/types'
+
 const prisma = new PrismaClient()
-const ses = new SESClient({ region: process.env.AWS_REGION! })
+const TZ = 'America/Bogota'
 
 async function main() {
   console.log(`\n🔔 [${new Date().toISOString()}] Iniciando envío de recordatorios...`)
 
-  // Calcular rango: mañana desde 00:00 hasta 23:59
-  const tomorrow = new Date()
-  tomorrow.setDate(tomorrow.getDate() + 1)
-  tomorrow.setHours(0, 0, 0, 0)
+  // "Tomorrow" in Colombia time, not server time
+  const nowBogota   = toZonedTime(new Date(), TZ)
+  const tomorrowStr = format(addDays(nowBogota, 1), 'yyyy-MM-dd')
+  const start = new Date(`${tomorrowStr}T00:00:00`)
+  const end   = new Date(`${tomorrowStr}T23:59:59.999`)
 
-  const tomorrowEnd = new Date(tomorrow)
-  tomorrowEnd.setHours(23, 59, 59, 999)
+  console.log(`📅 Buscando citas para ${tomorrowStr} (America/Bogota)`)
 
-  // Citas confirmadas de mañana sin recordatorio enviado aún
+  // Tomorrow's confirmed appointments without reminder sent yet
   const appointments = await prisma.appointment.findMany({
     where: {
-      date: { gte: tomorrow, lte: tomorrowEnd },
+      date: { gte: start, lte: end },
       status: 'CONFIRMED',
       reminderSentAt: null,
     },
@@ -47,39 +48,15 @@ async function main() {
 
   let sent = 0
   let failed = 0
+  let skipped = 0
 
   for (const appt of appointments) {
+    // Clients without email simply have nothing to remind — skip, don't fail.
+    if (!appt.clientEmail) { skipped++; continue }
     try {
-      const dateFormatted = new Date(appt.date).toLocaleDateString('es-CO', {
-        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-        timeZone: 'America/Bogota',
-      })
+      await sendReminderEmail(appt as unknown as AppointmentWithService)
 
-      await ses.send(new SendEmailCommand({
-        Source: `valentinajimenez <${process.env.SES_FROM_EMAIL}>`,
-        Destination: { ToAddresses: [appt.clientEmail] },
-        Message: {
-          Subject: {
-            Data: `Recordatorio: tu cita de ${appt.service.name} es mañana · valentinajimenez`,
-            Charset: 'UTF-8',
-          },
-          Body: {
-            Html: {
-              Charset: 'UTF-8',
-              Data: `
-                <p>Hola ${appt.clientName},</p>
-                <p>Tu cita de <strong>${appt.service.name}</strong> es mañana,
-                   <strong>${dateFormatted} a las ${appt.startTime}</strong>.</p>
-                <p>¡Te esperamos! Recuerda llegar 5 minutos antes.</p>
-                <br/>
-                <p style="color:#999;font-size:12px;">Valentina Jimenez Beauty Studio</p>
-              `,
-            },
-          },
-        },
-      }))
-
-      // Registrar que el recordatorio fue enviado
+      // Record that the reminder was sent
       await prisma.appointment.update({
         where: { id: appt.id },
         data: { reminderSentAt: new Date() },
@@ -93,7 +70,7 @@ async function main() {
     }
   }
 
-  console.log(`\n✅ Enviados: ${sent} | ❌ Fallidos: ${failed}`)
+  console.log(`\n✅ Enviados: ${sent} | ⏭️  Omitidos (sin email): ${skipped} | ❌ Fallidos: ${failed}`)
   console.log(`🏁 Proceso completado.\n`)
 }
 

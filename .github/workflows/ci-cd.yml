@@ -1,0 +1,354 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "20.19"
+  AWS_REGION: us-east-1
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────
+  # 1) Lint (next lint)
+  # ─────────────────────────────────────────────────────────────────────
+  lint:
+    name: Lint (Next.js)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm install --no-audit --no-fund
+      - run: npx prisma generate
+      - run: npm run lint
+
+  # ─────────────────────────────────────────────────────────────────────
+  # 2) Typecheck (tsc --noEmit)
+  # ─────────────────────────────────────────────────────────────────────
+  typecheck:
+    name: Typecheck (tsc)
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm install --no-audit --no-fund
+      - run: npx prisma generate
+      - run: npx tsc --noEmit
+
+  # ─────────────────────────────────────────────────────────────────────
+  # 3) Unit Tests (Vitest)
+  # ─────────────────────────────────────────────────────────────────────
+  test:
+    name: Unit Tests (Vitest)
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm install --no-audit --no-fund
+      - run: npx prisma generate
+      - run: npm test
+
+  # ─────────────────────────────────────────────────────────────────────
+  # 4) SAST — gitleaks
+  # ─────────────────────────────────────────────────────────────────────
+  sast:
+    name: Secret Scanning (gitleaks)
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ─────────────────────────────────────────────────────────────────────
+  # 4) Validate K8s manifests
+  # ─────────────────────────────────────────────────────────────────────
+  validate-k8s:
+    name: Validate K8s Manifests
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install kustomize & kubeconform
+        run: |
+          set -eu
+          curl -sSL "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/v5.4.3/kustomize_v5.4.3_linux_amd64.tar.gz" \
+            | tar -xz -C /usr/local/bin
+          curl -sSL "https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz" \
+            | tar -xz -C /usr/local/bin
+      - name: Build base + overlays
+        run: |
+          mkdir -p out
+          kustomize build infra/k8s/overlays/local > out/local.yaml
+          kustomize build infra/k8s/overlays/dev   > out/dev.yaml
+          kustomize build infra/k8s/overlays/prod  > out/prod.yaml
+      - name: kubeconform — schema validation
+        run: |
+          kubeconform -strict -summary -ignore-missing-schemas \
+            -schema-location default \
+            -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
+            out/local.yaml out/dev.yaml out/prod.yaml
+
+  # ─────────────────────────────────────────────────────────────────────
+  # 5) Build & push image to ECR (OIDC, sin keys)
+  # ─────────────────────────────────────────────────────────────────────
+  build-push:
+    name: Build & Push (ECR)
+    runs-on: ubuntu-latest
+    needs: [typecheck, sast]
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      image: ${{ steps.tags.outputs.image }}
+      digest: ${{ steps.build.outputs.digest }}
+      sha_tag: ${{ steps.tags.outputs.sha_tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Login to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - name: Compute tags
+        id: tags
+        run: |
+          REG="${{ steps.ecr.outputs.registry }}"
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            REPO="appointment-scheduling-prod-nextjs"
+          else
+            REPO="appointment-scheduling-dev-nextjs"
+          fi
+          SHA="sha-$(git rev-parse --short HEAD)"
+          BRANCH="$(echo '${{ github.ref_name }}' | tr '/' '-')"
+          IMAGE="$REG/$REPO"
+          {
+            echo "image=$IMAGE"
+            echo "sha_tag=$IMAGE:$SHA"
+            echo "branch_tag=$IMAGE:$BRANCH"
+            echo "latest_tag=$IMAGE:latest"
+          } >> "$GITHUB_OUTPUT"
+      - name: Build & push
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: |
+            ${{ steps.tags.outputs.sha_tag }}
+            ${{ steps.tags.outputs.branch_tag }}
+            ${{ steps.tags.outputs.latest_tag }}
+          target: runner
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.title=appointment-scheduling
+            org.opencontainers.image.licenses=MIT
+
+  # ─────────────────────────────────────────────────────────────────────
+  # 6) Vulnerability scan (Trivy)
+  # ─────────────────────────────────────────────────────────────────────
+  image-scan:
+    name: Vulnerability Scan (Trivy)
+    runs-on: ubuntu-latest
+    needs: build-push
+    permissions:
+      contents: read
+      security-events: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - uses: aws-actions/amazon-ecr-login@v2
+      - name: Trivy scan
+        uses: aquasecurity/trivy-action@0.35.0
+        with:
+          image-ref: ${{ needs.build-push.outputs.sha_tag }}
+          format: 'sarif'
+          output: 'trivy.sarif'
+          ignore-unfixed: true
+          severity: 'HIGH,CRITICAL'
+          exit-code: '0'
+      - name: Upload Trivy SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy.sarif
+
+  # ─────────────────────────────────────────────────────────────────────
+  # 7) Deploy to k3s — DEV (develop branch)
+  # ─────────────────────────────────────────────────────────────────────
+  deploy-dev:
+    name: Deploy to k3s (dev)
+    runs-on: [self-hosted, k3s-dev]
+    needs: [build-push, image-scan, validate-k8s]
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+
+    environment:
+      name: dev
+      url: ${{ vars.APP_URL }}
+
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install kustomize (if missing)
+        run: |
+          if ! command -v kustomize >/dev/null 2>&1; then
+            curl -sSL "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/v5.4.3/kustomize_v5.4.3_linux_amd64.tar.gz" \
+              | sudo tar -xz -C /usr/local/bin
+          fi
+          kustomize version
+
+      - name: Set image tag, host and apply
+        env:
+          IMG: ${{ needs.build-push.outputs.sha_tag }}
+        run: |
+          set -euxo pipefail
+          # Host is the single source of truth in Terraform/SSM (non-secret String),
+          # same fetch pattern as the secrets below.
+          DEV_HOST=$(aws ssm get-parameter --region us-east-1 --name /appointment-scheduling-dev/app/host --query Parameter.Value --output text)
+          sed -i "s|appointment-scheduling.example.com|${DEV_HOST}|g" \
+            infra/k8s/overlays/dev/kustomization.yaml \
+            infra/k8s/overlays/dev/tls-patch.yaml
+
+          cd infra/k8s/overlays/dev
+          kustomize edit set image appointment-scheduling="$IMG"
+          cd "$GITHUB_WORKSPACE"
+
+          kustomize build infra/k8s/overlays/dev | kubectl apply -f -
+          # kustomize overwrites the secret with a placeholder — restore real values
+          DATABASE_URL=$(aws ssm get-parameter --region us-east-1 --name /appointment-scheduling-dev/db/url --with-decryption --query Parameter.Value --output text)
+          NEXTAUTH_SECRET=$(aws ssm get-parameter --region us-east-1 --name /appointment-scheduling-dev/nextauth/secret --with-decryption --query Parameter.Value --output text)
+          GOOGLE_PRIVATE_KEY=$(aws ssm get-parameter --region us-east-1 --name /appointment-scheduling-dev/google/calendar-private-key --with-decryption --query Parameter.Value --output text)
+          # Only SENSITIVE values in the Secret — the rest goes in the ConfigMap (kustomize overlay)
+          kubectl -n appointment-scheduling-dev create secret generic appointment-scheduling-secret \
+            --from-literal=DATABASE_URL="$DATABASE_URL" \
+            --from-literal=NEXTAUTH_SECRET="$NEXTAUTH_SECRET" \
+            --from-literal=GOOGLE_PRIVATE_KEY="$GOOGLE_PRIVATE_KEY" \
+            --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n appointment-scheduling-dev rollout restart deployment/appointment-scheduling
+          kubectl -n appointment-scheduling-dev rollout status deployment/appointment-scheduling --timeout=600s
+
+      - name: Print cluster state (audit)
+        if: always()
+        run: |
+          for kind in pods svc ingress hpa pdb; do
+            echo "── $kind ──"
+            kubectl -n appointment-scheduling-dev get "$kind" || true
+          done
+
+  # ─────────────────────────────────────────────────────────────────────
+  # 8) Deploy to k3s — PROD (main branch)
+  # ─────────────────────────────────────────────────────────────────────
+  deploy-prod:
+    name: Deploy to k3s (prod)
+    runs-on: [self-hosted, k3s-prod]
+    needs: [build-push, image-scan, validate-k8s]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    environment:
+      name: production
+      url: ${{ vars.APP_URL }}
+
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install kustomize (if missing)
+        run: |
+          if ! command -v kustomize >/dev/null 2>&1; then
+            curl -sSL "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/v5.4.3/kustomize_v5.4.3_linux_amd64.tar.gz" \
+              | sudo tar -xz -C /usr/local/bin
+          fi
+          kustomize version
+
+      - name: Set image tag and apply
+        env:
+          IMG: ${{ needs.build-push.outputs.sha_tag }}
+        run: |
+          set -euxo pipefail
+          # Host is the single source of truth in Terraform/SSM (non-secret String),
+          # same fetch pattern as the secrets below.
+          PROD_HOST=$(aws ssm get-parameter --region us-east-1 --name /appointment-scheduling-prod/app/host --query Parameter.Value --output text)
+          sed -i "s|appointment-scheduling.example.com|${PROD_HOST}|g" \
+            infra/k8s/overlays/prod/kustomization.yaml \
+            infra/k8s/overlays/prod/tls-patch.yaml
+
+          cd infra/k8s/overlays/prod
+          kustomize edit set image appointment-scheduling="$IMG"
+          cd "$GITHUB_WORKSPACE"
+
+          kustomize build infra/k8s/overlays/prod | kubectl apply -f -
+
+          # Refresh Secret with current SSM values (in case they rotated)
+          DATABASE_URL=$(aws ssm get-parameter --region us-east-1 \
+            --name /appointment-scheduling-prod/db/url \
+            --with-decryption --query Parameter.Value --output text)
+          NEXTAUTH_SECRET=$(aws ssm get-parameter --region us-east-1 \
+            --name /appointment-scheduling-prod/nextauth/secret \
+            --with-decryption --query Parameter.Value --output text)
+          GOOGLE_PRIVATE_KEY=$(aws ssm get-parameter --region us-east-1 \
+            --name /appointment-scheduling-prod/google/calendar-private-key \
+            --with-decryption --query Parameter.Value --output text)
+          kubectl -n appointment-scheduling create secret generic appointment-scheduling-secret \
+            --from-literal=DATABASE_URL="$DATABASE_URL" \
+            --from-literal=NEXTAUTH_SECRET="$NEXTAUTH_SECRET" \
+            --from-literal=GOOGLE_PRIVATE_KEY="$GOOGLE_PRIVATE_KEY" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+          kubectl -n appointment-scheduling rollout restart deployment/appointment-scheduling
+          kubectl -n appointment-scheduling rollout status deployment/appointment-scheduling --timeout=600s
+
+      - name: Print cluster state (audit)
+        if: always()
+        run: |
+          for kind in pods svc ingress hpa pdb certificate; do
+            echo "── $kind ──"
+            kubectl -n appointment-scheduling get "$kind" 2>/dev/null || true
+          done

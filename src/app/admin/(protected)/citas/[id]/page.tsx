@@ -1,37 +1,33 @@
 'use client'
 // src/app/admin/citas/[id]/page.tsx
-// Detalle de cita con acciones: confirmar, completar, cancelar
+// Appointment detail with actions: confirm, complete, cancel
 
 import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { formatPrice } from '@/lib/utils'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
+import { STATUS_LABEL, STATUS_CLASS } from '@/lib/appointmentStatus'
 import type { AppointmentWithService, AppointmentStatus } from '@/types'
 
-const STATUS_LABEL: Record<string, string> = {
-  PENDING:   'Pendiente',
-  CONFIRMED: 'Confirmada',
-  COMPLETED: 'Completada',
-  CANCELLED: 'Cancelada',
-  NO_SHOW:   'No asistió',
-}
+const PAYMENT_STATUS_OPTS = [
+  { v: 'PENDING', l: 'Sin pago' },
+  { v: 'PAID',    l: 'Pagado' },
+  { v: 'PARTIAL', l: 'Parcial' },
+  { v: 'WAIVED',  l: 'Cortesía' },
+]
+const PAYMENT_METHOD_OPTS = [
+  { v: 'EFECTIVO',      l: 'Efectivo' },
+  { v: 'TRANSFERENCIA', l: 'Transferencia' },
+  { v: 'TARJETA',       l: 'Tarjeta' },
+  { v: 'NEQUI',         l: 'Nequi' },
+  { v: 'DAVIPLATA',     l: 'Daviplata' },
+]
 
-const STATUS_CLASS: Record<string, string> = {
-  PENDING:   'badge-pending',
-  CONFIRMED: 'badge-confirmed',
-  COMPLETED: 'badge-completed',
-  CANCELLED: 'badge-cancelled',
-  NO_SHOW:   'badge-no_show',
-}
 
-function formatPrice(p: number) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency', currency: 'COP', minimumFractionDigits: 0,
-  }).format(p)
-}
-
-// Acciones disponibles según estado actual
+// Available actions based on current status
 const ACTIONS: Record<string, { label: string; status: AppointmentStatus; style: string }[]> = {
   PENDING: [
     { label: 'Confirmar',  status: 'CONFIRMED', style: 'btn-primary' },
@@ -49,7 +45,7 @@ const ACTIONS: Record<string, { label: string; status: AppointmentStatus; style:
 
 export default function CitaDetailPage() {
   const { id }    = useParams<{ id: string }>()
-  const router    = useRouter()
+  const confirm   = useConfirm()
 
   const [appt, setAppt]         = useState<AppointmentWithService | null>(null)
   const [loading, setLoading]   = useState(true)
@@ -57,6 +53,12 @@ export default function CitaDetailPage() {
   const [error, setError]       = useState<string | null>(null)
   const [notes, setNotes]       = useState('')
   const [editNotes, setEditNotes] = useState(false)
+
+  // Payment form
+  const [payStatus, setPayStatus] = useState('PENDING')
+  const [payAmount, setPayAmount] = useState('')
+  const [payMethod, setPayMethod] = useState('')
+  const [savingPay, setSavingPay] = useState(false)
 
   useEffect(() => {
     fetch(`/api/appointments/${id}`)
@@ -69,8 +71,21 @@ export default function CitaDetailPage() {
       .finally(() => setLoading(false))
   }, [id])
 
+  // Keep the payment form in sync with the loaded appointment
+  useEffect(() => {
+    if (!appt) return
+    setPayStatus(appt.paymentStatus)
+    setPayAmount(appt.amountPaid != null ? String(appt.amountPaid) : '')
+    setPayMethod(appt.paymentMethod ?? '')
+  }, [appt])
+
   async function updateStatus(status: AppointmentStatus) {
-    if (!confirm(`¿Cambiar estado a "${STATUS_LABEL[status]}"?`)) return
+    const ok = await confirm({
+      message: `¿Cambiar el estado de esta cita a "${STATUS_LABEL[status]}"?`,
+      confirmLabel: STATUS_LABEL[status],
+      danger: status === 'CANCELLED',
+    })
+    if (!ok) return
     setUpdating(true)
     const res  = await fetch(`/api/appointments/${id}`, {
       method: 'PATCH',
@@ -96,15 +111,44 @@ export default function CitaDetailPage() {
     setUpdating(false)
   }
 
+  async function savePayment(e: React.FormEvent) {
+    e.preventDefault()
+    setSavingPay(true)
+    const res = await fetch(`/api/appointments/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        paymentStatus: payStatus,
+        amountPaid:    payAmount ? parseInt(payAmount) : null,
+        paymentMethod: payMethod || null,
+      }),
+    })
+    const json = await res.json()
+    if (json.success) setAppt(json.data)
+    else setError(json.error)
+    setSavingPay(false)
+  }
+
+  // Quick action: mark the full service price as paid
+  function markPaidFull() {
+    if (!appt) return
+    const totalPrice = appt.services && appt.services.length > 1
+      ? appt.services.reduce((sum, s) => sum + s.price, 0)
+      : appt.service.price
+    setPayStatus('PAID')
+    setPayAmount(String(totalPrice))
+    if (!payMethod) setPayMethod('EFECTIVO')
+  }
+
   if (loading) return (
-    <div className="p-8 flex items-center gap-3 text-ink-muted">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto flex items-center gap-3 text-ink-muted">
       <div className="w-5 h-5 border-2 border-gold border-t-transparent rounded-full animate-spin" />
       Cargando cita...
     </div>
   )
 
   if (error || !appt) return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto">
       <p className="text-red-500 mb-4">{error ?? 'Error'}</p>
       <Link href="/admin/citas" className="btn-secondary">← Volver</Link>
     </div>
@@ -113,7 +157,7 @@ export default function CitaDetailPage() {
   const actions = ACTIONS[appt.status] ?? []
 
   return (
-    <div className="p-8 max-w-3xl">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto">
 
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-xs text-ink-muted mb-6">
@@ -143,21 +187,41 @@ export default function CitaDetailPage() {
         </div>
       )}
 
-      {/* Detalles */}
+      {/* Details */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
 
-        {/* Servicio */}
-        <div className="bg-white border border-beige-dark p-5">
-          <p className="text-xs text-ink-muted uppercase tracking-widest mb-3">Servicio</p>
-          <p className="font-serif text-xl text-ink mb-0.5">{appt.service.name}</p>
-          <p className="text-gold text-lg font-medium">{formatPrice(appt.service.price)}</p>
-          <p className="text-xs text-ink-muted mt-0.5">{appt.service.durationMinutes} min</p>
+        {/* Service */}
+        <div className="bg-white rounded-xl border border-beige-dark p-5">
+          <p className="text-xs text-ink-muted uppercase tracking-widest mb-3">
+            Servicio{appt.services && appt.services.length > 1 ? 's' : ''}
+          </p>
+          {appt.services && appt.services.length > 1 ? (
+            <>
+              {appt.services.map((s) => (
+                <p key={s.id} className="text-sm text-ink">{s.service.name}</p>
+              ))}
+              <p className="text-gold text-lg font-medium mt-1">
+                {formatPrice(appt.services.reduce((sum, s) => sum + s.price, 0))}
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="font-serif text-xl text-ink mb-0.5">{appt.service.name}</p>
+              <p className="text-gold text-lg font-medium">{formatPrice(appt.service.price)}</p>
+              <p className="text-xs text-ink-muted mt-0.5">{appt.service.durationMinutes} min</p>
+            </>
+          )}
+          {appt.extraAmount != null && appt.extraAmount > 0 && (
+            <p className="text-xs text-ink-muted mt-2 pt-2 border-t border-beige-dark">
+              + Adicional{appt.extraDescription ? ` (${appt.extraDescription})` : ''}: {formatPrice(appt.extraAmount)}
+            </p>
+          )}
         </div>
 
-        {/* Fecha y hora */}
-        <div className="bg-white border border-beige-dark p-5">
+        {/* Date and time */}
+        <div className="bg-white rounded-xl border border-beige-dark p-5">
           <p className="text-xs text-ink-muted uppercase tracking-widest mb-3">Fecha y hora</p>
-          <p className="font-serif text-xl text-ink capitalize">
+          <p className="font-serif text-xl text-ink first-letter:uppercase">
             {format(new Date(appt.date), "EEEE d 'de' MMMM", { locale: es })}
           </p>
           <p className="text-ink-muted text-sm mt-1">
@@ -165,15 +229,19 @@ export default function CitaDetailPage() {
           </p>
         </div>
 
-        {/* Contacto */}
-        <div className="bg-white border border-beige-dark p-5">
+        {/* Contact */}
+        <div className="bg-white rounded-xl border border-beige-dark p-5">
           <p className="text-xs text-ink-muted uppercase tracking-widest mb-3">Contacto</p>
-          <p className="text-ink text-sm">{appt.clientEmail}</p>
+          {appt.clientEmail ? (
+            <p className="text-ink text-sm">📧 {appt.clientEmail} <span className="text-xs text-green-600">· notificaciones activas</span></p>
+          ) : (
+            <p className="text-sm text-ink-muted italic">📵 Sin email — el cliente no recibe notificaciones</p>
+          )}
           <p className="text-ink text-sm mt-1">{appt.clientPhone}</p>
         </div>
 
-        {/* Agendamiento */}
-        <div className="bg-white border border-beige-dark p-5">
+        {/* Scheduling */}
+        <div className="bg-white rounded-xl border border-beige-dark p-5">
           <p className="text-xs text-ink-muted uppercase tracking-widest mb-3">Registro</p>
           <p className="text-xs text-ink-muted">
             Agendado el{' '}
@@ -188,8 +256,8 @@ export default function CitaDetailPage() {
         </div>
       </div>
 
-      {/* Notas */}
-      <div className="bg-white border border-beige-dark p-5 mb-8">
+      {/* Notes */}
+      <div className="bg-white rounded-xl border border-beige-dark p-5 mb-8">
         <div className="flex items-center justify-between mb-3">
           <p className="text-xs text-ink-muted uppercase tracking-widest">Notas</p>
           {!editNotes && (
@@ -228,7 +296,40 @@ export default function CitaDetailPage() {
         )}
       </div>
 
-      {/* Acciones de estado */}
+      {/* Payment */}
+      <form onSubmit={savePayment} className="bg-white rounded-xl border border-beige-dark p-5 mb-8">
+        <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+          <p className="text-xs text-ink-muted uppercase tracking-widest">Pago</p>
+          <button type="button" onClick={markPaidFull}
+            className="text-xs text-gold hover:underline">Marcar pagado (total)</button>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label className="form-label">Estado</label>
+            <select className="select-field" value={payStatus} onChange={(e) => setPayStatus(e.target.value)}>
+              {PAYMENT_STATUS_OPTS.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="form-label">Monto pagado (COP)</label>
+            <input type="number" min={0} step={1000} className="input-field" value={payAmount}
+              onChange={(e) => setPayAmount(e.target.value)} placeholder="0" />
+          </div>
+          <div>
+            <label className="form-label">Método</label>
+            <select className="select-field" value={payMethod} onChange={(e) => setPayMethod(e.target.value)}>
+              <option value="">—</option>
+              {PAYMENT_METHOD_OPTS.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}
+            </select>
+          </div>
+        </div>
+        <button type="submit" disabled={savingPay}
+          className="btn-primary text-xs px-5 py-2 mt-4 disabled:opacity-50">
+          {savingPay ? 'Guardando...' : 'Guardar pago'}
+        </button>
+      </form>
+
+      {/* Status actions */}
       {actions.length > 0 && (
         <div className="flex flex-wrap gap-3">
           {actions.map((action) => (

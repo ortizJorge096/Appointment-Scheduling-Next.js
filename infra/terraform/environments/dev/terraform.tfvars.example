@@ -1,0 +1,59 @@
+# Copia este archivo como terraform.tfvars y completa.
+# terraform.tfvars NUNCA se commitea (en .gitignore).
+
+region      = "us-east-1"
+name_prefix = "appointment-scheduling-dev"
+
+github_owner = "ortizJorge096"
+github_repo  = "Appointment-Scheduling-Next.js"
+
+allowed_branches     = ["main", "develop"]
+allowed_environments = ["dev", "production"]
+
+# Si ya tienes el OIDC provider creado en la cuenta (por otro proyecto), ponlo en false.
+create_oidc_provider = true
+
+# Branch y overlay que aplica el user-data en el primer boot.
+git_branch        = "develop"
+kustomize_overlay = "dev"
+
+# Vacío = "<ecr_url>:latest". Pin a un SHA específico para reproducibilidad.
+image_ref = ""
+
+enable_ec2_k3s    = true
+enable_monitoring = true
+
+# Email para alarmas (recibe un confirm; haz clic en el link).
+alarm_email = ""
+
+# PAT con Administration: read+write sobre el repo. Solo se usa al boot
+# para registrar el runner. Vacío = no instalar runner (CI no podrá desplegar).
+github_token = ""
+
+# t3.medium como Spot — único recurso fuera de Free Tier por performance.
+# Cubre k3s + 2 réplicas Next.js + self-hosted runner sin thrashing.
+# Costo aproximado: ~$8/mo Spot (~70% off del on-demand de t3.medium).
+instance_type       = "t3.medium"
+spot_instance_types = ["t3.medium", "t3a.medium", "t3.large"]
+
+runner_labels = "self-hosted,linux,x64,k3s-deploy,k3s-dev"
+
+# TLS — en dev queda en false (ahorra ~100 MB de RAM).
+enable_letsencrypt = false
+letsencrypt_email  = ""
+
+# Hostname público del entorno (A record → EIP). Lo lee el CI desde SSM
+# para fijar el host del ingress, NEXTAUTH_URL y NEXT_PUBLIC_APP_URL.
+app_host = "dev.vjbeautystudio.com"
+
+# Emails de la app (SES). Vacíos hasta que verifiques un remitente.
+ses_from_email = ""
+enable_emails  = false
+
+# RDS Scheduler — apaga la BD por horario para ahorrar costo en dev.
+# Default: apaga cada hora y NO enciende solo (la arrancas a mano cuando la usas).
+# Cambia el cron si quieres otro horario (mismo patrón que prod).
+enable_rds_scheduler  = false
+rds_stop_schedule     = "cron(0 * * * ? *)"   # cada hora
+rds_start_schedule    = ""                     # "" = sin auto-encendido
+rds_schedule_timezone = "UTC"

@@ -1,0 +1,63 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: appointment-scheduling-local
+
+resources:
+  - ../../base
+
+patchesStrategicMerge:
+  - local-secret.yaml
+
+patches:
+  - target:
+      kind: Namespace
+      name: appointment-scheduling
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: appointment-scheduling-local
+
+  # Point to ingress-nginx (minikube/docker-desktop).
+  - target:
+      kind: Ingress
+      name: appointment-scheduling
+    patch: |-
+      - op: add
+        path: /spec/ingressClassName
+        value: nginx
+      - op: replace
+        path: /spec/rules/0/host
+        value: appointment-scheduling.local
+
+  # Disable networkpolicy locally — ingress-nginx lives in another namespace
+  # with different labels depending on the minikube version.
+  - target:
+      kind: NetworkPolicy
+      name: appointment-scheduling
+    patch: |-
+      - op: replace
+        path: /spec/policyTypes
+        value: []
+
+  # Local config: emails disabled, docker-compose Postgres.
+  - target:
+      kind: ConfigMap
+      name: appointment-scheduling-config
+    patch: |-
+      - op: replace
+        path: /data/NEXTAUTH_URL
+        value: "http://appointment-scheduling.local"
+      - op: replace
+        path: /data/NEXT_PUBLIC_APP_URL
+        value: "http://appointment-scheduling.local"
+      - op: replace
+        path: /data/ENABLE_EMAILS
+        value: "false"
+      - op: replace
+        path: /data/NODE_ENV
+        value: "development"
+
+images:
+  - name: appointment-scheduling
+    newTag: dev

@@ -1,8 +1,9 @@
 'use client'
 // src/app/admin/horarios/page.tsx
-// Gestión de horarios por día de semana y fechas bloqueadas
+// Schedule management by weekday and blocked dates
 
 import { useState, useEffect } from 'react'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
 
 const DAYS = [
   { key: 'MONDAY',    label: 'Lunes'     },
@@ -29,13 +30,14 @@ interface BlockedDate {
 }
 
 export default function HorariosPage() {
+  const confirm = useConfirm()
   const [schedules, setSchedules]       = useState<Schedule[]>([])
   const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([])
   const [loading, setLoading]           = useState(true)
   const [saving, setSaving]             = useState<string | null>(null)
   const [message, setMessage]           = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
 
-  // Fecha bloqueada nueva
+  // New blocked date
   const [newBlock, setNewBlock] = useState({ date: '', reason: '' })
   const [addingBlock, setAddingBlock] = useState(false)
 
@@ -45,7 +47,6 @@ export default function HorariosPage() {
   }
 
   async function load() {
-    setLoading(true)
     const [schRes, blkRes] = await Promise.all([
       fetch('/api/schedules'),
       fetch('/api/schedules/blocked'),
@@ -54,7 +55,7 @@ export default function HorariosPage() {
     const blkJson = await blkRes.json()
 
     if (schJson.success) {
-      // Asegurar que todos los días tienen un registro (aunque sea vacío)
+      // Ensure every day has a record (even if empty)
       const map = Object.fromEntries(schJson.data.map((s: Schedule) => [s.dayOfWeek, s]))
       setSchedules(
         DAYS.map((d) => map[d.key] ?? { dayOfWeek: d.key, startTime: '09:00', endTime: '18:00', isActive: false })
@@ -67,14 +68,14 @@ export default function HorariosPage() {
 
   useEffect(() => { load() }, [])
 
-  // Actualizar un campo de un horario localmente
+  // Update a schedule field locally
   function updateSchedule(day: string, field: keyof Schedule, value: string | boolean) {
     setSchedules((prev) =>
       prev.map((s) => s.dayOfWeek === day ? { ...s, [field]: value } : s)
     )
   }
 
-  // Guardar un horario específico
+  // Save a specific schedule
   async function saveSchedule(schedule: Schedule) {
     setSaving(schedule.dayOfWeek)
     const res  = await fetch('/api/schedules', {
@@ -88,7 +89,7 @@ export default function HorariosPage() {
     setSaving(null)
   }
 
-  // Agregar fecha bloqueada
+  // Add blocked date
   async function addBlockedDate() {
     if (!newBlock.date) { flash('err', 'Selecciona una fecha'); return }
     setAddingBlock(true)
@@ -108,9 +109,10 @@ export default function HorariosPage() {
     setAddingBlock(false)
   }
 
-  // Eliminar fecha bloqueada
+  // Remove blocked date
   async function removeBlockedDate(id: string) {
-    if (!confirm('¿Desbloquear esta fecha?')) return
+    const ok = await confirm({ message: '¿Desbloquear esta fecha? Volverá a estar disponible para reservas.', confirmLabel: 'Desbloquear' })
+    if (!ok) return
     const res = await fetch(`/api/schedules/blocked/${id}`, { method: 'DELETE' })
     const json = await res.json()
     if (json.success) { flash('ok', 'Fecha desbloqueada'); load() }
@@ -118,15 +120,15 @@ export default function HorariosPage() {
   }
 
   return (
-    <div className="p-8 max-w-3xl">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
 
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-6 sm:mb-8">
         <p className="text-xs text-ink-muted tracking-widest uppercase mb-1">Configuración</p>
-        <h1 className="font-serif text-3xl text-ink font-light">Horarios</h1>
+        <h1 className="font-serif text-2xl sm:text-3xl text-ink font-light">Horarios</h1>
       </div>
 
-      {/* Mensaje flash */}
+      {/* Flash message */}
       {message && (
         <div className={`text-sm px-4 py-3 mb-5 border ${
           message.type === 'ok'
@@ -141,9 +143,9 @@ export default function HorariosPage() {
         <div className="text-ink-muted text-sm">Cargando horarios...</div>
       ) : (
         <>
-          {/* ── Horarios por día ── */}
-          <section className="bg-white border border-beige-dark mb-10">
-            <div className="px-6 py-4 border-b border-beige-dark">
+          {/* ── Daily schedules ── */}
+          <section className="bg-white rounded-xl border border-beige-dark overflow-hidden mb-10">
+            <div className="px-5 sm:px-6 py-4 border-b border-beige-dark">
               <h2 className="font-serif text-xl text-ink font-light">Días de atención</h2>
               <p className="text-xs text-ink-muted mt-0.5">Guarda cada día por separado.</p>
             </div>
@@ -153,45 +155,43 @@ export default function HorariosPage() {
                 const dayLabel = DAYS.find((d) => d.key === sched.dayOfWeek)?.label ?? sched.dayOfWeek
                 return (
                   <div key={sched.dayOfWeek}
-                    className={`px-6 py-4 flex flex-wrap items-center gap-4 transition-opacity
+                    className={`px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 transition-opacity
                       ${sched.isActive ? '' : 'opacity-50'}`}>
 
-                    {/* Toggle activo */}
-                    <label className="flex items-center gap-2 cursor-pointer min-w-[100px]">
-                      <input
-                        type="checkbox"
-                        checked={sched.isActive}
-                        onChange={(e) => updateSchedule(sched.dayOfWeek, 'isActive', e.target.checked)}
-                        className="accent-gold w-4 h-4"
-                      />
-                      <span className="text-sm font-medium text-ink">{dayLabel}</span>
-                    </label>
+                    <div className="flex items-center justify-between gap-3">
+                      <label className="flex items-center gap-2 cursor-pointer min-w-[100px]">
+                        <input
+                          type="checkbox"
+                          checked={sched.isActive}
+                          onChange={(e) => updateSchedule(sched.dayOfWeek, 'isActive', e.target.checked)}
+                          className="accent-gold w-4 h-4"
+                        />
+                        <span className="text-sm font-medium text-ink">{dayLabel}</span>
+                      </label>
 
-                    {/* Horas */}
-                    <div className="flex items-center gap-2 text-sm text-ink-muted">
-                      <input
-                        type="time"
-                        value={sched.startTime}
-                        disabled={!sched.isActive}
-                        onChange={(e) => updateSchedule(sched.dayOfWeek, 'startTime', e.target.value)}
-                        className="input-field py-1.5 w-28 text-sm"
-                      />
-                      <span>–</span>
-                      <input
-                        type="time"
-                        value={sched.endTime}
-                        disabled={!sched.isActive}
-                        onChange={(e) => updateSchedule(sched.dayOfWeek, 'endTime', e.target.value)}
-                        className="input-field py-1.5 w-28 text-sm"
-                      />
+                      <div className="flex items-center gap-2 text-sm text-ink-muted">
+                        <input
+                          type="time"
+                          value={sched.startTime}
+                          disabled={!sched.isActive}
+                          onChange={(e) => updateSchedule(sched.dayOfWeek, 'startTime', e.target.value)}
+                          className="input-field py-1.5 w-24 sm:w-28 text-sm"
+                        />
+                        <span>–</span>
+                        <input
+                          type="time"
+                          value={sched.endTime}
+                          disabled={!sched.isActive}
+                          onChange={(e) => updateSchedule(sched.dayOfWeek, 'endTime', e.target.value)}
+                          className="input-field py-1.5 w-24 sm:w-28 text-sm"
+                        />
+                      </div>
                     </div>
 
-                    {/* Guardar */}
                     <button
                       onClick={() => saveSchedule(sched)}
                       disabled={saving === sched.dayOfWeek}
-                      className="ml-auto text-xs text-gold border border-gold px-3 py-1.5
-                                 hover:bg-gold hover:text-white transition-colors disabled:opacity-50"
+                      className="btn-primary text-xs px-3 py-1.5 disabled:opacity-50 w-full sm:w-auto sm:ml-auto"
                     >
                       {saving === sched.dayOfWeek ? 'Guardando...' : 'Guardar'}
                     </button>
@@ -201,22 +201,21 @@ export default function HorariosPage() {
             </div>
           </section>
 
-          {/* ── Fechas bloqueadas ── */}
-          <section className="bg-white border border-beige-dark">
-            <div className="px-6 py-4 border-b border-beige-dark">
+          {/* ── Blocked dates ── */}
+          <section className="bg-white rounded-xl border border-beige-dark overflow-hidden">
+            <div className="px-5 sm:px-6 py-4 border-b border-beige-dark">
               <h2 className="font-serif text-xl text-ink font-light">Fechas bloqueadas</h2>
               <p className="text-xs text-ink-muted mt-0.5">Festivos, vacaciones o días sin atención.</p>
             </div>
 
-            {/* Agregar nueva fecha */}
-            <div className="px-6 py-4 border-b border-beige-dark flex flex-wrap gap-3 items-end">
+            <div className="px-4 sm:px-6 py-4 border-b border-beige-dark flex flex-wrap gap-3 items-end">
               <div>
                 <label className="form-label text-[10px]">Fecha</label>
                 <input
                   type="date"
                   value={newBlock.date}
                   onChange={(e) => setNewBlock({ ...newBlock, date: e.target.value })}
-                  className="input-field py-1.5 w-40 text-sm"
+                  className="input-field py-1.5 w-36 sm:w-40 text-sm"
                   min={new Date().toISOString().split('T')[0]}
                 />
               </div>
@@ -235,11 +234,10 @@ export default function HorariosPage() {
                 disabled={addingBlock}
                 className="btn-primary text-xs px-4 py-2.5"
               >
-                {addingBlock ? '...' : 'Bloquear fecha'}
+                {addingBlock ? '...' : 'Bloquear'}
               </button>
             </div>
 
-            {/* Lista de fechas bloqueadas */}
             {blockedDates.length === 0 ? (
               <div className="px-6 py-8 text-center text-ink-muted text-sm">
                 No hay fechas bloqueadas.
@@ -247,20 +245,20 @@ export default function HorariosPage() {
             ) : (
               <div className="divide-y divide-beige-dark">
                 {blockedDates.map((b) => (
-                  <div key={b.id} className="px-6 py-3 flex items-center justify-between">
-                    <div>
+                  <div key={b.id} className="px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
                       <p className="text-sm text-ink">
                         {new Date(`${b.date}T12:00:00`).toLocaleDateString('es-CO', {
                           weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
                         })}
                       </p>
                       {b.reason && (
-                        <p className="text-xs text-ink-muted mt-0.5">{b.reason}</p>
+                        <p className="text-xs text-ink-muted mt-0.5 truncate">{b.reason}</p>
                       )}
                     </div>
                     <button
                       onClick={() => removeBlockedDate(b.id)}
-                      className="text-xs text-red-400 hover:text-red-600 transition-colors ml-4"
+                      className="btn-row-action text-xs text-red-400 hover:text-red-600 shrink-0"
                     >
                       Desbloquear
                     </button>

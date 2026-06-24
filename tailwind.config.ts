@@ -2,7 +2,6 @@ import type { Config } from 'tailwindcss'
 
 const config: Config = {
   content: [
-    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
@@ -21,15 +20,16 @@ const config: Config = {
           deeper:  '#D9CCAF',
         },
         ink: {
-          DEFAULT: '#111111',
-          soft:    '#1E1E1E',
+          DEFAULT: '#1A1209',
+          soft:    '#2A2014',
           mid:     '#4A4035',
           muted:   '#7A7060',
         },
       },
       fontFamily: {
-        serif: ['Cormorant Garamond', 'Georgia', 'serif'],
-        sans:  ['DM Sans', 'system-ui', 'sans-serif'],
+        serif:  ['Cormorant Garamond', 'Georgia', 'serif'],
+        sans:   ['DM Sans', 'system-ui', 'sans-serif'],
+        script: ['Great Vibes', 'Cormorant Garamond', 'cursive'],
       },
       keyframes: {
         fadeUp: {

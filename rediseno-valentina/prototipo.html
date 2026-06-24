@@ -1,0 +1,765 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Valentina Jimenez Beauty Studio — Rediseño UX/UI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Pinyon+Script&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* ----- Paleta ----- */
+  --gold:#B8932A; --gold-light:#D4AD5A; --gold-pale:#F5EDDA; --gold-dark:#8A6E1E;
+  --beige:#F2EBD9; --beige-dark:#E8DCC4; --beige-deeper:#D9CCAF;
+  --ink:#111111; --ink-soft:#1E1E1E; --ink-mid:#4A4035; --ink-muted:#7A7060;
+  --white:#FFFFFF; --paper:#FBF8F1;
+  --ok:#3F7D5B; --warn:#C08A2D; --danger:#B4503F;
+  /* ----- Tipografía ----- */
+  --serif:'Cormorant Garamond',Georgia,serif;
+  --sans:'DM Sans',system-ui,sans-serif;
+  --script:'Pinyon Script',cursive;
+  /* ----- Espaciado (escala 4px) ----- */
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px; --s8:64px; --s9:96px;
+  /* ----- Radios ----- */
+  --r-sm:6px; --r-md:12px; --r-lg:20px; --r-pill:999px;
+  /* ----- Sombras ----- */
+  --sh-sm:0 1px 2px rgba(17,17,17,.06);
+  --sh-md:0 6px 24px rgba(17,17,17,.08);
+  --sh-lg:0 20px 60px rgba(17,17,17,.14);
+  --sh-gold:0 10px 30px rgba(184,147,42,.28);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);color:var(--ink);background:var(--beige);line-height:1.55;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{font-family:var(--serif);font-weight:600;line-height:1.08;letter-spacing:-.01em}
+img{max-width:100%;display:block}
+a{color:inherit;text-decoration:none}
+.serif{font-family:var(--serif)}
+.muted{color:var(--ink-muted)}
+.eyebrow{font-family:var(--sans);font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold-dark);font-weight:600}
+
+/* ---------- App shell / nav ---------- */
+.appbar{position:sticky;top:0;z-index:50;background:rgba(17,17,17,.92);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;flex-wrap:wrap}
+.appbar .brand{position:absolute;left:18px;color:var(--gold-light);font-family:var(--script);font-size:24px;line-height:1}
+.tab{font-family:var(--sans);font-size:13px;font-weight:600;letter-spacing:.04em;color:#cfc6b4;background:transparent;border:none;padding:9px 16px;border-radius:var(--r-pill);cursor:pointer;transition:.2s}
+.tab:hover{color:#fff}
+.tab.active{color:var(--ink);background:linear-gradient(135deg,var(--gold-light),var(--gold))}
+@media(max-width:640px){.appbar .brand{display:none}.tab{padding:8px 11px;font-size:12px}}
+
+.screen{display:none}
+.screen.active{display:block;animation:fadeUp .5s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
+
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+.frame-label{max-width:1180px;margin:28px auto 0;padding:0 24px}
+.frame-label .eyebrow{display:block;margin-bottom:4px}
+.frame-label h2{font-size:30px}
+
+/* ---------- Buttons ---------- */
+.btn{font-family:var(--sans);font-weight:600;font-size:15px;border:none;border-radius:var(--r-pill);padding:14px 30px;cursor:pointer;display:inline-flex;align-items:center;gap:9px;transition:.22s;letter-spacing:.01em}
+.btn-gold{background:linear-gradient(135deg,var(--gold-light),var(--gold));color:var(--ink);box-shadow:var(--sh-gold)}
+.btn-gold:hover{transform:translateY(-2px);box-shadow:0 16px 40px rgba(184,147,42,.4)}
+.btn-ink{background:var(--ink);color:var(--gold-pale)}
+.btn-ink:hover{background:var(--ink-soft);transform:translateY(-2px)}
+.btn-ghost{background:transparent;color:var(--ink);border:1px solid rgba(17,17,17,.18)}
+.btn-ghost:hover{border-color:var(--gold);color:var(--gold-dark)}
+.btn-block{width:100%;justify-content:center}
+
+/* ============================================================ LANDING */
+.hero{position:relative;min-height:88vh;display:flex;align-items:center;background:radial-gradient(120% 120% at 80% 10%,#262017 0%,var(--ink) 55%);color:#fff;overflow:hidden}
+.hero .glow{position:absolute;width:520px;height:520px;border-radius:50%;background:radial-gradient(circle,rgba(212,173,90,.32),transparent 65%);top:-120px;right:-80px;filter:blur(10px)}
+.hero .ring{position:absolute;border:1px solid rgba(212,173,90,.22);border-radius:50%}
+.hero .ring.a{width:380px;height:380px;bottom:-160px;left:-120px}
+.hero-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:48px;align-items:center;position:relative;z-index:2;width:100%}
+.hero .script{font-family:var(--script);color:var(--gold-light);font-size:40px;line-height:1}
+.hero h1{font-size:64px;color:#fff;margin:6px 0 18px}
+.hero h1 em{font-style:italic;color:var(--gold-light)}
+.hero p.lead{font-size:18px;color:#d9d1c2;max-width:30em;margin-bottom:26px}
+.hero-cta{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.trust{display:flex;gap:22px;margin-top:30px;flex-wrap:wrap}
+.trust div{font-size:13px;color:#cfc6b4}
+.trust b{display:block;font-family:var(--serif);font-size:26px;color:var(--gold-light)}
+.hero-card{background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02));border:1px solid rgba(212,173,90,.25);border-radius:var(--r-lg);padding:22px;backdrop-filter:blur(6px)}
+.hero-card h4{color:var(--gold-light);font-size:20px}
+.mini-slot{display:flex;justify-content:space-between;align-items:center;padding:11px 14px;border-radius:var(--r-md);background:rgba(255,255,255,.05);margin-top:10px;font-size:14px;color:#e7e0d2}
+.mini-slot .dot{width:8px;height:8px;border-radius:50%;background:var(--gold-light);box-shadow:0 0 0 4px rgba(212,173,90,.18)}
+@media(max-width:860px){.hero-grid{grid-template-columns:1fr;gap:30px}.hero h1{font-size:44px}.hero{min-height:auto;padding:60px 0}}
+
+.section{padding:var(--s9) 0}
+.section.tight{padding:var(--s8) 0}
+.section-head{text-align:center;max-width:640px;margin:0 auto var(--s7)}
+.section-head h2{font-size:42px;margin:8px 0 12px}
+.section-head p{color:var(--ink-muted)}
+
+.svc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+.svc{background:var(--white);border-radius:var(--r-lg);padding:26px;box-shadow:var(--sh-sm);border:1px solid rgba(17,17,17,.04);transition:.25s;cursor:pointer;position:relative;overflow:hidden}
+.svc:hover{transform:translateY(-6px);box-shadow:var(--sh-lg)}
+.svc::after{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:linear-gradient(90deg,var(--gold-light),var(--gold));transform:scaleX(0);transform-origin:left;transition:.3s}
+.svc:hover::after{transform:scaleX(1)}
+.svc .ic{width:52px;height:52px;border-radius:14px;background:var(--gold-pale);display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:16px}
+.svc h3{font-size:23px;margin-bottom:6px}
+.svc .price{font-family:var(--serif);color:var(--gold-dark);font-size:18px;font-weight:600;margin-top:14px;display:flex;justify-content:space-between;align-items:center}
+.svc .price small{font-family:var(--sans);font-size:12px;color:var(--ink-muted)}
+@media(max-width:860px){.svc-grid{grid-template-columns:1fr 1fr;gap:14px}}
+@media(max-width:560px){.svc-grid{grid-template-columns:1fr}}
+
+.gallery{display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:160px;gap:12px}
+.gallery .gi{border-radius:var(--r-md);overflow:hidden;position:relative;background:linear-gradient(135deg,var(--beige-dark),var(--beige-deeper))}
+.gallery .gi.tall{grid-row:span 2}.gallery .gi.wide{grid-column:span 2}
+.gallery .gi span{position:absolute;left:14px;bottom:12px;font-family:var(--script);color:#fff;font-size:24px;text-shadow:0 2px 8px rgba(0,0,0,.4)}
+.gallery .gi::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(17,17,17,.45));opacity:0;transition:.3s}
+.gallery .gi:hover::before{opacity:1}
+@media(max-width:700px){.gallery{grid-template-columns:1fr 1fr;grid-auto-rows:130px}.gallery .gi.wide{grid-column:span 2}}
+
+.bene{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+.bene .b{text-align:center;padding:18px}
+.bene .b .ic{width:56px;height:56px;margin:0 auto 14px;border-radius:50%;border:1px solid var(--gold);color:var(--gold-dark);display:flex;align-items:center;justify-content:center;font-size:22px}
+.bene .b h4{font-size:20px;margin-bottom:6px}
+.bene .b p{font-size:14px;color:var(--ink-muted)}
+@media(max-width:700px){.bene{grid-template-columns:1fr 1fr}}
+
+.testi-band{background:var(--ink);color:#fff}
+.testi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+.testi{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02));border:1px solid rgba(212,173,90,.18);border-radius:var(--r-lg);padding:26px}
+.testi .stars{color:var(--gold-light);letter-spacing:3px;margin-bottom:12px}
+.testi p{color:#e7e0d2;font-size:15px}
+.testi .who{display:flex;align-items:center;gap:12px;margin-top:18px}
+.testi .av{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--gold-light),var(--gold));display:flex;align-items:center;justify-content:center;color:var(--ink);font-weight:700}
+.testi .who b{font-size:14px}.testi .who small{color:#b7ae9c;display:block;font-size:12px}
+@media(max-width:760px){.testi-grid{grid-template-columns:1fr}}
+
+.loc{display:grid;grid-template-columns:1fr 1fr;gap:36px;align-items:center}
+.map{height:320px;border-radius:var(--r-lg);background:
+  linear-gradient(rgba(184,147,42,.05),rgba(184,147,42,.05)),
+  repeating-linear-gradient(0deg,#e7decb,#e7decb 1px,transparent 1px,transparent 28px),
+  repeating-linear-gradient(90deg,#e7decb,#e7decb 1px,transparent 1px,transparent 28px),var(--beige);
+  position:relative;box-shadow:var(--sh-md)}
+.map .pin{position:absolute;left:50%;top:46%;transform:translate(-50%,-100%);font-size:34px}
+.loc .info-row{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--beige-deeper);align-items:flex-start}
+.loc .info-row .ic{color:var(--gold-dark);font-size:18px;width:24px}
+.loc .info-row b{display:block;font-size:15px}.loc .info-row span{font-size:14px;color:var(--ink-muted)}
+@media(max-width:760px){.loc{grid-template-columns:1fr;gap:20px}}
+
+.footer{background:var(--ink);color:#cfc6b4;padding:var(--s8) 0 var(--s5)}
+.footer-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:30px}
+.footer .script{font-family:var(--script);color:var(--gold-light);font-size:34px}
+.footer h5{color:#fff;font-family:var(--sans);font-size:13px;letter-spacing:.18em;text-transform:uppercase;margin-bottom:14px}
+.footer a{display:block;font-size:14px;padding:5px 0;color:#bdb4a2;transition:.2s}
+.footer a:hover{color:var(--gold-light)}
+.footer .copy{border-top:1px solid rgba(255,255,255,.08);margin-top:var(--s7);padding-top:var(--s5);font-size:13px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+@media(max-width:760px){.footer-grid{grid-template-columns:1fr 1fr}}
+
+/* WhatsApp FAB */
+.fab{position:fixed;right:22px;bottom:22px;width:60px;height:60px;border-radius:50%;background:#25D366;color:#fff;display:flex;align-items:center;justify-content:center;font-size:30px;box-shadow:0 10px 30px rgba(37,211,102,.5);z-index:60;cursor:pointer;animation:fadeIn .4s}
+.fab:hover{transform:scale(1.06)}
+.fab .pulse{position:absolute;inset:0;border-radius:50%;border:2px solid #25D366;animation:pulse 2s infinite}
+@keyframes pulse{0%{transform:scale(1);opacity:.7}100%{transform:scale(1.6);opacity:0}}
+
+/* ============================================================ RESERVA */
+.book{max-width:760px;margin:0 auto;padding:36px 24px 80px}
+.steps{display:flex;justify-content:space-between;margin-bottom:32px;position:relative}
+.steps::before{content:"";position:absolute;top:17px;left:6%;right:6%;height:2px;background:var(--beige-deeper);z-index:0}
+.steps .prog{position:absolute;top:17px;left:6%;height:2px;background:linear-gradient(90deg,var(--gold-light),var(--gold));z-index:1;transition:.4s;width:0}
+.step{position:relative;z-index:2;text-align:center;flex:1}
+.step .n{width:36px;height:36px;border-radius:50%;background:var(--white);border:2px solid var(--beige-deeper);color:var(--ink-muted);display:flex;align-items:center;justify-content:center;margin:0 auto 7px;font-weight:700;font-size:14px;transition:.3s}
+.step.done .n{background:var(--gold);border-color:var(--gold);color:#fff}
+.step.cur .n{background:var(--ink);border-color:var(--ink);color:var(--gold-light);box-shadow:0 0 0 5px rgba(184,147,42,.18)}
+.step small{font-size:11px;color:var(--ink-muted);font-weight:600}
+.step.cur small{color:var(--ink)}
+@media(max-width:560px){.step small{display:none}}
+
+.bstep{display:none}.bstep.active{display:block;animation:fadeUp .35s}
+.bstep h3{font-size:28px;margin-bottom:4px}
+.bstep .sub{color:var(--ink-muted);margin-bottom:22px;font-size:14px}
+
+.opt{display:flex;align-items:center;gap:14px;padding:16px;border:1.5px solid var(--beige-deeper);border-radius:var(--r-md);background:var(--white);cursor:pointer;margin-bottom:12px;transition:.2s}
+.opt:hover{border-color:var(--gold-light);box-shadow:var(--sh-sm)}
+.opt.sel{border-color:var(--gold);background:var(--gold-pale)}
+.opt .ic{width:46px;height:46px;border-radius:12px;background:var(--gold-pale);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.opt.sel .ic{background:#fff}
+.opt .meta{flex:1}.opt .meta b{display:block;font-size:16px}.opt .meta span{font-size:13px;color:var(--ink-muted)}
+.opt .price{font-family:var(--serif);font-weight:600;color:var(--gold-dark);font-size:17px}
+.opt .check{width:22px;height:22px;border-radius:50%;border:2px solid var(--beige-deeper);flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px}
+.opt.sel .check{background:var(--gold);border-color:var(--gold)}
+
+.pro-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:560px){.pro-grid{grid-template-columns:1fr}}
+.pro{text-align:center;padding:20px;border:1.5px solid var(--beige-deeper);border-radius:var(--r-md);background:var(--white);cursor:pointer;transition:.2s}
+.pro:hover{border-color:var(--gold-light)}.pro.sel{border-color:var(--gold);background:var(--gold-pale)}
+.pro .av{width:64px;height:64px;border-radius:50%;margin:0 auto 10px;background:linear-gradient(135deg,var(--gold-light),var(--gold));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:22px;font-family:var(--serif)}
+.pro b{font-size:16px}.pro span{font-size:12px;color:var(--ink-muted);display:block}.pro .rt{color:var(--gold-dark);font-size:13px;margin-top:5px}
+
+.cal{background:var(--white);border-radius:var(--r-md);padding:18px;border:1px solid var(--beige-deeper)}
+.cal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.cal-head b{font-family:var(--serif);font-size:19px}
+.cal-head button{border:none;background:var(--gold-pale);width:32px;height:32px;border-radius:50%;cursor:pointer;color:var(--gold-dark);font-size:16px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;text-align:center}
+.cal-grid .dow{font-size:11px;color:var(--ink-muted);font-weight:600;padding:4px 0}
+.cal-grid .d{padding:9px 0;border-radius:10px;cursor:pointer;font-size:14px;font-weight:500;transition:.15s}
+.cal-grid .d.off{color:var(--beige-deeper);cursor:default}
+.cal-grid .d.free:hover{background:var(--gold-pale)}
+.cal-grid .d.sel{background:var(--ink);color:var(--gold-light)}
+.cal-grid .d.today{box-shadow:inset 0 0 0 1.5px var(--gold)}
+
+.slots{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:8px}
+@media(max-width:560px){.slots{grid-template-columns:repeat(3,1fr)}}
+.slot{padding:12px 0;text-align:center;border:1.5px solid var(--beige-deeper);border-radius:10px;background:var(--white);cursor:pointer;font-weight:600;font-size:14px;transition:.15s}
+.slot:hover{border-color:var(--gold-light)}.slot.sel{background:var(--gold);border-color:var(--gold);color:#fff}
+.slot.gone{color:var(--beige-deeper);background:var(--paper);cursor:not-allowed;text-decoration:line-through}
+
+.summary{background:var(--white);border-radius:var(--r-lg);padding:24px;border:1px solid var(--beige-deeper);box-shadow:var(--sh-md)}
+.summary .row{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px dashed var(--beige-deeper);font-size:15px}
+.summary .row:last-child{border:none}
+.summary .row b{font-family:var(--serif);font-size:18px}
+.summary .total{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:14px;border-top:2px solid var(--ink)}
+.summary .total b{font-family:var(--serif);font-size:26px;color:var(--gold-dark)}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
+.field input{width:100%;padding:13px 14px;border:1.5px solid var(--beige-deeper);border-radius:var(--r-sm);font-family:var(--sans);font-size:15px;background:var(--white)}
+.field input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(184,147,42,.15)}
+.pay-toggle{display:flex;gap:10px;margin:14px 0}
+.pay-toggle .pt{flex:1;text-align:center;padding:14px;border:1.5px solid var(--beige-deeper);border-radius:var(--r-md);cursor:pointer;font-size:13px;font-weight:600}
+.pay-toggle .pt.sel{border-color:var(--gold);background:var(--gold-pale)}
+.bnav{display:flex;justify-content:space-between;gap:12px;margin-top:26px}
+.scarcity{display:inline-flex;align-items:center;gap:7px;background:rgba(192,138,45,.12);color:var(--gold-dark);font-size:12.5px;font-weight:600;padding:7px 13px;border-radius:var(--r-pill);margin-bottom:18px}
+.scarcity .dot{width:7px;height:7px;border-radius:50%;background:var(--warn);animation:pulse 1.6s infinite}
+
+.done-screen{text-align:center;padding:20px 0}
+.done-screen .ok{width:84px;height:84px;border-radius:50%;background:linear-gradient(135deg,var(--gold-light),var(--gold));display:flex;align-items:center;justify-content:center;font-size:42px;color:#fff;margin:0 auto 20px;box-shadow:var(--sh-gold)}
+
+/* ============================================================ ADMIN */
+.admin{display:grid;grid-template-columns:240px 1fr;min-height:80vh;background:var(--paper)}
+.aside{background:var(--ink);color:#cfc6b4;padding:24px 16px}
+.aside .logo{font-family:var(--script);color:var(--gold-light);font-size:26px;padding:0 8px 22px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:16px}
+.aside .nav a{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:10px;font-size:14px;font-weight:500;margin-bottom:3px;cursor:pointer;transition:.2s}
+.aside .nav a:hover{background:rgba(255,255,255,.05);color:#fff}
+.aside .nav a.on{background:linear-gradient(135deg,var(--gold-light),var(--gold));color:var(--ink);font-weight:600}
+.aside .pro-mini{margin-top:24px;padding:14px;background:rgba(255,255,255,.04);border-radius:12px;display:flex;gap:10px;align-items:center}
+.aside .pro-mini .av{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--gold-light),var(--gold));color:var(--ink);display:flex;align-items:center;justify-content:center;font-weight:700}
+.amain{padding:28px 32px}
+.atop{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+.atop h2{font-size:30px}.atop .muted{font-size:13px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.kpi{background:var(--white);border-radius:var(--r-md);padding:20px;box-shadow:var(--sh-sm);border:1px solid rgba(17,17,17,.04)}
+.kpi .lbl{font-size:12px;color:var(--ink-muted);font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.kpi .val{font-family:var(--serif);font-size:34px;font-weight:600;margin:6px 0 2px}
+.kpi .chg{font-size:12.5px;font-weight:600}
+.kpi .chg.up{color:var(--ok)}.kpi .chg.down{color:var(--danger)}
+.kpi .spark{height:34px;margin-top:8px;display:flex;align-items:flex-end;gap:3px}
+.kpi .spark i{flex:1;background:linear-gradient(180deg,var(--gold-light),var(--gold));border-radius:2px 2px 0 0;opacity:.8}
+@media(max-width:900px){.kpis{grid-template-columns:1fr 1fr}}
+
+.panel-2{display:grid;grid-template-columns:1.5fr 1fr;gap:18px}
+@media(max-width:900px){.panel-2{grid-template-columns:1fr}}
+.card{background:var(--white);border-radius:var(--r-md);padding:20px;box-shadow:var(--sh-sm);border:1px solid rgba(17,17,17,.04)}
+.card h3{font-size:20px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+.card h3 small{font-family:var(--sans);font-size:12px;color:var(--gold-dark);font-weight:600;cursor:pointer}
+.chart{height:170px;display:flex;align-items:flex-end;gap:10px;padding-top:10px}
+.chart .bar{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px}
+.chart .bar i{width:100%;background:linear-gradient(180deg,var(--gold-light),var(--gold));border-radius:6px 6px 0 0;transition:.3s}
+.chart .bar i:hover{filter:brightness(1.08)}
+.chart .bar span{font-size:11px;color:var(--ink-muted)}
+
+.aprow{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--beige)}
+.aprow:last-child{border:none}
+.aprow .t{font-family:var(--serif);font-weight:600;color:var(--gold-dark);width:54px;font-size:15px}
+.aprow .av{width:36px;height:36px;border-radius:50%;background:var(--beige-dark);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:var(--ink-mid)}
+.aprow .meta{flex:1}.aprow .meta b{font-size:14px;display:block}.aprow .meta span{font-size:12px;color:var(--ink-muted)}
+.badge{font-size:11px;font-weight:600;padding:4px 10px;border-radius:var(--r-pill)}
+.badge.conf{background:rgba(63,125,91,.12);color:var(--ok)}
+.badge.pend{background:rgba(192,138,45,.14);color:var(--warn)}
+.badge.new{background:var(--gold-pale);color:var(--gold-dark)}
+
+.cal-week{display:grid;grid-template-columns:60px repeat(5,1fr);gap:1px;background:var(--beige);border-radius:var(--r-md);overflow:hidden;border:1px solid var(--beige)}
+.cal-week .ch{background:var(--paper);padding:10px;text-align:center;font-size:12px;font-weight:600;color:var(--ink-mid)}
+.cal-week .hr{background:var(--white);padding:8px;font-size:11px;color:var(--ink-muted);text-align:right}
+.cal-week .cell{background:var(--white);min-height:46px;padding:3px;position:relative}
+.cal-week .ev{font-size:10.5px;border-radius:6px;padding:4px 6px;font-weight:600;color:#fff;line-height:1.25;height:100%}
+.ev.g1{background:linear-gradient(135deg,var(--gold-light),var(--gold))}
+.ev.g2{background:var(--ink)}
+.ev.g3{background:#8a7a52}
+
+.table{width:100%;border-collapse:collapse;font-size:14px}
+.table th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);padding:10px 8px;border-bottom:2px solid var(--beige)}
+.table td{padding:12px 8px;border-bottom:1px solid var(--beige)}
+.table tr:hover td{background:var(--paper)}
+.toggle{width:42px;height:24px;border-radius:var(--r-pill);background:var(--gold);position:relative;cursor:pointer;display:inline-block}
+.toggle::after{content:"";position:absolute;width:18px;height:18px;border-radius:50%;background:#fff;top:3px;right:3px}
+.toggle.off{background:var(--beige-deeper)}.toggle.off::after{right:auto;left:3px}
+
+/* ============================================================ SISTEMA */
+.ds-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:24px}
+@media(max-width:860px){.ds-grid{grid-template-columns:1fr}}
+.swatch{height:88px;border-radius:var(--r-md);display:flex;align-items:flex-end;padding:10px;font-size:11px;font-weight:600;box-shadow:var(--sh-sm)}
+.sw-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media(max-width:560px){.sw-grid{grid-template-columns:1fr 1fr}}
+.type-row{padding:12px 0;border-bottom:1px solid var(--beige);display:flex;justify-content:space-between;align-items:baseline;gap:14px}
+.type-row small{font-size:11px;color:var(--ink-muted);white-space:nowrap}
+.chip{display:inline-block;background:var(--paper);border:1px solid var(--beige-deeper);border-radius:var(--r-sm);padding:6px 12px;font-size:13px;margin:0 6px 6px 0;font-family:var(--sans)}
+.shadow-demo{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;text-align:center}
+.shadow-demo .sd{height:80px;border-radius:var(--r-md);background:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--ink-muted)}
+.empty{text-align:center;padding:36px;border:2px dashed var(--beige-deeper);border-radius:var(--r-md);color:var(--ink-muted)}
+.empty .ic{font-size:38px;opacity:.5;margin-bottom:8px}
+.skel{height:14px;border-radius:6px;background:linear-gradient(90deg,var(--beige-dark) 25%,var(--beige) 37%,var(--beige-dark) 63%);background-size:800px 100%;animation:shimmer 1.4s infinite linear;margin-bottom:9px}
+
+/* UX/CRO notes */
+.note{background:var(--gold-pale);border-left:3px solid var(--gold);border-radius:0 var(--r-md) var(--r-md) 0;padding:14px 16px;margin:14px 0;font-size:13.5px;color:var(--ink-mid)}
+.note b{color:var(--gold-dark)}
+.note code{background:rgba(17,17,17,.06);padding:1px 5px;border-radius:4px;font-size:12.5px}
+.notes-toggle{position:fixed;left:22px;bottom:22px;z-index:60;background:var(--ink);color:var(--gold-light);border:1px solid var(--gold);border-radius:var(--r-pill);padding:11px 18px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;box-shadow:var(--sh-md)}
+body.show-notes .note-inline{display:block}
+.note-inline{display:none}
+.card code,.card ul code{background:rgba(17,17,17,.06);padding:1px 5px;border-radius:4px;font-size:12.5px}
+</style>
+</head>
+<body>
+
+<nav class="appbar">
+  <div class="brand">Valentina Jimenez</div>
+  <button class="tab active" data-screen="landing">Landing</button>
+  <button class="tab" data-screen="reserva">Reserva</button>
+  <button class="tab" data-screen="admin">Panel Admin</button>
+  <button class="tab" data-screen="sistema">Sistema de Diseño</button>
+</nav>
+
+<!-- ============================== LANDING ============================== -->
+<section class="screen active" id="landing">
+  <div class="hero">
+    <div class="glow"></div><div class="ring a"></div>
+    <div class="wrap hero-grid">
+      <div>
+        <div class="script">Valentina Jimenez</div>
+        <h1>Tu belleza,<br><em>elevada al detalle.</em></h1>
+        <p class="lead">Uñas, pestañas, cejas y cabello con acabado de lujo. Reserva en menos de 60 segundos, sin llamadas ni esperas.</p>
+        <div class="hero-cta">
+          <button class="btn btn-gold" onclick="go('reserva')">Agendar cita ✦</button>
+          <button class="btn btn-ghost" style="color:#fff;border-color:rgba(255,255,255,.3)" onclick="document.getElementById('svc').scrollIntoView()">Ver servicios</button>
+        </div>
+        <div class="trust">
+          <div><b>+2.400</b>clientas felices</div>
+          <div><b>4.9★</b>en 380 reseñas</div>
+          <div><b>9 años</b>de experiencia</div>
+        </div>
+      </div>
+      <div class="hero-card">
+        <h4>Próxima disponibilidad</h4>
+        <p style="color:#b7ae9c;font-size:13px;margin-bottom:4px">Hoy mismo, elige tu hora</p>
+        <div class="mini-slot"><span><span class="dot" style="display:inline-block;margin-right:8px"></span>Manicure Premium</span><b style="color:#fff">15:30</b></div>
+        <div class="mini-slot"><span><span class="dot" style="display:inline-block;margin-right:8px"></span>Lifting de pestañas</span><b style="color:#fff">17:00</b></div>
+        <div class="mini-slot"><span><span class="dot" style="display:inline-block;margin-right:8px"></span>Diseño de cejas</span><b style="color:#fff">18:15</b></div>
+        <button class="btn btn-gold btn-block" style="margin-top:16px" onclick="go('reserva')">Reservar ahora</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="note note-inline wrap" style="margin-top:24px"><b>UX/CRO · Hero:</b> CTA primario "Agendar cita" repetido arriba y dentro de la tarjeta de disponibilidad (doble punto de entrada al embudo). Las cifras de prueba social (reseñas, clientas, años) reducen la incertidumbre antes del clic, y mostrar horas reales del día activa el principio de disponibilidad/urgencia sin parecer agresivo.</div>
+
+  <!-- Servicios -->
+  <div class="section" id="svc">
+    <div class="wrap">
+      <div class="section-head"><span class="eyebrow">Servicios</span><h2>Rituales de belleza a tu medida</h2><p>Cada servicio incluye consulta personalizada y productos premium.</p></div>
+      <div class="svc-grid">
+        <div class="svc" onclick="go('reserva')"><div class="ic">💅</div><h3>Uñas</h3><p class="muted" style="font-size:14px">Manicure, gel, acrílicas y nail art de diseño.</p><div class="price">Desde $25.000 <small>45–90 min</small></div></div>
+        <div class="svc" onclick="go('reserva')"><div class="ic">👁️</div><h3>Pestañas</h3><p class="muted" style="font-size:14px">Lifting, extensiones pelo a pelo y volumen ruso.</p><div class="price">Desde $35.000 <small>60–120 min</small></div></div>
+        <div class="svc" onclick="go('reserva')"><div class="ic">✨</div><h3>Cejas</h3><p class="muted" style="font-size:14px">Diseño, laminado y henna con visagismo.</p><div class="price">Desde $18.000 <small>30–60 min</small></div></div>
+        <div class="svc" onclick="go('reserva')"><div class="ic">🪶</div><h3>Depilación</h3><p class="muted" style="font-size:14px">Cera tibia e hilo, técnicas suaves de precisión.</p><div class="price">Desde $12.000 <small>15–45 min</small></div></div>
+        <div class="svc" onclick="go('reserva')"><div class="ic">💇‍♀️</div><h3>Cabello</h3><p class="muted" style="font-size:14px">Corte, peinado y tratamientos de brillo.</p><div class="price">Desde $30.000 <small>45–90 min</small></div></div>
+        <div class="svc" onclick="go('reserva')" style="background:var(--ink);color:#fff"><div class="ic" style="background:rgba(212,173,90,.15)">♛</div><h3 style="color:#fff">Paquete VIP</h3><p style="font-size:14px;color:#b7ae9c">Combina servicios y ahorra hasta 20%.</p><div class="price" style="color:var(--gold-light)">Personalizado <small style="color:#b7ae9c">Reserva doble</small></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note note-inline wrap"><b>UX/CRO · Servicios:</b> Tarjetas con jerarquía clara (icono → nombre → beneficio → precio "desde" + duración). El precio "desde" y la duración eliminan la fricción de "¿cuánto cuesta y cuánto demora?" que suele frenar la reserva. La tarjeta VIP en negro rompe el patrón visual para guiar la mirada hacia el ticket más alto (anclaje de precio).</div>
+
+  <!-- Galería -->
+  <div class="section tight" style="background:var(--white)">
+    <div class="wrap">
+      <div class="section-head"><span class="eyebrow">Portafolio</span><h2>El trabajo habla por sí solo</h2></div>
+      <div class="gallery">
+        <div class="gi tall"><span>Nail art</span></div>
+        <div class="gi wide"><span>Volumen ruso</span></div>
+        <div class="gi"><span>Cejas</span></div>
+        <div class="gi"><span>Gel</span></div>
+        <div class="gi wide"><span>Laminado</span></div>
+        <div class="gi"><span>Color</span></div>
+        <div class="gi"><span>Lifting</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Beneficios -->
+  <div class="section">
+    <div class="wrap">
+      <div class="section-head"><span class="eyebrow">Por qué elegirnos</span><h2>Lujo accesible, sin compromisos</h2></div>
+      <div class="bene">
+        <div class="b"><div class="ic">✦</div><h4>Productos premium</h4><p>Marcas profesionales e insumos esterilizados en cada cita.</p></div>
+        <div class="b"><div class="ic">⏱</div><h4>Puntualidad</h4><p>Agenda controlada para que nunca esperes más de la cuenta.</p></div>
+        <div class="b"><div class="ic">♥</div><h4>Trato personalizado</h4><p>Consulta de visagismo incluida para resaltar tus rasgos.</p></div>
+        <div class="b"><div class="ic">⟳</div><h4>Garantía</h4><p>Retoques gratuitos dentro de las primeras 72 horas.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Testimonios -->
+  <div class="section testi-band">
+    <div class="wrap">
+      <div class="section-head"><span class="eyebrow" style="color:var(--gold-light)">Testimonios</span><h2 style="color:#fff">Lo que dicen nuestras clientas</h2></div>
+      <div class="testi-grid">
+        <div class="testi"><div class="stars">★★★★★</div><p>"El mejor lifting de pestañas que me he hecho. El espacio es precioso y súper limpio. Reservar online fue facilísimo."</p><div class="who"><div class="av">CM</div><div><b style="color:#fff">Carolina M.</b><small>Cliente desde 2023</small></div></div></div>
+        <div class="testi"><div class="stars">★★★★★</div><p>"Valentina entiende exactamente lo que quieres. Mis uñas duraron impecables 3 semanas. 100% recomendada."</p><div class="who"><div class="av">DR</div><div><b style="color:#fff">Daniela R.</b><small>Cliente VIP</small></div></div></div>
+        <div class="testi"><div class="stars">★★★★★</div><p>"Profesionalismo de principio a fin. Me encanta recibir el recordatorio por WhatsApp el día antes."</p><div class="who"><div class="av">VP</div><div><b style="color:#fff">Valeria P.</b><small>Cliente desde 2022</small></div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ubicación -->
+  <div class="section">
+    <div class="wrap loc">
+      <div>
+        <span class="eyebrow">Visítanos</span>
+        <h2 style="font-size:38px;margin:8px 0 18px">Tu nuevo lugar favorito</h2>
+        <div class="info-row"><span class="ic">📍</span><div><b>Dirección</b><span>Calle 12 #34-56, Zona Rosa</span></div></div>
+        <div class="info-row"><span class="ic">🕐</span><div><b>Horario</b><span>Lun–Sáb · 9:00 a 19:00</span></div></div>
+        <div class="info-row"><span class="ic">📞</span><div><b>Teléfono / WhatsApp</b><span>+57 300 123 4567</span></div></div>
+        <button class="btn btn-ink" style="margin-top:18px" onclick="go('reserva')">Agendar mi cita</button>
+      </div>
+      <div class="map"><div class="pin">📍</div></div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="wrap">
+      <div class="footer-grid">
+        <div><div class="script">Valentina Jimenez</div><p style="font-size:14px;margin-top:8px;max-width:24em">Belleza de lujo accesible. Uñas, pestañas, cejas, depilación y cabello.</p></div>
+        <div><h5>Servicios</h5><a>Uñas</a><a>Pestañas</a><a>Cejas</a><a>Depilación</a><a>Cabello</a></div>
+        <div><h5>Estudio</h5><a>Nosotras</a><a>Portafolio</a><a>Testimonios</a><a>Ubicación</a></div>
+        <div><h5>Contacto</h5><a>WhatsApp</a><a>Instagram</a><a>+57 300 123 4567</a></div>
+      </div>
+      <div class="copy"><span>© 2026 Valentina Jimenez Beauty Studio</span><span>Hecho con ♥ · Privacidad · Términos</span></div>
+    </div>
+  </footer>
+
+  <div class="fab" title="WhatsApp" onclick="alert('Abre chat de WhatsApp →')"><span class="pulse"></span>✆</div>
+</section>
+
+<!-- ============================== RESERVA ============================== -->
+<section class="screen" id="reserva">
+  <div class="frame-label"><span class="eyebrow">Flujo de reserva</span><h2>Agenda en menos de 60 segundos</h2></div>
+  <div class="book">
+    <div class="steps">
+      <div class="prog" id="prog"></div>
+      <div class="step cur" data-s="1"><div class="n">1</div><small>Servicio</small></div>
+      <div class="step" data-s="2"><div class="n">2</div><small>Profesional</small></div>
+      <div class="step" data-s="3"><div class="n">3</div><small>Fecha y hora</small></div>
+      <div class="step" data-s="4"><div class="n">4</div><small>Confirmar</small></div>
+    </div>
+
+    <!-- step 1 -->
+    <div class="bstep active" data-s="1">
+      <div class="scarcity"><span class="dot"></span>Quedan 3 cupos para hoy</div>
+      <h3>¿Cómo te quieres consentir?</h3><p class="sub">Elige tu servicio. Podrás añadir más en el siguiente paso.</p>
+      <div class="opt sel" onclick="selOpt(this)"><div class="ic">💅</div><div class="meta"><b>Manicure Premium en gel</b><span>Incluye diseño · 60 min</span></div><div class="price">$35.000</div><div class="check">✓</div></div>
+      <div class="opt" onclick="selOpt(this)"><div class="ic">👁️</div><div class="meta"><b>Lifting de pestañas</b><span>Con tinte · 75 min</span></div><div class="price">$45.000</div><div class="check">✓</div></div>
+      <div class="opt" onclick="selOpt(this)"><div class="ic">✨</div><div class="meta"><b>Diseño + laminado de cejas</b><span>Visagismo · 45 min</span></div><div class="price">$28.000</div><div class="check">✓</div></div>
+      <div class="opt" onclick="selOpt(this)"><div class="ic">💇‍♀️</div><div class="meta"><b>Corte + peinado</b><span>Con lavado · 60 min</span></div><div class="price">$30.000</div><div class="check">✓</div></div>
+      <div class="bnav"><span></span><button class="btn btn-gold" onclick="next(2)">Continuar →</button></div>
+    </div>
+
+    <!-- step 2 -->
+    <div class="bstep" data-s="2">
+      <h3>Elige tu profesional</h3><p class="sub">O deja que asignemos la primera disponible.</p>
+      <div class="pro-grid">
+        <div class="pro sel" onclick="selPro(this)"><div class="av">V</div><b>Valentina J.</b><span>Especialista master</span><div class="rt">★ 4.9 · 1.2k citas</div></div>
+        <div class="pro" onclick="selPro(this)"><div class="av">S</div><b>Sofía L.</b><span>Uñas & nail art</span><div class="rt">★ 4.8 · 740 citas</div></div>
+        <div class="pro" onclick="selPro(this)"><div class="av">M</div><b>Mariana T.</b><span>Pestañas & cejas</span><div class="rt">★ 4.9 · 610 citas</div></div>
+        <div class="pro" onclick="selPro(this)"><div class="av">✦</div><b>Primera disponible</b><span>La hora más rápida</span><div class="rt">Recomendado</div></div>
+      </div>
+      <div class="bnav"><button class="btn btn-ghost" onclick="next(1)">← Volver</button><button class="btn btn-gold" onclick="next(3)">Continuar →</button></div>
+    </div>
+
+    <!-- step 3 -->
+    <div class="bstep" data-s="3">
+      <h3>¿Cuándo te viene bien?</h3><p class="sub">Solo mostramos horas realmente disponibles.</p>
+      <div class="cal">
+        <div class="cal-head"><button>‹</button><b>Junio 2026</b><button>›</button></div>
+        <div class="cal-grid">
+          <div class="dow">L</div><div class="dow">M</div><div class="dow">X</div><div class="dow">J</div><div class="dow">V</div><div class="dow">S</div><div class="dow">D</div>
+          <div class="d off"></div><div class="d free">2</div><div class="d free">3</div><div class="d free">4</div><div class="d free">5</div><div class="d free">6</div><div class="d off">7</div>
+          <div class="d free">8</div><div class="d free">9</div><div class="d free">10</div><div class="d free">11</div><div class="d free">12</div><div class="d free">13</div><div class="d off">14</div>
+          <div class="d today free sel">15</div><div class="d free">16</div><div class="d free">17</div><div class="d free">18</div><div class="d free">19</div><div class="d free">20</div><div class="d off">21</div>
+          <div class="d free">22</div><div class="d free">23</div><div class="d free">24</div><div class="d free">25</div><div class="d free">26</div><div class="d free">27</div><div class="d off">28</div>
+        </div>
+      </div>
+      <p style="font-size:13px;font-weight:600;margin:20px 0 4px">Lunes 15 de junio</p>
+      <div class="slots">
+        <div class="slot gone">9:00</div><div class="slot gone">10:30</div><div class="slot sel">11:00</div><div class="slot">12:30</div>
+        <div class="slot">14:00</div><div class="slot">15:30</div><div class="slot gone">17:00</div><div class="slot">18:15</div>
+      </div>
+      <div class="bnav"><button class="btn btn-ghost" onclick="next(2)">← Volver</button><button class="btn btn-gold" onclick="next(4)">Continuar →</button></div>
+    </div>
+
+    <!-- step 4 -->
+    <div class="bstep" data-s="4">
+      <h3>Confirma tu cita</h3><p class="sub">Revisa los detalles y reserva tu cupo.</p>
+      <div class="summary" style="margin-bottom:18px">
+        <div class="row"><span>Servicio</span><b>Manicure Premium en gel</b></div>
+        <div class="row"><span>Profesional</span><b>Valentina J.</b></div>
+        <div class="row"><span>Fecha y hora</span><b>Lun 15 jun · 11:00</b></div>
+        <div class="row"><span>Duración</span><span>60 min</span></div>
+        <div class="total"><span>Total</span><b>$35.000</b></div>
+      </div>
+      <div class="field"><label>Nombre completo</label><input placeholder="Tu nombre" value="Camila Restrepo"></div>
+      <div class="field"><label>WhatsApp (para recordatorio)</label><input placeholder="+57 300 000 0000" value="+57 301 555 0199"></div>
+      <p style="font-size:13px;font-weight:600;margin:6px 0">¿Cómo prefieres pagar?</p>
+      <div class="pay-toggle">
+        <div class="pt sel" onclick="selPay(this)">Pagar en el estudio</div>
+        <div class="pt" onclick="selPay(this)">Abono 30% online</div>
+      </div>
+      <button class="btn btn-gold btn-block" onclick="next(5)" style="margin-top:8px">Confirmar reserva ✦</button>
+      <p style="text-align:center;font-size:12px;color:var(--ink-muted);margin-top:12px">🔒 Cancelación gratis hasta 12h antes · Recibirás confirmación por WhatsApp</p>
+    </div>
+
+    <!-- step 5 done -->
+    <div class="bstep" data-s="5">
+      <div class="done-screen">
+        <div class="ok">✓</div>
+        <h3>¡Tu cita está reservada!</h3>
+        <p class="sub" style="margin-bottom:20px">Te enviamos la confirmación a tu WhatsApp. Te esperamos.</p>
+        <div class="summary" style="text-align:left;max-width:420px;margin:0 auto">
+          <div class="row"><span>Manicure Premium</span><b>$35.000</b></div>
+          <div class="row"><span>Con Valentina J.</span><span>Lun 15 jun · 11:00</span></div>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:center;margin-top:20px;flex-wrap:wrap">
+          <button class="btn btn-ink">Añadir al calendario</button>
+          <button class="btn btn-ghost" onclick="next(1)">Reservar otra</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note note-inline wrap" style="max-width:760px;margin:0 auto 60px"><b>UX/CRO · Reserva:</b> Cuatro pasos cortos con barra de progreso = la meta siempre se ve cerca (efecto de progreso dotado). Una sola decisión por pantalla reduce la carga cognitiva. Mostramos solo horas disponibles (cero callejones sin salida), escasez honesta ("3 cupos"), opción "primera disponible" para quien solo quiere rapidez, y datos mínimos (nombre + WhatsApp) para terminar en &lt;60s. El microcopy de cancelación gratuita y confirmación por WhatsApp baja la ansiedad justo antes del clic final.</div>
+</section>
+
+<!-- ============================== ADMIN ============================== -->
+<section class="screen" id="admin">
+  <div class="admin">
+    <aside class="aside">
+      <div class="logo">Valentina J.</div>
+      <div class="nav">
+        <a class="on">▦ Dashboard</a>
+        <a>🗓 Calendario</a>
+        <a>✦ Servicios</a>
+        <a>👤 Clientes</a>
+        <a>📈 Estadísticas</a>
+        <a>⚙ Configuración</a>
+      </div>
+      <div class="pro-mini"><div class="av">VJ</div><div><b style="color:#fff;font-size:13px">Valentina J.</b><small style="color:#b7ae9c;font-size:11px">Administradora</small></div></div>
+    </aside>
+    <div class="amain">
+      <div class="atop"><div><h2>Hola, Valentina ✦</h2><p class="muted">Lunes 15 de junio · 8 citas hoy</p></div><button class="btn btn-gold">+ Nueva cita</button></div>
+
+      <div class="kpis">
+        <div class="kpi"><div class="lbl">Citas hoy</div><div class="val">8</div><div class="chg up">▲ 2 vs ayer</div><div class="spark"><i style="height:40%"></i><i style="height:60%"></i><i style="height:45%"></i><i style="height:80%"></i><i style="height:55%"></i><i style="height:100%"></i></div></div>
+        <div class="kpi"><div class="lbl">Ingresos mes</div><div class="val">$4.2M</div><div class="chg up">▲ 18%</div><div class="spark"><i style="height:30%"></i><i style="height:50%"></i><i style="height:65%"></i><i style="height:55%"></i><i style="height:85%"></i><i style="height:100%"></i></div></div>
+        <div class="kpi"><div class="lbl">Ocupación</div><div class="val">86%</div><div class="chg up">▲ 6%</div><div class="spark"><i style="height:60%"></i><i style="height:70%"></i><i style="height:65%"></i><i style="height:90%"></i><i style="height:80%"></i><i style="height:86%"></i></div></div>
+        <div class="kpi"><div class="lbl">Nuevas clientas</div><div class="val">23</div><div class="chg down">▼ 3%</div><div class="spark"><i style="height:80%"></i><i style="height:60%"></i><i style="height:70%"></i><i style="height:50%"></i><i style="height:65%"></i><i style="height:55%"></i></div></div>
+      </div>
+
+      <div class="panel-2">
+        <div class="card">
+          <h3>Ingresos últimos 7 meses <small>Ver detalle →</small></h3>
+          <div class="chart">
+            <div class="bar"><i style="height:45%"></i><span>Dic</span></div>
+            <div class="bar"><i style="height:60%"></i><span>Ene</span></div>
+            <div class="bar"><i style="height:52%"></i><span>Feb</span></div>
+            <div class="bar"><i style="height:75%"></i><span>Mar</span></div>
+            <div class="bar"><i style="height:68%"></i><span>Abr</span></div>
+            <div class="bar"><i style="height:88%"></i><span>May</span></div>
+            <div class="bar"><i style="height:100%"></i><span>Jun</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Próximas citas <small>Ver agenda →</small></h3>
+          <div class="aprow"><div class="t">11:00</div><div class="av">CR</div><div class="meta"><b>Camila Restrepo</b><span>Manicure Premium · Valentina</span></div><span class="badge conf">Confirmada</span></div>
+          <div class="aprow"><div class="t">12:30</div><div class="av">LG</div><div class="meta"><b>Laura Gómez</b><span>Lifting pestañas · Mariana</span></div><span class="badge pend">Pendiente</span></div>
+          <div class="aprow"><div class="t">14:00</div><div class="av">AN</div><div class="meta"><b>Ana Núñez</b><span>Cejas · Mariana</span></div><span class="badge conf">Confirmada</span></div>
+          <div class="aprow"><div class="t">15:30</div><div class="av">VP</div><div class="meta"><b>Valeria Pérez</b><span>Corte + color · Sofía</span></div><span class="badge new">Nueva</span></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:18px">
+        <h3>Calendario semanal <small>Junio 15–19</small></h3>
+        <div class="cal-week">
+          <div class="ch"></div><div class="ch">Lun 15</div><div class="ch">Mar 16</div><div class="ch">Mié 17</div><div class="ch">Jue 18</div><div class="ch">Vie 19</div>
+          <div class="hr">11h</div><div class="cell"><div class="ev g1">Camila · Manicure</div></div><div class="cell"></div><div class="cell"><div class="ev g2">Sofía · Color</div></div><div class="cell"></div><div class="cell"><div class="ev g3">Ana · Cejas</div></div>
+          <div class="hr">12h</div><div class="cell"><div class="ev g2">Laura · Lifting</div></div><div class="cell"><div class="ev g1">Diana · Uñas</div></div><div class="cell"></div><div class="cell"><div class="ev g1">Paula · Gel</div></div><div class="cell"></div>
+          <div class="hr">14h</div><div class="cell"><div class="ev g3">Ana · Cejas</div></div><div class="cell"></div><div class="cell"><div class="ev g2">Marta · Corte</div></div><div class="cell"></div><div class="cell"><div class="ev g1">Lucía · Pestañas</div></div>
+          <div class="hr">15h</div><div class="cell"><div class="ev g1">Valeria · Color</div></div><div class="cell"><div class="ev g3">Sara · Depilación</div></div><div class="cell"></div><div class="cell"></div><div class="cell"><div class="ev g2">Clara · Corte</div></div>
+        </div>
+      </div>
+
+      <div class="panel-2" style="margin-top:18px">
+        <div class="card">
+          <h3>Gestión de servicios <small>+ Añadir</small></h3>
+          <table class="table">
+            <tr><th>Servicio</th><th>Precio</th><th>Duración</th><th>Activo</th></tr>
+            <tr><td>Manicure Premium</td><td>$35.000</td><td>60 min</td><td><span class="toggle"></span></td></tr>
+            <tr><td>Lifting de pestañas</td><td>$45.000</td><td>75 min</td><td><span class="toggle"></span></td></tr>
+            <tr><td>Diseño de cejas</td><td>$28.000</td><td>45 min</td><td><span class="toggle"></span></td></tr>
+            <tr><td>Depilación facial</td><td>$12.000</td><td>20 min</td><td><span class="toggle off"></span></td></tr>
+          </table>
+        </div>
+        <div class="card">
+          <h3>Clientas top <small>Ver todas →</small></h3>
+          <div class="aprow"><div class="av">DR</div><div class="meta"><b>Daniela R.</b><span>VIP · 24 visitas</span></div><b style="color:var(--gold-dark);font-family:var(--serif)">$890k</b></div>
+          <div class="aprow"><div class="av">CM</div><div class="meta"><b>Carolina M.</b><span>Frecuente · 18 visitas</span></div><b style="color:var(--gold-dark);font-family:var(--serif)">$640k</b></div>
+          <div class="aprow"><div class="av">VP</div><div class="meta"><b>Valeria P.</b><span>Frecuente · 15 visitas</span></div><b style="color:var(--gold-dark);font-family:var(--serif)">$520k</b></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="note note-inline wrap" style="margin:24px auto"><b>UX/CRO · Admin:</b> Dashboard tipo SaaS premium con KPIs accionables arriba (lo más consultado), sparklines para leer tendencia de un vistazo, y la agenda del día visible sin scroll. Mantiene la misma paleta negro+dorado de la marca para coherencia, pero con más blanco y densidad de datos apropiada para uso intensivo. El calendario semanal con colores por profesional permite detectar choques de horario al instante.</div>
+</section>
+
+<!-- ============================== SISTEMA DE DISEÑO ============================== -->
+<section class="screen" id="sistema">
+  <div class="frame-label"><span class="eyebrow">Design System</span><h2>Sistema de diseño "Atelier Dorado"</h2></div>
+  <div class="wrap" style="padding-bottom:80px">
+
+    <div class="ds-grid" style="margin-top:30px">
+      <div class="card">
+        <h3>Paleta de color</h3>
+        <div class="sw-grid">
+          <div class="swatch" style="background:var(--ink);color:#fff">Ink #111111</div>
+          <div class="swatch" style="background:var(--gold);color:#fff">Gold #B8932A</div>
+          <div class="swatch" style="background:var(--gold-light);color:var(--ink)">Gold L. #D4AD5A</div>
+          <div class="swatch" style="background:var(--gold-pale);color:var(--ink-mid)">Pale #F5EDDA</div>
+          <div class="swatch" style="background:var(--beige);color:var(--ink-mid)">Beige #F2EBD9</div>
+          <div class="swatch" style="background:var(--beige-deeper);color:var(--ink-mid)">Beige D. #D9CCAF</div>
+          <div class="swatch" style="background:var(--white);color:var(--ink-mid);border:1px solid var(--beige-deeper)">White #FFF</div>
+          <div class="swatch" style="background:var(--ink-muted);color:#fff">Muted #7A7060</div>
+        </div>
+        <p class="muted" style="font-size:13px;margin-top:12px">Negro y dorado como protagonistas; beige y blanco como lienzo. Saturación baja = sensación premium. Verde/ámbar/rojo solo para estados de sistema.</p>
+      </div>
+
+      <div class="card">
+        <h3>Tipografía</h3>
+        <div class="type-row"><span class="script" style="font-size:34px;color:var(--gold-dark)">Valentina Jimenez</span><small>Pinyon Script · logo</small></div>
+        <div class="type-row"><span class="serif" style="font-size:34px">Display H1</span><small>Cormorant · 64/44px</small></div>
+        <div class="type-row"><span class="serif" style="font-size:24px">Encabezado H2/H3</span><small>Cormorant 600</small></div>
+        <div class="type-row"><span style="font-size:16px">Cuerpo de texto regular</span><small>DM Sans · 15–16px</small></div>
+        <div class="type-row"><span class="eyebrow">Eyebrow / etiqueta</span><small>DM Sans · 12px ·.28em</small></div>
+      </div>
+    </div>
+
+    <div class="ds-grid" style="margin-top:24px">
+      <div class="card">
+        <h3>Espaciado y bordes</h3>
+        <p class="muted" style="font-size:13px;margin-bottom:10px">Escala base 4px</p>
+        <span class="chip">4</span><span class="chip">8</span><span class="chip">12</span><span class="chip">16</span><span class="chip">24</span><span class="chip">32</span><span class="chip">48</span><span class="chip">64</span><span class="chip">96</span>
+        <p class="muted" style="font-size:13px;margin:16px 0 10px">Radios</p>
+        <div style="display:flex;gap:10px;align-items:flex-end">
+          <div style="width:60px;height:50px;background:var(--gold-pale);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px">6</div>
+          <div style="width:60px;height:50px;background:var(--gold-pale);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:11px">12</div>
+          <div style="width:60px;height:50px;background:var(--gold-pale);border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:11px">20</div>
+          <div style="width:60px;height:50px;background:var(--gold-pale);border-radius:999px;display:flex;align-items:center;justify-content:center;font-size:11px">pill</div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Sombras (elevación)</h3>
+        <div class="shadow-demo">
+          <div class="sd" style="box-shadow:var(--sh-sm)">sm</div>
+          <div class="sd" style="box-shadow:var(--sh-md)">md</div>
+          <div class="sd" style="box-shadow:var(--sh-lg)">lg</div>
+          <div class="sd" style="box-shadow:var(--sh-gold)">gold</div>
+        </div>
+        <p class="muted" style="font-size:13px;margin-top:14px">Sombras suaves y difusas (nunca duras). La sombra "gold" se reserva para el CTA primario.</p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:24px">
+      <h3>Componentes reutilizables</h3>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:18px">
+        <button class="btn btn-gold">Primario</button>
+        <button class="btn btn-ink">Secundario</button>
+        <button class="btn btn-ghost">Ghost</button>
+        <span class="badge conf">Confirmada</span><span class="badge pend">Pendiente</span><span class="badge new">Nueva</span>
+        <span class="toggle"></span><span class="toggle off"></span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="field"><label>Input con foco dorado</label><input placeholder="Escribe aquí…"></div>
+        <div class="opt sel" style="margin:0"><div class="ic">💅</div><div class="meta"><b>Card seleccionable</b><span>Estado activo</span></div><div class="check">✓</div></div>
+      </div>
+    </div>
+
+    <div class="ds-grid" style="margin-top:24px">
+      <div class="card">
+        <h3>Estado: cargando</h3>
+        <div class="skel" style="width:70%"></div><div class="skel" style="width:100%"></div><div class="skel" style="width:90%"></div><div class="skel" style="width:50%"></div>
+        <p class="muted" style="font-size:13px;margin-top:10px">Skeleton con shimmer en vez de spinners: percepción de velocidad y menos parpadeo de layout.</p>
+      </div>
+      <div class="card">
+        <h3>Estado: vacío</h3>
+        <div class="empty"><div class="ic">🗓</div><b>Aún no tienes citas hoy</b><p style="font-size:13px;margin:6px 0 14px">Comparte tu link de reservas para llenar la agenda.</p><button class="btn btn-gold">Compartir link</button></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:24px">
+      <h3>Accesibilidad (WCAG 2.1 AA)</h3>
+      <div class="note" style="margin:0"><b>Contraste:</b> texto ink sobre beige/blanco supera 4.5:1; el dorado se usa como acento o sobre fondo oscuro, nunca como texto pequeño sobre claro. <b>Foco visible</b> con anillo dorado en todos los campos. <b>Targets táctiles</b> ≥44px. <b>Estados no solo por color</b> (los badges incluyen texto, no solo tono). Tipografía mínima 14px en móvil, jerarquía semántica h1→h4, y soporte de <code>prefers-reduced-motion</code> para las animaciones.</div>
+    </div>
+
+    <div class="card" style="margin-top:24px">
+      <h3>Implementación en Next.js + Tailwind</h3>
+      <p style="font-size:14px;color:var(--ink-mid)">Tus tokens ya viven en <code>tailwind.config.ts</code> (<code>gold</code>, <code>beige</code>, <code>ink</code>, Cormorant + DM Sans). Recomendaciones para llevar este rediseño al repo:</p>
+      <ul style="font-size:14px;color:var(--ink-mid);margin:10px 0 0 18px;line-height:1.9">
+        <li>Añadir <code>Pinyon Script</code> al logo vía <code>next/font/google</code> (evita CLS y FOUT).</li>
+        <li>Server Components para landing y galería (S3) + ISR; el flujo <code>/agendar</code> como Client Component con el estado de pasos en <code>useReducer</code>.</li>
+        <li>Disponibilidad real desde <code>/api/availability</code> con caché corto; deshabilitar slots ocupados en el render (cero callejones sin salida).</li>
+        <li>Reutilizar tus <code>ui/Button</code>, <code>Card</code>, <code>Input</code>, <code>Badge</code>, <code>Modal</code> con estas variantes y tokens.</li>
+        <li>Skeletons con <code>loading.tsx</code> por ruta; <code>next/image</code> para la galería con blur placeholder.</li>
+        <li>FAB de WhatsApp como componente fijo global; microinteracciones con las keyframes <code>fade-up/fade-in</code> ya definidas + respeto a <code>motion-reduce</code>.</li>
+      </ul>
+    </div>
+
+  </div>
+</section>
+
+<button class="notes-toggle" onclick="document.body.classList.toggle('show-notes')">💡 Ver / ocultar notas UX·CRO</button>
+
+<script>
+function go(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.screen===id));
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(t.dataset.screen));
+
+/* booking */
+let step=1;
+function next(n){
+  step=n;
+  document.querySelectorAll('.bstep').forEach(b=>b.classList.toggle('active',+b.dataset.s===n));
+  document.querySelectorAll('.step').forEach(s=>{
+    const sv=+s.dataset.s;
+    s.classList.toggle('done',sv<Math.min(n,4));
+    s.classList.toggle('cur',sv===Math.min(n,4));
+  });
+  const prog=document.getElementById('prog');
+  if(prog) prog.style.width=((Math.min(n,4)-1)/3*88)+'%';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function selOpt(el){el.parentNode.querySelectorAll('.opt').forEach(o=>o.classList.remove('sel'));el.classList.add('sel');}
+function selPro(el){el.parentNode.querySelectorAll('.pro').forEach(o=>o.classList.remove('sel'));el.classList.add('sel');}
+function selPay(el){el.parentNode.querySelectorAll('.pt').forEach(o=>o.classList.remove('sel'));el.classList.add('sel');}
+document.querySelectorAll('.slot:not(.gone)').forEach(s=>s.onclick=()=>{document.querySelectorAll('.slot').forEach(x=>x.classList.remove('sel'));s.classList.add('sel');});
+document.querySelectorAll('.cal-grid .d.free').forEach(d=>d.onclick=()=>{document.querySelectorAll('.cal-grid .d').forEach(x=>x.classList.remove('sel'));d.classList.add('sel');});
+document.querySelectorAll('.toggle').forEach(t=>t.onclick=()=>t.classList.toggle('off'));
+</script>
+</body>
+</html>
