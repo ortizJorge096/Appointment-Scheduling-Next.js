@@ -15,6 +15,13 @@ const timeString = z.string().regex(timeRegex, 'Formato de hora inválido. Use H
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/
 const dateString = z.string().regex(dateRegex, 'Formato de fecha inválido. Use YYYY-MM-DD')
 
+// Optional email: an empty string (the form sends "" when left blank) becomes
+// undefined, so a blank field passes; if anything is typed it must be valid.
+const optionalEmail = z.preprocess(
+  (v) => (v === '' || v === null ? undefined : v),
+  z.string().email('Email inválido').optional(),
+)
+
 // ─────────────────────────────────────────
 // BOOKING (public)
 // ─────────────────────────────────────────
@@ -25,9 +32,7 @@ export const createAppointmentSchema = z.object({
     .min(2, 'El nombre debe tener al menos 2 caracteres')
     .max(100, 'El nombre es demasiado largo'),
 
-  clientEmail: z
-    .string()
-    .email('Email inválido'),
+  clientEmail: optionalEmail,
 
   clientPhone: z
     .string()
@@ -236,7 +241,7 @@ export const updateAppointmentPaymentSchema = updateAppointmentSchema
 
 export const createManualAppointmentSchema = z.object({
   clientName:  z.string().min(2).max(100),
-  clientEmail: z.string().email('Email inválido'),
+  clientEmail: optionalEmail,
   clientPhone: z.string().min(7).max(15).regex(/^[0-9+\s-]+$/, 'Teléfono inválido'),
   serviceId:   z.string().cuid('ID de servicio inválido'),
   date:        dateString,
@@ -267,7 +272,7 @@ export const createManualAppointmentSchema = z.object({
 
 export const createClientSchema = z.object({
   name:  z.string().min(2).max(100),
-  email: z.string().email('Email inválido'),
+  email: optionalEmail,
   phone: z.string().min(7).max(15).regex(/^[0-9+\s-]+$/, 'Teléfono inválido').optional(),
   notes: z.string().max(1000).optional(),
 })

@@ -124,7 +124,7 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
                 <input value={infoForm.name} onChange={e => setInfoForm(f => ({ ...f, name: e.target.value }))}
                   required placeholder="Nombre" className="input-field w-full text-sm" />
                 <input type="email" value={infoForm.email} onChange={e => setInfoForm(f => ({ ...f, email: e.target.value }))}
-                  required placeholder="Email" className="input-field w-full text-sm" />
+                  placeholder="Email (opcional)" className="input-field w-full text-sm" />
                 <input value={infoForm.phone} onChange={e => setInfoForm(f => ({ ...f, phone: e.target.value }))}
                   placeholder="Teléfono / celular" className="input-field w-full text-sm" />
                 {infoErr && <p className="text-xs text-red-600">{infoErr}</p>}

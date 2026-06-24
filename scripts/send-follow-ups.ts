@@ -48,8 +48,10 @@ async function main() {
 
   let sent = 0
   let failed = 0
+  let skipped = 0
 
   for (const appt of appointments) {
+    if (!appt.clientEmail) { skipped++; continue }
     try {
       await sendFollowUpEmail(appt as unknown as AppointmentWithService)
 
@@ -66,7 +68,7 @@ async function main() {
     }
   }
 
-  console.log(`\n✅ Enviados: ${sent} | ❌ Fallidos: ${failed}`)
+  console.log(`\n✅ Enviados: ${sent} | ⏭️  Omitidos (sin email): ${skipped} | ❌ Fallidos: ${failed}`)
   console.log(`🏁 Proceso completado.\n`)
 }
 

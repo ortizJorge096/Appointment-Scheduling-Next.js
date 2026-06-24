@@ -232,7 +232,11 @@ export default function CitaDetailPage() {
         {/* Contact */}
         <div className="bg-white rounded-xl border border-beige-dark p-5">
           <p className="text-xs text-ink-muted uppercase tracking-widest mb-3">Contacto</p>
-          <p className="text-ink text-sm">{appt.clientEmail}</p>
+          {appt.clientEmail ? (
+            <p className="text-ink text-sm">📧 {appt.clientEmail} <span className="text-xs text-green-600">· notificaciones activas</span></p>
+          ) : (
+            <p className="text-sm text-ink-muted italic">📵 Sin email — el cliente no recibe notificaciones</p>
+          )}
           <p className="text-ink text-sm mt-1">{appt.clientPhone}</p>
         </div>
 

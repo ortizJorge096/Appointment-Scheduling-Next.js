@@ -85,7 +85,7 @@ export interface CreateAppointmentInput {
 export interface AppointmentWithService {
   id: string
   clientName: string
-  clientEmail: string
+  clientEmail: string | null
   clientPhone: string
   clientId: string | null
   date: string

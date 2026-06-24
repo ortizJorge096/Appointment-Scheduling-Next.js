@@ -77,7 +77,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
     client = await prisma.client.create({
       data: {
         name:  parsed.data.name.trim(),
-        email: parsed.data.email.toLowerCase().trim(),
+        email: parsed.data.email?.toLowerCase().trim() || null,
         phone: parsed.data.phone?.trim() ?? null,
         notes: parsed.data.notes?.trim() ?? null,
       },

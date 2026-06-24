@@ -99,7 +99,15 @@ export default async function CitasPage({ searchParams }: { searchParams: Promis
                     </td>
                     <td className="px-5 py-3.5 text-ink-muted font-mono text-xs">{appt.startTime}</td>
                     <td className="px-5 py-3.5">
-                      <p className="text-ink font-medium">{appt.clientName}</p>
+                      <p className="text-ink font-medium flex items-center gap-1.5">
+                        {appt.clientName}
+                        {!appt.clientEmail && (
+                          <span title="Cliente sin email — no recibe notificaciones"
+                            className="text-[10px] tracking-wide uppercase bg-beige text-ink-muted/70 border border-beige-dark px-1.5 py-0.5 rounded-full">
+                            sin correo
+                          </span>
+                        )}
+                      </p>
                       <p className="text-xs text-ink-muted">{appt.clientPhone}</p>
                     </td>
                     <td className="px-5 py-3.5 text-ink-muted">
@@ -134,7 +142,14 @@ export default async function CitasPage({ searchParams }: { searchParams: Promis
                 <Link key={appt.id} href={`/admin/citas/${appt.id}`}
                   className="block px-4 py-3 hover:bg-beige transition-colors">
                   <div className="flex items-center justify-between mb-1">
-                    <p className="text-sm font-medium text-ink">{appt.clientName}</p>
+                    <p className="text-sm font-medium text-ink flex items-center gap-1.5">
+                      {appt.clientName}
+                      {!appt.clientEmail && (
+                        <span className="text-[9px] tracking-wide uppercase bg-beige text-ink-muted/70 border border-beige-dark px-1.5 py-0.5 rounded-full">
+                          sin correo
+                        </span>
+                      )}
+                    </p>
                     <span className={STATUS_CLASS[appt.status]}>{STATUS_LABEL[appt.status]}</span>
                   </div>
                   <div className="flex items-center justify-between text-xs text-ink-muted">

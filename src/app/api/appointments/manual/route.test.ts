@@ -53,6 +53,12 @@ const VALID_BODY = {
   startTime: '10:00', source: 'PRESENCIAL',
 }
 
+const NO_EMAIL_BODY = {
+  clientName: 'Ana López', clientPhone: '3001234567',
+  serviceId: 'clxxxxxxxxxxxxxxxxxxxxxxx', date: '2026-12-01',
+  startTime: '10:00', source: 'PRESENCIAL',
+}
+
 function makeRequest(body: unknown): NextRequest {
   return { json: () => Promise.resolve(body) } as unknown as NextRequest
 }
@@ -245,6 +251,43 @@ describe('POST /api/appointments/manual', () => {
       const res = await POST(makeRequest({
         ...VALID_BODY, date: recentPastDate(2), mode: 'PAST', totalCharged: 35000, notifyClient: true,
       }))
+      expect(res.status).toBe(201)
+      expect(sendConfirmationEmail).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('sin email (cliente opcional)', () => {
+    // tx mock that exposes the no-email path (findFirst + create), not upsert
+    function mockNoEmailTransaction(upsert = vi.fn()) {
+      vi.mocked(prisma.service.findUnique).mockResolvedValue(MOCK_SERVICE as never)
+      vi.mocked(prisma.appointment.findFirst).mockResolvedValue(null)
+      vi.mocked(prisma.$transaction).mockImplementation(async (fn) =>
+        fn({
+          appointment: { findFirst: vi.fn().mockResolvedValue(null), create: vi.fn().mockResolvedValue({ ...MOCK_APPOINTMENT, clientEmail: null }) },
+          client: {
+            upsert,
+            findFirst: vi.fn().mockResolvedValue(null),
+            create:    vi.fn().mockResolvedValue({ ...MOCK_CLIENT, email: null }),
+          },
+        }),
+      )
+    }
+
+    it('crea la cita sin email (no usa upsert-por-email)', async () => {
+      vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
+      const upsert = vi.fn()
+      mockNoEmailTransaction(upsert)
+
+      const res = await POST(makeRequest(NO_EMAIL_BODY))
+      expect(res.status).toBe(201)
+      expect(upsert).not.toHaveBeenCalled()
+    })
+
+    it('no envía confirmación sin email aunque notifyClient=true', async () => {
+      vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
+      mockNoEmailTransaction()
+
+      const res = await POST(makeRequest({ ...NO_EMAIL_BODY, notifyClient: true }))
       expect(res.status).toBe(201)
       expect(sendConfirmationEmail).not.toHaveBeenCalled()
     })

@@ -14,10 +14,25 @@ import type { AppointmentWithService } from '@/types'
 export default function ConfirmacionClient() {
   const params = useSearchParams()
   const id = params.get('id')
+  const token = params.get('token')
 
   const [appointment, setAppointment] = useState<AppointmentWithService | null>(null)
   const [loading, setLoading]         = useState(true)
   const [error, setError]             = useState(false)
+  const [copied, setCopied]           = useState(false)
+
+  const cancelUrl = id && token
+    ? `${typeof window !== 'undefined' ? window.location.origin : ''}/cancelar?id=${id}&token=${token}`
+    : null
+
+  async function copyCancelUrl() {
+    if (!cancelUrl) return
+    try {
+      await navigator.clipboard.writeText(cancelUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch { /* clipboard not available */ }
+  }
 
   useEffect(() => {
     if (!id) { setError(true); setLoading(false); return }
@@ -117,6 +132,27 @@ export default function ConfirmacionClient() {
             </div>
           ))}
         </div>
+
+        {/* Cancel link — essential for clients who left no email (they won't
+            receive it by mail). Shown whenever we have the token in the URL. */}
+        {cancelUrl && (
+          <div className="bg-beige-pale border border-beige-dark rounded-2xl p-4 mb-6">
+            <p className="text-xs text-ink-muted mb-2">
+              {appointment.clientEmail
+                ? 'También puedes guardar tu enlace de cancelación:'
+                : 'Guarda este enlace para cancelar tu cita (no recibirás correo):'}
+            </p>
+            <div className="flex items-center gap-2">
+              <input readOnly value={cancelUrl}
+                onFocus={(e) => e.currentTarget.select()}
+                className="input-field flex-1 text-xs truncate" />
+              <button type="button" onClick={copyCancelUrl}
+                className="btn-secondary text-xs px-4 py-2 shrink-0">
+                {copied ? '¡Copiado!' : 'Copiar'}
+              </button>
+            </div>
+          </div>
+        )}
 
         <p className="text-xs text-ink-muted text-center leading-relaxed mb-8">
           Si necesitas cancelar, hazlo con al menos{' '}
