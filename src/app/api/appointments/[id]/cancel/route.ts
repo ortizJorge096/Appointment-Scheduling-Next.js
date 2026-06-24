@@ -5,17 +5,18 @@ import { toZonedTime, fromZonedTime } from 'date-fns-tz'
 import { format } from 'date-fns'
 import { deleteCalendarEvent } from '@/lib/calendar'
 import { sendAdminCancellationEmail } from '@/lib/email'
+import { audit, getClientIp, getUserAgent } from '@/lib/audit'
 import type { AppointmentWithService } from '@/types'
 
 export async function POST(
-  _request: NextRequest,
+  request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   const { id } = await context.params
 
   let body: { token?: string }
   try {
-    body = await _request.json()
+    body = await request.json()
   } catch {
     return NextResponse.json(
       { success: false, error: 'Body inválido' },
@@ -92,6 +93,19 @@ export async function POST(
   // Notify the admin — this cancellation was initiated by the client, not by the admin
   sendAdminCancellationEmail(updated as unknown as AppointmentWithService)
     .catch((err) => console.error('Error notificando al admin de la cancelación:', err))
+
+  // Audit the client-initiated cancellation (fire-and-forget). Never store the token.
+  audit({
+    action:    'CANCEL',
+    entity:    'APPOINTMENT',
+    entityId:  id,
+    actorType: 'CLIENT',
+    ip:        getClientIp(request),
+    userAgent: getUserAgent(request),
+    before:    { status: appointment.status },
+    after:     { status: 'CANCELLED' },
+    description: `Cliente ${updated.clientName} canceló su cita del ${format(toZonedTime(appointment.date, STUDIO.timezone), 'yyyy-MM-dd')} a las ${appointment.startTime}`,
+  })
 
   return NextResponse.json({ success: true, data: { id } })
 }

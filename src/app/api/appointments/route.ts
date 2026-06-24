@@ -11,6 +11,7 @@ import { isSlotAvailable, timeToMinutes, minutesToTime } from '@/lib/availabilit
 import { getVipSettings, resolveDiscountPercent } from '@/lib/vip'
 import { sendConfirmationEmail, sendAdminNewBookingEmail } from '@/lib/email'
 import { resolveOrCreateClient } from '@/lib/clients'
+import { audit, getClientIp, getUserAgent } from '@/lib/audit'
 import { createCalendarEvent } from '@/lib/calendar'
 import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
 import type { ApiResponse, AppointmentWithService } from '@/types'
@@ -354,6 +355,24 @@ export async function POST(
       })
       .catch((err) => console.error('Error creando evento de calendario:', err)),
   ])
+
+  // Audit the public booking (fire-and-forget — never blocks the response)
+  audit({
+    action:    'CREATE',
+    entity:    'APPOINTMENT',
+    entityId:  appointment.id,
+    actorType: 'CLIENT',
+    ip:        getClientIp(request),
+    userAgent: getUserAgent(request),
+    after: {
+      clientName: appointment.clientName,
+      service:    appointment.service.name,
+      date,
+      startTime,
+      source:     'ONLINE',
+    },
+    description: `Cliente ${appointment.clientName} reservó ${appointment.service.name} para el ${date} a las ${startTime}`,
+  })
 
   return NextResponse.json(
     { success: true, data: appointment as AppointmentWithService },

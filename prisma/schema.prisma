@@ -312,18 +312,24 @@ model GalleryImage {
 // ─────────────────────────────────────────
 
 model AuditLog {
-  id        String   @id @default(cuid())
-  action    AuditAction
-  entity    AuditEntity
-  entityId  String
-  userEmail String?          // admin que ejecutó la acción
-  metadata  Json?            // campos relevantes: {before, after, notes...}
-  ip        String?
-  createdAt DateTime @default(now())
+  id          String       @id @default(cuid())
+  action      AuditAction
+  entity      AuditEntity
+  entityId    String
+  actorType   AuditActor?  // ADMIN | CLIENT | SYSTEM (null = registros legacy)
+  userEmail   String?      // admin que ejecutó (o email intentado en login fallido)
+  ip          String?
+  userAgent   String?      // dispositivo/navegador
+  before      Json?        // estado previo (ediciones, cambios de estado, cancelaciones)
+  after       Json?        // estado nuevo
+  description String?      // texto legible: "Admin marcó la cita de Juan Pérez como pagada"
+  metadata    Json?        // contexto extra
+  createdAt   DateTime     @default(now())
 
   @@index([entity, entityId])
   @@index([createdAt])
   @@index([userEmail])
+  @@index([actorType])
   @@map("audit_logs")
 }
 
@@ -332,6 +338,12 @@ enum AuditAction {
   UPDATE
   DELETE
   STATUS_CHANGE
+  CANCEL
+  LOGIN
+  LOGIN_FAILED
+  LOGOUT
+  EMAIL_SENT
+  EMAIL_FAILED
 }
 
 enum AuditEntity {
@@ -342,4 +354,12 @@ enum AuditEntity {
   GALLERY
   SCHEDULE
   PROFESSIONAL
+  AUTH
+  EMAIL
+}
+
+enum AuditActor {
+  ADMIN
+  CLIENT
+  SYSTEM
 }
