@@ -44,7 +44,9 @@ resource "aws_ssm_parameter" "app_host" {
   name        = "/${var.name_prefix}/app/host"
   description = "Public hostname (A record → EIP) for ${var.name_prefix}"
   type        = "String"
-  value       = var.app_host
+  # SSM rejects empty String values. Fall back to the placeholder when app_host
+  # is unset (the deploy would then run on the placeholder host, not crash apply).
+  value       = var.app_host != "" ? var.app_host : "appointment-scheduling.example.com"
   tags        = { Component = "app" }
 }
 
