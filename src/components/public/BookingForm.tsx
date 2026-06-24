@@ -297,7 +297,8 @@ export default function BookingForm() {
       const errors: FieldErrors = {}
       if (form.clientName.trim().length < 2)
         errors.clientName = 'Ingresa tu nombre completo (mínimo 2 caracteres).'
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.clientEmail.trim()))
+      // Email is optional — only validate the format if something was typed.
+      if (form.clientEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.clientEmail.trim()))
         errors.clientEmail = 'Ingresa un email válido (ej: correo@dominio.com).'
       if (form.clientPhone.trim().length < 7)
         errors.clientPhone = 'Ingresa un número de teléfono válido.'
@@ -375,7 +376,10 @@ export default function BookingForm() {
         setSubmitError(json.error ?? 'Ocurrió un error. Intenta de nuevo.')
         return
       }
-      router.push(`/confirmacion?id=${json.data.id}`)
+      // Pass the cancel token in the URL (only for the person who just booked)
+      // so the confirmation screen can show the cancel link without exposing the
+      // token via a public GET — essential for clients who left no email.
+      router.push(`/confirmacion?id=${json.data.id}${json.data.cancelToken ? `&token=${json.data.cancelToken}` : ''}`)
     } catch (err) {
       clearTimeout(timeout)
       if (err instanceof DOMException && err.name === 'AbortError') {
@@ -446,7 +450,7 @@ export default function BookingForm() {
       {step === 'service' && !form.category && (
         <div className="animate-fade-in">
           <div className="mb-6">
-            <h2 className="font-serif text-2xl text-ink">¿Qué te quieres consentir?</h2>
+            <h2 className="font-serif text-2xl text-ink">¿Cómo te quieres consentir?</h2>
             <p className="text-sm text-ink-muted mt-1">Elige la categoría que mejor describe tu servicio. <span className="text-red-500">*</span></p>
           </div>
           {stepError && (
@@ -839,7 +843,9 @@ export default function BookingForm() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="form-label">Email <span className="text-red-500">*</span></label>
+                <label className="form-label">
+                  Email <span className="text-ink-muted/60 normal-case font-normal tracking-normal">(opcional)</span>
+                </label>
                 <input
                   type="email"
                   list="dl-email"
@@ -849,8 +855,12 @@ export default function BookingForm() {
                   onChange={(e) => updateForm('clientEmail', e.target.value)}
                   autoComplete="email"
                 />
-                {fieldErrors.clientEmail && (
+                {fieldErrors.clientEmail ? (
                   <p className="flex items-center gap-1.5 text-red-500 text-xs mt-1.5"><span>⚠</span> {fieldErrors.clientEmail}</p>
+                ) : (
+                  <p className="text-xs text-ink-muted/60 mt-1.5">
+                    Si lo proporcionas, recibirás confirmación y recordatorios automáticos de tu cita.
+                  </p>
                 )}
               </div>
               <div>
@@ -888,7 +898,11 @@ export default function BookingForm() {
           </div>
 
           <p className="text-xs text-ink-muted leading-relaxed">
-            Recibirás un <strong className="text-ink">email de confirmación</strong> de inmediato.
+            {form.clientEmail.trim() ? (
+              <>Recibirás un <strong className="text-ink">email de confirmación</strong> de inmediato. </>
+            ) : (
+              <>Sin email no recibirás notificaciones — en la siguiente pantalla podrás <strong className="text-ink">guardar el enlace de tu cita</strong>. </>
+            )}
             Si necesitas cancelar, hazlo con al menos 24 horas de anticipación.
           </p>
         </div>

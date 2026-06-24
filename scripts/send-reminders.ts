@@ -48,8 +48,11 @@ async function main() {
 
   let sent = 0
   let failed = 0
+  let skipped = 0
 
   for (const appt of appointments) {
+    // Clients without email simply have nothing to remind — skip, don't fail.
+    if (!appt.clientEmail) { skipped++; continue }
     try {
       await sendReminderEmail(appt as unknown as AppointmentWithService)
 
@@ -67,7 +70,7 @@ async function main() {
     }
   }
 
-  console.log(`\n✅ Enviados: ${sent} | ❌ Fallidos: ${failed}`)
+  console.log(`\n✅ Enviados: ${sent} | ⏭️  Omitidos (sin email): ${skipped} | ❌ Fallidos: ${failed}`)
   console.log(`🏁 Proceso completado.\n`)
 }
 

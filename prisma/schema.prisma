@@ -35,7 +35,9 @@ enum Role {
 model Client {
   id           String        @id @default(cuid())
   name         String
-  email        String        @unique
+  // Optional: in Postgres a unique index allows multiple NULLs, so several
+  // clients without email never collide, while real emails stay unique.
+  email        String?       @unique
   phone        String?
   notes        String?       // alergias, preferencias, observaciones internas
   createdAt    DateTime      @default(now())
@@ -136,7 +138,7 @@ model Appointment {
   id                 String            @id @default(cuid())
   // Datos del cliente (desnormalizados para no perder info si el cliente cambia)
   clientName         String
-  clientEmail        String
+  clientEmail        String?
   clientPhone        String
   // Referencia al perfil de cliente (opcional: se une automáticamente si existe)
   clientId           String?

@@ -35,6 +35,16 @@ describe('createAppointmentSchema', () => {
     expect(createAppointmentSchema.safeParse({ ...valid, clientEmail: 'no-email' }).success).toBe(false)
   })
 
+  it('acepta cita sin email (email opcional)', () => {
+    const noEmail = { ...valid } as Record<string, unknown>
+    delete noEmail.clientEmail
+    expect(createAppointmentSchema.safeParse(noEmail).success).toBe(true)
+  })
+
+  it('acepta email vacío como "sin email"', () => {
+    expect(createAppointmentSchema.safeParse({ ...valid, clientEmail: '' }).success).toBe(true)
+  })
+
   it('rechaza teléfono muy corto', () => {
     expect(createAppointmentSchema.safeParse({ ...valid, clientPhone: '123' }).success).toBe(false)
   })

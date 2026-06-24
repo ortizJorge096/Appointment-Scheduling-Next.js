@@ -94,8 +94,8 @@ export default function ManualAppointmentModal() {
   function validate(): boolean {
     const errs: FieldErrors = {}
     if (!form.clientName.trim()) errs.clientName  = 'El nombre es requerido'
-    if (!form.clientEmail.trim()) errs.clientEmail = 'El email es requerido'
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.clientEmail))
+    // Email is optional — only validate the format if something was typed.
+    if (form.clientEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.clientEmail.trim()))
       errs.clientEmail = 'Email inválido'
     if (!form.clientPhone.trim()) errs.clientPhone = 'El teléfono es requerido'
     if (!form.serviceId)          errs.serviceId   = 'Selecciona un servicio'
@@ -244,12 +244,15 @@ export default function ManualAppointmentModal() {
                   </div>
                   <div>
                     <label className="form-label">
-                      Email <span className="text-red-500">*</span>
+                      Email <span className="text-ink-muted/60 normal-case font-normal tracking-normal">(opcional)</span>
                     </label>
                     <input ref={emailInputRef} type="email" value={form.clientEmail} onChange={field('clientEmail')}
                       placeholder="ana@ejemplo.com"
                       className={`input-field w-full ${fieldErrors.clientEmail ? 'border-red-400 focus:ring-red-300' : ''}`} />
                     <Err k="clientEmail" />
+                    {!form.clientEmail.trim() && (
+                      <p className="text-[11px] text-ink-muted/70 mt-0.5">Sin email no se enviarán notificaciones al cliente.</p>
+                    )}
                   </div>
                   <div>
                     <label className="form-label">
@@ -390,13 +393,15 @@ export default function ManualAppointmentModal() {
                 </div>
               </fieldset>
 
-              {/* Notificar al cliente (no aplica a citas pasadas) */}
+              {/* Notificar al cliente (no aplica a citas pasadas ni sin email) */}
               {form.mode === 'UPCOMING' && (
-                <label className="flex items-start gap-2 text-sm text-ink-muted cursor-pointer">
-                  <input type="checkbox" checked={form.notifyClient}
+                <label className={`flex items-start gap-2 text-sm text-ink-muted ${form.clientEmail.trim() ? 'cursor-pointer' : 'opacity-50 cursor-not-allowed'}`}>
+                  <input type="checkbox"
+                    checked={form.notifyClient && !!form.clientEmail.trim()}
+                    disabled={!form.clientEmail.trim()}
                     onChange={e => setForm(f => ({ ...f, notifyClient: e.target.checked }))}
                     className="mt-0.5 rounded border-beige-dark text-gold focus:ring-gold/40" />
-                  <span>Notificar al cliente por email</span>
+                  <span>Notificar al cliente por email{!form.clientEmail.trim() && ' (requiere email)'}</span>
                 </label>
               )}
 

@@ -14,6 +14,7 @@ import { timeToMinutes, minutesToTime } from '@/lib/availability'
 import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
 import { audit, getClientIp } from '@/lib/audit'
 import { sendConfirmationEmail } from '@/lib/email'
+import { resolveOrCreateClient } from '@/lib/clients'
 import type { ApiResponse, AppointmentWithService } from '@/types'
 import { toZonedTime } from 'date-fns-tz'
 import { format, subDays } from 'date-fns'
@@ -114,7 +115,7 @@ export async function POST(
   }
   const dayStart     = new Date(`${date}T00:00:00`)
   const dayEnd       = new Date(`${date}T23:59:59`)
-  const emailNorm    = clientEmail.toLowerCase().trim()
+  const emailNorm    = clientEmail?.toLowerCase().trim() || null
 
   let appointment: AppointmentWithService
   try {
@@ -131,11 +132,9 @@ export async function POST(
       })
       if (conflict && !skipAvailabilityCheck) throw new SlotTakenError()
 
-      // Create or retrieve client
-      const client = await tx.client.upsert({
-        where:  { email: emailNorm },
-        create: { name: clientName.trim(), email: emailNorm, phone: clientPhone.trim() },
-        update: { name: clientName.trim(), phone: clientPhone.trim() },
+      // Create or retrieve client (by email, or by phone+name when no email)
+      const clientId = await resolveOrCreateClient(tx, {
+        name: clientName, email: emailNorm, phone: clientPhone,
       })
 
       const servicePrice = mode === 'PAST' ? totalCharged! : service.price
@@ -146,7 +145,7 @@ export async function POST(
           clientName:  clientName.trim(),
           clientEmail: emailNorm,
           clientPhone: clientPhone.trim(),
-          clientId:    client.id,
+          clientId,
           serviceId,
           totalDurationMinutes: service.durationMinutes,
           date:        dayStart,
@@ -191,8 +190,9 @@ export async function POST(
   }
 
   // Confirmation email is opt-in for manual bookings (the admin controls it via
-  // the "Notificar al cliente" checkbox) and never applies to "Cita pasada".
-  if (mode !== 'PAST' && notifyClient) {
+  // the "Notificar al cliente" checkbox), never applies to "Cita pasada", and
+  // is impossible without an email on file.
+  if (mode !== 'PAST' && notifyClient && emailNorm) {
     sendConfirmationEmail(appointment)
       .then(() => prisma.appointment.update({
         where: { id: appointment.id },

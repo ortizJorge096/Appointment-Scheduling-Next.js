@@ -111,4 +111,15 @@ describe('POST /api/clients', () => {
     }))
     expect(res.status).toBe(409)
   })
+
+  it('creates client without email (email optional) and returns 201', async () => {
+    vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
+    vi.mocked(prisma.client.create).mockResolvedValue({ ...MOCK_CLIENT, email: null } as never)
+
+    const res = await POST(makePostRequest({ name: 'Ana López', phone: '3001234567' }))
+    expect(res.status).toBe(201)
+
+    const createArg = vi.mocked(prisma.client.create).mock.calls[0][0] as { data: { email: string | null } }
+    expect(createArg.data.email).toBeNull()
+  })
 })

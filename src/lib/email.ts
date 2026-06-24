@@ -369,7 +369,7 @@ export async function sendAdminNewBookingEmail(
       </tr>
       <tr>
         <td style="padding:8px 0;color:#7A7060;font-size:13px;border-top:1px solid #E8DCC4;">Contacto</td>
-        <td style="padding:8px 0;color:#1A1209;font-size:14px;border-top:1px solid #E8DCC4;">${clientPhone} · ${clientEmail}</td>
+        <td style="padding:8px 0;color:#1A1209;font-size:14px;border-top:1px solid #E8DCC4;">${clientPhone}${clientEmail ? ` · ${clientEmail}` : ' · (sin email)'}</td>
       </tr>
       <tr>
         <td style="padding:8px 0;color:#7A7060;font-size:13px;border-top:1px solid #E8DCC4;">Servicio${isMultiService ? 's' : ''}</td>
@@ -452,10 +452,17 @@ export async function sendAdminCancellationEmail(
 async function sendEmail({
   to, subject, html,
 }: {
-  to: string
+  to: string | null | undefined
   subject: string
   html: string
 }): Promise<void> {
+  // ── NO RECIPIENT ──
+  // Clients without an email on file: skip silently (never throw, never hit SES).
+  if (!to?.trim()) {
+    console.log(`📭 [SIN EMAIL] Omitido (cliente sin correo): "${subject}"`)
+    return
+  }
+
   // ── EMAILS OFF ──
   if (!emailsEnabled()) {
     console.log(`📭 [EMAILS DESACTIVADOS] Se habría enviado a ${to}: "${subject}"`)

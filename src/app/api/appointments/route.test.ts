@@ -191,6 +191,19 @@ describe('POST /api/appointments', () => {
     expect(json.data.id).toBe('appt-1')
   })
 
+  it('creates appointment without email (email optional)', async () => {
+    vi.mocked(prisma.service.findMany).mockResolvedValue([MOCK_SERVICE])
+    vi.mocked(isSlotAvailable).mockResolvedValue(true)
+    vi.mocked(prisma.$transaction).mockResolvedValue({ ...MOCK_APPOINTMENT, clientEmail: null })
+
+    const noEmail = {
+      clientName: 'María García', clientPhone: '3001234567',
+      serviceId: 'clxxxxxxxxxxxxxxxxxxxxxxx', date: '2026-12-01', startTime: '10:00',
+    }
+    const res = await POST(makePostRequest(noEmail, '2.2.2.7'))
+    expect(res.status).toBe(201)
+  })
+
   it('returns 500 when transaction throws unexpected error', async () => {
     vi.mocked(prisma.service.findMany).mockResolvedValue([MOCK_SERVICE])
     vi.mocked(isSlotAvailable).mockResolvedValue(true)

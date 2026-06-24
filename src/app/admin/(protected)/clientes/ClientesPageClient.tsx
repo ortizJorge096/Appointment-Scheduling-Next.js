@@ -220,9 +220,9 @@ export default function ClientesPageClient() {
                   placeholder="Ana García" required className="input-field w-full" />
               </div>
               <div>
-                <label className="form-label">Email <span className="text-red-500">*</span></label>
+                <label className="form-label">Email <span className="text-ink-muted/60 normal-case font-normal tracking-normal">(opcional)</span></label>
                 <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                  placeholder="ana@ejemplo.com" required className="input-field w-full" />
+                  placeholder="ana@ejemplo.com" className="input-field w-full" />
               </div>
               <div>
                 <label className="form-label">Teléfono</label>

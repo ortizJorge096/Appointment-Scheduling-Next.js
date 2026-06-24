@@ -10,6 +10,7 @@ import { createAppointmentSchema } from '@/lib/validations'
 import { isSlotAvailable, timeToMinutes, minutesToTime } from '@/lib/availability'
 import { getVipSettings, resolveDiscountPercent } from '@/lib/vip'
 import { sendConfirmationEmail, sendAdminNewBookingEmail } from '@/lib/email'
+import { resolveOrCreateClient } from '@/lib/clients'
 import { createCalendarEvent } from '@/lib/calendar'
 import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
 import type { ApiResponse, AppointmentWithService } from '@/types'
@@ -271,11 +272,17 @@ export async function POST(
         assignedProfessionalId = free?.id ?? null
       }
 
+      // Create or link the client profile (by email, or phone+name when no email)
+      const clientId = await resolveOrCreateClient(tx, {
+        name: clientName, email: clientEmail, phone: clientPhone,
+      })
+
       return tx.appointment.create({
         data: {
           clientName: clientName.trim(),
-          clientEmail: clientEmail.toLowerCase().trim(),
+          clientEmail: clientEmail?.toLowerCase().trim() || null,
           clientPhone: clientPhone.trim(),
+          clientId,
           serviceId,
           totalDurationMinutes: computedDuration,
           discountPercent,

@@ -176,6 +176,9 @@ describe('ManualAppointmentModal', () => {
     fireEvent.click(screen.getByRole('button', { name: /cita manual/i }))
     await waitFor(() => screen.getByText(/Manicura/))
 
+    // El premarcado solo aplica con email en el campo (sin email el checkbox se bloquea)
+    fireEvent.change(screen.getByPlaceholderText('ana@ejemplo.com'), { target: { value: 'ana@test.com' } })
+
     const checkbox = screen.getByRole('checkbox', { name: /notificar al cliente por email/i })
     // Origen por defecto es Presencial → desmarcado
     expect(checkbox).not.toBeChecked()
@@ -185,5 +188,23 @@ describe('ManualAppointmentModal', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Presencial' }))
     expect(checkbox).not.toBeChecked()
+  })
+
+  it('deshabilita "Notificar al cliente" cuando no hay email', async () => {
+    vi.mocked(global.fetch).mockResolvedValueOnce({
+      json: () => Promise.resolve({ success: true, data: MOCK_SERVICES }),
+    } as Response)
+
+    render(<ManualAppointmentModal />)
+    fireEvent.click(screen.getByRole('button', { name: /cita manual/i }))
+    await waitFor(() => screen.getByText(/Manicura/))
+
+    // Sin email, el checkbox de notificación está deshabilitado
+    const checkbox = screen.getByRole('checkbox', { name: /notificar al cliente por email/i })
+    expect(checkbox).toBeDisabled()
+
+    // Al escribir un email, se habilita
+    fireEvent.change(screen.getByPlaceholderText('ana@ejemplo.com'), { target: { value: 'ana@test.com' } })
+    expect(checkbox).not.toBeDisabled()
   })
 })

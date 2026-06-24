@@ -61,4 +61,19 @@ describe('sendConfirmationEmail', () => {
     )
     logSpy.mockRestore()
   })
+
+  it('omite en silencio (y nunca toca SES) cuando el cliente no tiene email', async () => {
+    // Even with emails enabled, a null recipient must short-circuit before SES.
+    process.env.ENABLE_EMAILS = 'true'
+
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    const mod = await import('./email')
+
+    await expect(
+      mod.sendConfirmationEmail({ ...MOCK_APPOINTMENT, clientEmail: null }),
+    ).resolves.toBeUndefined()
+
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('[SIN EMAIL]'))
+    logSpy.mockRestore()
+  })
 })
