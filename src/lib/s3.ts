@@ -13,7 +13,8 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
 // ── Constants ─────────────────────────────────────────────────
 const PRESIGN_EXPIRES_SEC = 60 * 5         // 5 minutes to upload
-export const GALLERY_PREFIX = 'gallery/'   // all gallery images live under this prefix
+export const GALLERY_PREFIX = 'gallery/'        // all gallery images live under this prefix
+export const TESTIMONIAL_PREFIX = 'testimonios/' // testimonial work photos
 export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024  // 5 MB
 
 // ── Lazy client (same pattern as lib/email.ts) ────────────────
@@ -96,6 +97,15 @@ export async function deleteObject(key: string): Promise<void> {
  * E.g.: gallery/abc123-xyz789.jpg
  */
 export function buildGalleryKey(id: string, originalFilename: string): string {
+  return buildKey(GALLERY_PREFIX, id, originalFilename)
+}
+
+/** Builds a unique key under the testimonials prefix. */
+export function buildTestimonialKey(id: string, originalFilename: string): string {
+  return buildKey(TESTIMONIAL_PREFIX, id, originalFilename)
+}
+
+function buildKey(prefix: string, id: string, originalFilename: string): string {
   const ext = (originalFilename.match(/\.([a-z0-9]+)$/i)?.[1] ?? 'jpg').toLowerCase()
-  return `${GALLERY_PREFIX}${id}.${ext}`
+  return `${prefix}${id}.${ext}`
 }

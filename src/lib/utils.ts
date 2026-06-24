@@ -50,6 +50,12 @@ export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+/** Builds initials from a name: "Carmen Morales" → "C.M.", "Diana" → "D." */
+export function initialsFromName(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean).slice(0, 2)
+  return parts.map((p) => p[0].toUpperCase() + '.').join('')
+}
+
 /** Builds a URL-safe slug from a name (lowercase, accents stripped, dashes). */
 export function slugify(input: string): string {
   return input

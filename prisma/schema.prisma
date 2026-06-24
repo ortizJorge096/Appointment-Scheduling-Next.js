@@ -358,6 +358,53 @@ model GalleryImage {
 }
 
 // ─────────────────────────────────────────
+// TESTIMONIOS
+// Reseñas mostradas en la landing. Creadas por el admin (source ADMIN) o,
+// a futuro, enviadas por clientas (source CLIENT) → quedan en PENDING para
+// moderación. isActive = mostrar/ocultar; deletedAt = soft delete.
+// ─────────────────────────────────────────
+
+model Testimonial {
+  id              String            @id @default(cuid())
+  clientName      String
+  initials        String            // auto-generadas del nombre ("Carmen Morales" → "C.M.")
+  type            String            // "Clienta frecuente", "Clienta VIP", o texto libre
+  text            String
+  stars           Int               @default(5)
+  imageUrl        String?           // URL pública (S3) de la foto del trabajo
+  imageKey        String?           // key S3, para poder borrar/reemplazar el objeto
+  isActive        Boolean           @default(true)
+  order           Int               @default(0)
+  // Moderación
+  source          TestimonialSource @default(ADMIN)
+  status          TestimonialStatus @default(APPROVED)
+  appointmentId   String?           // relación opcional con una cita real
+  clientEmail     String?           // para contacto si hace falta
+  rejectionReason String?           // nota interna si se rechaza
+  // Soft delete
+  deletedAt       DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  @@index([isActive])
+  @@index([status])
+  @@index([deletedAt])
+  @@index([order])
+  @@map("testimonials")
+}
+
+enum TestimonialSource {
+  ADMIN
+  CLIENT
+}
+
+enum TestimonialStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// ─────────────────────────────────────────
 // AUDITORÍA
 // ─────────────────────────────────────────
 
@@ -405,6 +452,7 @@ enum AuditEntity {
   GALLERY
   SCHEDULE
   PROFESSIONAL
+  TESTIMONIAL
   AUTH
   EMAIL
 }
