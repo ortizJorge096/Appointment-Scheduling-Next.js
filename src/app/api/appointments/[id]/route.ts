@@ -9,7 +9,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { updateAppointmentSchema } from '@/lib/validations'
 import { timeToMinutes, minutesToTime } from '@/lib/availability'
-import { audit, getClientIp } from '@/lib/audit'
+import { audit, getClientIp, getUserAgent } from '@/lib/audit'
 import { sendRescheduledEmail } from '@/lib/email'
 import type { AppointmentWithService } from '@/types'
 
@@ -172,20 +172,35 @@ export async function PATCH(
       .catch((err) => console.error('Error enviando email de reprogramación:', err))
   }
 
+  const auditDescription =
+    status !== undefined        ? `Admin cambió el estado de la cita de ${updated.clientName} a ${status}` :
+    isReschedule                ? `Admin reprogramó la cita de ${updated.clientName}` :
+    paymentStatus !== undefined ? `Admin actualizó el pago de la cita de ${updated.clientName}` :
+                                  `Admin editó la cita de ${updated.clientName}`
+
   await audit({
     action:    status !== undefined ? 'STATUS_CHANGE' : 'UPDATE',
     entity:    'APPOINTMENT',
     entityId:  id,
+    actorType: 'ADMIN',
     userEmail: session.user?.email ?? undefined,
     ip:        getClientIp(request),
-    metadata:  {
-      ...(status !== undefined ? { statusFrom: appointment.status, statusTo: status } : {}),
+    userAgent: getUserAgent(request),
+    description: auditDescription,
+    before: {
+      status:        appointment.status,
+      paymentStatus: appointment.paymentStatus,
+      amountPaid:    appointment.amountPaid,
+      date:          appointment.date.toISOString().slice(0, 10),
+      startTime:     appointment.startTime,
+    },
+    after: {
+      ...(status        !== undefined ? { status } : {}),
       ...(paymentStatus !== undefined ? { paymentStatus } : {}),
-      ...(notes !== undefined ? { notes } : {}),
-      ...(isReschedule ? {
-        rescheduledFrom: `${appointment.date.toISOString().slice(0, 10)} ${oldStartTime}`,
-        rescheduledTo:   `${date ?? appointment.date.toISOString().slice(0, 10)} ${startTime ?? oldStartTime}`,
-      } : {}),
+      ...(amountPaid    !== undefined ? { amountPaid } : {}),
+      ...(date          ? { date } : {}),
+      ...(startTime     ? { startTime } : {}),
+      ...(notes         !== undefined ? { notes } : {}),
     },
   })
 
@@ -197,7 +212,7 @@ export async function PATCH(
 // ─────────────────────────────────────────
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   const { id } = await context.params
@@ -231,9 +246,14 @@ export async function DELETE(
     action:    'STATUS_CHANGE',
     entity:    'APPOINTMENT',
     entityId:  id,
+    actorType: 'ADMIN',
     userEmail: session.user?.email ?? undefined,
-    ip:        getClientIp(_request),
-    metadata:  { statusFrom: appointment.status, statusTo: 'CANCELLED', via: 'DELETE' },
+    ip:        getClientIp(request),
+    userAgent: getUserAgent(request),
+    description: `Admin canceló la cita de ${appointment.clientName} (desde el panel)`,
+    before:    { status: appointment.status },
+    after:     { status: 'CANCELLED' },
+    metadata:  { via: 'DELETE' },
   })
 
   return NextResponse.json({

@@ -1,13 +1,20 @@
-// src/app/api/audit/route.ts
-// GET /api/audit  → list audit log entries (admin)
+// src/app/api/audit/export/route.ts
+// GET /api/audit/export → download the audit log as CSV (admin), honoring filters.
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
 
 export const dynamic = 'force-dynamic'
+
+const MAX_ROWS = 10000
+
+// RFC-4180 CSV escaping: wrap in quotes, double internal quotes.
+function csvCell(value: unknown): string {
+  const s = value == null ? '' : String(value)
+  return `"${s.replace(/"/g, '""')}"`
+}
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const session = await getServerSession(authOptions)
@@ -20,8 +27,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const search    = searchParams.get('search')?.trim()
   const dateFrom  = searchParams.get('dateFrom')
   const dateTo    = searchParams.get('dateTo')
-  const page      = Math.max(1, parseInt(searchParams.get('page')  ?? '1'))
-  const limit     = Math.min(100, parseInt(searchParams.get('limit') ?? '50'))
 
   const where: Record<string, unknown> = {}
   if (entity) where.entity = entity
@@ -33,8 +38,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       ...(dateTo   ? { lte: new Date(`${dateTo}T23:59:59`)   } : {}),
     }
   }
-  // Search by client/appointment name or the affected id — against the readable
-  // description (which embeds the client name), the actor email and the entityId.
   if (search) {
     where.OR = [
       { description: { contains: search, mode: 'insensitive' } },
@@ -43,28 +46,33 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     ]
   }
 
-  let logs, total
-  try {
-    ;[logs, total] = await Promise.all([
-      prisma.auditLog.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * limit,
-        take: limit,
-      }),
-      prisma.auditLog.count({ where }),
-    ])
-  } catch (err) {
-    if (isDbUnavailable(err)) return dbUnavailableResponse()
-    console.error('Error listando audit logs:', err)
-    return NextResponse.json({ success: false, error: 'Error interno' }, { status: 500 })
-  }
+  const logs = await prisma.auditLog.findMany({
+    where,
+    orderBy: { createdAt: 'desc' },
+    take: MAX_ROWS,
+  })
 
-  return NextResponse.json({
-    success: true,
-    data: {
-      logs,
-      pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
+  const header = ['Fecha', 'Acción', 'Entidad', 'Actor', 'Usuario', 'IP', 'Descripción', 'ID afectado']
+  const rows = logs.map((l) => [
+    l.createdAt.toISOString(),
+    l.action,
+    l.entity,
+    l.actorType ?? '',
+    l.userEmail ?? '',
+    l.ip ?? '',
+    l.description ?? '',
+    l.entityId,
+  ].map(csvCell).join(','))
+
+  // BOM so Excel opens UTF-8 (acentos) correctly.
+  const csv = '﻿' + [header.map(csvCell).join(','), ...rows].join('\r\n')
+  const filename = `auditoria-${new Date().toISOString().slice(0, 10)}.csv`
+
+  return new NextResponse(csv, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="${filename}"`,
     },
   })
 }

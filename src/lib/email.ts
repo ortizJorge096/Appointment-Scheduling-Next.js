@@ -4,6 +4,7 @@
 
 import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses'
 import { STUDIO, WHATSAPP_URL, INSTAGRAM_URL } from './config'
+import { audit } from './audit'
 import type { AppointmentWithService } from '../types'
 
 // ─────────────────────────────────────────────────────────────
@@ -482,8 +483,22 @@ async function sendEmail({
   try {
     await getSes().send(command)
     console.log(`📧 Email enviado a ${to}: "${subject}"`)
+    // Successful sends are high-volume — audited only when explicitly enabled.
+    if (process.env.AUDIT_EMAIL_SENT === 'true') {
+      audit({
+        action: 'EMAIL_SENT', entity: 'EMAIL', entityId: to,
+        actorType: 'SYSTEM', description: `Email "${subject}" enviado a ${to}`,
+        metadata: { subject, to },
+      })
+    }
   } catch (error) {
     console.error(`❌ Error enviando email a ${to}:`, error)
+    // Email failures are always audited — they're the signal that matters.
+    audit({
+      action: 'EMAIL_FAILED', entity: 'EMAIL', entityId: to,
+      actorType: 'SYSTEM', description: `Falló el email "${subject}" a ${to}`,
+      metadata: { subject, to, error: error instanceof Error ? error.message : String(error) },
+    })
     throw error
   }
 }

@@ -36,10 +36,16 @@ vi.mock('@/lib/email',    () => ({
   sendAdminNewBookingEmail: vi.fn().mockResolvedValue(undefined),
 }))
 vi.mock('@/lib/calendar', () => ({ createCalendarEvent:  vi.fn().mockResolvedValue(null) }))
+vi.mock('@/lib/audit', () => ({
+  audit:        vi.fn(),
+  getClientIp:  vi.fn(() => undefined),
+  getUserAgent: vi.fn(() => undefined),
+}))
 
 const { getServerSession } = await import('next-auth')
 const { prisma }           = await import('@/lib/prisma')
 const { isSlotAvailable }  = await import('@/lib/availability')
+const { audit }            = await import('@/lib/audit')
 
 const MOCK_SERVICE = { id: 's1', name: 'Manicura', price: 35000, durationMinutes: 45 }
 
@@ -189,6 +195,10 @@ describe('POST /api/appointments', () => {
     expect(res.status).toBe(201)
     expect(json.success).toBe(true)
     expect(json.data.id).toBe('appt-1')
+    // Public booking is audited as a CLIENT action (fire-and-forget)
+    expect(audit).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'CREATE', entity: 'APPOINTMENT', actorType: 'CLIENT' }),
+    )
   })
 
   it('creates appointment without email (email optional)', async () => {

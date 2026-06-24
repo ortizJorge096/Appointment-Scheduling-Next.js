@@ -8,7 +8,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { updateClientSchema } from '@/lib/validations'
 import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
-import { audit, getClientIp } from '@/lib/audit'
+import { audit, getClientIp, getUserAgent } from '@/lib/audit'
 
 export const dynamic = 'force-dynamic'
 
@@ -64,6 +64,12 @@ export async function PATCH(request: NextRequest, { params }: Ctx): Promise<Next
     return NextResponse.json({ success: false, error: parsed.error.errors[0].message }, { status: 400 })
   }
 
+  // Snapshot the current values for the audit "before"
+  const prev = await prisma.client.findUnique({
+    where: { id },
+    select: { name: true, email: true, phone: true, notes: true },
+  })
+
   let client
   try {
     client = await prisma.client.update({
@@ -91,9 +97,13 @@ export async function PATCH(request: NextRequest, { params }: Ctx): Promise<Next
     action:    'UPDATE',
     entity:    'CLIENT',
     entityId:  id,
+    actorType: 'ADMIN',
     userEmail: session.user?.email ?? undefined,
     ip:        getClientIp(request),
-    metadata:  parsed.data,
+    userAgent: getUserAgent(request),
+    description: `Admin editó los datos de ${client.name}`,
+    before:    prev ?? undefined,
+    after:     { name: client.name, email: client.email, phone: client.phone, notes: client.notes },
   })
 
   return NextResponse.json({ success: true, data: client })
