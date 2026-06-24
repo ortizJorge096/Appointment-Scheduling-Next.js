@@ -8,14 +8,21 @@ vi.mock('next/link', () => ({
 }))
 
 const MOCK_SERVICES = [
-  { id: 'svc-1', name: 'Manicura tradicional', description: 'Limado y esmaltado', category: 'UNAS', price: 35000, durationMinutes: 45, order: 1, isActive: true },
-  { id: 'svc-2', name: 'Lifting de pestañas',  description: null,                  category: 'PESTANAS', price: 80000, durationMinutes: 60, order: 2, isActive: true },
+  { id: 'svc-1', name: 'Manicura tradicional', description: 'Limado y esmaltado', categoryId: 'cat-unas',     price: 35000, durationMinutes: 45, order: 1, isActive: true },
+  { id: 'svc-2', name: 'Lifting de pestañas',  description: null,                  categoryId: 'cat-pestanas', price: 80000, durationMinutes: 60, order: 2, isActive: true },
+]
+
+const MOCK_CATEGORIES = [
+  { id: 'cat-unas',     name: 'Uñas',     slug: 'UNAS',     description: 'Manicura y más', icon: 'manicura', order: 1 },
+  { id: 'cat-pestanas', name: 'Pestañas', slug: 'PESTANAS', description: 'Lifting y más',   icon: 'pestanas', order: 2 },
 ]
 
 function setupApiMocks() {
-  globalThis.fetch = vi.fn(() =>
-    Promise.resolve({ json: () => Promise.resolve({ success: true, data: MOCK_SERVICES }) })
-  ) as unknown as typeof fetch
+  globalThis.fetch = vi.fn((url: string) => {
+    const u = typeof url === 'string' ? url : ''
+    const data = u === '/api/categories' ? MOCK_CATEGORIES : MOCK_SERVICES
+    return Promise.resolve({ json: () => Promise.resolve({ success: true, data }) })
+  }) as unknown as typeof fetch
 }
 
 beforeEach(() => {

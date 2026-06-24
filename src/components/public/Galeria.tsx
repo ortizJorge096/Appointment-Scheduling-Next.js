@@ -7,14 +7,14 @@
 // already used by ServicesGrid and NextAvailability.
 
 import { useEffect, useState } from 'react'
-import { categoryLabel, INSTAGRAM_URL, TIKTOK_URL } from '@/lib/config'
+import { INSTAGRAM_URL, TIKTOK_URL } from '@/lib/config'
 
 interface GalleryImage {
   id: string
   url: string
   title: string | null
   description: string | null
-  category: string | null
+  category: { id: string; name: string; slug: string } | null
 }
 
 const PLACEHOLDER_GRADIENTS = [
@@ -100,7 +100,7 @@ export default function Galeria() {
                                   opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-5">
                     {img.title && <p className="font-serif italic text-white text-lg leading-tight">{img.title}</p>}
                     {img.description && <p className="text-white/80 text-xs mt-1 leading-snug">{img.description}</p>}
-                    {img.category && <p className="text-gold-light text-xs mt-1.5 tracking-widest uppercase">{categoryLabel(img.category)}</p>}
+                    {img.category && <p className="text-gold-light text-xs mt-1.5 tracking-widest uppercase">{img.category.name}</p>}
                   </div>
                 </div>
               ))

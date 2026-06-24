@@ -6,8 +6,9 @@ vi.mock('@/lib/auth',   () => ({ authOptions: {} }))
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     expense: {
-      update: vi.fn(),
-      delete: vi.fn(),
+      findUnique: vi.fn(),
+      update:     vi.fn(),
+      delete:     vi.fn(),
     },
   },
 }))

@@ -6,7 +6,8 @@ const MOCK_IMAGES = [
     id: 'img-1',
     title: 'Diseño floral',
     description: 'Set completo de uñas',
-    category: 'UNAS',
+    categoryId: 'c1',
+    category: { id: 'c1', name: 'Uñas', slug: 'UNAS' },
     width: 800,
     height: 800,
     order: 1,
@@ -18,6 +19,7 @@ const MOCK_IMAGES = [
     id: 'img-2',
     title: null,
     description: null,
+    categoryId: null,
     category: null,
     width: null,
     height: null,
@@ -28,9 +30,18 @@ const MOCK_IMAGES = [
   },
 ]
 
+const MOCK_CATEGORIES = [
+  { id: 'c1', name: 'Uñas', slug: 'UNAS' },
+]
+
 function setupApiMocks() {
   globalThis.fetch = vi.fn((url: string, opts?: RequestInit) => {
     const u = typeof url === 'string' ? url : ''
+    if (u === '/api/categories') {
+      return Promise.resolve({
+        json: () => Promise.resolve({ success: true, data: MOCK_CATEGORIES }),
+      })
+    }
     if (u === '/api/gallery' && (!opts || opts.method === undefined || opts.method === 'GET')) {
       return Promise.resolve({
         json: () => Promise.resolve({ success: true, data: MOCK_IMAGES }),

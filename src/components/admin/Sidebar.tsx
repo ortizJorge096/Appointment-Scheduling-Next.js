@@ -18,6 +18,7 @@ const CONFIG_NAV = [
   { href: '/admin/profesionales', label: 'Profesionales', icon: '☆' },
   { href: '/admin/horarios',      label: 'Horarios',      icon: '◻' },
   { href: '/admin/galeria',       label: 'Galería',       icon: '◫' },
+  { href: '/admin/sitio',         label: 'Métricas',      icon: '▤' },
 ]
 
 export default function AdminSidebar() {

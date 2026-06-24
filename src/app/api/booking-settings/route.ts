@@ -48,12 +48,14 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
   }
 
   await audit({
-    action:    'UPDATE',
-    entity:    'SERVICE',
-    entityId:  'booking-settings',
-    userEmail: session.user?.email ?? undefined,
-    ip:        getClientIp(request),
-    metadata:  { showProfessionalStep },
+    action:      'UPDATE',
+    entity:      'SERVICE',
+    entityId:    'booking-settings',
+    userEmail:   session.user?.email ?? undefined,
+    ip:          getClientIp(request),
+    description: `Configuración de reserva: paso de profesional ${showProfessionalStep ? 'activado' : 'desactivado'}`,
+    before:      existing ? { showProfessionalStep: existing.showProfessionalStep } : undefined,
+    after:       { showProfessionalStep },
   })
 
   const settings = await getBookingSettings()

@@ -94,12 +94,12 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
   }
 
   await audit({
-    action:    'CREATE',
-    entity:    'CLIENT',
-    entityId:  client.id,
-    userEmail: session.user?.email ?? undefined,
-    ip:        getClientIp(request),
-    metadata:  { name: client.name, email: client.email },
+    action:      'CREATE',
+    entity:      'CLIENT',
+    entityId:    client.id,
+    userEmail:   session.user?.email ?? undefined,
+    ip:          getClientIp(request),
+    description: `Cliente "${client.name}" creado`,
   })
 
   return NextResponse.json({ success: true, data: client as unknown as ClientSummary }, { status: 201 })

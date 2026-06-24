@@ -19,13 +19,17 @@ export async function GET(): Promise<NextResponse> {
   const images = await prisma.galleryImage.findMany({
     where: session ? {} : { isActive: true },
     orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
+    include: {
+      category: { select: { id: true, name: true, slug: true } },
+    },
   })
 
   const withUrl = images.map((i) => ({
     id: i.id,
     title: i.title,
     description: i.description,
-    category: i.category,
+    categoryId: i.categoryId,
+    category: i.category ? { id: i.category.id, name: i.category.name, slug: i.category.slug } : null,
     width: i.width,
     height: i.height,
     order: i.order,
@@ -58,7 +62,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     )
   }
 
-  const { s3Key, title, category, width, height } = parsed.data
+  const { s3Key, title, categoryId, width, height } = parsed.data
 
   // Default order is the next one after the current maximum
   const last = await prisma.galleryImage.findFirst({
@@ -71,7 +75,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     data: {
       s3Key,
       title: title ?? null,
-      category: category ?? null,
+      categoryId: categoryId ?? null,
       width: width ?? null,
       height: height ?? null,
       order: nextOrder,
@@ -80,12 +84,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   })
 
   await audit({
-    action:    'CREATE',
-    entity:    'GALLERY',
-    entityId:  created.id,
-    userEmail: session.user?.email ?? undefined,
-    ip:        getClientIp(request),
-    metadata:  { s3Key: created.s3Key },
+    action:      'CREATE',
+    entity:      'GALLERY',
+    entityId:    created.id,
+    userEmail:   session.user?.email ?? undefined,
+    ip:          getClientIp(request),
+    description: `Imagen ${created.title ? `"${created.title}" ` : ''}agregada a la galería`,
   })
 
   return NextResponse.json(

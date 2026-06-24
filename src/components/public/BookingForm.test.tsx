@@ -19,7 +19,11 @@ vi.mock('./DateTimePicker', () => ({
 }))
 
 const MOCK_SERVICES = [
-  { id: 'svc-1', name: 'Manicura tradicional', description: null, category: 'UNAS', price: 50000, durationMinutes: 60 },
+  { id: 'svc-1', name: 'Manicura tradicional', description: null, categoryId: 'cat-unas', price: 50000, durationMinutes: 60 },
+]
+
+const MOCK_CATEGORIES = [
+  { id: 'cat-unas', name: 'Uñas', slug: 'UNAS', description: 'Manicura y más', icon: 'manicura', order: 1 },
 ]
 
 const MOCK_PROFESSIONALS = [
@@ -33,6 +37,9 @@ function setupApiMocks() {
     const u = typeof url === 'string' ? url : ''
     if (u === '/api/services') {
       return Promise.resolve({ json: () => Promise.resolve({ success: true, data: MOCK_SERVICES }) })
+    }
+    if (u === '/api/categories') {
+      return Promise.resolve({ json: () => Promise.resolve({ success: true, data: MOCK_CATEGORIES }) })
     }
     if (u === '/api/professionals') {
       return Promise.resolve({ json: () => Promise.resolve({ success: true, data: MOCK_PROFESSIONALS }) })

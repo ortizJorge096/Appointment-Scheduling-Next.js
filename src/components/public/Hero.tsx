@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { STUDIO } from '@/lib/config'
 import NextAvailability from './NextAvailability'
+import HeroStats from './HeroStats'
 
 export default function Hero() {
   return (
@@ -35,19 +36,7 @@ export default function Hero() {
             <Link href="/agendar" className="btn-cta">Agendar cita</Link>
             <a href="#servicios" className="btn-outline-gold">Ver servicios</a>
           </div>
-          <div className="flex gap-6 flex-wrap mt-7
-                          animate-fade-up animation-delay-400">
-            {[
-              { value: '+150', label: 'Citas realizadas' },
-              { value: '4.8★', label: 'Calificación'     },
-              { value: '+25',  label: 'Servicios'        },
-            ].map((s) => (
-              <div key={s.label} className="text-[13px] text-white/55">
-                <p className="font-serif text-2xl text-gold font-light leading-none">{s.value}</p>
-                {s.label}
-              </div>
-            ))}
-          </div>
+          <HeroStats />
         </div>
 
         <div className="hidden lg:flex flex-col gap-3">

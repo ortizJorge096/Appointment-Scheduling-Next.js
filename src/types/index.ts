@@ -1,12 +1,12 @@
 // src/types/index.ts
 // Domain types — valentinajimenez
 
-import type { AppointmentStatus, DayOfWeek, ServiceCategory } from '@prisma/client'
+import type { AppointmentStatus, DayOfWeek } from '@prisma/client'
 
 // ─────────────────────────────────────────
 // RE-EXPORT of existing Prisma enums
 // ─────────────────────────────────────────
-export type { AppointmentStatus, DayOfWeek, ServiceCategory }
+export type { AppointmentStatus, DayOfWeek }
 
 // ─────────────────────────────────────────
 // NEW ENUMS (string unions until prisma generate runs)
@@ -143,10 +143,17 @@ export interface UpdateAppointmentInput {
 // SERVICES
 // ─────────────────────────────────────────
 
+export interface CategorySummary {
+  id: string
+  name: string
+  slug: string
+  icon: string
+}
+
 export interface CreateServiceInput {
   name: string
   description?: string
-  category?: ServiceCategory
+  categoryId: string
   price: number
   durationMinutes: number
   order?: number
@@ -156,7 +163,8 @@ export interface PublicService {
   id: string
   name: string
   description: string | null
-  category: ServiceCategory
+  categoryId: string | null
+  category: CategorySummary | null
   price: number
   durationMinutes: number
   order: number

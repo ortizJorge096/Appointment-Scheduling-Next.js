@@ -21,14 +21,22 @@ vi.mock('@/lib/config', () => ({
   MAILTO_URL: 'mailto:hola@valentinajimenez.com',
   INSTAGRAM_URL: 'https://instagram.com/_valebeautystudio_',
   TIKTOK_URL: 'https://tiktok.com/valebeautystudio1',
-  CATEGORY_ORDER: ['UNAS', 'PESTANAS', 'CEJAS', 'CORTE', 'PROMOS'],
-  categoryLabel: (key: string) => ({
-    UNAS: 'Uñas', PESTANAS: 'Pestañas', CEJAS: 'Cejas', CORTE: 'Corte de Cabello', PROMOS: 'Promos',
-  } as Record<string, string>)[key] ?? key,
 }))
+
+// FooterServiceLinks fetches the live category list.
+const MOCK_CATEGORIES = [
+  { id: 'c1', name: 'Uñas',             slug: 'UNAS'     },
+  { id: 'c2', name: 'Pestañas',         slug: 'PESTANAS' },
+  { id: 'c3', name: 'Cejas',            slug: 'CEJAS'    },
+  { id: 'c4', name: 'Corte de Cabello', slug: 'CORTE'    },
+  { id: 'c5', name: 'Promos',           slug: 'PROMOS'   },
+]
 
 describe('Footer', () => {
   beforeEach(() => {
+    globalThis.fetch = vi.fn(() =>
+      Promise.resolve({ json: () => Promise.resolve({ success: true, data: MOCK_CATEGORIES }) })
+    ) as unknown as typeof fetch
     render(<Footer />)
   })
 
@@ -44,16 +52,16 @@ describe('Footer', () => {
     expect(screen.getByText('Agendar cita')).toBeInTheDocument()
   })
 
-  it('renders the services column', () => {
-    expect(screen.getByText('Uñas')).toBeInTheDocument()
+  it('renders the services column', async () => {
+    expect(await screen.findByText('Uñas')).toBeInTheDocument()
     expect(screen.getByText('Pestañas')).toBeInTheDocument()
     expect(screen.getByText('Cejas')).toBeInTheDocument()
     expect(screen.getByText('Corte de Cabello')).toBeInTheDocument()
     expect(screen.getByText('Promos')).toBeInTheDocument()
   })
 
-  it('links each service category to its booking deep-link', () => {
-    expect(screen.getByText('Uñas').closest('a')).toHaveAttribute('href', '/agendar?categoria=UNAS')
+  it('links each service category to its booking deep-link', async () => {
+    expect((await screen.findByText('Uñas')).closest('a')).toHaveAttribute('href', '/agendar?categoria=UNAS')
   })
 
   it('renders contact info', () => {

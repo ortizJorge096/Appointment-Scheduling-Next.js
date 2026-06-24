@@ -4,6 +4,7 @@
 
 import { useState, useEffect } from 'react'
 import BookingSettingsCard from '@/components/admin/BookingSettingsCard'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
 
 interface Professional {
   id: string
@@ -20,6 +21,7 @@ const EMPTY: Omit<Professional, 'id' | 'isActive'> = {
 }
 
 export default function ProfesionalesPage() {
+  const confirm = useConfirm()
   const [professionals, setProfessionals] = useState<Professional[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving]   = useState(false)
@@ -99,6 +101,25 @@ export default function ProfesionalesPage() {
     const json = await res.json()
     if (json.success) load()
     else setError(json.error)
+  }
+
+  async function handleDelete(p: Professional) {
+    const ok = await confirm({
+      message: `¿Eliminar a "${p.name}"? Desaparecerá del panel y del flujo de reserva. Las citas históricas se conservan.`,
+      confirmLabel: 'Eliminar',
+      danger: true,
+    })
+    if (!ok) return
+
+    const res  = await fetch(`/api/professionals/${p.id}`, { method: 'DELETE' })
+    const json = await res.json()
+    if (json.success) {
+      setSuccess('Profesional eliminado')
+      load()
+      setTimeout(() => setSuccess(null), 3000)
+    } else {
+      setError(json.error ?? 'No se pudo eliminar')
+    }
   }
 
   return (
@@ -221,8 +242,11 @@ export default function ProfesionalesPage() {
                       Editar
                     </button>
                     <button onClick={() => toggleActive(p)}
-                      className={`btn-row-action text-xs ${p.isActive ? 'text-ink-muted hover:text-red-500' : 'text-green-600 hover:text-green-700'}`}>
+                      className={`btn-row-action text-xs ${p.isActive ? 'text-ink-muted hover:text-amber-600' : 'text-green-600 hover:text-green-700'}`}>
                       {p.isActive ? 'Desactivar' : 'Activar'}
+                    </button>
+                    <button onClick={() => handleDelete(p)} className="btn-row-action text-xs text-ink-muted hover:text-red-500">
+                      Eliminar
                     </button>
                   </div>
                 </div>
@@ -253,8 +277,11 @@ export default function ProfesionalesPage() {
                       Editar
                     </button>
                     <button onClick={() => toggleActive(p)}
-                      className={`btn-row-action text-xs ${p.isActive ? 'text-ink-muted hover:text-red-500' : 'text-green-600 hover:text-green-700'}`}>
+                      className={`btn-row-action text-xs ${p.isActive ? 'text-ink-muted hover:text-amber-600' : 'text-green-600 hover:text-green-700'}`}>
                       {p.isActive ? 'Desactivar' : 'Activar'}
+                    </button>
+                    <button onClick={() => handleDelete(p)} className="btn-row-action text-xs text-ink-muted hover:text-red-500">
+                      Eliminar
                     </button>
                   </div>
                 </div>

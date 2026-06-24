@@ -262,7 +262,7 @@ export async function POST(
         // "Primera disponible": assign the first active professional free in this range
         const busyIds = new Set(overlapping.map((a) => a.professionalId).filter(Boolean))
         const activeProfessionals = await tx.professional.findMany({
-          where: { isActive: true },
+          where: { isActive: true, deletedAt: null },
           orderBy: { order: 'asc' },
           select: { id: true },
         })
@@ -296,6 +296,7 @@ export async function POST(
           services: {
             create: services.map((s) => ({
               serviceId: s.id,
+              serviceName: s.name, // snapshot — preserves history if the service changes later
               price: s.price,
             })),
           },

@@ -3,7 +3,7 @@ import Galeria from './Galeria'
 import { STUDIO, INSTAGRAM_URL, TIKTOK_URL } from '@/lib/config'
 
 const MOCK_IMAGES = [
-  { id: 'img-1', url: 'https://bucket.s3.amazonaws.com/img1.jpg', title: 'Nail art', description: null, category: 'UNAS' },
+  { id: 'img-1', url: 'https://bucket.s3.amazonaws.com/img1.jpg', title: 'Nail art', description: null, category: { id: 'c1', name: 'Uñas', slug: 'UNAS' } },
   { id: 'img-2', url: 'https://bucket.s3.amazonaws.com/img2.jpg', title: null, description: null, category: null },
 ]
 

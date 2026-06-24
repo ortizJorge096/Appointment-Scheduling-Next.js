@@ -4,19 +4,27 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import DateTimePicker from './DateTimePicker'
-import { CategoryIcon } from './ServiceIcons'
+import { Icon } from './ServiceIcons'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { CATEGORY_ORDER, categoryLabel } from '@/lib/config'
 import { formatPrice } from '@/lib/utils'
 
 interface Service {
   id: string
   name: string
   description: string | null
-  category: string
+  categoryId: string | null
   price: number
   durationMinutes: number
+}
+
+interface Category {
+  id: string
+  name: string
+  slug: string
+  description: string | null
+  icon: string
+  order: number
 }
 
 interface Professional {
@@ -47,14 +55,7 @@ interface FormData {
 // tiered VIP discount. Every other service stays single-select.
 const VIP_PSEUDO_CATEGORY = 'VIP'
 
-const CATEGORY_BLURBS: Record<string, string> = {
-  UNAS:     'Manicura, pedicura, gel, acrílico y nail art',
-  PESTANAS: 'Lifting, extensiones, volumen e híbridas',
-  CEJAS:    'Depilación, henna, diseño y laminado',
-  CORTE:    'Corte, peinado y diseño de flequillo',
-  PROMOS:   'Combos con precio especial',
-  [VIP_PSEUDO_CATEGORY]: 'Combina 2 o más servicios de cualquier categoría y ahorra hasta 30%',
-}
+const VIP_BLURB = 'Combina 2 o más servicios de cualquier categoría y ahorra hasta 30%'
 
 interface VipTier { minServices: number; discountPct: number }
 interface VipSettings { enabled: boolean; tiers: VipTier[] }
@@ -93,6 +94,7 @@ export default function BookingForm() {
 
   const [step, setStep]               = useState<FormStep>('service')
   const [services, setServices]       = useState<Service[]>([])
+  const [categories, setCategories]   = useState<Category[]>([])
   const [loadingSvc, setLoadingSvc]   = useState(true)
   const [professionals, setProfessionals] = useState<Professional[]>([])
   const [loadingPro, setLoadingPro]   = useState(true)
@@ -162,6 +164,11 @@ export default function BookingForm() {
       .catch(() => setSubmitError('No se pudieron cargar los servicios.'))
       .finally(() => setLoadingSvc(false))
 
+    fetch('/api/categories')
+      .then((r) => r.json())
+      .then((json) => { if (json.success) setCategories(json.data) })
+      .catch(() => {})
+
     fetch('/api/vip-config')
       .then((r) => r.json())
       .then((json) => { if (json.success) setVipSettings(json.data) })
@@ -192,19 +199,23 @@ export default function BookingForm() {
     if (preService) {
       const svc = services.find((s) => s.id === preService)
       if (svc) {
-        setForm((prev) => ({ ...prev, category: svc.category, serviceId: svc.id, serviceIds: [svc.id] }))
+        setForm((prev) => ({ ...prev, category: svc.categoryId ?? '', serviceId: svc.id, serviceIds: [svc.id] }))
         setStep('datetime')
         setAppliedPreselect(true)
         return
       }
     }
 
+    // ?categoria=<slug> — preselect the matching category by its stable slug
     const preCat = searchParams.get('categoria')
-    if (preCat && (CATEGORY_ORDER as string[]).includes(preCat)) {
-      setForm((prev) => ({ ...prev, category: preCat }))
-      setAppliedPreselect(true)
+    if (preCat) {
+      const cat = categories.find((c) => c.slug === preCat)
+      if (cat) {
+        setForm((prev) => ({ ...prev, category: cat.id }))
+        setAppliedPreselect(true)
+      }
     }
-  }, [services, searchParams, appliedPreselect])
+  }, [services, categories, searchParams, appliedPreselect])
 
   // Clear errors and scroll to top when step changes
   useEffect(() => {
@@ -229,6 +240,11 @@ export default function BookingForm() {
 
   const selectedService = services.find((s) => s.id === form.serviceId)
   const isVipCategory = form.category === VIP_PSEUDO_CATEGORY
+  const categoryName = (id: string) => categories.find((c) => c.id === id)?.name ?? ''
+  // Categories that actually have at least one (active) service to offer.
+  const categoriesWithServices = categories
+    .map((cat) => ({ cat, count: services.filter((s) => s.categoryId === cat.id).length }))
+    .filter((g) => g.count > 0)
   const isMulti = isVipCategory && form.serviceIds.length > 1
 
   // Selected services (any category) and computed totals
@@ -464,19 +480,16 @@ export default function BookingForm() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {CATEGORY_ORDER
-                .map((cat) => ({ cat, count: services.filter((s) => s.category === cat).length }))
-                .filter((g) => g.count > 0)
-                .map(({ cat, count }) => (
-                  <button key={cat} type="button" onClick={() => selectCategory(cat)}
+              {categoriesWithServices.map(({ cat, count }) => (
+                  <button key={cat.id} type="button" onClick={() => selectCategory(cat.id)}
                     className="text-left p-6 rounded-2xl border border-beige-dark bg-white hover:border-gold/50
                                transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5">
                     <span className="inline-flex items-center justify-center w-14 h-14 rounded-full mb-4 bg-gold-pale text-gold-dark">
-                      <CategoryIcon category={cat} className="w-7 h-7" />
+                      <Icon name={cat.icon} className="w-7 h-7" />
                     </span>
-                    <p className="font-serif text-xl text-ink">{categoryLabel(cat)}</p>
+                    <p className="font-serif text-xl text-ink">{cat.name}</p>
                     <p className="text-sm text-ink-muted leading-snug mt-1.5">
-                      {CATEGORY_BLURBS[cat] ?? ''}
+                      {cat.description ?? ''}
                     </p>
                     <p className="text-[11px] tracking-widest uppercase text-gold-dark font-semibold mt-3">
                       {count} servicio{count === 1 ? '' : 's'}
@@ -490,11 +503,11 @@ export default function BookingForm() {
                   className="text-left p-6 rounded-2xl border border-ink bg-ink hover:border-gold/60
                              transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5">
                   <span className="inline-flex items-center justify-center w-14 h-14 rounded-full mb-4 bg-[rgba(212,173,90,.15)] text-[var(--gold-light)]">
-                    <CategoryIcon category={VIP_PSEUDO_CATEGORY} className="w-7 h-7" />
+                    <Icon name="promo" className="w-7 h-7" />
                   </span>
                   <p className="font-serif text-xl text-white">Paquete VIP</p>
                   <p className="text-sm text-[#b7ae9c] leading-snug mt-1.5">
-                    {CATEGORY_BLURBS[VIP_PSEUDO_CATEGORY]}
+                    {VIP_BLURB}
                   </p>
                   <p className="text-[11px] tracking-widest uppercase text-[var(--gold-light)] font-semibold mt-3">
                     Reserva doble
@@ -515,7 +528,7 @@ export default function BookingForm() {
                 {isVipCategory ? (
                   'Elige tus servicios'
                 ) : (
-                  <>Servicios de <em className="text-gold italic">{categoryLabel(form.category).toLowerCase()}</em></>
+                  <>Servicios de <em className="text-gold italic">{categoryName(form.category).toLowerCase()}</em></>
                 )}
               </h2>
               <button type="button" onClick={() => selectCategory(form.category)}
@@ -539,14 +552,13 @@ export default function BookingForm() {
           {loadingSvc ? (
             <div className="space-y-3">{[1,2,3].map((n) => <div key={n} className="h-20 bg-beige-dark animate-pulse" />)}</div>
           ) : isVipCategory ? (
-            CATEGORY_ORDER
-              .filter((cat) => services.some((s) => s.category === cat))
-              .map((cat) => (
-                <div key={cat}>
+            categoriesWithServices
+              .map(({ cat }) => (
+                <div key={cat.id}>
                   <p className="text-[11px] tracking-widest uppercase text-ink-muted font-semibold mb-2 mt-4">
-                    {categoryLabel(cat)}
+                    {cat.name}
                   </p>
-                  {services.filter((svc) => svc.category === cat).map((svc) => {
+                  {services.filter((svc) => svc.categoryId === cat.id).map((svc) => {
                     const isSelected = form.serviceIds.includes(svc.id)
                     return (
                       <button key={svc.id} type="button"
@@ -579,7 +591,7 @@ export default function BookingForm() {
               ))
           ) : (
             services
-              .filter((svc) => svc.category === form.category)
+              .filter((svc) => svc.categoryId === form.category)
               .map((svc) => {
                 const isSelected = form.serviceId === svc.id
                 return (
