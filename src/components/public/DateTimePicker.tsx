@@ -15,14 +15,16 @@ interface Props {
   onDateChange:       (date: string) => void
   onTimeChange:       (time: string) => void
   disabled?:          boolean
+  /** Booking horizon — how many days ahead are shown. From BookingSettings. */
+  maxAdvanceDays?:    number
 }
-
-const DAYS_TO_SHOW = 14
 
 export default function DateTimePicker({
   serviceId, durationMinutes, professionalId, selectedDate, selectedTime,
-  onDateChange, onTimeChange, disabled = false,
+  onDateChange, onTimeChange, disabled = false, maxAdvanceDays = 90,
 }: Props) {
+  // Clamp defensively to the same bounds the admin setting enforces (7–365).
+  const daysToShow = Math.min(365, Math.max(7, maxAdvanceDays))
   const [slots,   setSlots]   = useState<TimeSlot[]>([])
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState<string | null>(null)
@@ -33,7 +35,7 @@ export default function DateTimePicker({
   const [dateOpen, setDateOpen] = useState<Record<string, boolean>>({})
   const [rangeLoading, setRangeLoading] = useState(true)
 
-  const availableDates = Array.from({ length: DAYS_TO_SHOW }, (_, i) =>
+  const availableDates = Array.from({ length: daysToShow }, (_, i) =>
     format(addDays(new Date(), i), 'yyyy-MM-dd')
   )
 
@@ -67,7 +69,7 @@ export default function DateTimePicker({
       .catch(() => { /* silent — the slot fetch will say if something fails */ })
       .finally(() => setRangeLoading(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serviceId, durationMinutes, professionalId])
+  }, [serviceId, durationMinutes, professionalId, daysToShow])
 
   // ── Detailed fetch of schedules for the selected date ──
   // We don't depend on dateOpen here to avoid a loop (the source of truth

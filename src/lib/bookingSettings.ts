@@ -6,12 +6,14 @@ import { prisma } from '@/lib/prisma'
 
 export interface BookingSettingsData {
   showProfessionalStep: boolean
+  maxAdvanceDays: number
 }
 
-/** Reads the current booking settings from the DB (sane default if missing). */
+/** Reads the current booking settings from the DB (sane defaults if missing). */
 export async function getBookingSettings(): Promise<BookingSettingsData> {
   const config = await prisma.bookingSettings.findFirst()
   return {
     showProfessionalStep: config?.showProfessionalStep ?? true,
+    maxAdvanceDays:       config?.maxAdvanceDays ?? 90,
   }
 }
