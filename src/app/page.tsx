@@ -79,13 +79,14 @@ function NosotrosSection() {
               Pasión por<br />realzar tu <em className="text-gold italic">belleza</em>
             </h2>
             <p className="text-ink-muted text-base leading-relaxed mb-4">
-              Somos un beauty studio especializado en uñas, pestañas y cejas en {STUDIO.city}.
-              Más de 3 años dedicados al cuidado y embellecimiento de manos, mirada y rostro
-              con productos de alta calidad y técnicas actualizadas.
+              Somos un beauty studio especializado en uñas, pestañas y cejas, ubicados en el
+              corazón de {STUDIO.city}. Con más de 3 años de experiencia, combinamos técnicas
+              actualizadas y productos de alta calidad para ofrecerte resultados que duran.
             </p>
             <p className="text-ink-muted text-base leading-relaxed mb-8">
-              Nuestro compromiso es ofrecerte una experiencia premium, higiénica y con
-              resultados duraderos. Cada clienta merece atención personalizada.
+              Creemos que cada clienta merece un espacio donde sentirse cuidada, escuchada y
+              hermosa. Por eso cada detalle en nuestro studio está pensado para brindarte una
+              experiencia premium, higiénica y completamente personalizada.
             </p>
             <NosotrosStats />
           </div>
@@ -112,53 +113,60 @@ function ContactoSection() {
             Escríbenos por WhatsApp o al correo. Con gusto te asesoramos.
           </p>
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-stretch">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+          {/* Contact info — unified clean list (same row style for every item) */}
           <div>
-            <div className="flex gap-3 py-3.5 border-b border-beige-deeper items-start">
-              <PinIcon className="text-gold-dark w-5 h-5 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-medium text-ink text-[15px]">Dirección</p>
-                <p className="text-sm text-ink-muted">{STUDIO.address}</p>
+            <div className="flex gap-4 py-4 border-b border-beige-deeper items-start">
+              <PinIcon className="text-gold w-5 h-5 shrink-0 mt-1" />
+              <div className="min-w-0">
+                <p className="text-xs text-gold tracking-widest uppercase mb-1">Dirección</p>
+                <p className="text-[15px] text-ink">{STUDIO.address}</p>
               </div>
             </div>
-            <div className="flex gap-3 py-3.5 border-b border-beige-deeper items-start">
-              <ClockIcon className="text-gold-dark w-5 h-5 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-medium text-ink text-[15px]">Horario</p>
-                <p className="text-sm text-ink-muted">{STUDIO.hours}</p>
+
+            <div className="flex gap-4 py-4 border-b border-beige-deeper items-start">
+              <ClockIcon className="text-gold w-5 h-5 shrink-0 mt-1" />
+              <div className="min-w-0">
+                <p className="text-xs text-gold tracking-widest uppercase mb-1">Horario</p>
+                <p className="text-[15px] text-ink">{STUDIO.hours}</p>
               </div>
             </div>
-            <div className="flex flex-col gap-3 mt-6">
-              <a href={WHATSAPP_URL} target="_blank" rel="noreferrer"
-                className="flex items-center gap-4 bg-white border border-beige-dark p-5 text-left hover:border-gold transition-colors">
-                <PhoneIcon className="text-gold-dark w-6 h-6 shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-xs text-gold tracking-widest uppercase mb-1">WhatsApp</p>
-                  <p className="text-sm text-ink font-medium">{STUDIO.phone}</p>
-                </div>
-              </a>
-              <a href={MAILTO_URL} target="_blank" rel="noreferrer"
-                className="flex items-center gap-4 bg-white border border-beige-dark p-5 text-left hover:border-gold transition-colors">
-                <MailIcon className="text-gold-dark w-6 h-6 shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-xs text-gold tracking-widest uppercase mb-1">Email</p>
-                  <p className="text-sm text-ink font-medium break-all">{STUDIO.email}</p>
-                </div>
-              </a>
-            </div>
-          </div>
-          <div className="relative rounded-2xl overflow-hidden shadow-md border border-beige-dark/60 h-full min-h-[400px]">
-            <iframe
-              src={embedUrl}
-              title="Mapa — Valentina Jimenez Beauty Studio"
-              width="100%" height="100%" loading="lazy"
-              style={{ border: 0 }}
-              referrerPolicy="no-referrer-when-downgrade"
-            />
-            <a href={mapsUrl} target="_blank" rel="noreferrer"
-              className="btn-cta absolute bottom-4 left-4 shadow-lg">
-              Cómo llegar
+
+            <a href={WHATSAPP_URL} target="_blank" rel="noreferrer"
+              className="group flex gap-4 py-4 border-b border-beige-deeper items-start">
+              <PhoneIcon className="text-gold w-5 h-5 shrink-0 mt-1" />
+              <div className="min-w-0">
+                <p className="text-xs text-gold tracking-widest uppercase mb-1">WhatsApp</p>
+                <p className="text-[15px] text-ink group-hover:text-gold transition-colors">{STUDIO.phone}</p>
+              </div>
             </a>
+
+            <a href={MAILTO_URL} target="_blank" rel="noreferrer"
+              className="group flex gap-4 py-4 border-b border-beige-deeper items-start">
+              <MailIcon className="text-gold w-5 h-5 shrink-0 mt-1" />
+              <div className="min-w-0">
+                <p className="text-xs text-gold tracking-widest uppercase mb-1">Email</p>
+                <p className="text-[15px] text-ink break-all group-hover:text-gold transition-colors">{STUDIO.email}</p>
+              </div>
+            </a>
+          </div>
+
+          {/* Map — rectangular, soft corners, controls fully accessible */}
+          <div>
+            <div className="rounded-xl overflow-hidden shadow-md border border-beige-dark/60 w-full h-[280px] lg:h-[380px]">
+              <iframe
+                src={embedUrl}
+                title="Mapa — Valentina Jimenez Beauty Studio"
+                width="100%" height="100%" loading="lazy"
+                style={{ border: 0 }}
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+            </div>
+            <div className="flex justify-center mt-4">
+              <a href={mapsUrl} target="_blank" rel="noreferrer" className="btn-outline-gold">
+                Cómo llegar
+              </a>
+            </div>
           </div>
         </div>
       </div>
