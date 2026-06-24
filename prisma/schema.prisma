@@ -155,6 +155,22 @@ model BookingSettings {
 }
 
 // ─────────────────────────────────────────
+// MÉTRICAS DEL LANDING (singleton)
+// Indicadores numéricos del Home/Nosotros, editables desde el panel admin
+// para no tocar código. `servicesCount` NO se guarda aquí: se deriva en vivo
+// del catálogo (servicios activos) para que nunca se desincronice.
+// ─────────────────────────────────────────
+model LandingStats {
+  id                String   @id @default(cuid())
+  appointmentsCount Int      @default(300) // "+300 Citas realizadas"
+  clientsCount      Int      @default(180) // "+180 Clientas satisfechas"
+  yearsExperience   Int      @default(3)   // "+3 Años de experiencia"
+  rating            Float    @default(4.8) // "4.8★ Calificación"
+  updatedAt         DateTime @updatedAt
+  @@map("landing_stats")
+}
+
+// ─────────────────────────────────────────
 // CITAS
 // ─────────────────────────────────────────
 

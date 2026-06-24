@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Navbar from '@/components/public/Navbar'
 import NosotrosImage from '@/components/public/NosotrosImage'
+import NosotrosStats from '@/components/public/NosotrosStats'
 import Hero from '@/components/public/Hero'
 import WhatsAppFab from '@/components/public/WhatsAppFab'
 import ServicesGrid from '@/components/public/ServicesGrid'
@@ -86,18 +87,7 @@ function NosotrosSection() {
               Nuestro compromiso es ofrecerte una experiencia premium, higiénica y con
               resultados duraderos. Cada clienta merece atención personalizada.
             </p>
-            <div className="grid grid-cols-3 gap-6 pt-6 border-t border-beige-dark">
-              {[
-                { value: '+3',  label: 'Años de experiencia'  },
-                { value: '+80', label: 'Clientas satisfechas'  },
-                { value: '+25', label: 'Servicios disponibles' },
-              ].map((s) => (
-                <div key={s.label}>
-                  <p className="font-serif text-3xl text-gold font-light">{s.value}</p>
-                  <p className="text-xs text-ink-muted mt-1 leading-tight">{s.label}</p>
-                </div>
-              ))}
-            </div>
+            <NosotrosStats />
           </div>
           <NosotrosImage />
         </div>

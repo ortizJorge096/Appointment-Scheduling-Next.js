@@ -357,3 +357,14 @@ export const vipConfigSchema = z.object({
 export const bookingSettingsSchema = z.object({
   showProfessionalStep: z.boolean(),
 })
+
+// ─────────────────────────────────────────
+// LANDING STATS (admin)
+// ─────────────────────────────────────────
+
+export const landingStatsSchema = z.object({
+  appointmentsCount: z.number().int().min(0, 'No puede ser negativo').max(1_000_000),
+  clientsCount:      z.number().int().min(0, 'No puede ser negativo').max(1_000_000),
+  yearsExperience:   z.number().int().min(0, 'No puede ser negativo').max(100),
+  rating:            z.number().min(0).max(5, 'La calificación máxima es 5'),
+})
