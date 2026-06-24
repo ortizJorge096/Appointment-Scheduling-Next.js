@@ -62,7 +62,7 @@ patches:
         value: "true"
       - op: replace
         path: /data/SES_FROM_EMAIL
-        value: "valentinajimenezbeautystudio@gmail.com"
+        value: "citas@vjbeautystudio.com"
       - op: replace
         path: /data/NEXT_PUBLIC_APP_URL
         value: "https://appointment-scheduling.example.com"

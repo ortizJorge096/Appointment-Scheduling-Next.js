@@ -117,3 +117,43 @@ variable "db_skip_final_snapshot" {
   type    = bool
   default = false
 }
+
+# Long-retention AWS Backup vault (30/90/365 días). Off por elección del negocio:
+# la BD conserva igual 7 días de point-in-time recovery (gratis) vía RDS.
+variable "enable_aws_backup" {
+  type    = bool
+  default = false
+}
+
+# Public hostname for prod (A record → Elastic IP). Single source of truth:
+# feeds the module's resolved host (outputs + first-boot user-data) and the SSM
+# param the CI reads for the ingress host, NEXTAUTH_URL and NEXT_PUBLIC_APP_URL.
+# Empty = falls back to <name_prefix>.<ip>.nip.io.
+variable "app_host" {
+  type    = string
+  default = ""
+}
+
+# RDS scheduler: apaga/enciende la BD por horario para ahorrar costo. Off por
+# defecto. Los horarios se pasan al módulo desde aquí (cron + timezone).
+variable "enable_rds_scheduler" {
+  type    = bool
+  default = false
+}
+
+# Apagado por defecto a las 23:00 y encendido a las 06:00 (hora Bogotá), fuera
+# del horario de atención. Ajusta en terraform.tfvars si lo necesitas distinto.
+variable "rds_stop_schedule" {
+  type    = string
+  default = "cron(0 23 * * ? *)"
+}
+
+variable "rds_start_schedule" {
+  type    = string
+  default = "cron(0 6 * * ? *)"   # "" = sin encendido automático (manual)
+}
+
+variable "rds_schedule_timezone" {
+  type    = string
+  default = "America/Bogota"
+}
