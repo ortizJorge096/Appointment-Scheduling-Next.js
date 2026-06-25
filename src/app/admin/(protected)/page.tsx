@@ -235,12 +235,12 @@ export default async function DashboardPage() {
       {/* Frequent clients */}
       <div className="bg-white rounded-xl border border-beige-dark overflow-hidden mt-6">
         <div className="px-5 sm:px-6 py-4 border-b border-beige-dark flex items-center justify-between">
-          <h2 className="font-serif text-xl text-ink font-light">Clientas frecuentes</h2>
-          <Link href="/admin/clientes" className="text-xs text-gold hover:underline">Ver todas →</Link>
+          <h2 className="font-serif text-xl text-ink font-light">Clientes frecuentes</h2>
+          <Link href="/admin/clientes" className="text-xs text-gold hover:underline">Ver todos →</Link>
         </div>
         {topClients.length === 0 ? (
           <div className="px-5 sm:px-6 py-12 text-center text-ink-muted text-sm">
-            Aún no hay clientas registradas.
+            Aún no hay clientes registrados.
           </div>
         ) : (
           <div className="divide-y divide-beige-dark">

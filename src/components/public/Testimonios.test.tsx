@@ -2,8 +2,8 @@ import { render, screen, waitFor } from '@testing-library/react'
 import Testimonios from './Testimonios'
 
 const MOCK = [
-  { id: 't1', clientName: 'Carmen Morales', initials: 'C.M.', type: 'Clienta frecuente', text: 'Excelente atención', stars: 5, imageUrl: null },
-  { id: 't2', clientName: 'Diana Ruiz', initials: 'D.R.', type: 'Clienta VIP', text: 'Me encantó el resultado', stars: 4, imageUrl: 'https://bucket.s3.amazonaws.com/testimonios/x.jpg' },
+  { id: 't1', clientName: 'Carmen Morales', initials: 'C.M.', type: 'Cliente frecuente', text: 'Excelente atención', stars: 5, imageUrl: null },
+  { id: 't2', clientName: 'Diana Ruiz', initials: 'D.R.', type: 'Cliente VIP', text: 'Me encantó el resultado', stars: 4, imageUrl: 'https://bucket.s3.amazonaws.com/testimonios/x.jpg' },
 ]
 
 function mockFetch(data: unknown) {
@@ -18,7 +18,7 @@ describe('Testimonios', () => {
     render(<Testimonios />)
 
     expect(await screen.findByText('Carmen Morales')).toBeInTheDocument()
-    expect(screen.getByText('Clienta frecuente')).toBeInTheDocument()
+    expect(screen.getByText('Cliente frecuente')).toBeInTheDocument()
     expect(screen.getByText('C.M.')).toBeInTheDocument()
     expect(screen.getByText(/Me encantó el resultado/)).toBeInTheDocument()
   })

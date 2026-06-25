@@ -93,7 +93,7 @@ function NosotrosSection() {
             <p className="text-ink-muted text-base leading-relaxed mb-4">
               Más de 3 años embelleciendo uñas, miradas y rostros en {STUDIO.city} nos han
               enseñado que la belleza va mucho más allá de la apariencia. Es el momento en que
-              te permites descansar, cuidarte y recordar lo maravillosa que eres.
+              te permites descansar, cuidarte y recordar lo especial que eres.
             </p>
             <p className="text-ink-muted text-base leading-relaxed mb-8">
               Aquí encontrarás técnicas actualizadas, productos de calidad y, sobre todo, manos

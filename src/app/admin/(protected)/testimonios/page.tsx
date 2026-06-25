@@ -26,7 +26,7 @@ interface Testimonial {
 type Tab = 'todos' | 'pendientes'
 type Filter = 'all' | 'active' | 'inactive'
 
-const TYPE_PRESETS = ['Clienta frecuente', 'Clienta VIP', 'Clienta habitual', 'Primera visita']
+const TYPE_PRESETS = ['Cliente frecuente', 'Cliente VIP', 'Cliente habitual', 'Primera visita']
 const MAX_TEXT = 200
 const MAX_BYTES = 5 * 1024 * 1024
 
@@ -141,7 +141,7 @@ export default function TestimoniosPage() {
   async function handleSave() {
     const type = resolveType(form)
     if (form.clientName.trim().length < 2) { setError('El nombre es requerido'); return }
-    if (type.length < 2)                   { setError('El tipo de clienta es requerido'); return }
+    if (type.length < 2)                   { setError('El tipo de cliente es requerido'); return }
     if (form.text.trim().length < 5)       { setError('El testimonio es muy corto'); return }
 
     setSaving(true)
@@ -248,7 +248,7 @@ export default function TestimoniosPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="form-label">Nombre de la clienta *</label>
+              <label className="form-label">Nombre del cliente *</label>
               <input type="text" className="input-field" value={form.clientName}
                 onChange={(e) => setForm({ ...form, clientName: e.target.value })}
                 placeholder="Ej: Carmen Morales" />
@@ -256,7 +256,7 @@ export default function TestimoniosPage() {
             </div>
 
             <div>
-              <label className="form-label">Tipo de clienta *</label>
+              <label className="form-label">Tipo de cliente *</label>
               <select className="select-field" value={form.typeValue}
                 onChange={(e) => setForm({ ...form, typeValue: e.target.value })}>
                 {TYPE_PRESETS.map((p) => <option key={p} value={p}>{p}</option>)}
@@ -273,7 +273,7 @@ export default function TestimoniosPage() {
               <label className="form-label">Testimonio *</label>
               <textarea className="input-field resize-none" rows={3} maxLength={MAX_TEXT}
                 value={form.text} onChange={(e) => setForm({ ...form, text: e.target.value })}
-                placeholder="Lo que dijo la clienta…" />
+                placeholder="Lo que dijo el cliente…" />
               <p className="text-xs text-ink-muted/50 mt-1 text-right">{form.text.length}/{MAX_TEXT}</p>
             </div>
 
@@ -381,7 +381,7 @@ export default function TestimoniosPage() {
                       <p className="font-medium text-ink truncate">{t.clientName}</p>
                       <span className="text-[10px] tracking-widest uppercase bg-gold-pale text-gold-dark px-2 py-0.5 rounded-full">{t.type}</span>
                       <span className={`text-[10px] tracking-widest uppercase px-2 py-0.5 rounded-full ${STATUS_BADGE[t.status]}`}>{STATUS_LABEL[t.status]}</span>
-                      {t.source === 'CLIENT' && <span className="text-[10px] tracking-widest uppercase bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">Clienta</span>}
+                      {t.source === 'CLIENT' && <span className="text-[10px] tracking-widest uppercase bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">Cliente</span>}
                     </div>
                     <p className="text-xs text-ink-muted mt-0.5 truncate">{t.text.slice(0, 60)}{t.text.length > 60 ? '…' : ''} · {'★'.repeat(t.stars)}</p>
                   </div>
