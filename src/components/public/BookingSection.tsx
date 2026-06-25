@@ -1,7 +1,22 @@
 // src/components/public/BookingSection.tsx
 import Link from 'next/link'
+import { getBookingSettings } from '@/lib/bookingSettings'
 
-export default function BookingSection() {
+export default async function BookingSection() {
+  // Same source as the /agendar stepper (getBookingSettings → BookingSettings
+  // singleton), read server-side so the step count never flashes and the two
+  // always stay in sync. The professional step is inserted only when enabled.
+  const { showProfessionalStep } = await getBookingSettings()
+
+  const steps = [
+    { title: 'Elige tu servicio',       desc: 'Uñas, pestañas, cejas y más' },
+    ...(showProfessionalStep
+      ? [{ title: 'Elige tu profesional', desc: 'Selecciona quién te atenderá' }]
+      : []),
+    { title: 'Selecciona fecha y hora', desc: 'Disponibilidad en tiempo real' },
+    { title: 'Confirma tus datos',      desc: 'Email inmediato de confirmación' },
+  ]
+
   return (
     <section className="py-24 bg-ink">
       <div className="max-w-7xl mx-auto px-6 lg:px-10
@@ -14,22 +29,18 @@ export default function BookingSection() {
             </span>
           </div>
           <h2 className="text-4xl lg:text-5xl font-serif font-light text-white mb-6">
-            Reserva en<br /><em className="text-gold italic">3 pasos</em>
+            Reserva en<br /><em className="text-gold italic">{steps.length} pasos</em>
           </h2>
           <p className="text-white/50 text-base leading-relaxed mb-10 max-w-md">
             Sin llamadas, sin esperas. Elige el servicio, la fecha y confirma.
             Recibirás confirmación por email de inmediato.
           </p>
           <div className="space-y-6 mb-10">
-            {[
-              { n: '1', title: 'Elige tu servicio',       desc: 'Uñas, pestañas, cejas y más' },
-              { n: '2', title: 'Selecciona fecha y hora', desc: 'Disponibilidad en tiempo real' },
-              { n: '3', title: 'Confirma tus datos',      desc: 'Email inmediato de confirmación' },
-            ].map((s) => (
-              <div key={s.n} className="flex items-start gap-4">
+            {steps.map((s, i) => (
+              <div key={s.title} className="flex items-start gap-4">
                 <div className="w-8 h-8 rounded-full border border-gold text-gold
                                 flex items-center justify-center text-xs shrink-0 mt-0.5">
-                  {s.n}
+                  {i + 1}
                 </div>
                 <div>
                   <p className="text-white text-sm font-medium">{s.title}</p>

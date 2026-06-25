@@ -9,11 +9,18 @@ export interface BookingSettingsData {
   maxAdvanceDays: number
 }
 
-/** Reads the current booking settings from the DB (sane defaults if missing). */
+const DEFAULTS: BookingSettingsData = { showProfessionalStep: true, maxAdvanceDays: 90 }
+
+/** Reads the current booking settings from the DB (sane defaults if missing or
+ *  unreachable — never throws, so SSR pages that read it can't 500 on a DB blip). */
 export async function getBookingSettings(): Promise<BookingSettingsData> {
-  const config = await prisma.bookingSettings.findFirst()
-  return {
-    showProfessionalStep: config?.showProfessionalStep ?? true,
-    maxAdvanceDays:       config?.maxAdvanceDays ?? 90,
+  try {
+    const config = await prisma.bookingSettings.findFirst()
+    return {
+      showProfessionalStep: config?.showProfessionalStep ?? DEFAULTS.showProfessionalStep,
+      maxAdvanceDays:       config?.maxAdvanceDays ?? DEFAULTS.maxAdvanceDays,
+    }
+  } catch {
+    return DEFAULTS
   }
 }
