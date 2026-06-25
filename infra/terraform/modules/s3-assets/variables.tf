@@ -4,9 +4,9 @@ variable "bucket_name" {
 }
 
 variable "public_prefixes" {
-  description = "Bucket prefixes with public read access via bucket policy."
+  description = "Bucket prefixes with public read (bucket policy) and app read/write/delete."
   type        = list(string)
-  default     = ["gallery/"]
+  default     = ["gallery/", "testimonios/"]
 }
 
 variable "allowed_origins" {
