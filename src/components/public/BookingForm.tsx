@@ -223,6 +223,17 @@ export default function BookingForm() {
     }
   }, [services, categories, searchParams, appliedPreselect])
 
+  // 5b. VIP shortcut: /agendar?modo=vip lands directly on the multi-service
+  // selection (all categories), skipping the category grid. Runs on mount (no
+  // need to wait for services) so the category grid never flashes.
+  useEffect(() => {
+    if (appliedPreselect) return
+    if (searchParams.get('modo') === 'vip') {
+      setForm((prev) => ({ ...prev, category: VIP_PSEUDO_CATEGORY }))
+      setAppliedPreselect(true)
+    }
+  }, [searchParams, appliedPreselect])
+
   // Clear errors and scroll to top when step changes
   useEffect(() => {
     setStepError(null)
@@ -308,6 +319,11 @@ export default function BookingForm() {
     setAttempted(true)
     if (step === 'service') {
       if (!form.category) { setStepError('Por favor selecciona una categoría para continuar.'); return false }
+      if (isVipCategory) {
+        // VIP needs at least 2 services for the bundle discount to apply.
+        if (form.serviceIds.length < 2) { setStepError('Selecciona al menos 2 servicios para el Paquete VIP.'); return false }
+        return true
+      }
       if (form.serviceIds.length === 0) { setStepError('Por favor selecciona al menos un servicio para continuar.'); return false }
       return true
     }
@@ -331,7 +347,12 @@ export default function BookingForm() {
   }
 
   function handleNext() {
-    if (!validate()) return
+    if (!validate()) {
+      // The validation message renders near the top of the step; on a long list
+      // (e.g. VIP) the user is at the bottom, so bring it into view.
+      formTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      return
+    }
     const idx = STEPS.indexOf(step)
     if (idx < STEPS.length - 1) setStep(STEPS[idx + 1])
   }
@@ -537,11 +558,14 @@ export default function BookingForm() {
                   <>Servicios de <em className="text-gold italic">{categoryName(form.category).toLowerCase()}</em></>
                 )}
               </h2>
-              <button type="button" onClick={() => selectCategory(form.category)}
-                className="text-xs tracking-widest uppercase font-semibold text-gold-dark hover:text-gold
-                           border border-gold/40 rounded-full px-3 py-1.5 transition-colors">
-                ← Cambiar categoría
-              </button>
+              {/* VIP shows all categories at once → "change category" doesn't apply. */}
+              {!isVipCategory && (
+                <button type="button" onClick={() => selectCategory(form.category)}
+                  className="text-xs tracking-widest uppercase font-semibold text-gold-dark hover:text-gold
+                             border border-gold/40 rounded-full px-3 py-1.5 transition-colors">
+                  ← Cambiar categoría
+                </button>
+              )}
             </div>
             <p className="text-sm text-ink-muted mt-1">
               {isVipCategory
@@ -655,6 +679,11 @@ export default function BookingForm() {
                   {formatPrice(subtotal - discountAmount)}
                 </span>
               </div>
+              {form.serviceIds.length < 2 && (
+                <p className="flex items-center gap-1.5 text-amber-600 text-xs pt-1">
+                  <span>⚠</span> Selecciona al menos 2 servicios para activar el descuento VIP.
+                </p>
+              )}
             </div>
           )}
         </div>

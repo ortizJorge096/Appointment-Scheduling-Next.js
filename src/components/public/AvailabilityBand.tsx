@@ -6,7 +6,9 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { format } from 'date-fns'
+import { formatInTimeZone } from 'date-fns-tz'
 import { es } from 'date-fns/locale'
+import { STUDIO } from '@/lib/config'
 
 interface NextSlot {
   date: string
@@ -31,9 +33,11 @@ export default function AvailabilityBand() {
 
   const dateLabel = slot
     ? (() => {
-        const today = new Date().toISOString().slice(0, 10)
+        // "Today"/"tomorrow" in the studio's timezone (Bogotá), not UTC — otherwise
+        // after 7pm local the UTC date rolls over and labels shift by a day.
+        const today    = formatInTimeZone(new Date(), STUDIO.timezone, 'yyyy-MM-dd')
+        const tomorrow = formatInTimeZone(new Date(Date.now() + 86400000), STUDIO.timezone, 'yyyy-MM-dd')
         if (slot.date === today) return 'Hoy'
-        const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10)
         if (slot.date === tomorrow) return 'Mañana'
         return format(new Date(`${slot.date}T12:00:00`), "EEEE d 'de' MMMM", { locale: es })
       })()

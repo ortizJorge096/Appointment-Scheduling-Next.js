@@ -16,6 +16,11 @@ import { PinIcon, ClockIcon, PhoneIcon, MailIcon } from '@/components/public/Ser
 
 export const metadata: Metadata = { title: `Uñas, pestañas y cejas en ${STUDIO.city}` }
 
+// Rendered per-request: BookingSection reads the booking settings from the DB
+// (server-side, no flash). This opts the home out of build-time static
+// prerender (where DATABASE_URL isn't available).
+export const dynamic = 'force-dynamic'
+
 export default function HomePage() {
   return (
     <>

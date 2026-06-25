@@ -166,10 +166,17 @@ for secret_name in letsencrypt-staging-account letsencrypt-prod-account; do
 done
 echo "── cert-manager secrets backed up ──"
 
+# jq is used to strip volatile metadata (ownerReferences/uid/resourceVersion…)
+# before persisting the issued TLS secret, so it restores cleanly on a new node.
+command -v jq >/dev/null 2>&1 || { dnf install -y jq >/dev/null 2>&1 || yum install -y jq >/dev/null 2>&1 || true; }
+
 # Cron: re-backup every 6h.
 mkdir -p /etc/cron.d
 echo 'SHELL=/bin/bash' > /etc/cron.d/cm-backup
 echo "0 */6 * * * root for s in letsencrypt-staging-account letsencrypt-prod-account; do kubectl -n cert-manager get secret \"\$s\" -o json 2>/dev/null | aws s3 cp - \"s3://${s3_bucket_name}/cert-manager/\$s.json\" --region \"${aws_region}\" 2>/dev/null; done" >> /etc/cron.d/cm-backup
+# Also back up the issued TLS cert secret so spot replacements reuse it instead
+# of re-issuing (which hits the LE rate limit: 5 certs/week per domain).
+echo "30 */6 * * * root kubectl -n ${app_namespace} get secret appointment-scheduling-tls -o json 2>/dev/null | jq 'del(.metadata.ownerReferences,.metadata.resourceVersion,.metadata.uid,.metadata.creationTimestamp,.metadata.managedFields,.status)' 2>/dev/null | aws s3 cp - \"s3://${s3_bucket_name}/cert-manager/${app_namespace}-tls.json\" --region \"${aws_region}\" 2>/dev/null" >> /etc/cron.d/cm-backup
 %{ endif ~}
 
 # ── (6) SSM secrets ──
@@ -190,6 +197,19 @@ cd repo
 
 kubectl --kubeconfig $${KUBECONFIG} create namespace "${app_namespace}" \
   --dry-run=client -o yaml | kubectl --kubeconfig $${KUBECONFIG} apply -f -
+
+%{ if enable_letsencrypt ~}
+# Restore the previously issued TLS cert BEFORE applying the Ingress. If the
+# stored cert is still valid, cert-manager reuses it and does NOT order a new
+# one — avoiding the Let's Encrypt rate limit (5 certs/week per exact domain)
+# that otherwise triggers on every spot replacement.
+tls_uri="s3://${s3_bucket_name}/cert-manager/${app_namespace}-tls.json"
+if aws s3 ls "$${tls_uri}" --region "${aws_region}" >/dev/null 2>&1; then
+  aws s3 cp "$${tls_uri}" - --region "${aws_region}" \
+    | kubectl --kubeconfig $${KUBECONFIG} -n "${app_namespace}" apply -f - 2>/dev/null \
+    && echo "Restored TLS cert secret for ${app_namespace} (skips LE re-issue)"
+fi
+%{ endif ~}
 
 OVERLAY_DIR="${kustomize_overlay_path}/${kustomize_overlay}"
 find "$${OVERLAY_DIR}" -maxdepth 2 -type f \( -name '*.yaml' -o -name '*.yml' \) \
@@ -214,6 +234,18 @@ kubectl --kubeconfig $${KUBECONFIG} -n "${app_namespace}" \
 kubectl --kubeconfig $${KUBECONFIG} -n "${app_namespace}" \
   rollout status deployment/appointment-scheduling --timeout=300s || true
 kubectl --kubeconfig $${KUBECONFIG} -n "${app_namespace}" get pods,svc,ingress
+
+%{ if enable_letsencrypt ~}
+# Best-effort: once the cert is issued, persist it to S3 right away (the 6h cron
+# keeps it fresh thereafter). Backgrounded so it doesn't block boot.
+(
+  sleep 120
+  kubectl --kubeconfig $${KUBECONFIG} -n "${app_namespace}" get secret appointment-scheduling-tls -o json 2>/dev/null \
+    | jq 'del(.metadata.ownerReferences,.metadata.resourceVersion,.metadata.uid,.metadata.creationTimestamp,.metadata.managedFields,.status)' 2>/dev/null \
+    | aws s3 cp - "s3://${s3_bucket_name}/cert-manager/${app_namespace}-tls.json" --region "${aws_region}" 2>/dev/null \
+    && echo "Backed up TLS cert secret for ${app_namespace}"
+) &
+%{ endif ~}
 
 # ── (8) GitHub Actions self-hosted runner ──
 %{ if github_token != "" ~}

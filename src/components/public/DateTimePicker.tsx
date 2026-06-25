@@ -8,9 +8,11 @@
 import { useState, useEffect } from 'react'
 import {
   format, addDays, addMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek,
-  eachDayOfInterval, isSameMonth, isToday, isBefore, isAfter, startOfDay,
+  eachDayOfInterval, isSameMonth, isBefore, isAfter, startOfDay,
 } from 'date-fns'
+import { formatInTimeZone } from 'date-fns-tz'
 import { es } from 'date-fns/locale'
+import { STUDIO, WHATSAPP_URL } from '@/lib/config'
 import type { TimeSlot } from '@/types'
 
 interface Props {
@@ -43,9 +45,14 @@ export default function DateTimePicker({
   // the /range endpoint. A date with `false` is shown disabled (not clickable).
   const [dateOpen, setDateOpen] = useState<Record<string, boolean>>({})
   const [rangeLoading, setRangeLoading] = useState(true)
+  // Auto-pick: on load, find and select the first day that has availability.
+  const [autoPicking, setAutoPicking] = useState(true)
+  const [noUpcoming, setNoUpcoming]   = useState(false)
 
-  // Booking window
-  const today      = startOfDay(new Date())
+  // Booking window — "today" anchored to the studio's timezone (Bogotá), not the
+  // visitor's browser, so the calendar is consistent for clients in any timezone.
+  const todayStr   = formatInTimeZone(new Date(), STUDIO.timezone, 'yyyy-MM-dd')
+  const today      = startOfDay(new Date(`${todayStr}T00:00:00`))
   const horizonEnd = addDays(today, daysToShow - 1)
 
   // Currently displayed month (first day). Starts on the selected date's month.
@@ -131,6 +138,39 @@ export default function DateTimePicker({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [serviceId, durationMinutes, professionalId, selectedDate])
 
+  // ── Auto-pick the first day with availability on load ──
+  // One /range call over a 30-day window finds the next open day and selects it,
+  // so the user lands on real slots instead of a closed "today". Keyed on the
+  // service/professional context — it does NOT depend on selectedDate, so a
+  // manual date selection is never overridden.
+  useEffect(() => {
+    if (!serviceId && !durationMinutes) { setAutoPicking(false); return }
+    let cancelled = false
+    setAutoPicking(true)
+    setNoUpcoming(false)
+    const searchDays = Math.min(30, daysToShow)
+    const from = format(today, 'yyyy-MM-dd')
+    const to   = format(addDays(today, searchDays - 1), 'yyyy-MM-dd')
+    fetch(`/api/availability/range?from=${from}&to=${to}&${availParam}`)
+      .then((r) => r.json())
+      .then((json) => {
+        if (cancelled || !json.success) return
+        const firstOpen = json.data.dates.find((d: { date: string; open: boolean }) => d.open)
+        if (firstOpen) {
+          // If today is open it IS the first → selecting it is a no-op.
+          onDateChange(firstOpen.date)
+          onTimeChange('')
+          setViewMonth(startOfMonth(new Date(`${firstOpen.date}T12:00:00`)))
+        } else {
+          setNoUpcoming(true)
+        }
+      })
+      .catch(() => { /* fall back to manual navigation */ })
+      .finally(() => { if (!cancelled) setAutoPicking(false) })
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serviceId, durationMinutes, professionalId])
+
   function changeMonth(delta: 1 | -1) {
     if (delta === -1 && !canPrev) return
     if (delta === 1 && !canNext) return
@@ -198,7 +238,7 @@ export default function DateTimePicker({
               const beyond      = isAfter(day, horizonEnd)
               const closed      = dateOpen[dayStr] === false
               const isSelected  = dayStr === selectedDate && inMonth
-              const isTodayCell = isToday(day)
+              const isTodayCell = dayStr === todayStr
               const selectable  = inMonth && !past && !beyond && !closed && !disabled
 
               // Precedence: other-month → selected → today (ring always) →
@@ -244,23 +284,34 @@ export default function DateTimePicker({
       <div>
         <label className="form-label">
           Hora disponible
-          {loading && (
+          {(loading || autoPicking) && (
             <span className="ml-2 text-ink-muted/50 normal-case font-normal tracking-normal">
-              Cargando...
+              {autoPicking ? 'Buscando disponibilidad...' : 'Cargando...'}
             </span>
           )}
         </label>
 
-        {error && <p className="text-sm text-red-500 mb-3">{error}</p>}
+        {error && !autoPicking && <p className="text-sm text-red-500 mb-3">{error}</p>}
 
-        {/* Closed day (defensive — shouldn't be selectable) */}
-        {!loading && !error && isSelectedDayClosed && (
+        {/* No availability in the next 30 days → friendly WhatsApp message */}
+        {!autoPicking && !loading && noUpcoming && (
+          <div className="bg-beige/40 border border-beige-dark rounded-xl px-4 py-4 text-sm text-ink-muted">
+            En este momento no tenemos disponibilidad próxima.{' '}
+            <a href={WHATSAPP_URL} target="_blank" rel="noreferrer"
+              className="text-gold hover:underline font-medium">
+              Escríbenos por WhatsApp
+            </a>{' '}y te ayudamos.
+          </div>
+        )}
+
+        {/* Manually picked a closed day (auto-pick didn't choose it) */}
+        {!autoPicking && !loading && !error && !noUpcoming && isSelectedDayClosed && (
           <p className="text-sm text-ink-muted italic">
             Este día no tenemos atención. Por favor elige otra fecha.
           </p>
         )}
 
-        {!loading && availableSlots.length > 0 && (
+        {!loading && !autoPicking && availableSlots.length > 0 && (
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
             {availableSlots.map((slot) => {
               const isSelected = slot.startTime === selectedTime
@@ -281,7 +332,7 @@ export default function DateTimePicker({
         )}
 
         {/* Open day but all time slots are taken */}
-        {!loading && !error && !isSelectedDayClosed && slots.length > 0 && availableSlots.length === 0 && (
+        {!loading && !autoPicking && !error && !noUpcoming && !isSelectedDayClosed && slots.length > 0 && availableSlots.length === 0 && (
           <div className="flex items-center gap-2 bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-500">
             <span>⚠</span> Todos los horarios de este día están ocupados. Por favor elige otra fecha.
           </div>
