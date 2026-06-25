@@ -28,15 +28,20 @@ const MOCK_SERVICES = [
 function makeRequest(body?: unknown): NextRequest {
   return { json: () => Promise.resolve(body) } as NextRequest
 }
+function getReq(url = 'http://localhost/api/services'): NextRequest {
+  return { url } as NextRequest
+}
 
 describe('GET /api/services', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(prisma.service.findMany).mockResolvedValue(MOCK_SERVICES)
+  })
 
   it('public: only returns active services', async () => {
     vi.mocked(getServerSession).mockResolvedValue(null)
-    vi.mocked(prisma.service.findMany).mockResolvedValue([MOCK_SERVICES[0]])
 
-    const res  = await GET()
+    const res  = await GET(getReq())
     const json = await res.json()
     expect(json.success).toBe(true)
     expect(prisma.service.findMany).toHaveBeenCalledWith(
@@ -44,15 +49,33 @@ describe('GET /api/services', () => {
     )
   })
 
-  it('admin: returns all services including inactive', async () => {
+  it('admin without the flag still gets active-only (booking flow must never leak inactive)', async () => {
     vi.mocked(getServerSession).mockResolvedValue({ user: { email: 'admin@test.com' } })
-    vi.mocked(prisma.service.findMany).mockResolvedValue(MOCK_SERVICES)
 
-    const res  = await GET()
-    const json = await res.json()
-    expect(json.success).toBe(true)
+    await GET(getReq())
+
+    expect(prisma.service.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { deletedAt: null, isActive: true } })
+    )
+  })
+
+  it('admin with ?includeInactive=true returns all services including inactive', async () => {
+    vi.mocked(getServerSession).mockResolvedValue({ user: { email: 'admin@test.com' } })
+
+    await GET(getReq('http://localhost/api/services?includeInactive=true'))
+
     expect(prisma.service.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { deletedAt: null } })
+    )
+  })
+
+  it('includeInactive without a session is ignored (stays active-only)', async () => {
+    vi.mocked(getServerSession).mockResolvedValue(null)
+
+    await GET(getReq('http://localhost/api/services?includeInactive=true'))
+
+    expect(prisma.service.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { deletedAt: null, isActive: true } })
     )
   })
 })

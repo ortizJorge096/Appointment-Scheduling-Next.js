@@ -7,6 +7,7 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { WHATSAPP_URL } from '@/lib/config'
 
 interface AppointmentView {
   id: string
@@ -15,6 +16,7 @@ interface AppointmentView {
   date: string
   startTime: string
   status: string
+  cancellable?: boolean
 }
 
 type Phase = 'loading' | 'ready' | 'cancelling' | 'cancelled' | 'notfound' | 'error'
@@ -102,8 +104,14 @@ export default function CancelarClient() {
 
         {(phase === 'ready' || phase === 'cancelling') && appt && (
           <>
-            <h1 className="font-serif text-3xl text-ink font-light mb-2">¿Cancelar tu cita?</h1>
-            <p className="text-ink-muted text-sm mb-8">Esta acción no se puede deshacer.</p>
+            <h1 className="font-serif text-3xl text-ink font-light mb-2">
+              {appt.cancellable ? '¿Cancelar tu cita?' : 'Cancelación en línea no disponible'}
+            </h1>
+            <p className="text-ink-muted text-sm mb-8">
+              {appt.cancellable
+                ? 'Esta acción no se puede deshacer.'
+                : 'Tu cita es pronto — gestiónala con nosotros.'}
+            </p>
 
             <div className="bg-white border border-beige-dark/60 rounded-2xl shadow-sm p-6 space-y-3 mb-6 text-left">
               {[
@@ -130,13 +138,33 @@ export default function CancelarClient() {
               </div>
             )}
 
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <button onClick={handleCancel} disabled={phase === 'cancelling'}
-                className="btn-primary disabled:opacity-70">
-                {phase === 'cancelling' ? 'Cancelando...' : 'Sí, cancelar cita'}
-              </button>
-              <Link href="/" className="btn-secondary inline-block">Mantener cita</Link>
-            </div>
+            {appt.cancellable ? (
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <button onClick={handleCancel} disabled={phase === 'cancelling'}
+                  className="btn-primary disabled:opacity-70">
+                  {phase === 'cancelling' ? 'Cancelando...' : 'Sí, cancelar cita'}
+                </button>
+                <Link href="/" className="btn-secondary inline-block">Mantener cita</Link>
+              </div>
+            ) : (
+              <>
+                <div className="bg-beige-pale border border-beige-dark rounded-2xl p-4 mb-6 text-left">
+                  <p className="text-sm text-ink font-medium mb-1">
+                    Tu cita es en menos de 24 horas
+                  </p>
+                  <p className="text-xs text-ink-muted">
+                    Por eso ya no se puede cancelar en línea. Si necesitas cancelar o reprogramar,
+                    escríbenos por WhatsApp y te ayudamos enseguida.
+                  </p>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <a href={WHATSAPP_URL} target="_blank" rel="noreferrer" className="btn-cta text-center">
+                    Escríbenos por WhatsApp
+                  </a>
+                  <Link href="/" className="btn-secondary inline-block">Volver al inicio</Link>
+                </div>
+              </>
+            )}
           </>
         )}
 

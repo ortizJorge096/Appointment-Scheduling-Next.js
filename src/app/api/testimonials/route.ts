@@ -14,9 +14,15 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const session = await getServerSession(authOptions)
+  const { searchParams } = new URL(request.url)
 
-  if (!session) {
-    // Public: only what should appear on the landing.
+  // The management view (all statuses, full records, filters) is opt-in and
+  // needs a session. Everything else — including the landing while an admin is
+  // logged in on the same browser — gets the public-safe set: approved + active
+  // only, with a trimmed field selection.
+  const manage = !!session && searchParams.get('manage') === 'true'
+
+  if (!manage) {
     const data = await prisma.testimonial.findMany({
       where: { deletedAt: null, isActive: true, status: 'APPROVED' },
       orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
@@ -26,7 +32,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 
   // Admin: all non-deleted, with optional filters.
-  const { searchParams } = new URL(request.url)
   const status = searchParams.get('status')
   const active = searchParams.get('active')
 

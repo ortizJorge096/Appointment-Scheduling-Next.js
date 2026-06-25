@@ -48,7 +48,7 @@ export default function GaleriaAdminPage() {
   function load() {
     setLoading(true)
     Promise.all([
-      fetch('/api/gallery').then((r) => r.json()),
+      fetch('/api/gallery?includeInactive=true').then((r) => r.json()),
       fetch('/api/categories').then((r) => r.json()),
     ])
       .then(([galJson, catJson]) => {

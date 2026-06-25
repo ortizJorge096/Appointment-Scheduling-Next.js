@@ -56,6 +56,20 @@ export function initialsFromName(name: string): string {
   return parts.map((p) => p[0].toUpperCase() + '.').join('')
 }
 
+/**
+ * Normalizes a free-form phone into a wa.me-ready number (digits only, with
+ * country code), or null if it's too short/long to be valid. Colombian
+ * 10-digit numbers get the 57 country code; longer ones are assumed to already
+ * include it. Strips spaces, dashes, parentheses and the leading "+".
+ */
+export function toWhatsAppNumber(raw: string | null | undefined): string | null {
+  if (!raw) return null
+  const digits = raw.replace(/\D/g, '')
+  if (digits.length === 10) return `57${digits}`        // Colombian number, no country code
+  if (digits.length > 10 && digits.length <= 15) return digits // already includes country code
+  return null                                            // too short/long → invalid
+}
+
 /** Builds a URL-safe slug from a name (lowercase, accents stripped, dashes). */
 export function slugify(input: string): string {
   return input

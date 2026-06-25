@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { STUDIO, WHATSAPP_URL, MAILTO_URL, INSTAGRAM_URL, TIKTOK_URL } from '@/lib/config'
 import FooterServiceLinks from './FooterServiceLinks'
+import FooterTagline from './FooterTagline'
 
 export default function Footer() {
   return (
@@ -12,9 +13,7 @@ export default function Footer() {
             <span className="logo-script text-gold text-3xl">{STUDIO.shortName}</span>
             <span className="logo-studio text-white/70 text-[0.55rem] mt-1">{STUDIO.tagline}</span>
           </Link>
-          <p className="text-white/30 text-xs mt-3 leading-relaxed max-w-[22em]">
-            Uñas, pestañas y cejas en {STUDIO.city}.<br />Agenda tu cita en línea.
-          </p>
+          <FooterTagline />
         </div>
 
         <div>

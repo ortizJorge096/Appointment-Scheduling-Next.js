@@ -42,7 +42,7 @@ function setupApiMocks() {
         json: () => Promise.resolve({ success: true, data: MOCK_CATEGORIES }),
       })
     }
-    if (u === '/api/gallery' && (!opts || opts.method === undefined || opts.method === 'GET')) {
+    if (u.startsWith('/api/gallery') && !u.includes('upload-url') && (!opts || opts.method === undefined || opts.method === 'GET')) {
       return Promise.resolve({
         json: () => Promise.resolve({ success: true, data: MOCK_IMAGES }),
       })

@@ -11,6 +11,7 @@ import { updateAppointmentSchema } from '@/lib/validations'
 import { timeToMinutes, minutesToTime } from '@/lib/availability'
 import { audit, getClientIp, getUserAgent } from '@/lib/audit'
 import { sendRescheduledEmail } from '@/lib/email'
+import { isWithinCancelWindow } from '@/lib/cancellation'
 import type { AppointmentWithService } from '@/types'
 
 export const dynamic = 'force-dynamic'
@@ -47,17 +48,24 @@ export async function GET(
     )
   }
 
+  // Whether the cancellation page should still offer the "cancel" button:
+  // only for live appointments still inside the 24h window. The cancel POST
+  // enforces this independently — this flag just drives the UI.
+  const cancellable =
+    (appointment.status === 'PENDING' || appointment.status === 'CONFIRMED') &&
+    isWithinCancelWindow(appointment.date, appointment.startTime)
+
   // Admin sees everything; the public (confirmation / cancellation page)
   // receives only non-sensitive fields. The id is an unguessable cuid.
   const session = await getServerSession(authOptions)
   if (session) {
-    return NextResponse.json({ success: true, data: appointment })
+    return NextResponse.json({ success: true, data: { ...appointment, cancellable } })
   }
 
   const { clientName, clientEmail, service, services, date, startTime, endTime, status } = appointment
   return NextResponse.json({
     success: true,
-    data: { id, clientName, clientEmail, service, services, date, startTime, endTime, status },
+    data: { id, clientName, clientEmail, service, services, date, startTime, endTime, status, cancellable },
   })
 }
 

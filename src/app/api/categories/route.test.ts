@@ -32,15 +32,20 @@ const MOCK_CATEGORIES = [
 function makeRequest(body?: unknown): NextRequest {
   return { json: () => Promise.resolve(body) } as NextRequest
 }
+function getReq(url = 'http://localhost/api/categories'): NextRequest {
+  return { url } as NextRequest
+}
 
 describe('GET /api/categories', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(prisma.category.findMany).mockResolvedValue(MOCK_CATEGORIES)
+  })
 
   it('public: returns only active, non-deleted categories', async () => {
     vi.mocked(getServerSession).mockResolvedValue(null)
-    vi.mocked(prisma.category.findMany).mockResolvedValue(MOCK_CATEGORIES)
 
-    const res  = await GET()
+    const res  = await GET(getReq())
     const json = await res.json()
 
     expect(json.success).toBe(true)
@@ -49,14 +54,33 @@ describe('GET /api/categories', () => {
     )
   })
 
-  it('admin: returns all non-deleted categories (including inactive)', async () => {
+  it('admin without the flag still gets active-only (public site must never leak inactive)', async () => {
     vi.mocked(getServerSession).mockResolvedValue({ user: { email: 'admin@test.com' } })
-    vi.mocked(prisma.category.findMany).mockResolvedValue(MOCK_CATEGORIES)
 
-    await GET()
+    await GET(getReq())
+
+    expect(prisma.category.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { deletedAt: null, isActive: true } })
+    )
+  })
+
+  it('admin with ?includeInactive=true gets all non-deleted categories', async () => {
+    vi.mocked(getServerSession).mockResolvedValue({ user: { email: 'admin@test.com' } })
+
+    await GET(getReq('http://localhost/api/categories?includeInactive=true'))
 
     expect(prisma.category.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { deletedAt: null } })
+    )
+  })
+
+  it('includeInactive without a session is ignored (stays active-only)', async () => {
+    vi.mocked(getServerSession).mockResolvedValue(null)
+
+    await GET(getReq('http://localhost/api/categories?includeInactive=true'))
+
+    expect(prisma.category.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { deletedAt: null, isActive: true } })
     )
   })
 })
