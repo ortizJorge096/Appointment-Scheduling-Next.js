@@ -3,6 +3,7 @@ import Navbar from '@/components/public/Navbar'
 import NosotrosImage from '@/components/public/NosotrosImage'
 import NosotrosStats from '@/components/public/NosotrosStats'
 import Hero from '@/components/public/Hero'
+import AvailabilityBand from '@/components/public/AvailabilityBand'
 import WhatsAppFab from '@/components/public/WhatsAppFab'
 import ServicesGrid from '@/components/public/ServicesGrid'
 import Galeria from '@/components/public/Galeria'
@@ -21,6 +22,7 @@ export default function HomePage() {
       <Navbar />
       <main>
         <Hero />
+        <AvailabilityBand />
         <ServicesGrid />
         <BeneficiosSection />
         <Galeria />

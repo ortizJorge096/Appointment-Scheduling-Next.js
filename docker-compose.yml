@@ -32,6 +32,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      # NEXT_PUBLIC_* are baked at build time. Defaults below make the plain
+      # `docker compose up -d --build` work; override via shell/.env or run
+      # `docker compose --env-file .env.local up -d --build`.
+      args:
+        NEXT_PUBLIC_HERO_IMAGES: "${NEXT_PUBLIC_HERO_IMAGES:-/hero/1.jpg,/hero/2.jpg,/hero/3.jpg,/hero/4.jpg}"
+        NEXT_PUBLIC_WHATSAPP_NUMBER: "${NEXT_PUBLIC_WHATSAPP_NUMBER:-573001790511}"
+        NEXT_PUBLIC_WHATSAPP_MESSAGE: "${NEXT_PUBLIC_WHATSAPP_MESSAGE:-¡Hola! Vengo de su sitio web y me gustaría más información.}"
 
     container_name: valentinajimenez-app
     restart: unless-stopped

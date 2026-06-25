@@ -1,8 +1,7 @@
 import Link from 'next/link'
 import { STUDIO } from '@/lib/config'
-import NextAvailability from './NextAvailability'
-import HeroStats from './HeroStats'
-import HeroImage from './HeroImage'
+import HeroCarousel from './HeroCarousel'
+import HeroSocialProof from './HeroSocialProof'
 
 export default function Hero() {
   return (
@@ -14,9 +13,11 @@ export default function Hero() {
         style={{ background: 'radial-gradient(circle, rgba(212,173,90,.32), transparent 65%)' }}
       />
       <div className="absolute -bottom-40 -left-32 w-[380px] h-[380px] rounded-full border border-gold/[0.22] pointer-events-none" />
-      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-10 pt-24 pb-16
-                      grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-        <div>
+
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-6 lg:px-10 pt-24 pb-16
+                      grid grid-cols-1 lg:grid-cols-[55fr_45fr] gap-12 lg:gap-16 items-center">
+        {/* Left — content (≈55%). On mobile it sits below the carousel. */}
+        <div className="text-center lg:text-left max-lg:order-last">
           <div className="mb-6 animate-fade-up">
             <p className="logo-script text-gold text-4xl lg:text-5xl mb-1">
               {STUDIO.shortName}
@@ -25,31 +26,28 @@ export default function Hero() {
               {STUDIO.tagline} · {STUDIO.city}
             </p>
           </div>
+
           <h1 className="font-serif text-5xl lg:text-[64px] font-light text-white
                          leading-[1.08] mb-6 animate-fade-up animation-delay-100">
-            Tu belleza,<br /><em className="text-gold italic">elevada al detalle</em>
+            Realza tu<br /><em className="text-gold italic">mejor versión</em>
           </h1>
-          <p className="text-white/55 text-base leading-relaxed max-w-md mb-10
+
+          <p className="text-white/55 text-base leading-relaxed max-w-md mx-auto lg:mx-0 mb-10
                         animate-fade-up animation-delay-200">
-            {STUDIO.slogan} Reserva en línea en menos de 60 segundos, sin llamadas ni esperas.
+            Uñas, pestañas y cejas con acabado profesional. Agenda tu cita online en menos de un minuto.
           </p>
-          <div className="flex flex-wrap gap-4 animate-fade-up animation-delay-300">
-            <Link href="/agendar" className="btn-cta">Agendar cita</Link>
-            <a href="#servicios" className="btn-outline-gold">Ver servicios</a>
+
+          <div className="flex flex-col sm:flex-row flex-wrap gap-4 justify-center lg:justify-start animate-fade-up animation-delay-300">
+            <Link href="/agendar" className="btn-cta w-full sm:w-auto text-center">Agendar cita</Link>
+            <a href="#servicios" className="btn-outline-gold w-full sm:w-auto text-center">Ver servicios</a>
           </div>
-          <HeroStats />
+
+          <HeroSocialProof />
         </div>
 
-        {/* Editorial photo + the dynamic differentiators (now visible on mobile too) */}
-        <div className="flex flex-col gap-5 animate-fade-up animation-delay-200">
-          <HeroImage />
-          <NextAvailability />
-          <div className="border-l-2 border-gold bg-white/[0.04] rounded-r-xl px-4 py-3">
-            <p className="text-xs text-white/35">Incluye</p>
-            <p className="text-white/70 text-sm mt-0.5">
-              Recordatorio 24h antes · Sin pagos anticipados
-            </p>
-          </div>
+        {/* Right — cinematic carousel (≈45%). On mobile it sits on top, full width. */}
+        <div className="animate-fade-up animation-delay-200 max-lg:order-first">
+          <HeroCarousel />
         </div>
       </div>
     </section>
