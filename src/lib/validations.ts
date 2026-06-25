@@ -248,6 +248,27 @@ export const galleryUpdateSchema = z.object({
 })
 
 // ─────────────────────────────────────────
+// TESTIMONIALS (admin)
+// ─────────────────────────────────────────
+
+export const createTestimonialSchema = z.object({
+  clientName: z.string().min(2, 'El nombre debe tener al menos 2 caracteres').max(80),
+  type:       z.string().min(2, 'El tipo es requerido').max(60),
+  text:       z.string().min(5, 'El testimonio es muy corto').max(200, 'Máximo 200 caracteres'),
+  stars:      z.number().int().min(1).max(5).optional(),
+  imageUrl:   z.string().url('URL de imagen inválida').nullable().optional(),
+  imageKey:   z.string().max(300).nullable().optional(),
+  order:      z.number().int().min(0).optional(),
+  clientEmail: optionalEmail,
+})
+
+export const updateTestimonialSchema = createTestimonialSchema.partial().extend({
+  isActive:        z.boolean().optional(),
+  status:          z.enum(['DRAFT', 'PENDING', 'APPROVED', 'REJECTED']).optional(),
+  rejectionReason: z.string().max(300).nullable().optional(),
+})
+
+// ─────────────────────────────────────────
 // LOGIN (admin)
 // ─────────────────────────────────────────
 
@@ -355,8 +376,17 @@ export const vipConfigSchema = z.object({
 // ─────────────────────────────────────────
 
 export const bookingSettingsSchema = z.object({
-  showProfessionalStep: z.boolean(),
-})
+  showProfessionalStep: z.boolean().optional(),
+  maxAdvanceDays: z
+    .number()
+    .int()
+    .min(7, 'El mínimo es 7 días')
+    .max(365, 'El máximo es 365 días')
+    .optional(),
+}).refine(
+  (d) => d.showProfessionalStep !== undefined || d.maxAdvanceDays !== undefined,
+  { message: 'No hay nada que actualizar' }
+)
 
 // ─────────────────────────────────────────
 // LANDING STATS (admin)

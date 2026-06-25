@@ -1,8 +1,15 @@
 'use client'
 // src/components/public/DateTimePicker.tsx
+// Monthly calendar date picker + time-slot list.
+// Availability is server-driven: a single /range prefetch per visible month
+// fills `dateOpen` (open/closed per day); the API and business rules
+// (sundays, blocked dates, capacity) are unchanged.
 
 import { useState, useEffect } from 'react'
-import { format, addDays, isBefore, startOfDay, isToday } from 'date-fns'
+import {
+  format, addDays, addMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek,
+  eachDayOfInterval, isSameMonth, isToday, isBefore, isAfter, startOfDay,
+} from 'date-fns'
 import { es } from 'date-fns/locale'
 import type { TimeSlot } from '@/types'
 
@@ -15,63 +22,77 @@ interface Props {
   onDateChange:       (date: string) => void
   onTimeChange:       (time: string) => void
   disabled?:          boolean
+  /** Booking horizon — how many days ahead can be booked. From BookingSettings. */
+  maxAdvanceDays?:    number
 }
 
-const DAYS_TO_SHOW = 14
+const WEEKDAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 
 export default function DateTimePicker({
   serviceId, durationMinutes, professionalId, selectedDate, selectedTime,
-  onDateChange, onTimeChange, disabled = false,
+  onDateChange, onTimeChange, disabled = false, maxAdvanceDays = 90,
 }: Props) {
+  // Clamp defensively to the same bounds the admin setting enforces (7–365).
+  const daysToShow = Math.min(365, Math.max(7, maxAdvanceDays))
+
   const [slots,   setSlots]   = useState<TimeSlot[]>([])
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState<string | null>(null)
 
-  // Map of dates → has at least one free slot.
-  // Filled with a single call to the range endpoint when the component loads.
-  // Dates with `false` are shown disabled (not clickable).
+  // Map of dates → has at least one free slot. Filled per visible month from
+  // the /range endpoint. A date with `false` is shown disabled (not clickable).
   const [dateOpen, setDateOpen] = useState<Record<string, boolean>>({})
   const [rangeLoading, setRangeLoading] = useState(true)
 
-  const availableDates = Array.from({ length: DAYS_TO_SHOW }, (_, i) =>
-    format(addDays(new Date(), i), 'yyyy-MM-dd')
+  // Booking window
+  const today      = startOfDay(new Date())
+  const horizonEnd = addDays(today, daysToShow - 1)
+
+  // Currently displayed month (first day). Starts on the selected date's month.
+  const [viewMonth, setViewMonth] = useState(() =>
+    startOfMonth(selectedDate ? new Date(`${selectedDate}T12:00:00`) : new Date())
   )
 
-  // Build availability URL params
+  // Calendar grid: full weeks covering the month (Sunday-first).
+  const monthStart = startOfMonth(viewMonth)
+  const gridStart  = startOfWeek(monthStart, { weekStartsOn: 0 })
+  const gridEnd    = endOfWeek(endOfMonth(viewMonth), { weekStartsOn: 0 })
+  const gridDays   = eachDayOfInterval({ start: gridStart, end: gridEnd })
+
+  // Month navigation bounds
+  const canPrev = monthStart > startOfMonth(today)
+  const canNext = startOfMonth(addMonths(viewMonth, 1)) <= horizonEnd
+  const monthKey = format(viewMonth, 'yyyy-MM')
+
   const availParam = (serviceId ? `serviceId=${serviceId}` : `durationMinutes=${durationMinutes}`)
     + (professionalId ? `&professionalId=${professionalId}` : '')
 
-  // ── Prefetch: availability of ALL visible days, single call ──
+  // ── Prefetch availability for the visible month (one call) ──
   useEffect(() => {
     if (!serviceId && !durationMinutes) return
+
+    // Only query the bookable slice of the visible grid (today..horizon).
+    const from = gridStart < today ? today : gridStart
+    const to   = gridEnd > horizonEnd ? horizonEnd : gridEnd
+    if (from > to) { setDateOpen({}); setRangeLoading(false); return }
+
     setRangeLoading(true)
-    const from = availableDates[0]
-    const to   = availableDates[availableDates.length - 1]
-    fetch(`/api/availability/range?from=${from}&to=${to}&${availParam}`)
+    const fromStr = format(from, 'yyyy-MM-dd')
+    const toStr   = format(to, 'yyyy-MM-dd')
+    fetch(`/api/availability/range?from=${fromStr}&to=${toStr}&${availParam}`)
       .then((r) => r.json())
       .then((json) => {
         if (!json.success) return
         const next: Record<string, boolean> = {}
         for (const d of json.data.dates) next[d.date] = d.open
         setDateOpen(next)
-
-        // If the currently selected date is closed, jump to the first open day
-        if (selectedDate && next[selectedDate] === false) {
-          const firstOpen = json.data.dates.find((d: { date: string; open: boolean }) => d.open)
-          if (firstOpen) {
-            onDateChange(firstOpen.date)
-            onTimeChange('')
-          }
-        }
       })
-      .catch(() => { /* silent — the slot fetch will say if something fails */ })
+      .catch(() => { /* silent — the slot fetch will surface failures */ })
       .finally(() => setRangeLoading(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serviceId, durationMinutes, professionalId])
+  }, [serviceId, durationMinutes, professionalId, daysToShow, monthKey])
 
-  // ── Detailed fetch of schedules for the selected date ──
-  // We don't depend on dateOpen here to avoid a loop (the source of truth
-  // for the open/closed status of each day is the range prefetch).
+  // ── Detailed fetch of slots for the selected date (unchanged behavior) ──
   useEffect(() => {
     if ((!serviceId && !durationMinutes) || !selectedDate) return
     let cancelled = false
@@ -88,9 +109,7 @@ export default function DateTimePicker({
         }
         const fetchedSlots: TimeSlot[] = json.data.slots
         setSlots(fetchedSlots)
-        // If the day ran out of available slots (e.g. someone booked them
-        // while this client was browsing), mark it as closed in the strip
-        // so it appears disabled instantly.
+        // If the day ran out of slots while browsing, mark it closed instantly.
         const stillHasAvailable = fetchedSlots.some((s) => s.available)
         if (!stillHasAvailable) {
           setDateOpen((prev) => ({ ...prev, [selectedDate]: false }))
@@ -112,21 +131,23 @@ export default function DateTimePicker({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [serviceId, durationMinutes, professionalId, selectedDate])
 
-  function formatDateLabel(dateStr: string) {
-    const d = new Date(`${dateStr}T12:00:00`)
-    return {
-      day:     format(d, 'd', { locale: es }),
-      weekday: format(d, 'EEE', { locale: es }),
-    }
+  function changeMonth(delta: 1 | -1) {
+    if (delta === -1 && !canPrev) return
+    if (delta === 1 && !canNext) return
+    setViewMonth((m) => addMonths(m, delta))
+    onTimeChange('') // clear the chosen hour when navigating months
   }
 
   const availableSlots = slots.filter((s) => s.available)
   const isSelectedDayClosed = !!selectedDate && dateOpen[selectedDate] === false
 
+  const monthLabelRaw = format(viewMonth, 'LLLL yyyy', { locale: es })
+  const monthLabel = monthLabelRaw.charAt(0).toUpperCase() + monthLabelRaw.slice(1)
+
   return (
     <div className="space-y-6">
 
-      {/* ── Date picker ── */}
+      {/* ── Calendar ── */}
       <div>
         <label className="form-label">
           Fecha
@@ -136,48 +157,86 @@ export default function DateTimePicker({
             </span>
           )}
         </label>
-        <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
-          {availableDates.map((dateStr) => {
-            const { day, weekday } = formatDateLabel(dateStr)
-            const isSelected = dateStr === selectedDate
-            const isPast     = isBefore(startOfDay(new Date(`${dateStr}T12:00:00`)), startOfDay(new Date()))
-            // The day is considered closed only when the range already responded it's not open
-            const isClosed   = dateStr in dateOpen && dateOpen[dateStr] === false
-            const isDisabled = disabled || isPast || isClosed
 
-            return (
-              <button key={dateStr} type="button"
-                role="radio" aria-checked={isSelected}
-                disabled={isDisabled}
-                onClick={() => { onDateChange(dateStr); onTimeChange('') }}
-                className={`relative flex flex-col items-center min-w-[52px] py-3 px-2 rounded-xl
-                            border text-xs font-medium transition-all duration-150
-                            disabled:cursor-not-allowed
-                            ${isSelected
-                              ? 'bg-gold border-gold text-white'
-                              : isClosed
-                                ? 'bg-beige/40 border-beige-dark text-ink-muted/30'
-                                : 'bg-white border-beige-dark text-ink-muted hover:border-gold hover:text-gold'
-                            }`}
-                title={isClosed ? 'Sin atención este día' : undefined}
-                aria-disabled={isDisabled}
-              >
-                <span className="uppercase tracking-widest text-[10px]">{weekday}</span>
-                <span className={`text-lg font-serif mt-0.5
-                  ${isSelected ? 'text-white' : isClosed ? 'text-ink-muted/30' : 'text-ink'}`}>
-                  {day}
-                </span>
+        <div className="w-full bg-white border border-beige-dark rounded-[18px] p-5 shadow-sm">
+          {/* Header: month nav (44×44 touch targets, chevron icons) */}
+          <div className="flex items-center justify-between mb-3">
+            <button type="button" onClick={() => changeMonth(-1)} disabled={!canPrev || disabled}
+              aria-label="Mes anterior"
+              className="w-11 h-11 flex items-center justify-center rounded-lg text-ink-muted
+                         hover:text-gold hover:bg-beige/60 transition-colors
+                         disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+                strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+            </button>
+            <p className="font-serif text-lg text-ink capitalize">{monthLabel}</p>
+            <button type="button" onClick={() => changeMonth(1)} disabled={!canNext || disabled}
+              aria-label="Mes siguiente"
+              className="w-11 h-11 flex items-center justify-center rounded-lg text-ink-muted
+                         hover:text-gold hover:bg-beige/60 transition-colors
+                         disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+                strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+            </button>
+          </div>
 
-                {/* "Today" label */}
-                {isToday(new Date(`${dateStr}T12:00:00`)) && (
-                  <span className={`text-[9px] mt-0.5 tracking-wide
-                    ${isSelected ? 'text-white/80' : isClosed ? 'text-ink-muted/30' : 'text-gold'}`}>
-                    Hoy
-                  </span>
-                )}
-              </button>
-            )
-          })}
+          {/* Weekday labels */}
+          <div className="grid grid-cols-7 gap-1 mb-1">
+            {WEEKDAYS.map((w) => (
+              <div key={w} className="text-center text-[10px] tracking-widest uppercase text-gold py-1">
+                {w}
+              </div>
+            ))}
+          </div>
+
+          {/* Day cells — all the same size; only the style changes per state */}
+          <div className="grid grid-cols-7 gap-1">
+            {gridDays.map((day) => {
+              const dayStr      = format(day, 'yyyy-MM-dd')
+              const inMonth     = isSameMonth(day, viewMonth)
+              const past        = isBefore(day, today)
+              const beyond      = isAfter(day, horizonEnd)
+              const closed      = dateOpen[dayStr] === false
+              const isSelected  = dayStr === selectedDate && inMonth
+              const isTodayCell = isToday(day)
+              const selectable  = inMonth && !past && !beyond && !closed && !disabled
+
+              // Precedence: other-month → selected → today (ring always) →
+              // available → in-month disabled (past = default cursor, closed/
+              // beyond = not-allowed). Paleta: dorado #b8935a / crema / negro.
+              let cls: string
+              if (!inMonth) {
+                cls = 'text-ink-muted/25 cursor-default'
+              } else if (isSelected) {
+                cls = 'bg-gold text-white font-medium'
+              } else if (isTodayCell) {
+                cls = `border border-gold text-gold font-medium ${
+                  selectable ? 'bg-white hover:bg-gold-pale cursor-pointer' : 'cursor-not-allowed'
+                }`
+              } else if (selectable) {
+                cls = 'bg-white border border-beige-dark text-ink hover:bg-beige hover:border-gold hover:text-gold cursor-pointer'
+              } else {
+                cls = `text-ink-muted/30 ${past ? 'cursor-default' : 'cursor-not-allowed'}`
+              }
+
+              return (
+                <button
+                  key={dayStr}
+                  type="button"
+                  role="radio"
+                  aria-checked={isSelected}
+                  aria-label={format(day, "EEEE d 'de' MMMM", { locale: es })}
+                  disabled={!selectable}
+                  onClick={() => { if (selectable) { onDateChange(dayStr); onTimeChange('') } }}
+                  title={inMonth && closed && !past ? 'Sin disponibilidad este día' : undefined}
+                  className={`aspect-square flex items-center justify-center rounded-[10px]
+                              text-sm transition-colors duration-150 ${cls}`}
+                >
+                  {format(day, 'd')}
+                </button>
+              )
+            })}
+          </div>
         </div>
       </div>
 
@@ -194,7 +253,7 @@ export default function DateTimePicker({
 
         {error && <p className="text-sm text-red-500 mb-3">{error}</p>}
 
-        {/* Closed day (should not be selectable, defensive message) */}
+        {/* Closed day (defensive — shouldn't be selectable) */}
         {!loading && !error && isSelectedDayClosed && (
           <p className="text-sm text-ink-muted italic">
             Este día no tenemos atención. Por favor elige otra fecha.

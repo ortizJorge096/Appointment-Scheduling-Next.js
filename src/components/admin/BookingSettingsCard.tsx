@@ -8,8 +8,11 @@ import { useState, useEffect } from 'react'
 
 export default function BookingSettingsCard() {
   const [showProfessionalStep, setShowProfessionalStep] = useState(true)
+  const [maxAdvanceDays, setMaxAdvanceDays] = useState(90)
+  const [maxAdvanceInput, setMaxAdvanceInput] = useState('90')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving]   = useState(false)
+  const [savingDays, setSavingDays] = useState(false)
   const [error, setError]     = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
@@ -17,11 +20,46 @@ export default function BookingSettingsCard() {
     fetch('/api/booking-settings')
       .then((r) => r.json())
       .then((json) => {
-        if (json.success) setShowProfessionalStep(json.data.showProfessionalStep)
+        if (json.success) {
+          setShowProfessionalStep(json.data.showProfessionalStep)
+          if (typeof json.data.maxAdvanceDays === 'number') {
+            setMaxAdvanceDays(json.data.maxAdvanceDays)
+            setMaxAdvanceInput(String(json.data.maxAdvanceDays))
+          }
+        }
       })
       .catch(() => setError('No se pudo cargar la configuración de agendamiento'))
       .finally(() => setLoading(false))
   }, [])
+
+  function flashSuccess(msg: string) {
+    setSuccess(msg)
+    setTimeout(() => setSuccess(null), 3000)
+  }
+
+  async function saveMaxAdvance() {
+    const value = parseInt(maxAdvanceInput, 10)
+    if (isNaN(value) || value < 7 || value > 365) {
+      setError('La anticipación debe estar entre 7 y 365 días')
+      return
+    }
+    if (value === maxAdvanceDays) return
+    setSavingDays(true)
+    setError(null)
+    const res = await fetch('/api/booking-settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ maxAdvanceDays: value }),
+    })
+    const json = await res.json()
+    if (json.success) {
+      setMaxAdvanceDays(value)
+      flashSuccess('Configuración actualizada')
+    } else {
+      setError(json.error ?? 'Error al guardar')
+    }
+    setSavingDays(false)
+  }
 
   async function toggle() {
     const next = !showProfessionalStep
@@ -73,6 +111,31 @@ export default function BookingSettingsCard() {
             }`} />
           </span>
         </label>
+      </div>
+
+      {/* Booking horizon */}
+      <div className="border-t border-beige-dark mt-5 pt-5">
+        <p className="text-xs text-ink-muted tracking-widest uppercase mb-1">Ventana de reserva</p>
+        <h2 className="font-serif text-xl text-ink">¿Con cuántos días de anticipación pueden agendar?</h2>
+        <p className="text-sm text-ink-muted mt-1 mb-3">
+          Los clientes podrán ver disponibilidad hasta {maxAdvanceDays} días en el futuro.
+        </p>
+        <div className="flex items-center gap-3 flex-wrap">
+          <input
+            type="number" min={7} max={365}
+            className="input-field !w-28 text-sm"
+            value={maxAdvanceInput}
+            onChange={(e) => setMaxAdvanceInput(e.target.value)}
+          />
+          <span className="text-sm text-ink-muted">días (7–365)</span>
+          <button
+            onClick={saveMaxAdvance}
+            disabled={savingDays || maxAdvanceInput === String(maxAdvanceDays)}
+            className="btn-primary text-sm disabled:opacity-50"
+          >
+            {savingDays ? 'Guardando...' : 'Guardar'}
+          </button>
+        </div>
       </div>
 
       {error   && <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 mt-4">{error}</div>}

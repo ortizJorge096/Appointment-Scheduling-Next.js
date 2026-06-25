@@ -1,29 +1,36 @@
+'use client'
 // src/components/public/Testimonios.tsx
-//
-// ⚠️ PLACEHOLDER CONTENT — TESTIMONIALS below are example copy for layout
-// purposes only (no fabricated full names, only initials + a generic role,
-// to avoid implying real client identities). Replace with real reviews
-// (Google, Instagram, WhatsApp) before this section goes live in production.
+// Testimonials are managed in the admin (/admin/testimonios) and stored in the
+// DB. This fetches the approved + active ones from GET /api/testimonials. If
+// there are none, the whole section is hidden so the landing never shows empty.
 
-const TESTIMONIALS = [
-  {
-    initials: 'C.M.',
-    quote: 'El mejor lifting de pestañas que me he hecho. El espacio es precioso y la atención impecable.',
-    label: 'Clienta frecuente',
-  },
-  {
-    initials: 'D.R.',
-    quote: 'Mis uñas duraron impecables casi un mes. Reservar por internet fue facilísimo.',
-    label: 'Clienta VIP',
-  },
-  {
-    initials: 'V.P.',
-    quote: 'Profesionalismo de principio a fin. Me encanta el recordatorio antes de mi cita.',
-    label: 'Clienta habitual',
-  },
-]
+import { useEffect, useState } from 'react'
+import Image from 'next/image'
+
+interface Testimonial {
+  id: string
+  clientName: string
+  initials: string
+  type: string
+  text: string
+  stars: number
+  imageUrl: string | null
+}
 
 export default function Testimonios() {
+  const [items, setItems] = useState<Testimonial[] | null>(null)
+
+  useEffect(() => {
+    fetch('/api/testimonials')
+      .then((r) => r.json())
+      .then((json) => setItems(json.success ? json.data : []))
+      .catch(() => setItems([]))
+  }, [])
+
+  // Until loaded, and when empty, render nothing — the section simply appears
+  // once there are testimonials to show (never an empty section).
+  if (!items || items.length === 0) return null
+
   return (
     <section id="testimonios" className="py-24 bg-ink">
       <div className="max-w-7xl mx-auto px-6 lg:px-10">
@@ -35,17 +42,35 @@ export default function Testimonios() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {TESTIMONIALS.map((t) => (
-            <div key={t.initials}
-              className="bg-gradient-to-b from-white/[0.06] to-white/[0.02] border border-gold/[0.18] rounded-2xl p-7">
-              <div className="text-gold-light tracking-[3px] mb-4" aria-hidden>★★★★★</div>
-              <p className="text-white/80 text-[15px] leading-relaxed mb-6">&ldquo;{t.quote}&rdquo;</p>
-              <div className="flex items-center gap-3">
-                <span className="inline-flex items-center justify-center w-10 h-10 rounded-full
-                                 bg-gradient-to-br from-gold-light to-gold text-ink font-serif font-semibold shrink-0">
-                  {t.initials}
-                </span>
-                <p className="text-white text-sm font-medium">{t.label}</p>
+          {items.map((t) => (
+            <div key={t.id}
+              className="bg-gradient-to-b from-white/[0.06] to-white/[0.02] border border-gold/[0.18] rounded-2xl overflow-hidden flex flex-col">
+              {t.imageUrl && (
+                <div className="relative w-full h-[180px]">
+                  <Image
+                    src={t.imageUrl}
+                    alt={`Trabajo de ${t.clientName}`}
+                    fill
+                    sizes="(max-width: 1024px) 100vw, 33vw"
+                    className="object-cover"
+                  />
+                </div>
+              )}
+              <div className="p-7">
+                <div className="text-gold-light tracking-[3px] mb-4" aria-hidden>
+                  {'★'.repeat(t.stars)}
+                </div>
+                <p className="text-white/80 text-[15px] leading-relaxed mb-6">&ldquo;{t.text}&rdquo;</p>
+                <div className="flex items-center gap-3">
+                  <span className="inline-flex items-center justify-center w-10 h-10 rounded-full
+                                   bg-gradient-to-br from-gold-light to-gold text-ink font-serif font-semibold shrink-0">
+                    {t.initials}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-white text-sm font-medium truncate">{t.clientName}</p>
+                    <p className="text-white/50 text-xs">{t.type}</p>
+                  </div>
+                </div>
               </div>
             </div>
           ))}

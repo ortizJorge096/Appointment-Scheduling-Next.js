@@ -11,7 +11,7 @@ type AuditAction =
   | 'LOGIN' | 'LOGIN_FAILED' | 'LOGOUT' | 'EMAIL_SENT' | 'EMAIL_FAILED'
 type AuditEntity =
   | 'APPOINTMENT' | 'CLIENT' | 'EXPENSE' | 'SERVICE' | 'CATEGORY' | 'GALLERY'
-  | 'SCHEDULE' | 'PROFESSIONAL' | 'AUTH' | 'EMAIL'
+  | 'SCHEDULE' | 'PROFESSIONAL' | 'TESTIMONIAL' | 'AUTH' | 'EMAIL'
 type AuditActor = 'ADMIN' | 'CLIENT' | 'SYSTEM'
 
 interface AuditLog {
@@ -44,12 +44,12 @@ const ACTION_LABELS: Record<AuditAction, string> = {
 
 const ENTITY_LABELS: Record<AuditEntity, string> = {
   APPOINTMENT: 'Cita', CLIENT: 'Cliente', EXPENSE: 'Gasto', SERVICE: 'Servicio', CATEGORY: 'Categoría',
-  GALLERY: 'Galería', SCHEDULE: 'Horario', PROFESSIONAL: 'Profesional', AUTH: 'Acceso', EMAIL: 'Email',
+  GALLERY: 'Galería', SCHEDULE: 'Horario', PROFESSIONAL: 'Profesional', TESTIMONIAL: 'Testimonio', AUTH: 'Acceso', EMAIL: 'Email',
 }
 
 const ENTITY_ICONS: Record<AuditEntity, string> = {
   APPOINTMENT: '◷', CLIENT: '◉', EXPENSE: '◈', SERVICE: '✦', CATEGORY: '✧',
-  GALLERY: '◫', SCHEDULE: '◻', PROFESSIONAL: '☆', AUTH: '⚿', EMAIL: '✉',
+  GALLERY: '◫', SCHEDULE: '◻', PROFESSIONAL: '☆', TESTIMONIAL: '❝', AUTH: '⚿', EMAIL: '✉',
 }
 
 const ACTION_COLORS: Record<AuditAction, string> = {

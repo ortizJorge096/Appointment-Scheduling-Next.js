@@ -38,14 +38,21 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
     )
   }
 
-  const { showProfessionalStep } = parsed.data
+  // Partial update: persist only the fields that were sent.
+  const data: { showProfessionalStep?: boolean; maxAdvanceDays?: number } = {}
+  if (parsed.data.showProfessionalStep !== undefined) data.showProfessionalStep = parsed.data.showProfessionalStep
+  if (parsed.data.maxAdvanceDays !== undefined) data.maxAdvanceDays = parsed.data.maxAdvanceDays
 
   const existing = await prisma.bookingSettings.findFirst()
   if (existing) {
-    await prisma.bookingSettings.update({ where: { id: existing.id }, data: { showProfessionalStep } })
+    await prisma.bookingSettings.update({ where: { id: existing.id }, data })
   } else {
-    await prisma.bookingSettings.create({ data: { showProfessionalStep } })
+    await prisma.bookingSettings.create({ data })
   }
+
+  const changes: string[] = []
+  if (data.showProfessionalStep !== undefined) changes.push(`paso de profesional ${data.showProfessionalStep ? 'activado' : 'desactivado'}`)
+  if (data.maxAdvanceDays !== undefined) changes.push(`anticipación máx. ${data.maxAdvanceDays} días`)
 
   await audit({
     action:      'UPDATE',
@@ -53,9 +60,9 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
     entityId:    'booking-settings',
     userEmail:   session.user?.email ?? undefined,
     ip:          getClientIp(request),
-    description: `Configuración de reserva: paso de profesional ${showProfessionalStep ? 'activado' : 'desactivado'}`,
-    before:      existing ? { showProfessionalStep: existing.showProfessionalStep } : undefined,
-    after:       { showProfessionalStep },
+    description: `Configuración de reserva: ${changes.join(' · ')}`,
+    before:      existing ? { showProfessionalStep: existing.showProfessionalStep, maxAdvanceDays: existing.maxAdvanceDays } : undefined,
+    after:       data,
   })
 
   const settings = await getBookingSettings()
