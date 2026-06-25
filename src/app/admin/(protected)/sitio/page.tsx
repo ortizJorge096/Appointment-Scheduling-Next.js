@@ -96,7 +96,7 @@ export default function SitioPage() {
             </div>
 
             <div>
-              <label className="form-label">Clientas satisfechas</label>
+              <label className="form-label">Personas satisfechas</label>
               <input type="number" className="input-field" min={0}
                 value={form.clientsCount || ''}
                 onChange={(e) => set('clientsCount', parseInt(e.target.value) || 0)} />

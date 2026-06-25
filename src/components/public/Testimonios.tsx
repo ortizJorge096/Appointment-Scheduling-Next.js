@@ -37,7 +37,7 @@ export default function Testimonios() {
         <div className="text-center mb-14">
           <span className="eyebrow-center text-gold-light">Testimonios</span>
           <h2 className="text-4xl lg:text-5xl font-serif font-light text-white mt-5">
-            Lo que dicen <em className="text-gold italic">nuestras clientas</em>
+            Lo que dice <em className="text-gold italic">nuestra clientela</em>
           </h2>
         </div>
 

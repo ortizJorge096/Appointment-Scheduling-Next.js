@@ -23,7 +23,7 @@ export default function NosotrosStats() {
 
   const items = [
     { value: `+${s.yearsExperience}`, label: 'Años de experiencia'  },
-    { value: `+${s.clientsCount}`,    label: 'Clientas satisfechas' },
+    { value: `+${s.clientsCount}`,    label: 'Personas satisfechas' },
     { value: `+${s.servicesCount}`,   label: 'Servicios disponibles' },
   ]
 
