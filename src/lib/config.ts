@@ -45,8 +45,8 @@ export const STUDIO = {
   // Minimum margin (min) between "now" and the first bookable slot today
   bookingBufferMin: 30,
 
-  // URLs
-  url:    process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000',
+  // URLs (|| so an empty build-arg falls back instead of becoming '')
+  url:    process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
 
   // SEO
   description:
@@ -88,14 +88,28 @@ export const DEFAULT_ICON: IconKey = 'promo'
 // nothing breaks if the env vars aren't set). NEXT_PUBLIC_* vars are available
 // both client- and server-side. Never hardcode the number elsewhere — use this.
 // ─────────────────────────────────────────────────────────────
-const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? STUDIO.whatsapp
+// `||` (not `??`) so an empty build-arg string falls back instead of breaking.
+const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || STUDIO.whatsapp
 const DEFAULT_WHATSAPP_MESSAGE =
-  process.env.NEXT_PUBLIC_WHATSAPP_MESSAGE ?? '¡Hola! Quiero más información.'
+  process.env.NEXT_PUBLIC_WHATSAPP_MESSAGE || '¡Hola! Quiero más información.'
 
 /** Builds a wa.me link with a URL-encoded preloaded message. */
 export function getWhatsAppUrl(message?: string): string {
   const text = message ?? DEFAULT_WHATSAPP_MESSAGE
   return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`
+}
+
+// ─────────────────────────────────────────────────────────────
+// HERO IMAGES — cinematic carousel.
+// Configurable without touching code via NEXT_PUBLIC_HERO_IMAGES
+// (comma-separated public paths, e.g. '/hero/1.jpg,/hero/2.jpg'). Falls back
+// to STUDIO.heroImage (single photo), then to the gradient placeholder. Max 8.
+// ─────────────────────────────────────────────────────────────
+export function getHeroImages(): string[] {
+  const raw = process.env.NEXT_PUBLIC_HERO_IMAGES
+  const list = raw ? raw.split(',').map((s) => s.trim()).filter(Boolean) : []
+  if (list.length > 0) return list.slice(0, 8)
+  return STUDIO.heroImage ? [STUDIO.heroImage] : []
 }
 
 // Derived helpers

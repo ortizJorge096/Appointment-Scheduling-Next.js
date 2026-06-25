@@ -25,6 +25,16 @@ RUN npx prisma generate
 
 # Production build
 ENV NEXT_TELEMETRY_DISABLED=1
+# NEXT_PUBLIC_* are inlined into the client bundle AT BUILD TIME, so they must
+# be present here (runtime env_file/ConfigMap is too late for the browser). They
+# arrive as build args from docker-compose / CI; empty defaults keep the code's
+# own fallbacks working when a value isn't provided.
+ARG NEXT_PUBLIC_HERO_IMAGES=""
+ARG NEXT_PUBLIC_WHATSAPP_NUMBER=""
+ARG NEXT_PUBLIC_WHATSAPP_MESSAGE=""
+ENV NEXT_PUBLIC_HERO_IMAGES=$NEXT_PUBLIC_HERO_IMAGES \
+    NEXT_PUBLIC_WHATSAPP_NUMBER=$NEXT_PUBLIC_WHATSAPP_NUMBER \
+    NEXT_PUBLIC_WHATSAPP_MESSAGE=$NEXT_PUBLIC_WHATSAPP_MESSAGE
 RUN npm run build
 
 # ── Stage 3: runner (final image) ─────────────────────
