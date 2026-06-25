@@ -137,7 +137,7 @@ export default function ServicesGrid() {
                     <p className="font-serif text-xl leading-none text-[var(--gold-light)]">Personalizado</p>
                     <p className="text-[11px] mt-1.5 text-[#b7ae9c]">Reserva doble</p>
                   </div>
-                  <Link href="/agendar"
+                  <Link href="/agendar?modo=vip"
                     className="text-xs tracking-widest uppercase font-semibold transition-colors text-[var(--gold-light)] hover:text-[var(--gold)]">
                     Reservar →
                   </Link>
