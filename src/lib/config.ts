@@ -21,7 +21,7 @@ export const STUDIO = {
   // Contact
   phone:      '+57 300 179 0511',
   whatsapp:   '573001790511',          // no +, no spaces — for wa.me/
-  email:      'valentinajimenezbeautystudio@gmail.com',
+  email:      'info@vjbeautystudio.com',
   adminEmail: 'valentinajimenezbeautystudio@gmail.com',
   instagram:  '_valebeautystudio_',
   tiktok:     'valebeautystudio1',
