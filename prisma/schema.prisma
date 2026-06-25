@@ -214,6 +214,12 @@ model Appointment {
   // Cargo adicional sobre el precio del servicio (ej. registro de citas pasadas)
   extraDescription   String?
   extraAmount        Int?              // en pesos colombianos
+  // Descuento manual aplicado por el admin (citas manuales). Independiente del
+  // discountPercent VIP del flujo público. precioFinal = subtotal − descuento.
+  descuentoTipo      DiscountType?     // null = sin descuento
+  descuentoValor     Int?              // % (0–100) o COP fijo, según descuentoTipo
+  descuentoMotivo    String?           // interno, opcional (ej. "Cliente frecuente")
+  precioFinal        Int?              // total a cobrar tras descuento (snapshot, COP)
   notes              String?
   cancelToken        String            @unique @default(cuid())
   calendarEventId    String?
@@ -272,6 +278,11 @@ enum PaymentMethod {
   TARJETA
   NEQUI
   DAVIPLATA
+}
+
+enum DiscountType {
+  PORCENTAJE  // descuentoValor = 0–100 (%)
+  VALOR_FIJO  // descuentoValor = COP
 }
 
 // ─────────────────────────────────────────
