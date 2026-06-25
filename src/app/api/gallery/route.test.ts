@@ -26,6 +26,9 @@ const INACTIVE_IMAGE = { id: 'img-2', s3Key: 'gallery/img-2.jpg', title: null,  
 function makeRequest(body?: unknown): NextRequest {
   return { json: () => Promise.resolve(body) } as unknown as NextRequest
 }
+function getReq(url = 'http://localhost/api/gallery'): NextRequest {
+  return { url } as unknown as NextRequest
+}
 
 // ── GET ──────────────────────────────────────────────────────────────────────
 
@@ -36,7 +39,7 @@ describe('GET /api/gallery', () => {
     vi.mocked(getServerSession).mockResolvedValue(null)
     vi.mocked(prisma.galleryImage.findMany).mockResolvedValue([ACTIVE_IMAGE])
 
-    const res  = await GET()
+    const res  = await GET(getReq())
     const json = await res.json()
 
     expect(res.status).toBe(200)
@@ -47,11 +50,22 @@ describe('GET /api/gallery', () => {
     )
   })
 
-  it('returns all images (including inactive) to admin', async () => {
+  it('admin without the flag still gets active-only (public home must never leak hidden)', async () => {
+    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(prisma.galleryImage.findMany).mockResolvedValue([ACTIVE_IMAGE])
+
+    await GET(getReq())
+
+    expect(prisma.galleryImage.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { isActive: true } })
+    )
+  })
+
+  it('returns all images (including hidden) to admin with ?includeInactive=true', async () => {
     vi.mocked(getServerSession).mockResolvedValue({ user: {} })
     vi.mocked(prisma.galleryImage.findMany).mockResolvedValue([ACTIVE_IMAGE, INACTIVE_IMAGE])
 
-    const res  = await GET()
+    const res  = await GET(getReq('http://localhost/api/gallery?includeInactive=true'))
     const json = await res.json()
 
     expect(res.status).toBe(200)
@@ -65,19 +79,19 @@ describe('GET /api/gallery', () => {
     vi.mocked(getServerSession).mockResolvedValue(null)
     vi.mocked(prisma.galleryImage.findMany).mockResolvedValue([ACTIVE_IMAGE])
 
-    const json = await (await GET()).json()
+    const json = await (await GET(getReq())).json()
     expect(json.data[0].url).toContain('img-1.jpg')
   })
 
   it('includes s3Key only for admin', async () => {
     vi.mocked(getServerSession).mockResolvedValue(null)
     vi.mocked(prisma.galleryImage.findMany).mockResolvedValue([ACTIVE_IMAGE])
-    const publicJson = await (await GET()).json()
+    const publicJson = await (await GET(getReq())).json()
     expect(publicJson.data[0].s3Key).toBeUndefined()
 
     vi.mocked(getServerSession).mockResolvedValue({ user: {} })
     vi.mocked(prisma.galleryImage.findMany).mockResolvedValue([ACTIVE_IMAGE])
-    const adminJson = await (await GET()).json()
+    const adminJson = await (await GET(getReq())).json()
     expect(adminJson.data[0].s3Key).toBe('gallery/img-1.jpg')
   })
 })

@@ -67,8 +67,8 @@ export default function ServiciosPage() {
   function load() {
     setLoading(true)
     Promise.all([
-      fetch('/api/services').then((r) => r.json()),
-      fetch('/api/categories').then((r) => r.json()),
+      fetch('/api/services?includeInactive=true').then((r) => r.json()),
+      fetch('/api/categories?includeInactive=true').then((r) => r.json()),
     ])
       .then(([svcJson, catJson]) => {
         if (svcJson.success) setServices(svcJson.data)

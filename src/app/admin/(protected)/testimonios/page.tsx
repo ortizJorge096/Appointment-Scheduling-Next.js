@@ -75,7 +75,7 @@ export default function TestimoniosPage() {
 
   function load() {
     setLoading(true)
-    fetch('/api/testimonials')
+    fetch('/api/testimonials?manage=true')
       .then((r) => r.json())
       .then((json) => { if (json.success) setItems(json.data) })
       .catch(() => setError('Error al cargar testimonios'))
