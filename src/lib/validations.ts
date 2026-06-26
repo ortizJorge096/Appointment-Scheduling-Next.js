@@ -48,6 +48,13 @@ const discountFields = {
   descuentoMotivo: z.string().max(200).nullable().optional(),
 }
 
+// Adicionales (servicio o producto extra agregado a la cita). Lista completa:
+// al guardar se reemplaza el set de adicionales de la cita por este array.
+const extrasSchema = z.array(z.object({
+  description: z.string().min(1, 'La descripción del adicional es requerida').max(200),
+  amount:      z.number().int().min(0, 'El monto no puede ser negativo'),
+})).max(20).optional()
+
 // Cross-field discount checks, shared by the manual-create and update schemas.
 // null/undefined both mean "not set" (clearing is all-null, which passes).
 function checkDiscount(
@@ -165,6 +172,9 @@ export const updateAppointmentSchema = z.object({
 
   // Manual discount (applied from the detail payment block).
   ...discountFields,
+
+  // Adicionales (replaces the full set when provided).
+  extras: extrasSchema,
 }).superRefine(checkDiscount)
 
 // ─────────────────────────────────────────
@@ -346,8 +356,7 @@ export const createManualAppointmentSchema = z.object({
   // completed and paid. Defaults to the existing ("Cita próxima") behavior.
   mode:             z.enum(['UPCOMING', 'PAST']).optional().default('UPCOMING'),
   totalCharged:     z.number().int().min(0).optional(),
-  extraDescription: z.string().max(200).optional(),
-  extraAmount:      z.number().int().min(0).optional(),
+  extras:           extrasSchema,
 
   // Manual discount on a past appointment's charge.
   ...discountFields,

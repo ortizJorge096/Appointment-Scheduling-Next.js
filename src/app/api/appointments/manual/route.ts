@@ -49,9 +49,11 @@ export async function POST(
     clientName, clientEmail, clientPhone,
     serviceId, date, startTime, source, notes,
     skipAvailabilityCheck, notifyClient,
-    mode, totalCharged, extraDescription, extraAmount,
+    mode, totalCharged, extras,
     descuentoTipo, descuentoValor, descuentoMotivo,
   } = parsed.data
+
+  const extraTotal = (extras ?? []).reduce((sum, e) => sum + e.amount, 0)
 
   // Backfill window: allow past dates only up to PAST_LIMIT_DAYS days ago
   // (business timezone). Future dates are always allowed for scheduling.
@@ -95,7 +97,7 @@ export async function POST(
   let precioFinal: number | null = null
   const hasDiscount = mode === 'PAST' && !!descuentoTipo && descuentoValor != null
   if (hasDiscount) {
-    const subtotal = totalCharged! + (extraAmount ?? 0)
+    const subtotal = totalCharged! + extraTotal
     if (descuentoTipo === 'VALOR_FIJO' && descuentoValor! > subtotal) {
       return NextResponse.json(
         { success: false, error: 'El descuento no puede superar el subtotal.' },
@@ -174,9 +176,7 @@ export async function POST(
           notes:       notes?.trim() ?? null,
           ...(isPast ? {
             paymentStatus:    'PAID',
-            amountPaid:       precioFinal ?? (servicePrice + (extraAmount ?? 0)),
-            extraDescription: extraDescription?.trim() || null,
-            extraAmount:      extraAmount ?? null,
+            amountPaid:       precioFinal ?? (servicePrice + extraTotal),
             ...(precioFinal != null ? {
               descuentoTipo,
               descuentoValor,
@@ -191,6 +191,11 @@ export async function POST(
               price: servicePrice,
             }],
           },
+          ...(isPast && extras && extras.length > 0 ? {
+            extras: {
+              create: extras.map((e) => ({ description: e.description.trim(), amount: e.amount })),
+            },
+          } : {}),
         },
         include: {
           service: { select: { id: true, name: true, price: true, durationMinutes: true } },
@@ -199,6 +204,7 @@ export async function POST(
               service: { select: { id: true, name: true, price: true, durationMinutes: true } },
             },
           },
+          extras: { orderBy: { createdAt: 'asc' } },
         },
       }) as unknown as AppointmentWithService
     }, { isolationLevel: 'Serializable' })
@@ -250,8 +256,7 @@ export async function POST(
       notifyClient: mode !== 'PAST' ? notifyClient : undefined,
       ...(mode === 'PAST' ? {
         totalCharged,
-        extraDescription: extraDescription?.trim() || undefined,
-        extraAmount,
+        extras: extras && extras.length > 0 ? extras : undefined,
         amountPaid: appointment.amountPaid,
         ...(precioFinal != null ? { descuentoTipo, descuentoValor, descuentoMotivo: descuentoMotivo?.trim() || undefined, precioFinal } : {}),
       } : {}),

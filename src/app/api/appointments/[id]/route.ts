@@ -40,6 +40,7 @@ export async function GET(
           },
         },
       },
+      extras: { orderBy: { createdAt: 'asc' } },
     },
   })
 
@@ -96,6 +97,7 @@ export async function PATCH(
         select: { id: true, name: true, price: true, durationMinutes: true },
       },
       services: { select: { price: true } },
+      extras: true,
     },
   })
 
@@ -125,8 +127,17 @@ export async function PATCH(
   }
 
   const { status, notes, date, startTime, paymentStatus, paymentMethod, amountPaid,
-          descuentoTipo, descuentoValor, descuentoMotivo } = parsed.data
+          descuentoTipo, descuentoValor, descuentoMotivo, extras } = parsed.data
   const updateData: Record<string, unknown> = {}
+
+  // Adicionales: when provided, replace the appointment's full set.
+  const extraTotal = (extras ?? appointment.extras ?? []).reduce((sum, e) => sum + e.amount, 0)
+  if (extras !== undefined) {
+    updateData.extras = {
+      deleteMany: {},
+      create: extras.map((e) => ({ description: e.description.trim(), amount: e.amount })),
+    }
+  }
 
   // Capture the previous date/time before mutating, to detect a reschedule
   // and to know what to show as "antes" in the notification email.
@@ -160,7 +171,7 @@ export async function PATCH(
     const svcSubtotal = appointment.services && appointment.services.length > 1
       ? appointment.services.reduce((sum, s) => sum + s.price, 0)
       : appointment.service.price
-    const subtotal = svcSubtotal + (appointment.extraAmount ?? 0)
+    const subtotal = svcSubtotal + extraTotal
     if (descuentoTipo === 'VALOR_FIJO' && descuentoValor > subtotal) {
       return NextResponse.json(
         { success: false, error: 'El descuento no puede superar el subtotal.' },
@@ -209,6 +220,7 @@ export async function PATCH(
           },
         },
       },
+      extras: { orderBy: { createdAt: 'asc' } },
     },
   })
 
