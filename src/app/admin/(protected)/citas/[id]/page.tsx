@@ -368,7 +368,7 @@ export default function CitaDetailPage() {
           </div>
           <div>
             <label className="form-label">Monto pagado (COP)</label>
-            <input type="number" min={0} step={1000} className="input-field" value={payAmount}
+            <input type="number" min={0} step={1} className="input-field" value={payAmount}
               onChange={(e) => setPayAmount(e.target.value)} placeholder="0" />
           </div>
           <div>
