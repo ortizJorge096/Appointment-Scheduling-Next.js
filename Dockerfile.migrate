@@ -2,7 +2,7 @@
 # Lightweight container to run Prisma migrations and seed
 # Runs once and exits
 
-FROM node:20-alpine
+FROM node:20.18-alpine
 WORKDIR /app
 
 RUN apk add --no-cache openssl
@@ -16,5 +16,9 @@ COPY tsconfig.json ./
 
 RUN npx prisma generate
 
-# Script that waits for the DB, migrates and seeds
+# Drop privileges — this one-shot container never needs root.
+# (Files copied above are world-readable; migrate/seed only read them + the DB.)
+USER node
+
+# Waits for the DB (compose gates on db healthy), migrates and seeds.
 CMD ["sh", "-c", "npx prisma migrate deploy && npx ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts"]

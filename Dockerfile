@@ -2,7 +2,7 @@
 # Multi-stage build — minimal final image
 
 # ── Stage 1: dependencies ──────────────────────────────
-FROM node:20-alpine AS deps
+FROM node:20.18-alpine AS deps
 WORKDIR /app
 
 # Install system dependencies required by Prisma
@@ -12,7 +12,7 @@ COPY .npmrc package.json package-lock.json* ./
 RUN npm install
 
 # ── Stage 2: build ─────────────────────────────────────
-FROM node:20-alpine AS builder
+FROM node:20.18-alpine AS builder
 WORKDIR /app
 
 RUN apk add --no-cache openssl
@@ -38,7 +38,7 @@ ENV NEXT_PUBLIC_WHATSAPP_NUMBER=$NEXT_PUBLIC_WHATSAPP_NUMBER \
 RUN npm run build
 
 # ── Stage 3: runner (final image) ─────────────────────
-FROM node:20-alpine AS runner
+FROM node:20.18-alpine AS runner
 WORKDIR /app
 
 RUN apk add --no-cache openssl

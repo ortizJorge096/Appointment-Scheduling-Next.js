@@ -24,7 +24,6 @@ data:
   # NextAuth — public URL (overlay replaces it with the real host).
   NEXTAUTH_URL: "http://appointment-scheduling.example.com"
   NEXT_PUBLIC_APP_URL: "http://appointment-scheduling.example.com"
-  NEXT_PUBLIC_APP_NAME: "Valentina Jimenez Beauty Studio"
 
   # Google Calendar — the private key goes in the Secret (SSM), not here.
   GOOGLE_CLIENT_EMAIL: ""
