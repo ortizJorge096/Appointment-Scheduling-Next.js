@@ -35,8 +35,9 @@ const ACTIONS: Record<string, { label: string; status: AppointmentStatus; style:
     { label: 'Confirmar',  status: 'CONFIRMED', style: 'btn-primary' },
     { label: 'Cancelar',   status: 'CANCELLED', style: 'border border-red-300 text-red-500 px-6 py-2.5 text-xs tracking-widest uppercase hover:bg-red-50 transition-colors' },
   ],
+  // No "Completar" here — registering the payment completes the appointment
+  // (see the payment form). Completing without charge = pay $0 + "Cortesía".
   CONFIRMED: [
-    { label: 'Completar',  status: 'COMPLETED', style: 'btn-primary' },
     { label: 'No asistió', status: 'NO_SHOW',   style: 'border border-gray-300 text-gray-500 px-6 py-2.5 text-xs tracking-widest uppercase hover:bg-gray-50 transition-colors' },
     { label: 'Cancelar',   status: 'CANCELLED', style: 'border border-red-300 text-red-500 px-6 py-2.5 text-xs tracking-widest uppercase hover:bg-red-50 transition-colors' },
   ],
@@ -202,7 +203,7 @@ export default function CitaDetailPage() {
 
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-xs text-ink-muted mb-6">
-        <Link href="/admin/citas" className="hover:text-gold">Citas</Link>
+        <Link href="/admin/citas" className="hover:text-gold hover:underline">Citas</Link>
         <span>/</span>
         <span className="text-ink">{appt.clientName}</span>
       </div>
@@ -445,6 +446,9 @@ export default function CitaDetailPage() {
           className="btn-primary text-xs px-5 py-2 mt-4 disabled:opacity-50">
           {savingPay ? 'Guardando...' : 'Guardar pago'}
         </button>
+        <p className="text-[11px] text-ink-muted/70 mt-2">
+          Con pago <strong>Pagado</strong> o <strong>Cortesía</strong>, la cita se marca como completada automáticamente. Un abono <strong>Parcial</strong> no la completa.
+        </p>
       </form>
 
       {/* Status actions */}

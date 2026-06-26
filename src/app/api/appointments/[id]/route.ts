@@ -167,6 +167,17 @@ export async function PATCH(
     updateData.precioFinal     = precioFinal
   }
 
+  // Saving a full payment IS completing the appointment: a paid (or courtesy)
+  // appointment is done. So recording PAID/WAIVED auto-completes it — unless an
+  // explicit status was sent, or the appointment is cancelled/no-show (those are
+  // separate flows). A PARTIAL payment (deposit) does NOT complete it.
+  const completesByPayment =
+    (paymentStatus === 'PAID' || paymentStatus === 'WAIVED') &&
+    status === undefined &&
+    (appointment.status === 'PENDING' || appointment.status === 'CONFIRMED')
+  if (completesByPayment) updateData.status = 'COMPLETED'
+  const effectiveStatus = status ?? (completesByPayment ? 'COMPLETED' : undefined)
+
   // If date/time changes, recalculate endTime
   if (date) updateData.date = new Date(`${date}T00:00:00`)
   if (startTime) {
@@ -211,13 +222,14 @@ export async function PATCH(
 
   const auditDescription =
     discountLabel               ? `Admin aplicó descuento de ${discountLabel} en la cita de ${updated.clientName}${descuentoMotivo?.trim() ? ` (motivo: ${descuentoMotivo.trim()})` : ''}` :
+    completesByPayment          ? `Admin registró el pago y completó la cita de ${updated.clientName}` :
     status !== undefined        ? `Admin cambió el estado de la cita de ${updated.clientName} a ${status}` :
     isReschedule                ? `Admin reprogramó la cita de ${updated.clientName}` :
     paymentStatus !== undefined ? `Admin actualizó el pago de la cita de ${updated.clientName}` :
                                   `Admin editó la cita de ${updated.clientName}`
 
   await audit({
-    action:    status !== undefined ? 'STATUS_CHANGE' : 'UPDATE',
+    action:    effectiveStatus !== undefined ? 'STATUS_CHANGE' : 'UPDATE',
     entity:    'APPOINTMENT',
     entityId:  id,
     actorType: 'ADMIN',
@@ -234,7 +246,7 @@ export async function PATCH(
       ...(discountAudit ? { precioFinal: appointment.precioFinal } : {}),
     },
     after: {
-      ...(status        !== undefined ? { status } : {}),
+      ...(effectiveStatus !== undefined ? { status: effectiveStatus } : {}),
       ...(paymentStatus !== undefined ? { paymentStatus } : {}),
       ...(amountPaid    !== undefined ? { amountPaid } : {}),
       ...(date          ? { date } : {}),

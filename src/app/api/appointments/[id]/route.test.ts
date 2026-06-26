@@ -143,6 +143,52 @@ describe('PATCH /api/appointments/[id]', () => {
     expect(sendRescheduledEmail).not.toHaveBeenCalled()
   })
 
+  it('completes the appointment when a full payment (PAID) is saved', async () => {
+    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(prisma.appointment.findUnique).mockResolvedValue(MOCK_APPOINTMENT)
+    vi.mocked(prisma.appointment.update).mockResolvedValue({ ...MOCK_APPOINTMENT, status: 'COMPLETED', paymentStatus: 'PAID' })
+
+    await PATCH(makeRequest({ paymentStatus: 'PAID', amountPaid: 35000, paymentMethod: 'EFECTIVO' }), CTX())
+
+    expect(prisma.appointment.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ status: 'COMPLETED', paymentStatus: 'PAID' }) })
+    )
+  })
+
+  it('completes on courtesy (WAIVED) with $0', async () => {
+    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(prisma.appointment.findUnique).mockResolvedValue(MOCK_APPOINTMENT)
+    vi.mocked(prisma.appointment.update).mockResolvedValue({ ...MOCK_APPOINTMENT, status: 'COMPLETED', paymentStatus: 'WAIVED' })
+
+    await PATCH(makeRequest({ paymentStatus: 'WAIVED', amountPaid: 0 }), CTX())
+
+    expect(prisma.appointment.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ status: 'COMPLETED', paymentStatus: 'WAIVED' }) })
+    )
+  })
+
+  it('does NOT complete the appointment on a partial payment (deposit)', async () => {
+    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(prisma.appointment.findUnique).mockResolvedValue(MOCK_APPOINTMENT)
+    vi.mocked(prisma.appointment.update).mockResolvedValue({ ...MOCK_APPOINTMENT, paymentStatus: 'PARTIAL' })
+
+    await PATCH(makeRequest({ paymentStatus: 'PARTIAL', amountPaid: 10000 }), CTX())
+
+    const call = vi.mocked(prisma.appointment.update).mock.calls[0][0] as { data: Record<string, unknown> }
+    expect(call.data.status).toBeUndefined()
+  })
+
+  it('does not re-complete a cancelled appointment when a payment is saved', async () => {
+    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(prisma.appointment.findUnique).mockResolvedValue({ ...MOCK_APPOINTMENT, status: 'CANCELLED' })
+    vi.mocked(prisma.appointment.update).mockResolvedValue({ ...MOCK_APPOINTMENT, status: 'CANCELLED' })
+
+    await PATCH(makeRequest({ paymentStatus: 'PAID', amountPaid: 35000 }), CTX())
+
+    const call = vi.mocked(prisma.appointment.update).mock.calls[0][0] as { data: Record<string, unknown> }
+    expect(call.data.status).toBeUndefined()
+  })
+
   it('sends a reschedule email when date or startTime change', async () => {
     vi.mocked(getServerSession).mockResolvedValue({ user: {} })
     vi.mocked(prisma.appointment.findUnique).mockResolvedValue(MOCK_APPOINTMENT)
