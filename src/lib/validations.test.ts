@@ -50,6 +50,18 @@ describe('createAppointmentSchema', () => {
     expect(createAppointmentSchema.safeParse({ ...valid, clientPhone: '123' }).success).toBe(false)
   })
 
+  it('rechaza un móvil incompleto de 9 dígitos', () => {
+    expect(createAppointmentSchema.safeParse({ ...valid, clientPhone: '312456789' }).success).toBe(false)
+  })
+
+  it('acepta un móvil de 10 dígitos con formato (espacios/guiones)', () => {
+    expect(createAppointmentSchema.safeParse({ ...valid, clientPhone: '312 456-7890' }).success).toBe(true)
+  })
+
+  it('acepta un número con código de país', () => {
+    expect(createAppointmentSchema.safeParse({ ...valid, clientPhone: '+57 312 456 7890' }).success).toBe(true)
+  })
+
   it('rechaza fecha con formato incorrecto', () => {
     expect(createAppointmentSchema.safeParse({ ...valid, date: '01/12/2026' }).success).toBe(false)
   })

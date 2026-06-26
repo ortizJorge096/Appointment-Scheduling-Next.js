@@ -25,6 +25,20 @@ const optionalEmail = z.preprocess(
   z.string().email('Email inválido').optional(),
 )
 
+// Phone: validated by DIGIT count, not raw character length, so formatting
+// (spaces, dashes, parentheses, leading +) doesn't change the result. Requires
+// at least 10 digits — a Colombian mobile — so incomplete numbers can't be
+// saved; up to 15 covers numbers that already include a country code. Stays in
+// sync with toWhatsAppNumber() so a saved phone always yields a WhatsApp link.
+const phoneSchema = z
+  .string()
+  .trim()
+  .regex(/^[0-9+\s()-]+$/, 'Teléfono inválido')
+  .refine((v) => {
+    const digits = v.replace(/\D/g, '')
+    return digits.length >= 10 && digits.length <= 15
+  }, 'El teléfono debe tener al menos 10 dígitos (incluye el código de país si aplica)')
+
 // ─────────────────────────────────────────
 // BOOKING (public)
 // ─────────────────────────────────────────
@@ -37,11 +51,7 @@ export const createAppointmentSchema = z.object({
 
   clientEmail: optionalEmail,
 
-  clientPhone: z
-    .string()
-    .min(7, 'Teléfono inválido')
-    .max(15, 'Teléfono inválido')
-    .regex(/^[0-9+\s-]+$/, 'Teléfono inválido'),
+  clientPhone: phoneSchema,
 
   serviceId: z
     .string()
@@ -290,7 +300,7 @@ export const updateAppointmentPaymentSchema = updateAppointmentSchema
 export const createManualAppointmentSchema = z.object({
   clientName:  z.string().min(2).max(100),
   clientEmail: optionalEmail,
-  clientPhone: z.string().min(7).max(15).regex(/^[0-9+\s-]+$/, 'Teléfono inválido'),
+  clientPhone: phoneSchema,
   serviceId:   z.string().cuid('ID de servicio inválido'),
   date:        dateString,
   startTime:   timeString,

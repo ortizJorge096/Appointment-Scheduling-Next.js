@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { formatPrice } from '@/lib/utils'
+import { formatPrice, isValidPhone } from '@/lib/utils'
 import ClientSearchInput, { type ClientHit } from './ClientSearchInput'
 
 interface Service { id: string; name: string; price: number; durationMinutes: number }
@@ -98,6 +98,7 @@ export default function ManualAppointmentModal() {
     if (form.clientEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.clientEmail.trim()))
       errs.clientEmail = 'Email inválido'
     if (!form.clientPhone.trim()) errs.clientPhone = 'El teléfono es requerido'
+    else if (!isValidPhone(form.clientPhone)) errs.clientPhone = 'El teléfono debe tener al menos 10 dígitos'
     if (!form.serviceId)          errs.serviceId   = 'Selecciona un servicio'
     if (!form.date)               errs.date        = 'La fecha es requerida'
     if (!form.startTime)          errs.startTime   = 'La hora es requerida'

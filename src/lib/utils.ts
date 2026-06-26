@@ -57,6 +57,18 @@ export function initialsFromName(name: string): string {
 }
 
 /**
+ * Mirrors the server-side phone rule (validations.ts `phoneSchema`) for instant
+ * client-side feedback: allowed characters + 10–15 digits. Kept in sync so the
+ * form and the API agree on what a valid phone is.
+ */
+export function isValidPhone(raw: string | null | undefined): boolean {
+  if (!raw) return false
+  if (!/^[0-9+\s()-]+$/.test(raw.trim())) return false
+  const digits = raw.replace(/\D/g, '')
+  return digits.length >= 10 && digits.length <= 15
+}
+
+/**
  * Normalizes a free-form phone into a wa.me-ready number (digits only, with
  * country code), or null if it's too short/long to be valid. Colombian
  * 10-digit numbers get the 57 country code; longer ones are assumed to already
