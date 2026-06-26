@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { formatPrice, shortCode, toWhatsAppNumber } from '@/lib/utils'
+import { computeDiscountAmount } from '@/lib/discount'
 import { STUDIO } from '@/lib/config'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
 import { STATUS_LABEL, STATUS_CLASS } from '@/lib/appointmentStatus'
@@ -61,6 +62,11 @@ export default function CitaDetailPage() {
   const [payMethod, setPayMethod] = useState('')
   const [savingPay, setSavingPay] = useState(false)
 
+  // Manual discount
+  const [discTipo, setDiscTipo]     = useState<'PORCENTAJE' | 'VALOR_FIJO'>('PORCENTAJE')
+  const [discValor, setDiscValor]   = useState('')
+  const [discMotivo, setDiscMotivo] = useState('')
+
   useEffect(() => {
     fetch(`/api/appointments/${id}`)
       .then((r) => r.json())
@@ -78,6 +84,9 @@ export default function CitaDetailPage() {
     setPayStatus(appt.paymentStatus)
     setPayAmount(appt.amountPaid != null ? String(appt.amountPaid) : '')
     setPayMethod(appt.paymentMethod ?? '')
+    setDiscTipo((appt.descuentoTipo as 'PORCENTAJE' | 'VALOR_FIJO') ?? 'PORCENTAJE')
+    setDiscValor(appt.descuentoValor != null ? String(appt.descuentoValor) : '')
+    setDiscMotivo(appt.descuentoMotivo ?? '')
   }, [appt])
 
   async function updateStatus(status: AppointmentStatus) {
@@ -122,6 +131,11 @@ export default function CitaDetailPage() {
         paymentStatus: payStatus,
         amountPaid:    payAmount ? parseInt(payAmount) : null,
         paymentMethod: payMethod || null,
+        ...(Number(discValor) > 0 ? {
+          descuentoTipo:   discTipo,
+          descuentoValor:  Number(discValor),
+          descuentoMotivo: discMotivo.trim() || undefined,
+        } : {}),
       }),
     })
     const json = await res.json()
@@ -130,14 +144,16 @@ export default function CitaDetailPage() {
     setSavingPay(false)
   }
 
-  // Quick action: mark the full service price as paid
+  // Quick action: mark the (discounted) total as paid
   function markPaidFull() {
     if (!appt) return
-    const totalPrice = appt.services && appt.services.length > 1
+    const svc = appt.services && appt.services.length > 1
       ? appt.services.reduce((sum, s) => sum + s.price, 0)
       : appt.service.price
+    const sub   = svc + (appt.extraAmount ?? 0)
+    const final = sub - computeDiscountAmount(sub, discTipo, Number(discValor) || 0)
     setPayStatus('PAID')
-    setPayAmount(String(totalPrice))
+    setPayAmount(String(final))
     if (!payMethod) setPayMethod('EFECTIVO')
   }
 
@@ -156,6 +172,17 @@ export default function CitaDetailPage() {
   )
 
   const actions = ACTIONS[appt.status] ?? []
+
+  // Live discount math for the breakdown + validation (server is authoritative).
+  const servicesTotal = appt.services && appt.services.length > 1
+    ? appt.services.reduce((sum, s) => sum + s.price, 0)
+    : appt.service.price
+  const subtotal       = servicesTotal + (appt.extraAmount ?? 0)
+  const discValorNum   = Number(discValor) || 0
+  const discountAmount = computeDiscountAmount(subtotal, discTipo, discValorNum)
+  const finalPrice     = subtotal - discountAmount
+  const hasDiscount    = discValorNum > 0
+  const discountTooBig = hasDiscount && discTipo === 'VALOR_FIJO' && discValorNum > subtotal
 
   // Quick WhatsApp link to the client, with a preloaded, appointment-specific
   // message. Only built when the stored phone normalizes to a valid number.
@@ -352,7 +379,69 @@ export default function CitaDetailPage() {
             </select>
           </div>
         </div>
-        <button type="submit" disabled={savingPay}
+
+        {/* Discount */}
+        <div className="mt-4">
+          <label className="form-label">Descuento (opcional)</label>
+          <div className="flex gap-2">
+            <div className="flex rounded-lg border border-beige-dark overflow-hidden shrink-0">
+              {(['PORCENTAJE', 'VALOR_FIJO'] as const).map((t) => (
+                <button key={t} type="button" onClick={() => setDiscTipo(t)}
+                  className={`px-3 py-2 text-sm transition-colors ${
+                    discTipo === t ? 'bg-gold text-white' : 'bg-white text-ink-muted hover:text-ink'
+                  }`}>
+                  {t === 'PORCENTAJE' ? '%' : '$'}
+                </button>
+              ))}
+            </div>
+            <input type="number" min={0} step={discTipo === 'PORCENTAJE' ? 1 : 1000}
+              max={discTipo === 'PORCENTAJE' ? 100 : undefined}
+              className={`input-field ${discountTooBig ? 'border-red-400' : ''}`}
+              value={discValor} onChange={(e) => setDiscValor(e.target.value)}
+              placeholder={discTipo === 'PORCENTAJE' ? '0–100' : '0'} />
+            <input className="input-field flex-1" value={discMotivo}
+              onChange={(e) => setDiscMotivo(e.target.value)}
+              placeholder="Motivo (interno, opcional)" />
+          </div>
+          {discountTooBig && (
+            <p className="text-xs text-red-500 mt-1">El descuento no puede superar el subtotal.</p>
+          )}
+        </div>
+
+        {/* Breakdown */}
+        {(hasDiscount || (appt.extraAmount ?? 0) > 0) && (
+          <div className="bg-beige-pale rounded-lg px-4 py-3 text-sm space-y-1 mt-4">
+            <div className="flex justify-between text-ink-muted">
+              <span>Servicio{appt.services && appt.services.length > 1 ? 's' : ''}</span>
+              <span>{formatPrice(servicesTotal)}</span>
+            </div>
+            {(appt.extraAmount ?? 0) > 0 && (
+              <div className="flex justify-between text-ink-muted">
+                <span>Adicional{appt.extraDescription ? ` (${appt.extraDescription})` : ''}</span>
+                <span>{formatPrice(appt.extraAmount!)}</span>
+              </div>
+            )}
+            {hasDiscount && !discountTooBig && (
+              <>
+                <div className="flex justify-between text-ink-muted border-t border-beige-dark pt-1 mt-1">
+                  <span>Subtotal</span><span>{formatPrice(subtotal)}</span>
+                </div>
+                <div className="flex justify-between text-gold-dark">
+                  <span>Descuento{discTipo === 'PORCENTAJE' ? ` (${discValorNum}%)` : ''}</span>
+                  <span>−{formatPrice(discountAmount)}</span>
+                </div>
+              </>
+            )}
+            <div className="flex justify-between text-ink font-medium border-t border-beige-dark pt-1 mt-1">
+              <span>Total a cobrar</span><span>{formatPrice(hasDiscount && !discountTooBig ? finalPrice : subtotal)}</span>
+            </div>
+            {hasDiscount && discMotivo.trim() && (
+              <p className="text-xs text-ink-muted/70 pt-1">Motivo: {discMotivo.trim()}</p>
+            )}
+          </div>
+        )}
+
+        <button type="submit" disabled={savingPay || discountTooBig}
           className="btn-primary text-xs px-5 py-2 mt-4 disabled:opacity-50">
           {savingPay ? 'Guardando...' : 'Guardar pago'}
         </button>

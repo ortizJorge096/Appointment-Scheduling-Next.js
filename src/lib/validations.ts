@@ -39,6 +39,28 @@ const phoneSchema = z
     return digits.length >= 10 && digits.length <= 15
   }, 'El teléfono debe tener al menos 10 dígitos (incluye el código de país si aplica)')
 
+// Manual discount (admin only). Shape is validated here; the subtotal-bound rule
+// (VALOR_FIJO ≤ subtotal) is enforced in the route, where the subtotal is known.
+const discountFields = {
+  descuentoTipo:   z.enum(['PORCENTAJE', 'VALOR_FIJO']).optional(),
+  descuentoValor:  z.number().int().min(0, 'El descuento no puede ser negativo').optional(),
+  descuentoMotivo: z.string().max(200).optional(),
+}
+
+// Cross-field discount checks, shared by the manual-create and update schemas.
+function checkDiscount(
+  data: { descuentoTipo?: string; descuentoValor?: number },
+  ctx: z.RefinementCtx,
+): void {
+  const { descuentoTipo, descuentoValor } = data
+  if (descuentoTipo && descuentoValor === undefined)
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['descuentoValor'], message: 'Indica el valor del descuento' })
+  if (descuentoValor !== undefined && !descuentoTipo)
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['descuentoTipo'], message: 'Indica el tipo de descuento' })
+  if (descuentoTipo === 'PORCENTAJE' && (descuentoValor ?? 0) > 100)
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['descuentoValor'], message: 'El porcentaje no puede superar 100' })
+}
+
 // ─────────────────────────────────────────
 // BOOKING (public)
 // ─────────────────────────────────────────
@@ -136,7 +158,10 @@ export const updateAppointmentSchema = z.object({
   date: dateString.optional(),
 
   startTime: timeString.optional(),
-})
+
+  // Manual discount (applied from the detail payment block).
+  ...discountFields,
+}).superRefine(checkDiscount)
 
 // ─────────────────────────────────────────
 // CATEGORIES (admin)
@@ -319,10 +344,13 @@ export const createManualAppointmentSchema = z.object({
   totalCharged:     z.number().int().min(0).optional(),
   extraDescription: z.string().max(200).optional(),
   extraAmount:      z.number().int().min(0).optional(),
+
+  // Manual discount on a past appointment's charge.
+  ...discountFields,
 }).refine(
   (data) => data.mode !== 'PAST' || data.totalCharged !== undefined,
   { message: 'El total cobrado es requerido para registrar una cita pasada', path: ['totalCharged'] }
-)
+).superRefine(checkDiscount)
 
 // ─────────────────────────────────────────
 // CLIENTS (admin)

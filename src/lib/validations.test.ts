@@ -80,6 +80,25 @@ describe('createAppointmentSchema', () => {
   })
 })
 
+// ── manual discount (updateAppointmentSchema carries the same fields) ─────
+describe('discount validation', () => {
+  it('accepts a fixed discount with a type', () => {
+    expect(updateAppointmentSchema.safeParse({ descuentoTipo: 'VALOR_FIJO', descuentoValor: 5000 }).success).toBe(true)
+  })
+
+  it('rejects a percentage over 100', () => {
+    expect(updateAppointmentSchema.safeParse({ descuentoTipo: 'PORCENTAJE', descuentoValor: 150 }).success).toBe(false)
+  })
+
+  it('rejects a value without a type', () => {
+    expect(updateAppointmentSchema.safeParse({ descuentoValor: 10 }).success).toBe(false)
+  })
+
+  it('rejects a negative discount', () => {
+    expect(updateAppointmentSchema.safeParse({ descuentoTipo: 'VALOR_FIJO', descuentoValor: -1 }).success).toBe(false)
+  })
+})
+
 // ── availabilityQuerySchema ──────────────────────────────────────────────
 describe('availabilityQuerySchema', () => {
   it('acepta date y serviceId válidos', () => {

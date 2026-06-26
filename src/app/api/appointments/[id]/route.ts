@@ -12,6 +12,8 @@ import { timeToMinutes, minutesToTime } from '@/lib/availability'
 import { audit, getClientIp, getUserAgent } from '@/lib/audit'
 import { sendRescheduledEmail } from '@/lib/email'
 import { isWithinCancelWindow } from '@/lib/cancellation'
+import { computeFinalPrice } from '@/lib/discount'
+import { formatPrice } from '@/lib/utils'
 import type { AppointmentWithService } from '@/types'
 
 export const dynamic = 'force-dynamic'
@@ -93,6 +95,7 @@ export async function PATCH(
       service: {
         select: { id: true, name: true, price: true, durationMinutes: true },
       },
+      services: { select: { price: true } },
     },
   })
 
@@ -121,7 +124,8 @@ export async function PATCH(
     )
   }
 
-  const { status, notes, date, startTime, paymentStatus, paymentMethod, amountPaid } = parsed.data
+  const { status, notes, date, startTime, paymentStatus, paymentMethod, amountPaid,
+          descuentoTipo, descuentoValor, descuentoMotivo } = parsed.data
   const updateData: Record<string, unknown> = {}
 
   // Capture the previous date/time before mutating, to detect a reschedule
@@ -141,6 +145,24 @@ export async function PATCH(
   if (paymentStatus !== undefined) updateData.paymentStatus = paymentStatus
   if (paymentMethod !== undefined) updateData.paymentMethod = paymentMethod
   if (amountPaid    !== undefined) updateData.amountPaid    = amountPaid
+
+  // Manual discount applied from the detail. Subtotal = service(s) + extra.
+  if (descuentoTipo !== undefined && descuentoValor !== undefined) {
+    const svcSubtotal = appointment.services && appointment.services.length > 1
+      ? appointment.services.reduce((sum, s) => sum + s.price, 0)
+      : appointment.service.price
+    const subtotal = svcSubtotal + (appointment.extraAmount ?? 0)
+    if (descuentoTipo === 'VALOR_FIJO' && descuentoValor > subtotal) {
+      return NextResponse.json(
+        { success: false, error: 'El descuento no puede superar el subtotal.' },
+        { status: 400 }
+      )
+    }
+    updateData.descuentoTipo   = descuentoTipo
+    updateData.descuentoValor  = descuentoValor
+    updateData.descuentoMotivo = descuentoMotivo?.trim() || null
+    updateData.precioFinal     = computeFinalPrice(subtotal, descuentoTipo, descuentoValor)
+  }
 
   // If date/time changes, recalculate endTime
   if (date) updateData.date = new Date(`${date}T00:00:00`)
@@ -180,7 +202,13 @@ export async function PATCH(
       .catch((err) => console.error('Error enviando email de reprogramación:', err))
   }
 
+  const discountApplied = updateData.precioFinal !== undefined
+  const discountLabel = discountApplied
+    ? (descuentoTipo === 'PORCENTAJE' ? `${descuentoValor}%` : formatPrice(descuentoValor!))
+    : null
+
   const auditDescription =
+    discountApplied             ? `Admin aplicó descuento de ${discountLabel} en la cita de ${updated.clientName}${descuentoMotivo?.trim() ? ` (motivo: ${descuentoMotivo.trim()})` : ''}` :
     status !== undefined        ? `Admin cambió el estado de la cita de ${updated.clientName} a ${status}` :
     isReschedule                ? `Admin reprogramó la cita de ${updated.clientName}` :
     paymentStatus !== undefined ? `Admin actualizó el pago de la cita de ${updated.clientName}` :
@@ -201,6 +229,7 @@ export async function PATCH(
       amountPaid:    appointment.amountPaid,
       date:          appointment.date.toISOString().slice(0, 10),
       startTime:     appointment.startTime,
+      ...(discountApplied ? { precioFinal: appointment.precioFinal } : {}),
     },
     after: {
       ...(status        !== undefined ? { status } : {}),
@@ -209,6 +238,7 @@ export async function PATCH(
       ...(date          ? { date } : {}),
       ...(startTime     ? { startTime } : {}),
       ...(notes         !== undefined ? { notes } : {}),
+      ...(discountApplied ? { descuentoTipo, descuentoValor, precioFinal: updateData.precioFinal } : {}),
     },
   })
 

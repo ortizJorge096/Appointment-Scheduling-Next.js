@@ -98,6 +98,10 @@ export interface AppointmentWithService {
   amountPaid: number | null
   extraDescription?: string | null
   extraAmount?: number | null
+  descuentoTipo?: 'PORCENTAJE' | 'VALOR_FIJO' | null
+  descuentoValor?: number | null
+  descuentoMotivo?: string | null
+  precioFinal?: number | null
   notes: string | null
   cancelToken?: string | null
   calendarEventId?: string | null

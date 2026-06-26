@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatPrice, isValidPhone } from '@/lib/utils'
+import { computeDiscountAmount } from '@/lib/discount'
 import ClientSearchInput, { type ClientHit } from './ClientSearchInput'
 
 interface Service { id: string; name: string; price: number; durationMinutes: number }
@@ -30,6 +31,9 @@ const EMPTY = {
   notifyClient: false,
   mode: 'UPCOMING' as 'UPCOMING' | 'PAST',
   totalCharged: '', extraDescription: '', extraAmount: '',
+  // Manual discount (optional): empty descuentoValor = no discount.
+  descuentoTipo: 'PORCENTAJE' as 'PORCENTAJE' | 'VALOR_FIJO',
+  descuentoValor: '', descuentoMotivo: '',
 }
 
 type FieldErrors = Partial<Record<keyof typeof EMPTY, string>>
@@ -106,6 +110,12 @@ export default function ManualAppointmentModal() {
       if (form.date >= offsetDate(0)) errs.date = 'Debe ser una fecha anterior a hoy'
       if (form.totalCharged === '' || Number(form.totalCharged) < 0)
         errs.totalCharged = 'El total cobrado es requerido'
+      const sub = (Number(form.totalCharged) || 0) + (Number(form.extraAmount) || 0)
+      const dv  = Number(form.descuentoValor) || 0
+      if (dv > 0 && form.descuentoTipo === 'PORCENTAJE' && dv > 100)
+        errs.descuentoValor = 'El porcentaje no puede superar 100'
+      if (dv > 0 && form.descuentoTipo === 'VALOR_FIJO' && dv > sub)
+        errs.descuentoValor = 'El descuento no puede superar el subtotal'
     }
     setFieldErrors(errs)
     return Object.keys(errs).length === 0
@@ -130,6 +140,11 @@ export default function ManualAppointmentModal() {
         ...(form.extraAmount !== '' ? {
           extraDescription: form.extraDescription.trim() || undefined,
           extraAmount: Number(form.extraAmount),
+        } : {}),
+        ...(Number(form.descuentoValor) > 0 ? {
+          descuentoTipo:   form.descuentoTipo,
+          descuentoValor:  Number(form.descuentoValor),
+          descuentoMotivo: form.descuentoMotivo.trim() || undefined,
         } : {}),
       } : {}),
     }
@@ -172,9 +187,15 @@ export default function ManualAppointmentModal() {
     if (fieldErrors.serviceId) setFieldErrors(fe => ({ ...fe, serviceId: undefined }))
   }
 
-  const extraAmountNum = Number(form.extraAmount) || 0
+  const extraAmountNum  = Number(form.extraAmount) || 0
   const totalChargedNum = Number(form.totalCharged) || 0
-  const grandTotal = totalChargedNum + extraAmountNum
+  const subtotal        = totalChargedNum + extraAmountNum
+  const descuentoNum    = Number(form.descuentoValor) || 0
+  const hasDiscount     = descuentoNum > 0
+  const discountAmount  = computeDiscountAmount(subtotal, form.descuentoTipo, descuentoNum)
+  const grandTotal      = subtotal - discountAmount
+  // Fixed discount bigger than the subtotal is invalid (percentage is capped at 100).
+  const discountTooBig  = hasDiscount && form.descuentoTipo === 'VALOR_FIJO' && descuentoNum > subtotal
 
   const Err = ({ k }: { k: keyof typeof EMPTY }) =>
     fieldErrors[k] ? <p className="text-xs text-red-500 mt-0.5">{fieldErrors[k]}</p> : null
@@ -353,6 +374,37 @@ export default function ManualAppointmentModal() {
                           className="input-field w-full" />
                       </div>
                     </div>
+                    {/* Discount (optional) */}
+                    <div>
+                      <label className="form-label">Descuento (opcional)</label>
+                      <div className="flex gap-2">
+                        <div className="flex rounded-lg border border-beige-dark overflow-hidden shrink-0">
+                          {(['PORCENTAJE', 'VALOR_FIJO'] as const).map((t) => (
+                            <button key={t} type="button"
+                              onClick={() => setForm(f => ({ ...f, descuentoTipo: t }))}
+                              className={`px-3 py-2 text-sm transition-colors ${
+                                form.descuentoTipo === t ? 'bg-gold text-white' : 'bg-white text-ink-muted hover:text-ink'
+                              }`}>
+                              {t === 'PORCENTAJE' ? '%' : '$'}
+                            </button>
+                          ))}
+                        </div>
+                        <input type="number" min={0} step={form.descuentoTipo === 'PORCENTAJE' ? 1 : 1000}
+                          max={form.descuentoTipo === 'PORCENTAJE' ? 100 : undefined}
+                          value={form.descuentoValor} onChange={field('descuentoValor')}
+                          placeholder={form.descuentoTipo === 'PORCENTAJE' ? '0–100' : '0'}
+                          className={`input-field w-full ${discountTooBig ? 'border-red-400' : ''}`} />
+                      </div>
+                      {discountTooBig && (
+                        <p className="text-xs text-red-500 mt-0.5">El descuento no puede superar el subtotal.</p>
+                      )}
+                      {hasDiscount && (
+                        <input value={form.descuentoMotivo} onChange={field('descuentoMotivo')}
+                          placeholder="Motivo (interno, opcional): cliente frecuente…"
+                          className="input-field w-full mt-2" />
+                      )}
+                    </div>
+
                     <div className="bg-beige-pale rounded-lg px-4 py-3 text-sm space-y-1">
                       <div className="flex justify-between text-ink-muted">
                         <span>Servicio</span><span>{formatPrice(totalChargedNum)}</span>
@@ -363,9 +415,25 @@ export default function ManualAppointmentModal() {
                           <span>{formatPrice(extraAmountNum)}</span>
                         </div>
                       )}
+                      {hasDiscount && !discountTooBig && (
+                        <>
+                          <div className="flex justify-between text-ink-muted border-t border-beige-dark pt-1 mt-1">
+                            <span>Subtotal</span><span>{formatPrice(subtotal)}</span>
+                          </div>
+                          <div className="flex justify-between text-gold-dark">
+                            <span>Descuento{form.descuentoTipo === 'PORCENTAJE' ? ` (${descuentoNum}%)` : ''}</span>
+                            <span>−{formatPrice(discountAmount)}</span>
+                          </div>
+                        </>
+                      )}
                       <div className="flex justify-between text-ink font-medium border-t border-beige-dark pt-1 mt-1">
-                        <span>Total</span><span>{formatPrice(grandTotal)}</span>
+                        <span>Total a cobrar</span><span>{formatPrice(grandTotal)}</span>
                       </div>
+                      {hasDiscount && !discountTooBig && grandTotal === 0 && (
+                        <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 mt-1">
+                          ⚠️ El total será $0. Se registrará como cortesía.
+                        </p>
+                      )}
                     </div>
                   </div>
                 </fieldset>

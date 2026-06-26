@@ -38,6 +38,7 @@ export async function GET(
         select: {
           paymentStatus: true,
           amountPaid: true,
+          precioFinal: true,
           service: { select: { price: true } },
           services: { select: { price: true } },
         },
@@ -53,6 +54,7 @@ export async function GET(
     type AptRow = {
       paymentStatus: string
       amountPaid: number | null
+      precioFinal: number | null
       service: { price: number }
       services: Array<{ price: number }>
     }
@@ -66,11 +68,13 @@ export async function GET(
       return apt.service.price
     }
 
-    // Income: sum of amountPaid (PAID or PARTIAL), or service price if PAID without an amount
+    // Income: amountPaid if recorded; else the discounted price (precioFinal)
+    // when a manual discount was applied; else the gross service price. Using
+    // precioFinal before the gross keeps a discount from inflating revenue.
     const totalIncome = (appointments as AptRow[]).reduce((sum: number, apt: AptRow) => {
       if (apt.paymentStatus === 'WAIVED') return sum
       if (apt.paymentStatus === 'PENDING') return sum
-      return sum + (apt.amountPaid ?? getTotalPrice(apt))
+      return sum + (apt.amountPaid ?? apt.precioFinal ?? getTotalPrice(apt))
     }, 0)
 
     const totalExpenses = (expenses as ExpRow[]).reduce((sum: number, e: ExpRow) => sum + e.amount, 0)
