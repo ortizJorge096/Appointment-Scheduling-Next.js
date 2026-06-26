@@ -29,11 +29,11 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # be present here (runtime env_file/ConfigMap is too late for the browser). They
 # arrive as build args from docker-compose / CI; empty defaults keep the code's
 # own fallbacks working when a value isn't provided.
-ARG NEXT_PUBLIC_HERO_IMAGES=""
+# (Hero images are NOT here — they're auto-discovered from /public/hero/ at
+# runtime by the server, so no build arg is needed.)
 ARG NEXT_PUBLIC_WHATSAPP_NUMBER=""
 ARG NEXT_PUBLIC_WHATSAPP_MESSAGE=""
-ENV NEXT_PUBLIC_HERO_IMAGES=$NEXT_PUBLIC_HERO_IMAGES \
-    NEXT_PUBLIC_WHATSAPP_NUMBER=$NEXT_PUBLIC_WHATSAPP_NUMBER \
+ENV NEXT_PUBLIC_WHATSAPP_NUMBER=$NEXT_PUBLIC_WHATSAPP_NUMBER \
     NEXT_PUBLIC_WHATSAPP_MESSAGE=$NEXT_PUBLIC_WHATSAPP_MESSAGE
 RUN npm run build
 

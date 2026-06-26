@@ -99,18 +99,8 @@ export function getWhatsAppUrl(message?: string): string {
   return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`
 }
 
-// ─────────────────────────────────────────────────────────────
-// HERO IMAGES — cinematic carousel.
-// Configurable without touching code via NEXT_PUBLIC_HERO_IMAGES
-// (comma-separated public paths, e.g. '/hero/1.jpg,/hero/2.jpg'). Falls back
-// to STUDIO.heroImage (single photo), then to the gradient placeholder. Max 8.
-// ─────────────────────────────────────────────────────────────
-export function getHeroImages(): string[] {
-  const raw = process.env.NEXT_PUBLIC_HERO_IMAGES
-  const list = raw ? raw.split(',').map((s) => s.trim()).filter(Boolean) : []
-  if (list.length > 0) return list.slice(0, 8)
-  return STUDIO.heroImage ? [STUDIO.heroImage] : []
-}
+// Hero carousel images are auto-discovered from /public/hero/ — see
+// src/lib/hero.ts (listHeroImages). No env var or list to maintain.
 
 // Derived helpers
 export const WHATSAPP_URL  = getWhatsAppUrl()
