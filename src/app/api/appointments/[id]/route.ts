@@ -147,6 +147,7 @@ export async function PATCH(
   if (amountPaid    !== undefined) updateData.amountPaid    = amountPaid
 
   // Manual discount applied from the detail. Subtotal = service(s) + extra.
+  let discountAudit: { descuentoTipo: 'PORCENTAJE' | 'VALOR_FIJO'; descuentoValor: number; precioFinal: number } | null = null
   if (descuentoTipo !== undefined && descuentoValor !== undefined) {
     const svcSubtotal = appointment.services && appointment.services.length > 1
       ? appointment.services.reduce((sum, s) => sum + s.price, 0)
@@ -158,10 +159,12 @@ export async function PATCH(
         { status: 400 }
       )
     }
+    const precioFinal = computeFinalPrice(subtotal, descuentoTipo, descuentoValor)
+    discountAudit = { descuentoTipo, descuentoValor, precioFinal }
     updateData.descuentoTipo   = descuentoTipo
     updateData.descuentoValor  = descuentoValor
     updateData.descuentoMotivo = descuentoMotivo?.trim() || null
-    updateData.precioFinal     = computeFinalPrice(subtotal, descuentoTipo, descuentoValor)
+    updateData.precioFinal     = precioFinal
   }
 
   // If date/time changes, recalculate endTime
@@ -202,13 +205,12 @@ export async function PATCH(
       .catch((err) => console.error('Error enviando email de reprogramación:', err))
   }
 
-  const discountApplied = updateData.precioFinal !== undefined
-  const discountLabel = discountApplied
-    ? (descuentoTipo === 'PORCENTAJE' ? `${descuentoValor}%` : formatPrice(descuentoValor!))
+  const discountLabel = discountAudit
+    ? (discountAudit.descuentoTipo === 'PORCENTAJE' ? `${discountAudit.descuentoValor}%` : formatPrice(discountAudit.descuentoValor))
     : null
 
   const auditDescription =
-    discountApplied             ? `Admin aplicó descuento de ${discountLabel} en la cita de ${updated.clientName}${descuentoMotivo?.trim() ? ` (motivo: ${descuentoMotivo.trim()})` : ''}` :
+    discountLabel               ? `Admin aplicó descuento de ${discountLabel} en la cita de ${updated.clientName}${descuentoMotivo?.trim() ? ` (motivo: ${descuentoMotivo.trim()})` : ''}` :
     status !== undefined        ? `Admin cambió el estado de la cita de ${updated.clientName} a ${status}` :
     isReschedule                ? `Admin reprogramó la cita de ${updated.clientName}` :
     paymentStatus !== undefined ? `Admin actualizó el pago de la cita de ${updated.clientName}` :
@@ -229,7 +231,7 @@ export async function PATCH(
       amountPaid:    appointment.amountPaid,
       date:          appointment.date.toISOString().slice(0, 10),
       startTime:     appointment.startTime,
-      ...(discountApplied ? { precioFinal: appointment.precioFinal } : {}),
+      ...(discountAudit ? { precioFinal: appointment.precioFinal } : {}),
     },
     after: {
       ...(status        !== undefined ? { status } : {}),
@@ -238,7 +240,7 @@ export async function PATCH(
       ...(date          ? { date } : {}),
       ...(startTime     ? { startTime } : {}),
       ...(notes         !== undefined ? { notes } : {}),
-      ...(discountApplied ? { descuentoTipo, descuentoValor, precioFinal: updateData.precioFinal } : {}),
+      ...(discountAudit ?? {}),
     },
   })
 
