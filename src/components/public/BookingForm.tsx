@@ -7,7 +7,7 @@ import DateTimePicker from './DateTimePicker'
 import { Icon } from './ServiceIcons'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { formatPrice } from '@/lib/utils'
+import { formatPrice, isValidPhone } from '@/lib/utils'
 
 interface Service {
   id: string
@@ -338,8 +338,8 @@ export default function BookingForm() {
       // Email is optional — only validate the format if something was typed.
       if (form.clientEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.clientEmail.trim()))
         errors.clientEmail = 'Ingresa un email válido (ej: correo@dominio.com).'
-      if (form.clientPhone.trim().length < 7)
-        errors.clientPhone = 'Ingresa un número de teléfono válido.'
+      if (!isValidPhone(form.clientPhone))
+        errors.clientPhone = 'Ingresa un número de teléfono válido (mínimo 10 dígitos).'
       if (Object.keys(errors).length > 0) { setFieldErrors(errors); return false }
       return true
     }

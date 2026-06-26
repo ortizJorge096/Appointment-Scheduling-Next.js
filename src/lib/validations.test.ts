@@ -50,6 +50,18 @@ describe('createAppointmentSchema', () => {
     expect(createAppointmentSchema.safeParse({ ...valid, clientPhone: '123' }).success).toBe(false)
   })
 
+  it('rechaza un móvil incompleto de 9 dígitos', () => {
+    expect(createAppointmentSchema.safeParse({ ...valid, clientPhone: '312456789' }).success).toBe(false)
+  })
+
+  it('acepta un móvil de 10 dígitos con formato (espacios/guiones)', () => {
+    expect(createAppointmentSchema.safeParse({ ...valid, clientPhone: '312 456-7890' }).success).toBe(true)
+  })
+
+  it('acepta un número con código de país', () => {
+    expect(createAppointmentSchema.safeParse({ ...valid, clientPhone: '+57 312 456 7890' }).success).toBe(true)
+  })
+
   it('rechaza fecha con formato incorrecto', () => {
     expect(createAppointmentSchema.safeParse({ ...valid, date: '01/12/2026' }).success).toBe(false)
   })
@@ -65,6 +77,29 @@ describe('createAppointmentSchema', () => {
 
   it('rechaza notas muy largas', () => {
     expect(createAppointmentSchema.safeParse({ ...valid, notes: 'x'.repeat(501) }).success).toBe(false)
+  })
+})
+
+// ── manual discount (updateAppointmentSchema carries the same fields) ─────
+describe('discount validation', () => {
+  it('accepts a fixed discount with a type', () => {
+    expect(updateAppointmentSchema.safeParse({ descuentoTipo: 'VALOR_FIJO', descuentoValor: 5000 }).success).toBe(true)
+  })
+
+  it('rejects a percentage over 100', () => {
+    expect(updateAppointmentSchema.safeParse({ descuentoTipo: 'PORCENTAJE', descuentoValor: 150 }).success).toBe(false)
+  })
+
+  it('rejects a value without a type', () => {
+    expect(updateAppointmentSchema.safeParse({ descuentoValor: 10 }).success).toBe(false)
+  })
+
+  it('rejects a negative discount', () => {
+    expect(updateAppointmentSchema.safeParse({ descuentoTipo: 'VALOR_FIJO', descuentoValor: -1 }).success).toBe(false)
+  })
+
+  it('accepts clearing the discount (all null)', () => {
+    expect(updateAppointmentSchema.safeParse({ descuentoTipo: null, descuentoValor: null, descuentoMotivo: null }).success).toBe(true)
   })
 })
 

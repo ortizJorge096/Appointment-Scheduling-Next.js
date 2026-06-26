@@ -1,80 +1,87 @@
 # docker-compose.yml
-# Complete local environment: Next.js + PostgreSQL
-# Usage: docker compose up --build
+# ⚠️  LOCAL DEVELOPMENT ONLY. Production runs on Kubernetes (see infra/k8s/).
+# Brings up Postgres + the Next.js app + a one-shot migrate/seed container.
+#
+# Usage:  cp .env.example .env.local   # fill secrets
+#         docker compose up --build
+#
+# The Postgres credentials here are DEV-ONLY defaults (overridable via shell or
+# .env.local). NEVER put real/production credentials in this file.
 
 services:
 
-  # ── Base de datos PostgreSQL ──────────────────────────
+  # ── PostgreSQL ────────────────────────────────────────
   db:
-    image: postgres:16-alpine
+    image: postgres:16.4-alpine
     container_name: valentinajimenez-db
     restart: unless-stopped
-
     environment:
-      POSTGRES_DB: valentinajimenez
-      POSTGRES_USER: valentinajimenez
-      POSTGRES_PASSWORD: valentinajimenez123
-
+      POSTGRES_DB: ${POSTGRES_DB:-valentinajimenez}
+      POSTGRES_USER: ${POSTGRES_USER:-valentinajimenez}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpassword}   # dev-only default
     ports:
-      - "5432:5432" # exposed for Prisma Studio connections
-
+      - "127.0.0.1:5432:5432"   # localhost only — for Prisma Studio / psql
     volumes:
       - postgres_data:/var/lib/postgresql/data
-
+    networks: [appnet]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U valentinajimenez -d valentinajimenez"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-valentinajimenez} -d ${POSTGRES_DB:-valentinajimenez}"]
       interval: 5s
       timeout: 5s
       retries: 10
 
-  # ── Aplicación Next.js ────────────────────────────────
+  # ── Migrations + seed (runs once, then exits) ─────────
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile.migrate
+    container_name: valentinajimenez-migrate
+    restart: "no"
+    env_file:
+      - .env.local
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-valentinajimenez}:${POSTGRES_PASSWORD:-devpassword}@db:5432/${POSTGRES_DB:-valentinajimenez}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [appnet]
+
+  # ── Next.js app ───────────────────────────────────────
   app:
     build:
       context: .
       dockerfile: Dockerfile
       # NEXT_PUBLIC_* are baked at build time. Defaults below make the plain
-      # `docker compose up -d --build` work; override via shell/.env or run
-      # `docker compose --env-file .env.local up -d --build`.
+      # `docker compose up --build` work; override via shell or .env.local.
       args:
-        NEXT_PUBLIC_HERO_IMAGES: "${NEXT_PUBLIC_HERO_IMAGES:-/hero/1.jpg,/hero/2.jpg,/hero/3.jpg,/hero/4.jpg}"
         NEXT_PUBLIC_WHATSAPP_NUMBER: "${NEXT_PUBLIC_WHATSAPP_NUMBER:-573001790511}"
         NEXT_PUBLIC_WHATSAPP_MESSAGE: "${NEXT_PUBLIC_WHATSAPP_MESSAGE:-¡Hola! Vengo de su sitio web y me gustaría más información.}"
-
     container_name: valentinajimenez-app
     restart: unless-stopped
-
     ports:
       - "3000:3000"
-
     env_file:
       - .env.local
-
     environment:
       TZ: America/Bogota
-      # Override DATABASE_URL to point to the db container
-      DATABASE_URL: postgresql://valentinajimenez:valentinajimenez123@db:5432/valentinajimenez
-
+      # Point at the db container (overrides any DATABASE_URL from .env.local).
+      DATABASE_URL: postgresql://${POSTGRES_USER:-valentinajimenez}:${POSTGRES_PASSWORD:-devpassword}@db:5432/${POSTGRES_DB:-valentinajimenez}
     depends_on:
       db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    networks: [appnet]
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
-   #── Migrations (runs once and exits) ──────────────────
-  migrate:
-     build:
-       context: .
-       dockerfile: Dockerfile.migrate
-
-     container_name: valentinajimenez-migrate
-
-     env_file:
-       - .env.local
-
-     environment:
-       DATABASE_URL: postgresql://valentinajimenez:valentinajimenez123@db:5432/valentinajimenez
-
-     depends_on:
-       db:
-         condition: service_healthy
+networks:
+  appnet:
+    driver: bridge
 
 volumes:
   postgres_data:

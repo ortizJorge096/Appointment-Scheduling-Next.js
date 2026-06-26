@@ -1,9 +1,14 @@
 import Link from 'next/link'
 import { STUDIO } from '@/lib/config'
+import { listHeroImages } from '@/lib/hero'
 import HeroCarousel from './HeroCarousel'
 import HeroSocialProof from './HeroSocialProof'
 
-export default function Hero() {
+export default async function Hero() {
+  // Auto-discovered from /public/hero/. Falls back to the single hero image.
+  const found  = await listHeroImages()
+  const images = found.length ? found : (STUDIO.heroImage ? [STUDIO.heroImage] : [])
+
   return (
     <section className="relative min-h-screen bg-ink flex items-center overflow-hidden">
       <div className="absolute inset-0 pointer-events-none"
@@ -47,7 +52,7 @@ export default function Hero() {
 
         {/* Right — cinematic carousel (≈45%). On mobile it sits on top, full width. */}
         <div className="animate-fade-up animation-delay-200 max-lg:order-first">
-          <HeroCarousel />
+          <HeroCarousel images={images} />
         </div>
       </div>
     </section>

@@ -1,6 +1,14 @@
 // src/lib/utils.ts
 // General-purpose helpers — valentinajimenez
 
+import { formatInTimeZone } from 'date-fns-tz'
+import { subDays } from 'date-fns'
+import { es } from 'date-fns/locale'
+
+// Studio timezone — hardcoded here (not imported from config) to keep utils
+// dependency-light and avoid an import cycle.
+const STUDIO_TZ = 'America/Bogota'
+
 type ClassValue = string | undefined | null | false
 
 /** Safely combines Tailwind classes (similar to shadcn's cn) */
@@ -35,6 +43,21 @@ export function shortCode(id: string): string {
   return id.slice(0, 8).toUpperCase()
 }
 
+/**
+ * Compact, relative "requested at" label for the appointments list, in the
+ * studio timezone: "Hoy 20:52" / "Ayer 14:30" / "23 jun 15:10".
+ */
+export function formatRequestedAt(date: Date | string): string {
+  const d = new Date(date)
+  const dStr         = formatInTimeZone(d, STUDIO_TZ, 'yyyy-MM-dd')
+  const todayStr     = formatInTimeZone(new Date(), STUDIO_TZ, 'yyyy-MM-dd')
+  const yesterdayStr = formatInTimeZone(subDays(new Date(), 1), STUDIO_TZ, 'yyyy-MM-dd')
+  const hhmm         = formatInTimeZone(d, STUDIO_TZ, 'HH:mm')
+  if (dStr === todayStr)     return `Hoy ${hhmm}`
+  if (dStr === yesterdayStr) return `Ayer ${hhmm}`
+  return formatInTimeZone(d, STUDIO_TZ, 'd MMM HH:mm', { locale: es })
+}
+
 /** Truncates a long string with an ellipsis */
 export function truncate(str: string, max: number): string {
   return str.length > max ? str.slice(0, max) + '...' : str
@@ -54,6 +77,18 @@ export function sleep(ms: number): Promise<void> {
 export function initialsFromName(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean).slice(0, 2)
   return parts.map((p) => p[0].toUpperCase() + '.').join('')
+}
+
+/**
+ * Mirrors the server-side phone rule (validations.ts `phoneSchema`) for instant
+ * client-side feedback: allowed characters + 10–15 digits. Kept in sync so the
+ * form and the API agree on what a valid phone is.
+ */
+export function isValidPhone(raw: string | null | undefined): boolean {
+  if (!raw) return false
+  if (!/^[0-9+\s()-]+$/.test(raw.trim())) return false
+  const digits = raw.replace(/\D/g, '')
+  return digits.length >= 10 && digits.length <= 15
 }
 
 /**
