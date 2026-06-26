@@ -97,6 +97,10 @@ describe('discount validation', () => {
   it('rejects a negative discount', () => {
     expect(updateAppointmentSchema.safeParse({ descuentoTipo: 'VALOR_FIJO', descuentoValor: -1 }).success).toBe(false)
   })
+
+  it('accepts clearing the discount (all null)', () => {
+    expect(updateAppointmentSchema.safeParse({ descuentoTipo: null, descuentoValor: null, descuentoMotivo: null }).success).toBe(true)
+  })
 })
 
 // ── availabilityQuerySchema ──────────────────────────────────────────────

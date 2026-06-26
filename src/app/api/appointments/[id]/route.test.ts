@@ -189,6 +189,20 @@ describe('PATCH /api/appointments/[id]', () => {
     expect(call.data.status).toBeUndefined()
   })
 
+  it('clears the saved discount when fields are sent as null', async () => {
+    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(prisma.appointment.findUnique).mockResolvedValue({
+      ...MOCK_APPOINTMENT, descuentoTipo: 'PORCENTAJE', descuentoValor: 10, precioFinal: 31500,
+    })
+    vi.mocked(prisma.appointment.update).mockResolvedValue(MOCK_APPOINTMENT)
+
+    await PATCH(makeRequest({ descuentoTipo: null, descuentoValor: null, descuentoMotivo: null }), CTX())
+
+    expect(prisma.appointment.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ descuentoTipo: null, descuentoValor: null, precioFinal: null }) })
+    )
+  })
+
   it('sends a reschedule email when date or startTime change', async () => {
     vi.mocked(getServerSession).mockResolvedValue({ user: {} })
     vi.mocked(prisma.appointment.findUnique).mockResolvedValue(MOCK_APPOINTMENT)

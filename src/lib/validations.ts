@@ -41,21 +41,25 @@ const phoneSchema = z
 
 // Manual discount (admin only). Shape is validated here; the subtotal-bound rule
 // (VALOR_FIJO ≤ subtotal) is enforced in the route, where the subtotal is known.
+// Nullable so the admin can CLEAR a saved discount (send the fields as null).
 const discountFields = {
-  descuentoTipo:   z.enum(['PORCENTAJE', 'VALOR_FIJO']).optional(),
-  descuentoValor:  z.number().int().min(0, 'El descuento no puede ser negativo').optional(),
-  descuentoMotivo: z.string().max(200).optional(),
+  descuentoTipo:   z.enum(['PORCENTAJE', 'VALOR_FIJO']).nullable().optional(),
+  descuentoValor:  z.number().int().min(0, 'El descuento no puede ser negativo').nullable().optional(),
+  descuentoMotivo: z.string().max(200).nullable().optional(),
 }
 
 // Cross-field discount checks, shared by the manual-create and update schemas.
+// null/undefined both mean "not set" (clearing is all-null, which passes).
 function checkDiscount(
-  data: { descuentoTipo?: string; descuentoValor?: number },
+  data: { descuentoTipo?: string | null; descuentoValor?: number | null },
   ctx: z.RefinementCtx,
 ): void {
   const { descuentoTipo, descuentoValor } = data
-  if (descuentoTipo && descuentoValor === undefined)
+  const hasTipo  = descuentoTipo != null
+  const hasValor = descuentoValor != null
+  if (hasTipo && !hasValor)
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['descuentoValor'], message: 'Indica el valor del descuento' })
-  if (descuentoValor !== undefined && !descuentoTipo)
+  if (hasValor && !hasTipo)
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['descuentoTipo'], message: 'Indica el tipo de descuento' })
   if (descuentoTipo === 'PORCENTAJE' && (descuentoValor ?? 0) > 100)
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['descuentoValor'], message: 'El porcentaje no puede superar 100' })

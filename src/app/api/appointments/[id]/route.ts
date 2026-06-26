@@ -146,9 +146,17 @@ export async function PATCH(
   if (paymentMethod !== undefined) updateData.paymentMethod = paymentMethod
   if (amountPaid    !== undefined) updateData.amountPaid    = amountPaid
 
-  // Manual discount applied from the detail. Subtotal = service(s) + extra.
+  // Manual discount applied/cleared from the detail. Subtotal = service(s) + extra.
   let discountAudit: { descuentoTipo: 'PORCENTAJE' | 'VALOR_FIJO'; descuentoValor: number; precioFinal: number } | null = null
-  if (descuentoTipo !== undefined && descuentoValor !== undefined) {
+  let discountCleared = false
+  if (descuentoTipo === null || descuentoValor === null) {
+    // Explicit clear: remove the saved discount, price reverts to the subtotal.
+    discountCleared = true
+    updateData.descuentoTipo   = null
+    updateData.descuentoValor  = null
+    updateData.descuentoMotivo = null
+    updateData.precioFinal     = null
+  } else if (descuentoTipo !== undefined && descuentoValor !== undefined) {
     const svcSubtotal = appointment.services && appointment.services.length > 1
       ? appointment.services.reduce((sum, s) => sum + s.price, 0)
       : appointment.service.price
@@ -222,6 +230,7 @@ export async function PATCH(
 
   const auditDescription =
     discountLabel               ? `Admin aplicó descuento de ${discountLabel} en la cita de ${updated.clientName}${descuentoMotivo?.trim() ? ` (motivo: ${descuentoMotivo.trim()})` : ''}` :
+    discountCleared             ? `Admin quitó el descuento de la cita de ${updated.clientName}` :
     completesByPayment          ? `Admin registró el pago y completó la cita de ${updated.clientName}` :
     status !== undefined        ? `Admin cambió el estado de la cita de ${updated.clientName} a ${status}` :
     isReschedule                ? `Admin reprogramó la cita de ${updated.clientName}` :
@@ -243,7 +252,7 @@ export async function PATCH(
       amountPaid:    appointment.amountPaid,
       date:          appointment.date.toISOString().slice(0, 10),
       startTime:     appointment.startTime,
-      ...(discountAudit ? { precioFinal: appointment.precioFinal } : {}),
+      ...(discountAudit || discountCleared ? { precioFinal: appointment.precioFinal } : {}),
     },
     after: {
       ...(effectiveStatus !== undefined ? { status: effectiveStatus } : {}),
@@ -253,6 +262,7 @@ export async function PATCH(
       ...(startTime     ? { startTime } : {}),
       ...(notes         !== undefined ? { notes } : {}),
       ...(discountAudit ?? {}),
+      ...(discountCleared ? { descuentoTipo: null, descuentoValor: null, precioFinal: null } : {}),
     },
   })
 
