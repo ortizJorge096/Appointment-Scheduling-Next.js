@@ -396,13 +396,13 @@ export default function CitaDetailPage() {
             </div>
             <input type="number" min={0} step={discTipo === 'PORCENTAJE' ? 1 : 1000}
               max={discTipo === 'PORCENTAJE' ? 100 : undefined}
-              className={`input-field ${discountTooBig ? 'border-red-400' : ''}`}
+              className={`input-field w-[120px] ${discountTooBig ? 'border-red-400' : ''}`}
               value={discValor} onChange={(e) => setDiscValor(e.target.value)}
               placeholder={discTipo === 'PORCENTAJE' ? '0–100' : '0'} />
-            <input className="input-field flex-1" value={discMotivo}
-              onChange={(e) => setDiscMotivo(e.target.value)}
-              placeholder="Motivo (interno, opcional)" />
           </div>
+          <input className="input-field w-full mt-2" value={discMotivo}
+            onChange={(e) => setDiscMotivo(e.target.value)}
+            placeholder="Motivo del descuento (interno, opcional)" />
           {discountTooBig && (
             <p className="text-xs text-red-500 mt-1">El descuento no puede superar el subtotal.</p>
           )}

@@ -393,14 +393,14 @@ export default function ManualAppointmentModal() {
                           max={form.descuentoTipo === 'PORCENTAJE' ? 100 : undefined}
                           value={form.descuentoValor} onChange={field('descuentoValor')}
                           placeholder={form.descuentoTipo === 'PORCENTAJE' ? '0–100' : '0'}
-                          className={`input-field w-full ${discountTooBig ? 'border-red-400' : ''}`} />
+                          className={`input-field w-[120px] ${discountTooBig ? 'border-red-400' : ''}`} />
                       </div>
                       {discountTooBig && (
                         <p className="text-xs text-red-500 mt-0.5">El descuento no puede superar el subtotal.</p>
                       )}
                       {hasDiscount && (
                         <input value={form.descuentoMotivo} onChange={field('descuentoMotivo')}
-                          placeholder="Motivo (interno, opcional): cliente frecuente…"
+                          placeholder="Motivo del descuento (interno, opcional)…"
                           className="input-field w-full mt-2" />
                       )}
                     </div>
