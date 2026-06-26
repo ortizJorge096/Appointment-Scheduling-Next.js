@@ -1,5 +1,22 @@
 import { describe, it, expect } from 'vitest'
-import { cn, formatPrice, shortCode, truncate, sleep, toWhatsAppNumber } from './utils'
+import { cn, formatPrice, shortCode, truncate, sleep, toWhatsAppNumber, formatRequestedAt } from './utils'
+
+describe('formatRequestedAt', () => {
+  it('labels a timestamp from today as "Hoy HH:mm"', () => {
+    expect(formatRequestedAt(new Date())).toMatch(/^Hoy \d{2}:\d{2}$/)
+  })
+
+  it('labels a timestamp from yesterday as "Ayer HH:mm"', () => {
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000)
+    expect(formatRequestedAt(yesterday)).toMatch(/^Ayer \d{2}:\d{2}$/)
+  })
+
+  it('labels older timestamps as "d MMM HH:mm" (no Hoy/Ayer)', () => {
+    const label = formatRequestedAt('2026-01-15T15:10:00.000Z')
+    expect(label).not.toMatch(/Hoy|Ayer/)
+    expect(label).toMatch(/\d{1,2} \w+ \d{2}:\d{2}/)
+  })
+})
 
 describe('cn', () => {
   it('combines class names', () => {

@@ -1,6 +1,14 @@
 // src/lib/utils.ts
 // General-purpose helpers — valentinajimenez
 
+import { formatInTimeZone } from 'date-fns-tz'
+import { subDays } from 'date-fns'
+import { es } from 'date-fns/locale'
+
+// Studio timezone — hardcoded here (not imported from config) to keep utils
+// dependency-light and avoid an import cycle.
+const STUDIO_TZ = 'America/Bogota'
+
 type ClassValue = string | undefined | null | false
 
 /** Safely combines Tailwind classes (similar to shadcn's cn) */
@@ -33,6 +41,21 @@ export function formatDate(date: Date | string, options?: Intl.DateTimeFormatOpt
 /** Builds a short booking code from the ID */
 export function shortCode(id: string): string {
   return id.slice(0, 8).toUpperCase()
+}
+
+/**
+ * Compact, relative "requested at" label for the appointments list, in the
+ * studio timezone: "Hoy 20:52" / "Ayer 14:30" / "23 jun 15:10".
+ */
+export function formatRequestedAt(date: Date | string): string {
+  const d = new Date(date)
+  const dStr         = formatInTimeZone(d, STUDIO_TZ, 'yyyy-MM-dd')
+  const todayStr     = formatInTimeZone(new Date(), STUDIO_TZ, 'yyyy-MM-dd')
+  const yesterdayStr = formatInTimeZone(subDays(new Date(), 1), STUDIO_TZ, 'yyyy-MM-dd')
+  const hhmm         = formatInTimeZone(d, STUDIO_TZ, 'HH:mm')
+  if (dStr === todayStr)     return `Hoy ${hhmm}`
+  if (dStr === yesterdayStr) return `Ayer ${hhmm}`
+  return formatInTimeZone(d, STUDIO_TZ, 'd MMM HH:mm', { locale: es })
 }
 
 /** Truncates a long string with an ellipsis */

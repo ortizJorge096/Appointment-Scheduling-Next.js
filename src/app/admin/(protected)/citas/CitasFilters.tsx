@@ -9,20 +9,29 @@ interface Props {
   status?:   string
   dateFrom?: string
   dateTo?:   string
+  sort?:     string
 }
+
+const SORT_LABELS: { value: string; label: string }[] = [
+  { value: 'upcoming', label: 'Próximas primero' },
+  { value: 'recent',   label: 'Recién solicitadas' },
+  { value: 'oldest',   label: 'Orden de llegada' },
+  { value: 'status',   label: 'Por estado' },
+]
 
 // This filter strip doesn't offer a NO_SHOW button, but does need "Todas" —
 // derive from the canonical map instead of redefining the other four by hand.
 const STATUS_LABEL: Record<string, string> = { ALL: 'Todas', ...APPOINTMENT_STATUS_LABEL }
 
-export default function CitasFilters({ status, dateFrom, dateTo }: Props) {
+export default function CitasFilters({ status, dateFrom, dateTo, sort }: Props) {
   const router = useRouter()
 
   function buildUrl(overrides: Record<string, string>) {
     const params = new URLSearchParams({
-      ...(status   && status !== 'ALL' ? { status }   : {}),
+      ...(status   && status !== 'ALL'     ? { status } : {}),
       ...(dateFrom ? { dateFrom } : {}),
       ...(dateTo   ? { dateTo }   : {}),
+      ...(sort     && sort !== 'upcoming'  ? { sort }   : {}),
       ...overrides,
     })
     router.push(`/admin/citas?${params}`)
@@ -64,8 +73,18 @@ export default function CitasFilters({ status, dateFrom, dateTo }: Props) {
           onChange={(e) => buildUrl({ dateTo: e.target.value })} />
       </div>
 
+      {/* Sort */}
+      <div>
+        <label className="form-label text-[10px]">Ordenar</label>
+        <select value={sort ?? 'upcoming'}
+          className="input-field text-sm py-1.5"
+          onChange={(e) => buildUrl({ sort: e.target.value })}>
+          {SORT_LABELS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+      </div>
+
       {/* Clear */}
-      {(status && status !== 'ALL' || dateFrom || dateTo) && (
+      {(status && status !== 'ALL' || dateFrom || dateTo || (sort && sort !== 'upcoming')) && (
         <button type="button"
           onClick={() => router.push('/admin/citas')}
           className="text-xs text-ink-muted hover:text-gold transition-colors self-end pb-1.5">
