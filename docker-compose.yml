@@ -8,8 +8,6 @@
 # The Postgres credentials here are DEV-ONLY defaults (overridable via shell or
 # .env.local). NEVER put real/production credentials in this file.
 
-name: valentinajimenez
-
 services:
 
   # ── PostgreSQL ────────────────────────────────────────
