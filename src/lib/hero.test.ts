@@ -1,12 +1,15 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 
-vi.mock('fs/promises', () => ({ readdir: vi.fn() }))
+// Shared mock fn, hoisted so it exists before the (hoisted) vi.mock factory runs.
+// fs/promises is exposed both as a named export and on `default` to satisfy the
+// module interop vitest uses for built-ins.
+const { readdir } = vi.hoisted(() => ({ readdir: vi.fn() }))
+vi.mock('fs/promises', () => ({ default: { readdir }, readdir }))
 
-const { readdir } = await import('fs/promises')
 const { listHeroImages } = await import('./hero')
 
 const mockFiles = (files: string[]) =>
-  vi.mocked(readdir).mockResolvedValue(files as unknown as Awaited<ReturnType<typeof readdir>>)
+  readdir.mockResolvedValue(files as unknown as Awaited<ReturnType<typeof readdir>>)
 
 describe('listHeroImages', () => {
   beforeEach(() => vi.clearAllMocks())
@@ -22,7 +25,7 @@ describe('listHeroImages', () => {
   })
 
   it('returns [] when the folder is missing or unreadable', async () => {
-    vi.mocked(readdir).mockRejectedValue(new Error('ENOENT'))
+    readdir.mockRejectedValue(new Error('ENOENT'))
     expect(await listHeroImages()).toEqual([])
   })
 })
