@@ -253,7 +253,7 @@ export default function CitaDetailPage() {
           )}
           <div className="flex items-center justify-between gap-3 mt-1">
             <p className="text-ink text-sm">📱 {appt.clientPhone}</p>
-            {waUrl && (
+            {waUrl ? (
               <a href={waUrl} target="_blank" rel="noreferrer"
                 className="inline-flex items-center gap-1.5 text-xs text-gold border border-gold/40 rounded-full px-3 py-1.5 hover:bg-gold-pale transition-colors shrink-0">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
@@ -261,6 +261,10 @@ export default function CitaDetailPage() {
                 </svg>
                 WhatsApp
               </a>
+            ) : (
+              <span className="text-xs text-ink-muted/60 italic shrink-0" title="No se puede abrir WhatsApp con un número incompleto">
+                Teléfono incompleto
+              </span>
             )}
           </div>
         </div>
