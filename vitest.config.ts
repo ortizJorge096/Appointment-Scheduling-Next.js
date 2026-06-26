@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config'
+import { defineConfig, configDefaults } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 
@@ -8,6 +8,9 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: './src/test-utils/setup.ts',
     globals: true,
+    // e2e/ holds Playwright specs (run via `playwright test`, not Vitest) —
+    // their *.spec.ts filenames would otherwise match Vitest's default glob.
+    exclude: [...configDefaults.exclude, '**/e2e/**'],
     // Heavy modules (e.g. AWS SDK) re-imported after vi.resetModules() can take
     // longer than the 5s default on slow/CI runners. Give tests/hooks more room
     // to avoid flaky timeouts.

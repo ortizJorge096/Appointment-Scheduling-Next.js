@@ -12,6 +12,7 @@ import { computeDiscountAmount } from '@/lib/discount'
 import { STUDIO } from '@/lib/config'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
 import { STATUS_LABEL, STATUS_CLASS } from '@/lib/appointmentStatus'
+import AdicionalesEditor, { type Adicional } from '@/components/admin/AdicionalesEditor'
 import type { AppointmentWithService, AppointmentStatus } from '@/types'
 
 const PAYMENT_STATUS_OPTS = [
@@ -69,6 +70,10 @@ export default function CitaDetailPage() {
   const [discMotivo, setDiscMotivo] = useState('')
   const [discountOpen, setDiscountOpen] = useState(false)
 
+  // Adicionales (collapsible)
+  const [extras, setExtras]         = useState<Adicional[]>([])
+  const [extrasOpen, setExtrasOpen] = useState(false)
+
   useEffect(() => {
     fetch(`/api/appointments/${id}`)
       .then((r) => r.json())
@@ -91,6 +96,10 @@ export default function CitaDetailPage() {
     setDiscMotivo(appt.descuentoMotivo ?? '')
     // Already-saved discount → show expanded with its values.
     setDiscountOpen(appt.descuentoValor != null)
+    const savedExtras = (appt.extras ?? []).map((e) => ({ description: e.description, amount: String(e.amount) }))
+    setExtras(savedExtras)
+    // Already-saved extras → show expanded.
+    setExtrasOpen(savedExtras.length > 0)
   }, [appt])
 
   async function updateStatus(status: AppointmentStatus) {
@@ -135,6 +144,9 @@ export default function CitaDetailPage() {
         paymentStatus: payStatus,
         amountPaid:    payAmount ? parseInt(payAmount) : null,
         paymentMethod: payMethod || null,
+        extras: extras
+          .filter((e) => e.description.trim() && Number(e.amount) > 0)
+          .map((e) => ({ description: e.description.trim(), amount: Number(e.amount) })),
         ...(Number(discValor) > 0
           ? {
               descuentoTipo:   discTipo,
@@ -166,13 +178,29 @@ export default function CitaDetailPage() {
     setDiscValor(''); setDiscMotivo(''); setDiscTipo('PORCENTAJE'); setDiscountOpen(false)
   }
 
+  // Expand the adicionales block and seed the first empty row right away, so
+  // the click that opens the section lands directly on an input — same as
+  // "+ Agregar descuento", which shows its inputs in one click.
+  function showExtras() {
+    setExtras((e) => (e.length > 0 ? e : [{ description: '', amount: '' }]))
+    setExtrasOpen(true)
+  }
+
+  // Collapse the adicionales block, discarding any blank draft row left
+  // untouched (mirrors removeDiscount clearing unsaved discount inputs).
+  function hideExtras() {
+    setExtras((e) => e.filter((it) => it.description.trim() || it.amount.trim()))
+    setExtrasOpen(false)
+  }
+
   // Quick action: mark the (discounted) total as paid
   function markPaidFull() {
     if (!appt) return
     const svc = appt.services && appt.services.length > 1
       ? appt.services.reduce((sum, s) => sum + s.price, 0)
       : appt.service.price
-    const sub   = svc + (appt.extraAmount ?? 0)
+    const extrasTotal = extras.reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
+    const sub   = svc + extrasTotal
     const final = sub - computeDiscountAmount(sub, discTipo, Number(discValor) || 0)
     setPayStatus('PAID')
     setPayAmount(String(final))
@@ -199,7 +227,8 @@ export default function CitaDetailPage() {
   const servicesTotal = appt.services && appt.services.length > 1
     ? appt.services.reduce((sum, s) => sum + s.price, 0)
     : appt.service.price
-  const subtotal       = servicesTotal + (appt.extraAmount ?? 0)
+  const extrasTotal    = extras.reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
+  const subtotal       = servicesTotal + extrasTotal
   const discValorNum   = Number(discValor) || 0
   const discountAmount = computeDiscountAmount(subtotal, discTipo, discValorNum)
   const finalPrice     = subtotal - discountAmount
@@ -274,10 +303,12 @@ export default function CitaDetailPage() {
               <p className="text-xs text-ink-muted mt-0.5">{appt.service.durationMinutes} min</p>
             </>
           )}
-          {appt.extraAmount != null && appt.extraAmount > 0 && (
-            <p className="text-xs text-ink-muted mt-2 pt-2 border-t border-beige-dark">
-              + Adicional{appt.extraDescription ? ` (${appt.extraDescription})` : ''}: {formatPrice(appt.extraAmount)}
-            </p>
+          {(appt.extras ?? []).length > 0 && (
+            <div className="text-xs text-ink-muted mt-2 pt-2 border-t border-beige-dark space-y-0.5">
+              {appt.extras!.map((e) => (
+                <p key={e.id}>+ Adicional ({e.description}): {formatPrice(e.amount)}</p>
+              ))}
+            </div>
           )}
         </div>
 
@@ -402,6 +433,27 @@ export default function CitaDetailPage() {
           </div>
         </div>
 
+        {/* Adicionales — collapsible */}
+        <div className="mt-4">
+          <div className="flex items-center justify-between">
+            <span className="form-label !mb-0">Adicional (opcional)</span>
+            {extrasOpen ? (
+              <button type="button" onClick={hideExtras}
+                className="text-xs text-ink-muted hover:text-ink transition-colors">Ocultar</button>
+            ) : (
+              <button type="button" onClick={showExtras}
+                className="text-xs text-gold hover:underline">+ Agregar adicional</button>
+            )}
+          </div>
+          <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${extrasOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+            <div className="overflow-hidden">
+              <div className="pt-3">
+                <AdicionalesEditor items={extras} onChange={setExtras} />
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Discount — collapsible */}
         <div className="mt-4">
           <div className="flex items-center justify-between">
@@ -446,18 +498,20 @@ export default function CitaDetailPage() {
         </div>
 
         {/* Breakdown */}
-        {(hasDiscount || (appt.extraAmount ?? 0) > 0) && (
+        {(hasDiscount || extrasTotal > 0) && (
           <div className="bg-beige-pale rounded-lg px-4 py-3 text-sm space-y-1 mt-4">
             <div className="flex justify-between text-ink-muted">
               <span>Servicio{appt.services && appt.services.length > 1 ? 's' : ''}</span>
               <span>{formatPrice(servicesTotal)}</span>
             </div>
-            {(appt.extraAmount ?? 0) > 0 && (
-              <div className="flex justify-between text-ink-muted">
-                <span>Adicional{appt.extraDescription ? ` (${appt.extraDescription})` : ''}</span>
-                <span>{formatPrice(appt.extraAmount!)}</span>
-              </div>
-            )}
+            {extras
+              .filter((e) => e.description.trim() && Number(e.amount) > 0)
+              .map((e, i) => (
+                <div key={i} className="flex justify-between text-ink-muted">
+                  <span>Adicional ({e.description.trim()})</span>
+                  <span>{formatPrice(Number(e.amount))}</span>
+                </div>
+              ))}
             {hasDiscount && !discountTooBig && (
               <>
                 <div className="flex justify-between text-ink-muted border-t border-beige-dark pt-1 mt-1">

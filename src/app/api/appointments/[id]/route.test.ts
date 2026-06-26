@@ -55,6 +55,7 @@ const MOCK_APPOINTMENT = {
   totalDurationMinutes: 45,
   service: MOCK_SERVICE,
   services: [],
+  extras:   [],
 }
 
 const CTX = (id = 'appt-1') => ({ params: Promise.resolve({ id }) })
