@@ -175,7 +175,7 @@ export default function HorariosPage() {
                           value={sched.startTime}
                           disabled={!sched.isActive}
                           onChange={(e) => updateSchedule(sched.dayOfWeek, 'startTime', e.target.value)}
-                          className="input-field py-1.5 w-24 sm:w-28 text-sm"
+                          className="input-field py-1.5 w-24 sm:w-28"
                         />
                         <span>–</span>
                         <input
@@ -183,7 +183,7 @@ export default function HorariosPage() {
                           value={sched.endTime}
                           disabled={!sched.isActive}
                           onChange={(e) => updateSchedule(sched.dayOfWeek, 'endTime', e.target.value)}
-                          className="input-field py-1.5 w-24 sm:w-28 text-sm"
+                          className="input-field py-1.5 w-24 sm:w-28"
                         />
                       </div>
                     </div>
@@ -215,7 +215,7 @@ export default function HorariosPage() {
                   type="date"
                   value={newBlock.date}
                   onChange={(e) => setNewBlock({ ...newBlock, date: e.target.value })}
-                  className="input-field py-1.5 w-36 sm:w-40 text-sm"
+                  className="input-field py-1.5 w-36 sm:w-40"
                   min={new Date().toISOString().split('T')[0]}
                 />
               </div>
@@ -225,7 +225,7 @@ export default function HorariosPage() {
                   type="text"
                   value={newBlock.reason}
                   onChange={(e) => setNewBlock({ ...newBlock, reason: e.target.value })}
-                  className="input-field py-1.5 text-sm"
+                  className="input-field py-1.5"
                   placeholder="Ej: Festivo, vacaciones..."
                 />
               </div>

@@ -283,7 +283,7 @@ export default function GaleriaAdminPage() {
                       value={editForm.title}
                       onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
                     />
-                    <textarea className="input-field resize-none text-sm" rows={2}
+                    <textarea className="input-field resize-none" rows={2}
                       placeholder="Descripción corta (opcional)"
                       maxLength={300}
                       value={editForm.description}
