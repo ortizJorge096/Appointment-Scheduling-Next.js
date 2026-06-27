@@ -123,7 +123,7 @@ export default function BookingSettingsCard() {
         <div className="flex items-center gap-3 flex-wrap">
           <input
             type="number" min={7} max={365}
-            className="input-field !w-28 text-sm"
+            className="input-field !w-28"
             value={maxAdvanceInput}
             onChange={(e) => setMaxAdvanceInput(e.target.value)}
           />

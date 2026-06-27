@@ -2,7 +2,9 @@
 import { Suspense } from 'react'
 import CancelarClient from './CancelarClient'
 
-export const metadata = { title: 'Cancelar cita' }
+// noindex: this page carries a per-appointment cancel token in the URL and must
+// never be indexed by search engines.
+export const metadata = { title: 'Cancelar cita', robots: { index: false, follow: false } }
 
 export default function CancelarPage() {
   return (

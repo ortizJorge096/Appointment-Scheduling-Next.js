@@ -11,12 +11,19 @@ import { audit, getClientIp } from '@/lib/audit'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   const session = await getServerSession(authOptions)
 
+  // Active-only is the safe default for everyone — the public site/booking flow
+  // must never show inactive services, even when an admin is logged in on the
+  // same browser. Listing inactive ones is opt-in (admin catalog) and needs a
+  // session.
+  const includeInactive =
+    !!session && new URL(request.url).searchParams.get('includeInactive') === 'true'
+
   const services = await prisma.service.findMany({
-    // Soft-deleted services never show. Admin sees active+inactive; public only active.
-    where: session ? { deletedAt: null } : { deletedAt: null, isActive: true },
+    // Soft-deleted services never show.
+    where: includeInactive ? { deletedAt: null } : { deletedAt: null, isActive: true },
     orderBy: { order: 'asc' },
     select: {
       id: true,

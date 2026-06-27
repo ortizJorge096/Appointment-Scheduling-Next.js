@@ -8,6 +8,23 @@ Internet → Route53 → EC2 (Next.js) → RDS PostgreSQL
                                    → S3 (imágenes)
 ```
 
+> Producción corre en **k3s/Kubernetes** (manifiestos en `infra/k8s/`); el deploy lo hace CI/CD (build → ECR → k8s). El `docker-compose` de abajo es **solo para desarrollo local**.
+
+---
+
+## Desarrollo local (Docker Compose)
+
+Levanta Postgres + la app + un contenedor que migra y siembra la base, todo en local:
+
+```bash
+cp .env.example .env.local   # completa los secretos
+docker compose up --build
+```
+
+- App en `http://localhost:3000`; Postgres en `127.0.0.1:5432` (para Prisma Studio).
+- Las credenciales de la DB en el compose son **solo de desarrollo** (override con `.env.local`).
+- ⚠️ Este compose **no** es para producción — prod va por k8s.
+
 ---
 
 ## 1. Prerrequisitos

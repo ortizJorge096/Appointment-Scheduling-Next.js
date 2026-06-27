@@ -33,7 +33,7 @@ export default function ProfesionalesPage() {
   const [form, setForm]         = useState(EMPTY)
 
   function load() {
-    fetch('/api/professionals')
+    fetch('/api/professionals?includeInactive=true')
       .then((r) => r.json())
       .then((json) => { if (json.success) setProfessionals(json.data) })
       .catch(() => setError('Error al cargar profesionales'))

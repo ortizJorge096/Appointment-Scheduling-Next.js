@@ -177,8 +177,7 @@ describe('POST /api/appointments/manual', () => {
         date: recentPastDate(2),
         mode: 'PAST',
         totalCharged: 35000,
-        extraDescription: 'Tinte extra',
-        extraAmount: 10000,
+        extras: [{ description: 'Tinte extra', amount: 10000 }],
       }))
 
       expect(res.status).toBe(201)
@@ -186,8 +185,8 @@ describe('POST /api/appointments/manual', () => {
       expect(createArgs.data.status).toBe('COMPLETED')
       expect(createArgs.data.paymentStatus).toBe('PAID')
       expect(createArgs.data.amountPaid).toBe(45000)
-      expect(createArgs.data.extraDescription).toBe('Tinte extra')
-      expect(createArgs.data.extraAmount).toBe(10000)
+      expect(createArgs.data.extras.create[0].description).toBe('Tinte extra')
+      expect(createArgs.data.extras.create[0].amount).toBe(10000)
       expect(createArgs.data.services.create[0].price).toBe(35000)
     })
 

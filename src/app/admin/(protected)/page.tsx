@@ -118,13 +118,19 @@ export default async function DashboardPage() {
         <p className="text-xs text-ink-muted tracking-widest uppercase mb-1">
           {format(now, "EEEE d 'de' MMMM", { locale: es })}
         </p>
-        <h1 className="font-serif text-3xl text-ink font-light">Dashboard</h1>
+        <h1 className="font-serif text-2xl sm:text-3xl text-ink font-light">Dashboard</h1>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-        {stats.map((s) => (
-          <StatCard key={s.label} label={s.label} value={s.value} accent={s.accent} />
+        {stats.map((s, i) => (
+          <StatCard
+            key={s.label} label={s.label} value={s.value} accent={s.accent}
+            // Odd count → the last card spans both mobile columns instead of
+            // sitting alone at half-width. Reverts at lg, where every card
+            // gets its own column anyway.
+            className={i === stats.length - 1 && stats.length % 2 === 1 ? 'col-span-2 lg:col-span-1' : undefined}
+          />
         ))}
       </div>
 
@@ -139,20 +145,25 @@ export default async function DashboardPage() {
               <b className="font-serif text-gold-dark text-base">{formatPrice(periodRevenue)}</b>
             </span>
           </div>
-          <div className="flex items-end gap-1.5">
-            {days.map((d) => (
-              <div key={d.key} className="flex-1 flex flex-col items-center gap-1.5">
-                <div className="w-full h-40 flex items-end">
-                  <div
-                    className="w-full rounded-t-md bg-gradient-to-t from-gold to-gold-light
-                               min-h-[2px] transition-all duration-300 hover:brightness-110"
-                    style={{ height: `${Math.round((d.count / maxCount) * 100)}%` }}
-                    title={`${d.weekday} ${d.label}: ${d.count} cita(s) · ${formatPrice(d.revenue)}`}
-                  />
+          {/* min-w forces horizontal scroll on mobile instead of squashing
+              14 bars down to ~12px each; sm:min-w-0 lets it size to the card
+              normally once there's enough room. */}
+          <div className="overflow-x-auto -mx-1">
+            <div className="flex items-end gap-1.5 min-w-[480px] sm:min-w-0 px-1">
+              {days.map((d) => (
+                <div key={d.key} className="flex-1 flex flex-col items-center gap-1.5">
+                  <div className="w-full h-40 flex items-end">
+                    <div
+                      className="w-full rounded-t-md bg-gradient-to-t from-gold to-gold-light
+                                 min-h-[2px] transition-all duration-300 hover:brightness-110"
+                      style={{ height: `${Math.round((d.count / maxCount) * 100)}%` }}
+                      title={`${d.weekday} ${d.label}: ${d.count} cita(s) · ${formatPrice(d.revenue)}`}
+                    />
+                  </div>
+                  <span className="text-[9px] text-ink-muted">{d.label}</span>
                 </div>
-                <span className="text-[9px] text-ink-muted">{d.label}</span>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
 
@@ -235,12 +246,12 @@ export default async function DashboardPage() {
       {/* Frequent clients */}
       <div className="bg-white rounded-xl border border-beige-dark overflow-hidden mt-6">
         <div className="px-5 sm:px-6 py-4 border-b border-beige-dark flex items-center justify-between">
-          <h2 className="font-serif text-xl text-ink font-light">Clientas frecuentes</h2>
-          <Link href="/admin/clientes" className="text-xs text-gold hover:underline">Ver todas →</Link>
+          <h2 className="font-serif text-xl text-ink font-light">Clientes frecuentes</h2>
+          <Link href="/admin/clientes" className="text-xs text-gold hover:underline">Ver todos →</Link>
         </div>
         {topClients.length === 0 ? (
           <div className="px-5 sm:px-6 py-12 text-center text-ink-muted text-sm">
-            Aún no hay clientas registradas.
+            Aún no hay clientes registrados.
           </div>
         ) : (
           <div className="divide-y divide-beige-dark">

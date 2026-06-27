@@ -28,7 +28,7 @@ const FAQS: FAQItem[] = [
   {
     question: '¿Los materiales y productos son de calidad?',
     answer:
-      'Sí. Trabajamos exclusivamente con marcas reconocidas en el mercado, aptas para piel sensible. Todos nuestros implementos son desechables o esterilizados entre clientas. Tu seguridad e higiene son nuestra prioridad.',
+      'Sí. Trabajamos exclusivamente con marcas reconocidas en el mercado, aptas para piel sensible. Todos nuestros implementos son desechables o esterilizados entre cada servicio. Tu seguridad e higiene son nuestra prioridad.',
   },
   {
     question: '¿Cuánto duran los servicios?',

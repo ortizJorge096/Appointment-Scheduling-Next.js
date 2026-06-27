@@ -2,6 +2,10 @@
 import { Suspense } from 'react'
 import ConfirmacionClient from './ConfirmacionClient'
 
+// noindex: this page can carry a per-appointment cancel token in the URL and
+// must never be indexed by search engines.
+export const metadata = { title: 'Cita confirmada', robots: { index: false, follow: false } }
+
 export default function ConfirmacionPage() {
   return (
     <Suspense fallback={

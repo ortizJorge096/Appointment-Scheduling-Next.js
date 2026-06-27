@@ -12,12 +12,18 @@ import { slugify } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   const session = await getServerSession(authOptions)
 
+  // Active-only is the safe default for everyone — the public site must never
+  // show inactive categories, even when an admin is logged in on the same
+  // browser. Listing inactive ones is opt-in (admin catalog) and needs a session.
+  const includeInactive =
+    !!session && new URL(request.url).searchParams.get('includeInactive') === 'true'
+
   const categories = await prisma.category.findMany({
-    // Soft-deleted categories never show. Public also hides inactive ones.
-    where: session ? { deletedAt: null } : { deletedAt: null, isActive: true },
+    // Soft-deleted categories never show.
+    where: includeInactive ? { deletedAt: null } : { deletedAt: null, isActive: true },
     orderBy: { order: 'asc' },
     select: {
       id: true,

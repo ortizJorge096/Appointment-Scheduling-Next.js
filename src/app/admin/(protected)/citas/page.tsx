@@ -7,13 +7,25 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import CitasFilters from './CitasFilters'
 import ManualAppointmentModal from '@/components/admin/ManualAppointmentModal'
-import { formatPrice } from '@/lib/utils'
+import { formatPrice, formatRequestedAt } from '@/lib/utils'
 import { STATUS_LABEL, STATUS_CLASS } from '@/lib/appointmentStatus'
+import { formatInTimeZone } from 'date-fns-tz'
+import type { Prisma } from '@prisma/client'
 
 export const metadata: Metadata = { title: 'Citas' }
 export const dynamic = 'force-dynamic'
 
-interface SearchParams { status?: string; dateFrom?: string; dateTo?: string; page?: string }
+interface SearchParams { status?: string; dateFrom?: string; dateTo?: string; page?: string; sort?: string }
+
+// Ordering options (kept in the URL so they persist + are shareable).
+const SORT_OPTIONS = ['upcoming', 'recent', 'oldest', 'status'] as const
+type Sort = (typeof SORT_OPTIONS)[number]
+const ORDER_BY: Record<Sort, Prisma.AppointmentOrderByWithRelationInput[]> = {
+  upcoming: [{ date: 'asc'  }, { startTime: 'asc' }],
+  recent:   [{ createdAt: 'desc' }],
+  oldest:   [{ createdAt: 'asc'  }],
+  status:   [{ status: 'asc' }, { date: 'asc' }, { startTime: 'asc' }],
+}
 
 export default async function CitasPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const sp       = await searchParams
@@ -22,6 +34,7 @@ export default async function CitasPage({ searchParams }: { searchParams: Promis
   const status   = sp.status
   const dateFrom = sp.dateFrom
   const dateTo   = sp.dateTo
+  const sort: Sort = SORT_OPTIONS.includes(sp.sort as Sort) ? (sp.sort as Sort) : 'upcoming'
 
   const where: Record<string, unknown> = {}
   if (status && status !== 'ALL') where.status = status
@@ -30,6 +43,11 @@ export default async function CitasPage({ searchParams }: { searchParams: Promis
       ...(dateFrom ? { gte: new Date(`${dateFrom}T00:00:00`) } : {}),
       ...(dateTo   ? { lte: new Date(`${dateTo}T23:59:59`)   } : {}),
     }
+  } else if (sort === 'upcoming') {
+    // "Próximas primero" with no explicit date filter → show today onward only,
+    // so the agenda isn't buried under months of past appointments.
+    const todayStr = formatInTimeZone(new Date(), 'America/Bogota', 'yyyy-MM-dd')
+    where.date = { gte: new Date(`${todayStr}T00:00:00`) }
   }
 
   const [appointments, total] = await Promise.all([
@@ -41,7 +59,7 @@ export default async function CitasPage({ searchParams }: { searchParams: Promis
           include: { service: { select: { name: true, price: true } } },
         },
       },
-      orderBy: [{ date: 'desc' }, { startTime: 'asc' }],
+      orderBy: ORDER_BY[sort],
       skip: (page - 1) * limit, take: limit,
     }),
     prisma.appointment.count({ where }),
@@ -54,6 +72,7 @@ export default async function CitasPage({ searchParams }: { searchParams: Promis
       ...(status   && status !== 'ALL' ? { status }   : {}),
       ...(dateFrom ? { dateFrom } : {}),
       ...(dateTo   ? { dateTo }   : {}),
+      ...(sort !== 'upcoming' ? { sort } : {}),
       page: String(p),
     })
     return `/admin/citas?${params}`
@@ -69,7 +88,7 @@ export default async function CitasPage({ searchParams }: { searchParams: Promis
         <ManualAppointmentModal />
       </div>
 
-      <CitasFilters status={status} dateFrom={dateFrom} dateTo={dateTo} />
+      <CitasFilters status={status} dateFrom={dateFrom} dateTo={dateTo} sort={sort} />
 
       {/* Table — desktop */}
       <div className="bg-white rounded-xl border border-beige-dark overflow-x-auto">
@@ -87,6 +106,7 @@ export default async function CitasPage({ searchParams }: { searchParams: Promis
                   <th className="text-left px-5 py-3 font-medium">Cliente</th>
                   <th className="text-left px-5 py-3 font-medium">Servicio</th>
                   <th className="text-left px-5 py-3 font-medium hidden lg:table-cell">Valor</th>
+                  <th className="text-left px-5 py-3 font-medium hidden lg:table-cell">Solicitada</th>
                   <th className="text-left px-5 py-3 font-medium">Estado</th>
                   <th className="px-5 py-3" />
                 </tr>
@@ -121,6 +141,9 @@ export default async function CitasPage({ searchParams }: { searchParams: Promis
                           ? appt.services.reduce((sum, s) => sum + s.price, 0)
                           : appt.service.price
                       )}
+                    </td>
+                    <td className="px-5 py-3.5 text-ink-muted text-xs whitespace-nowrap hidden lg:table-cell">
+                      {formatRequestedAt(appt.createdAt)}
                     </td>
                     <td className="px-5 py-3.5">
                       <span className={STATUS_CLASS[appt.status]}>{STATUS_LABEL[appt.status]}</span>
@@ -167,6 +190,7 @@ export default async function CitasPage({ searchParams }: { searchParams: Promis
                       ? appt.services.map((s) => s.service.name).join(' + ')
                       : appt.service.name}
                   </p>
+                  <p className="text-[11px] text-ink-muted/70 mt-0.5">Solicitada: {formatRequestedAt(appt.createdAt)}</p>
                 </Link>
               ))}
             </div>
@@ -180,13 +204,13 @@ export default async function CitasPage({ searchParams }: { searchParams: Promis
           <div className="flex gap-2">
             {page > 1 && (
               <Link href={pageUrl(page - 1)}
-                className="px-3 py-1.5 text-xs border border-beige-dark rounded-lg text-ink-muted hover:border-gold transition-colors">
+                className="px-3 py-2.5 sm:py-1.5 text-xs border border-beige-dark rounded-lg text-ink-muted hover:border-gold transition-colors">
                 ← Anterior
               </Link>
             )}
             {page < totalPages && (
               <Link href={pageUrl(page + 1)}
-                className="px-3 py-1.5 text-xs border border-beige-dark rounded-lg text-ink-muted hover:border-gold transition-colors">
+                className="px-3 py-2.5 sm:py-1.5 text-xs border border-beige-dark rounded-lg text-ink-muted hover:border-gold transition-colors">
                 Siguiente →
               </Link>
             )}

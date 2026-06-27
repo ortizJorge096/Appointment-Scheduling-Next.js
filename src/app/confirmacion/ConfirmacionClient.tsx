@@ -102,10 +102,13 @@ export default function ConfirmacionClient() {
           <h1 className="font-serif text-4xl text-ink font-light mb-2">
             ¡Cita <em className="text-gold">confirmada</em>!
           </h1>
-          <p className="text-ink-muted text-sm">
-            Revisa tu email — te enviamos los detalles a{' '}
-            <strong className="text-ink">{appointment.clientEmail}</strong>
-          </p>
+          {appointment.clientEmail && (
+            <p className="text-ink-muted text-sm">
+              Te enviamos la confirmación y el enlace de cancelación a{' '}
+              <strong className="text-ink">{appointment.clientEmail}</strong>. Revisa tu
+              bandeja de entrada (y la carpeta de spam).
+            </p>
+          )}
         </div>
 
         {/* Summary */}
@@ -133,24 +136,30 @@ export default function ConfirmacionClient() {
           ))}
         </div>
 
-        {/* Cancel link — essential for clients who left no email (they won't
-            receive it by mail). Shown whenever we have the token in the URL. */}
-        {cancelUrl && (
+        {/* Cancel link — shown ONLY when the client left no email, since the
+            cancellation link can't reach them any other way. When there is an
+            email, the link goes by mail and we never surface the token here. */}
+        {cancelUrl && !appointment.clientEmail && (
           <div className="bg-beige-pale border border-beige-dark rounded-2xl p-4 mb-6">
-            <p className="text-xs text-ink-muted mb-2">
-              {appointment.clientEmail
-                ? 'También puedes guardar tu enlace de cancelación:'
-                : 'Guarda este enlace para cancelar tu cita (no recibirás correo):'}
+            <p className="text-sm text-ink font-medium mb-1">
+              Guarda tu enlace para cancelar
+            </p>
+            <p className="text-xs text-ink-muted mb-3">
+              Con este enlace puedes cancelar tu cita si lo necesitas.
             </p>
             <div className="flex items-center gap-2">
               <input readOnly value={cancelUrl}
+                aria-label="Enlace de cancelación"
                 onFocus={(e) => e.currentTarget.select()}
                 className="input-field flex-1 text-xs truncate" />
               <button type="button" onClick={copyCancelUrl}
-                className="btn-secondary text-xs px-4 py-2 shrink-0">
+                className="btn-secondary text-sm px-5 py-3 shrink-0 min-h-[44px]">
                 {copied ? '¡Copiado!' : 'Copiar'}
               </button>
             </div>
+            <p className="text-xs text-ink-muted mt-2">
+              No te llegará por correo, así que guárdalo ahora.
+            </p>
           </div>
         )}
 

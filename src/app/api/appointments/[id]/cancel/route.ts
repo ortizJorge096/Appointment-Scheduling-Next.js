@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { STUDIO } from '@/lib/config'
-import { toZonedTime, fromZonedTime } from 'date-fns-tz'
+import { toZonedTime } from 'date-fns-tz'
 import { format } from 'date-fns'
+import { CANCEL_LIMIT_HOURS, isWithinCancelWindow } from '@/lib/cancellation'
 import { deleteCalendarEvent } from '@/lib/calendar'
 import { sendAdminCancellationEmail } from '@/lib/email'
 import { audit, getClientIp, getUserAgent } from '@/lib/audit'
@@ -55,17 +56,9 @@ export async function POST(
     )
   }
 
-  // Can only be cancelled at least 24 hours ahead.
-  // appointment.date is in UTC; startTime is Colombia time (UTC-5).
-  // We use fromZonedTime to build the correct UTC timestamp of the appointment start.
-  const CANCEL_LIMIT_HOURS = 24
-  const dateStr = format(toZonedTime(appointment.date, STUDIO.timezone), 'yyyy-MM-dd')
-  const appointmentAt = fromZonedTime(
-    `${dateStr}T${appointment.startTime}:00`,
-    STUDIO.timezone
-  )
-  const hoursUntil = (appointmentAt.getTime() - Date.now()) / (1000 * 60 * 60)
-  if (hoursUntil < CANCEL_LIMIT_HOURS) {
+  // Can only be cancelled at least 24 hours ahead (enforced here; the UI also
+  // gates the button via the `cancellable` flag from the appointment GET).
+  if (!isWithinCancelWindow(appointment.date, appointment.startTime)) {
     return NextResponse.json(
       {
         success: false,

@@ -21,7 +21,7 @@ export default function HeroSocialProof() {
     <div className="mt-7 animate-fade-up animation-delay-400">
       <div className="text-gold tracking-[4px] text-sm" aria-hidden>★★★★★</div>
       <p className="text-white/55 text-sm font-light mt-1.5">
-        Más de {clientsCount} clientas satisfechas en {STUDIO.city}
+        Más de {clientsCount} personas satisfechas en {STUDIO.city}
       </p>
     </div>
   )

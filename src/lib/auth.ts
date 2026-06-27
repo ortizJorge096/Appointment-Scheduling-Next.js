@@ -14,6 +14,26 @@ function ipFromHeaders(headers?: Record<string, unknown>): string | undefined {
   const xff = headers?.['x-forwarded-for']
   return typeof xff === 'string' ? xff.split(',')[0].trim() : undefined
 }
+
+// ── Brute-force guard ─────────────────────────────────────────
+// Max login attempts per IP within a window. In-memory (per pod); resets on
+// restart — acceptable for a single-pod studio. Cleared on a successful login.
+const loginAttempts = new Map<string, { count: number; resetAt: number }>()
+const LOGIN_MAX_ATTEMPTS = 10
+const LOGIN_WINDOW_MS = 15 * 60 * 1000 // 15 minutes
+
+function isLoginRateLimited(ip: string | undefined): boolean {
+  if (!ip) return false
+  const now = Date.now()
+  const entry = loginAttempts.get(ip)
+  if (!entry || now > entry.resetAt) {
+    loginAttempts.set(ip, { count: 1, resetAt: now + LOGIN_WINDOW_MS })
+    return false
+  }
+  if (entry.count >= LOGIN_MAX_ATTEMPTS) return true
+  entry.count++
+  return false
+}
 function uaFromHeaders(headers?: Record<string, unknown>): string | undefined {
   const ua = headers?.['user-agent']
   return typeof ua === 'string' ? ua : undefined
@@ -33,6 +53,16 @@ export const authOptions: NextAuthOptions = {
         const attempted = credentials?.email?.toLowerCase()
 
         if (!credentials?.email || !credentials?.password) return null
+
+        // Throttle brute-force attempts before hitting the DB.
+        if (isLoginRateLimited(ip)) {
+          audit({
+            action: 'LOGIN_FAILED', entity: 'AUTH', entityId: attempted ?? 'unknown',
+            actorType: 'SYSTEM', userEmail: attempted, ip, userAgent,
+            description: `Acceso bloqueado temporalmente por demasiados intentos (${attempted})`,
+          })
+          return null
+        }
 
         const user = await prisma.user.findUnique({ where: { email: attempted! } })
 
@@ -55,6 +85,9 @@ export const authOptions: NextAuthOptions = {
           })
           return null
         }
+
+        // Successful login → clear this IP's attempt counter.
+        if (ip) loginAttempts.delete(ip)
 
         audit({
           action: 'LOGIN', entity: 'AUTH', entityId: user.id,

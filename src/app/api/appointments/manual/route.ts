@@ -15,6 +15,8 @@ import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
 import { audit, getClientIp } from '@/lib/audit'
 import { sendConfirmationEmail } from '@/lib/email'
 import { resolveOrCreateClient } from '@/lib/clients'
+import { computeFinalPrice } from '@/lib/discount'
+import { formatPrice } from '@/lib/utils'
 import type { ApiResponse, AppointmentWithService } from '@/types'
 import { toZonedTime } from 'date-fns-tz'
 import { format, subDays } from 'date-fns'
@@ -47,8 +49,11 @@ export async function POST(
     clientName, clientEmail, clientPhone,
     serviceId, date, startTime, source, notes,
     skipAvailabilityCheck, notifyClient,
-    mode, totalCharged, extraDescription, extraAmount,
+    mode, totalCharged, extras,
+    descuentoTipo, descuentoValor, descuentoMotivo,
   } = parsed.data
+
+  const extraTotal = (extras ?? []).reduce((sum, e) => sum + e.amount, 0)
 
   // Backfill window: allow past dates only up to PAST_LIMIT_DAYS days ago
   // (business timezone). Future dates are always allowed for scheduling.
@@ -86,6 +91,21 @@ export async function POST(
 
   const startMinutes = timeToMinutes(startTime)
   const endTime      = minutesToTime(startMinutes + service.durationMinutes)
+
+  // Manual discount — only on a past appointment's charge. Validate against the
+  // subtotal (service + extra) and compute the final price snapshot here.
+  let precioFinal: number | null = null
+  const hasDiscount = mode === 'PAST' && !!descuentoTipo && descuentoValor != null
+  if (hasDiscount) {
+    const subtotal = totalCharged! + extraTotal
+    if (descuentoTipo === 'VALOR_FIJO' && descuentoValor! > subtotal) {
+      return NextResponse.json(
+        { success: false, error: 'El descuento no puede superar el subtotal.' },
+        { status: 400 }
+      )
+    }
+    precioFinal = computeFinalPrice(subtotal, descuentoTipo, descuentoValor)
+  }
 
   // Check actual appointment conflict (only if admin didn't force the time).
   // We use a direct query instead of isSlotAvailable to avoid false positives
@@ -156,9 +176,13 @@ export async function POST(
           notes:       notes?.trim() ?? null,
           ...(isPast ? {
             paymentStatus:    'PAID',
-            amountPaid:       servicePrice + (extraAmount ?? 0),
-            extraDescription: extraDescription?.trim() || null,
-            extraAmount:      extraAmount ?? null,
+            amountPaid:       precioFinal ?? (servicePrice + extraTotal),
+            ...(precioFinal != null ? {
+              descuentoTipo,
+              descuentoValor,
+              descuentoMotivo: descuentoMotivo?.trim() || null,
+              precioFinal,
+            } : {}),
           } : {}),
           services: {
             create: [{
@@ -167,6 +191,11 @@ export async function POST(
               price: servicePrice,
             }],
           },
+          ...(isPast && extras && extras.length > 0 ? {
+            extras: {
+              create: extras.map((e) => ({ description: e.description.trim(), amount: e.amount })),
+            },
+          } : {}),
         },
         include: {
           service: { select: { id: true, name: true, price: true, durationMinutes: true } },
@@ -175,6 +204,7 @@ export async function POST(
               service: { select: { id: true, name: true, price: true, durationMinutes: true } },
             },
           },
+          extras: { orderBy: { createdAt: 'asc' } },
         },
       }) as unknown as AppointmentWithService
     }, { isolationLevel: 'Serializable' })
@@ -202,12 +232,19 @@ export async function POST(
       .catch((err) => console.error('Error enviando confirmación (cita manual):', err))
   }
 
+  const discountLabel = precioFinal != null
+    ? (descuentoTipo === 'PORCENTAJE' ? `${descuentoValor}%` : formatPrice(descuentoValor!))
+    : null
+
   await audit({
     action:    'CREATE',
     entity:    'APPOINTMENT',
     entityId:  appointment.id,
     userEmail: session.user?.email ?? undefined,
     ip:        getClientIp(request),
+    description: discountLabel
+      ? `Descuento de ${discountLabel} aplicado en la cita de ${appointment.clientName}${descuentoMotivo?.trim() ? ` (motivo: ${descuentoMotivo.trim()})` : ''}`
+      : undefined,
     metadata:  {
       clientName:  appointment.clientName,
       clientEmail: appointment.clientEmail,
@@ -219,9 +256,9 @@ export async function POST(
       notifyClient: mode !== 'PAST' ? notifyClient : undefined,
       ...(mode === 'PAST' ? {
         totalCharged,
-        extraDescription: extraDescription?.trim() || undefined,
-        extraAmount,
+        extras: extras && extras.length > 0 ? extras : undefined,
         amountPaid: appointment.amountPaid,
+        ...(precioFinal != null ? { descuentoTipo, descuentoValor, descuentoMotivo: descuentoMotivo?.trim() || undefined, precioFinal } : {}),
       } : {}),
     },
   })

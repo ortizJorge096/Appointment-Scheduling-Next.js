@@ -12,13 +12,20 @@ import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   const session = await getServerSession(authOptions)
+
+  // Active-only is the safe default for everyone — the public booking flow must
+  // never show inactive professionals, even when an admin happens to be logged
+  // in on the same browser. Listing inactive ones is opt-in (admin panel) and
+  // requires both an explicit flag and a session.
+  const includeInactive =
+    !!session && new URL(request.url).searchParams.get('includeInactive') === 'true'
 
   try {
     const professionals = await prisma.professional.findMany({
-      // Soft-deleted professionals never show. Public also hides inactive ones.
-      where: session ? { deletedAt: null } : { deletedAt: null, isActive: true },
+      // Soft-deleted professionals never show.
+      where: includeInactive ? { deletedAt: null } : { deletedAt: null, isActive: true },
       orderBy: { order: 'asc' },
     })
     return NextResponse.json({ success: true, data: professionals })

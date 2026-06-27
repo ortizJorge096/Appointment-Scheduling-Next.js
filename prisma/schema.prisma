@@ -211,9 +211,15 @@ model Appointment {
   paymentStatus      PaymentStatus     @default(PENDING)
   paymentMethod      PaymentMethod?
   amountPaid         Int?              // en pesos colombianos
-  // Cargo adicional sobre el precio del servicio (ej. registro de citas pasadas)
-  extraDescription   String?
-  extraAmount        Int?              // en pesos colombianos
+  // Adicionales: cargos extra sobre el precio del servicio (productos,
+  // servicios extra). Múltiples por cita, editables desde el detalle.
+  extras             AppointmentExtra[]
+  // Descuento manual aplicado por el admin (citas manuales). Independiente del
+  // discountPercent VIP del flujo público. precioFinal = subtotal − descuento.
+  descuentoTipo      DiscountType?     // null = sin descuento
+  descuentoValor     Int?              // % (0–100) o COP fijo, según descuentoTipo
+  descuentoMotivo    String?           // interno, opcional (ej. "Cliente frecuente")
+  precioFinal        Int?              // total a cobrar tras descuento (snapshot, COP)
   notes              String?
   cancelToken        String            @unique @default(cuid())
   calendarEventId    String?
@@ -244,6 +250,19 @@ model AppointmentService {
   @@map("appointment_services")
 }
 
+// Adicional: producto o servicio extra agregado a una cita (manual o pública),
+// con su propia descripción y valor. Una cita puede tener varios.
+model AppointmentExtra {
+  id            String      @id @default(cuid())
+  appointmentId String
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  description   String
+  amount        Int         // en pesos colombianos
+  createdAt     DateTime    @default(now())
+  @@index([appointmentId])
+  @@map("appointment_extras")
+}
+
 enum AppointmentStatus {
   PENDING
   CONFIRMED
@@ -272,6 +291,11 @@ enum PaymentMethod {
   TARJETA
   NEQUI
   DAVIPLATA
+}
+
+enum DiscountType {
+  PORCENTAJE  // descuentoValor = 0–100 (%)
+  VALOR_FIJO  // descuentoValor = COP
 }
 
 // ─────────────────────────────────────────

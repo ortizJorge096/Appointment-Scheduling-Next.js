@@ -67,8 +67,8 @@ export default function ServiciosPage() {
   function load() {
     setLoading(true)
     Promise.all([
-      fetch('/api/services').then((r) => r.json()),
-      fetch('/api/categories').then((r) => r.json()),
+      fetch('/api/services?includeInactive=true').then((r) => r.json()),
+      fetch('/api/categories?includeInactive=true').then((r) => r.json()),
     ])
       .then(([svcJson, catJson]) => {
         if (svcJson.success) setServices(svcJson.data)
@@ -257,7 +257,7 @@ export default function ServiciosPage() {
               <input type="search" placeholder="Buscar servicio…"
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(1) }}
-                className="input-field !w-auto min-w-[200px] text-sm" />
+                className="input-field !w-full sm:!w-auto sm:min-w-[200px]" />
             </div>
             <button onClick={openNew} className="btn-primary text-sm" disabled={categories.length === 0}>
               + Nuevo servicio

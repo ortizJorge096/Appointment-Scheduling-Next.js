@@ -7,12 +7,11 @@
 
 import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
-import { getHeroImages, STUDIO } from '@/lib/config'
+import { STUDIO } from '@/lib/config'
 
 const SLIDE_MS = 5000
 
-export default function HeroCarousel() {
-  const images = getHeroImages()
+export default function HeroCarousel({ images }: { images: string[] }) {
   const [index, setIndex] = useState(0)
   const [paused, setPaused] = useState(false)
   const [failed, setFailed] = useState<Record<number, boolean>>({})

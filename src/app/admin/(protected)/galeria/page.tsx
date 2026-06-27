@@ -48,7 +48,7 @@ export default function GaleriaAdminPage() {
   function load() {
     setLoading(true)
     Promise.all([
-      fetch('/api/gallery').then((r) => r.json()),
+      fetch('/api/gallery?includeInactive=true').then((r) => r.json()),
       fetch('/api/categories').then((r) => r.json()),
     ])
       .then(([galJson, catJson]) => {
@@ -283,7 +283,7 @@ export default function GaleriaAdminPage() {
                       value={editForm.title}
                       onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
                     />
-                    <textarea className="input-field resize-none text-sm" rows={2}
+                    <textarea className="input-field resize-none" rows={2}
                       placeholder="Descripción corta (opcional)"
                       maxLength={300}
                       value={editForm.description}

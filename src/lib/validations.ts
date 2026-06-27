@@ -25,6 +25,53 @@ const optionalEmail = z.preprocess(
   z.string().email('Email inválido').optional(),
 )
 
+// Phone: validated by DIGIT count, not raw character length, so formatting
+// (spaces, dashes, parentheses, leading +) doesn't change the result. Requires
+// at least 10 digits — a Colombian mobile — so incomplete numbers can't be
+// saved; up to 15 covers numbers that already include a country code. Stays in
+// sync with toWhatsAppNumber() so a saved phone always yields a WhatsApp link.
+const phoneSchema = z
+  .string()
+  .trim()
+  .regex(/^[0-9+\s()-]+$/, 'Teléfono inválido')
+  .refine((v) => {
+    const digits = v.replace(/\D/g, '')
+    return digits.length >= 10 && digits.length <= 15
+  }, 'El teléfono debe tener al menos 10 dígitos (incluye el código de país si aplica)')
+
+// Manual discount (admin only). Shape is validated here; the subtotal-bound rule
+// (VALOR_FIJO ≤ subtotal) is enforced in the route, where the subtotal is known.
+// Nullable so the admin can CLEAR a saved discount (send the fields as null).
+const discountFields = {
+  descuentoTipo:   z.enum(['PORCENTAJE', 'VALOR_FIJO']).nullable().optional(),
+  descuentoValor:  z.number().int().min(0, 'El descuento no puede ser negativo').nullable().optional(),
+  descuentoMotivo: z.string().max(200).nullable().optional(),
+}
+
+// Adicionales (servicio o producto extra agregado a la cita). Lista completa:
+// al guardar se reemplaza el set de adicionales de la cita por este array.
+const extrasSchema = z.array(z.object({
+  description: z.string().min(1, 'La descripción del adicional es requerida').max(200),
+  amount:      z.number().int().min(0, 'El monto no puede ser negativo'),
+})).max(20).optional()
+
+// Cross-field discount checks, shared by the manual-create and update schemas.
+// null/undefined both mean "not set" (clearing is all-null, which passes).
+function checkDiscount(
+  data: { descuentoTipo?: string | null; descuentoValor?: number | null },
+  ctx: z.RefinementCtx,
+): void {
+  const { descuentoTipo, descuentoValor } = data
+  const hasTipo  = descuentoTipo != null
+  const hasValor = descuentoValor != null
+  if (hasTipo && !hasValor)
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['descuentoValor'], message: 'Indica el valor del descuento' })
+  if (hasValor && !hasTipo)
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['descuentoTipo'], message: 'Indica el tipo de descuento' })
+  if (descuentoTipo === 'PORCENTAJE' && (descuentoValor ?? 0) > 100)
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['descuentoValor'], message: 'El porcentaje no puede superar 100' })
+}
+
 // ─────────────────────────────────────────
 // BOOKING (public)
 // ─────────────────────────────────────────
@@ -37,11 +84,7 @@ export const createAppointmentSchema = z.object({
 
   clientEmail: optionalEmail,
 
-  clientPhone: z
-    .string()
-    .min(7, 'Teléfono inválido')
-    .max(15, 'Teléfono inválido')
-    .regex(/^[0-9+\s-]+$/, 'Teléfono inválido'),
+  clientPhone: phoneSchema,
 
   serviceId: z
     .string()
@@ -126,7 +169,13 @@ export const updateAppointmentSchema = z.object({
   date: dateString.optional(),
 
   startTime: timeString.optional(),
-})
+
+  // Manual discount (applied from the detail payment block).
+  ...discountFields,
+
+  // Adicionales (replaces the full set when provided).
+  extras: extrasSchema,
+}).superRefine(checkDiscount)
 
 // ─────────────────────────────────────────
 // CATEGORIES (admin)
@@ -290,7 +339,7 @@ export const updateAppointmentPaymentSchema = updateAppointmentSchema
 export const createManualAppointmentSchema = z.object({
   clientName:  z.string().min(2).max(100),
   clientEmail: optionalEmail,
-  clientPhone: z.string().min(7).max(15).regex(/^[0-9+\s-]+$/, 'Teléfono inválido'),
+  clientPhone: phoneSchema,
   serviceId:   z.string().cuid('ID de servicio inválido'),
   date:        dateString,
   startTime:   timeString,
@@ -307,12 +356,14 @@ export const createManualAppointmentSchema = z.object({
   // completed and paid. Defaults to the existing ("Cita próxima") behavior.
   mode:             z.enum(['UPCOMING', 'PAST']).optional().default('UPCOMING'),
   totalCharged:     z.number().int().min(0).optional(),
-  extraDescription: z.string().max(200).optional(),
-  extraAmount:      z.number().int().min(0).optional(),
+  extras:           extrasSchema,
+
+  // Manual discount on a past appointment's charge.
+  ...discountFields,
 }).refine(
   (data) => data.mode !== 'PAST' || data.totalCharged !== undefined,
   { message: 'El total cobrado es requerido para registrar una cita pasada', path: ['totalCharged'] }
-)
+).superRefine(checkDiscount)
 
 // ─────────────────────────────────────────
 // CLIENTS (admin)

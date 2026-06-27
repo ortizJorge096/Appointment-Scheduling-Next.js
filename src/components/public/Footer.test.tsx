@@ -60,6 +60,16 @@ describe('Footer', () => {
     expect(screen.getByText('Promos')).toBeInTheDocument()
   })
 
+  it('builds the tagline from service categories and excludes Promos', async () => {
+    const tagline = await screen.findByText(
+      (_, el) =>
+        el?.tagName === 'P' &&
+        (el.textContent ?? '').includes('Uñas, pestañas, cejas y corte de cabello en Bogotá')
+    )
+    expect(tagline).toBeInTheDocument()
+    expect(tagline.textContent).not.toMatch(/promos/i)
+  })
+
   it('links each service category to its booking deep-link', async () => {
     expect((await screen.findByText('Uñas')).closest('a')).toHaveAttribute('href', '/agendar?categoria=UNAS')
   })

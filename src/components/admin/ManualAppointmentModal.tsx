@@ -3,8 +3,10 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { formatPrice } from '@/lib/utils'
+import { formatPrice, isValidPhone } from '@/lib/utils'
+import { computeDiscountAmount } from '@/lib/discount'
 import ClientSearchInput, { type ClientHit } from './ClientSearchInput'
+import AdicionalesEditor, { type Adicional } from './AdicionalesEditor'
 
 interface Service { id: string; name: string; price: number; durationMinutes: number }
 
@@ -29,10 +31,20 @@ const EMPTY = {
   // quedó agendada; los demás orígenes se benefician de recibirlo por mail.
   notifyClient: false,
   mode: 'UPCOMING' as 'UPCOMING' | 'PAST',
-  totalCharged: '', extraDescription: '', extraAmount: '',
+  totalCharged: '',
+  // Manual discount (optional): empty descuentoValor = no discount.
+  descuentoTipo: 'PORCENTAJE' as 'PORCENTAJE' | 'VALOR_FIJO',
+  descuentoValor: '', descuentoMotivo: '',
 }
 
 type FieldErrors = Partial<Record<keyof typeof EMPTY, string>>
+type Touched = Partial<Record<keyof typeof EMPTY, boolean>>
+
+// Fields validated on blur/submit (in display order).
+const VALIDATED_FIELDS: (keyof typeof EMPTY)[] = [
+  'clientName', 'clientEmail', 'clientPhone', 'serviceId', 'date', 'startTime',
+  'totalCharged', 'descuentoValor',
+]
 
 // Earliest date allowed for manual backfill: 15 days ago
 const PAST_LIMIT_DAYS = 15
@@ -49,7 +61,9 @@ export default function ManualAppointmentModal() {
   const [open, setOpen]         = useState(false)
   const [services, setServices] = useState<Service[]>([])
   const [form, setForm]         = useState(EMPTY)
+  const [extras, setExtras]     = useState<Adicional[]>([])
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
+  const [touched, setTouched]   = useState<Touched>({})
   const [saving, setSaving]     = useState(false)
   const [apiError, setApiError] = useState('')
   const [success, setSuccess]   = useState('')
@@ -65,7 +79,9 @@ export default function ManualAppointmentModal() {
   useEffect(() => {
     if (open) {
       loadServices()
-      setFieldErrors({}); setApiError(''); setSuccess('')
+      setFieldErrors({}); setTouched({}); setApiError(''); setSuccess('')
+    } else {
+      setExtras([])
     }
   }, [open, loadServices])
 
@@ -91,23 +107,65 @@ export default function ManualAppointmentModal() {
     }
   }
 
+  // Validates a single field against the current form/extras state. Same
+  // rules as before — only the call sites (blur/submit, not onChange) changed.
+  function validateField(key: keyof typeof EMPTY): string | undefined {
+    switch (key) {
+      case 'clientName':
+        return form.clientName.trim() ? undefined : 'El nombre es requerido'
+      case 'clientEmail':
+        // Email is optional — only validate the format if something was typed.
+        return form.clientEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.clientEmail.trim())
+          ? 'Email inválido' : undefined
+      case 'clientPhone':
+        if (!form.clientPhone.trim()) return 'El teléfono es requerido'
+        if (!isValidPhone(form.clientPhone)) return 'El teléfono debe tener al menos 10 dígitos'
+        return undefined
+      case 'serviceId':
+        return form.serviceId ? undefined : 'Selecciona un servicio'
+      case 'date':
+        if (!form.date) return 'La fecha es requerida'
+        if (form.mode === 'PAST' && form.date >= offsetDate(0)) return 'Debe ser una fecha anterior a hoy'
+        return undefined
+      case 'startTime':
+        return form.startTime ? undefined : 'La hora es requerida'
+      case 'totalCharged':
+        if (form.mode !== 'PAST') return undefined
+        return form.totalCharged === '' || Number(form.totalCharged) < 0
+          ? 'El total cobrado es requerido' : undefined
+      case 'descuentoValor': {
+        if (form.mode !== 'PAST') return undefined
+        const sub = (Number(form.totalCharged) || 0) + extras.reduce((s, e) => s + (Number(e.amount) || 0), 0)
+        const dv  = Number(form.descuentoValor) || 0
+        if (dv > 0 && form.descuentoTipo === 'PORCENTAJE' && dv > 100) return 'El porcentaje no puede superar 100'
+        if (dv > 0 && form.descuentoTipo === 'VALOR_FIJO' && dv > sub) return 'El descuento no puede superar el subtotal'
+        return undefined
+      }
+      default:
+        return undefined
+    }
+  }
+
+  // Runs on submit: validates every field, marks them all as touched (so
+  // never-blurred fields show their error too), and shows all errors at once.
   function validate(): boolean {
     const errs: FieldErrors = {}
-    if (!form.clientName.trim()) errs.clientName  = 'El nombre es requerido'
-    // Email is optional — only validate the format if something was typed.
-    if (form.clientEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.clientEmail.trim()))
-      errs.clientEmail = 'Email inválido'
-    if (!form.clientPhone.trim()) errs.clientPhone = 'El teléfono es requerido'
-    if (!form.serviceId)          errs.serviceId   = 'Selecciona un servicio'
-    if (!form.date)               errs.date        = 'La fecha es requerida'
-    if (!form.startTime)          errs.startTime   = 'La hora es requerida'
-    if (form.mode === 'PAST') {
-      if (form.date >= offsetDate(0)) errs.date = 'Debe ser una fecha anterior a hoy'
-      if (form.totalCharged === '' || Number(form.totalCharged) < 0)
-        errs.totalCharged = 'El total cobrado es requerido'
-    }
+    VALIDATED_FIELDS.forEach((k) => {
+      const err = validateField(k)
+      if (err) errs[k] = err
+    })
     setFieldErrors(errs)
+    setTouched((t) => ({ ...t, ...Object.fromEntries(VALIDATED_FIELDS.map((k) => [k, true])) }))
     return Object.keys(errs).length === 0
+  }
+
+  // onBlur handler: marks the field touched and validates just that field,
+  // independent of whether other fields have been visited yet.
+  function handleBlur(key: keyof typeof EMPTY) {
+    return () => {
+      setTouched((t) => ({ ...t, [key]: true }))
+      setFieldErrors((fe) => ({ ...fe, [key]: validateField(key) }))
+    }
   }
 
   async function submit(e: React.FormEvent) {
@@ -126,9 +184,13 @@ export default function ManualAppointmentModal() {
       ...(!isPast ? { notifyClient: form.notifyClient } : {}),
       ...(isPast ? {
         totalCharged: Number(form.totalCharged),
-        ...(form.extraAmount !== '' ? {
-          extraDescription: form.extraDescription.trim() || undefined,
-          extraAmount: Number(form.extraAmount),
+        extras: extras
+          .filter((e) => e.description.trim() && Number(e.amount) > 0)
+          .map((e) => ({ description: e.description.trim(), amount: Number(e.amount) })),
+        ...(Number(form.descuentoValor) > 0 ? {
+          descuentoTipo:   form.descuentoTipo,
+          descuentoValor:  Number(form.descuentoValor),
+          descuentoMotivo: form.descuentoMotivo.trim() || undefined,
         } : {}),
       } : {}),
     }
@@ -145,6 +207,7 @@ export default function ManualAppointmentModal() {
 
     setSuccess(isPast ? 'Cita registrada correctamente ✓' : 'Cita creada correctamente ✓')
     setForm(EMPTY)
+    setExtras([])
     setTimeout(() => { setOpen(false); setSuccess(''); router.refresh() }, 1200)
   }
 
@@ -171,12 +234,18 @@ export default function ManualAppointmentModal() {
     if (fieldErrors.serviceId) setFieldErrors(fe => ({ ...fe, serviceId: undefined }))
   }
 
-  const extraAmountNum = Number(form.extraAmount) || 0
+  const extraAmountNum  = extras.reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
   const totalChargedNum = Number(form.totalCharged) || 0
-  const grandTotal = totalChargedNum + extraAmountNum
+  const subtotal        = totalChargedNum + extraAmountNum
+  const descuentoNum    = Number(form.descuentoValor) || 0
+  const hasDiscount     = descuentoNum > 0
+  const discountAmount  = computeDiscountAmount(subtotal, form.descuentoTipo, descuentoNum)
+  const grandTotal      = subtotal - discountAmount
+  // Fixed discount bigger than the subtotal is invalid (percentage is capped at 100).
+  const discountTooBig  = hasDiscount && form.descuentoTipo === 'VALOR_FIJO' && descuentoNum > subtotal
 
   const Err = ({ k }: { k: keyof typeof EMPTY }) =>
-    fieldErrors[k] ? <p className="text-xs text-red-500 mt-0.5">{fieldErrors[k]}</p> : null
+    touched[k] && fieldErrors[k] ? <p className="text-xs text-red-500 mt-0.5">{fieldErrors[k]}</p> : null
 
   return (
     <>
@@ -237,18 +306,18 @@ export default function ManualAppointmentModal() {
                     <label className="form-label">
                       Nombre completo <span className="text-red-500">*</span>
                     </label>
-                    <input value={form.clientName} onChange={field('clientName')}
+                    <input value={form.clientName} onChange={field('clientName')} onBlur={handleBlur('clientName')}
                       placeholder="Ana García"
-                      className={`input-field w-full ${fieldErrors.clientName ? 'border-red-400 focus:ring-red-300' : ''}`} />
+                      className={`input-field w-full ${touched.clientName && fieldErrors.clientName ? 'border-red-400 focus:ring-red-300' : ''}`} />
                     <Err k="clientName" />
                   </div>
                   <div>
                     <label className="form-label">
                       Email <span className="text-ink-muted/60 normal-case font-normal tracking-normal">(opcional)</span>
                     </label>
-                    <input ref={emailInputRef} type="email" value={form.clientEmail} onChange={field('clientEmail')}
+                    <input ref={emailInputRef} type="email" value={form.clientEmail} onChange={field('clientEmail')} onBlur={handleBlur('clientEmail')}
                       placeholder="ana@ejemplo.com"
-                      className={`input-field w-full ${fieldErrors.clientEmail ? 'border-red-400 focus:ring-red-300' : ''}`} />
+                      className={`input-field w-full ${touched.clientEmail && fieldErrors.clientEmail ? 'border-red-400 focus:ring-red-300' : ''}`} />
                     <Err k="clientEmail" />
                     {!form.clientEmail.trim() && (
                       <p className="text-[11px] text-ink-muted/70 mt-0.5">Sin email no se enviarán notificaciones al cliente.</p>
@@ -258,9 +327,9 @@ export default function ManualAppointmentModal() {
                     <label className="form-label">
                       Teléfono <span className="text-red-500">*</span>
                     </label>
-                    <input value={form.clientPhone} onChange={field('clientPhone')}
+                    <input value={form.clientPhone} onChange={field('clientPhone')} onBlur={handleBlur('clientPhone')}
                       placeholder="3001234567"
-                      className={`input-field w-full ${fieldErrors.clientPhone ? 'border-red-400 focus:ring-red-300' : ''}`} />
+                      className={`input-field w-full ${touched.clientPhone && fieldErrors.clientPhone ? 'border-red-400 focus:ring-red-300' : ''}`} />
                     <Err k="clientPhone" />
                   </div>
                 </div>
@@ -276,8 +345,8 @@ export default function ManualAppointmentModal() {
                     <label className="form-label">
                       Servicio <span className="text-red-500">*</span>
                     </label>
-                    <select value={form.serviceId} onChange={e => selectService(e.target.value)}
-                      className={`input-field w-full bg-white ${fieldErrors.serviceId ? 'border-red-400' : ''}`}>
+                    <select value={form.serviceId} onChange={e => selectService(e.target.value)} onBlur={handleBlur('serviceId')}
+                      className={`input-field w-full bg-white ${touched.serviceId && fieldErrors.serviceId ? 'border-red-400' : ''}`}>
                       <option value="">— Selecciona un servicio —</option>
                       {services.map(s => (
                         <option key={s.id} value={s.id}>
@@ -292,11 +361,11 @@ export default function ManualAppointmentModal() {
                       <label className="form-label">
                         Fecha <span className="text-red-500">*</span>
                       </label>
-                      <input type="date" value={form.date} onChange={field('date')}
+                      <input type="date" value={form.date} onChange={field('date')} onBlur={handleBlur('date')}
                         aria-label="Fecha"
                         min={minManualDate()}
                         max={form.mode === 'PAST' ? yesterday() : undefined}
-                        className={`input-field w-full ${fieldErrors.date ? 'border-red-400' : ''}`} />
+                        className={`input-field w-full ${touched.date && fieldErrors.date ? 'border-red-400' : ''}`} />
                       <p className="text-[11px] text-ink-muted mt-1">
                         {form.mode === 'PAST'
                           ? `Hasta ${PAST_LIMIT_DAYS} días atrás, antes de hoy`
@@ -314,7 +383,8 @@ export default function ManualAppointmentModal() {
                           setForm(f => ({ ...f, startTime: e.target.value.slice(0, 5) }))
                           if (fieldErrors.startTime) setFieldErrors(fe => ({ ...fe, startTime: undefined }))
                         }}
-                        className={`input-field w-full ${fieldErrors.startTime ? 'border-red-400' : ''}`} />
+                        onBlur={handleBlur('startTime')}
+                        className={`input-field w-full ${touched.startTime && fieldErrors.startTime ? 'border-red-400' : ''}`} />
                       <Err k="startTime" />
                     </div>
                   </div>
@@ -333,38 +403,74 @@ export default function ManualAppointmentModal() {
                         Total cobrado (COP) <span className="text-red-500">*</span>
                       </label>
                       <input type="number" min={0} step={1000} value={form.totalCharged}
-                        onChange={field('totalCharged')}
-                        className={`input-field w-full ${fieldErrors.totalCharged ? 'border-red-400' : ''}`} />
+                        onChange={field('totalCharged')} onBlur={handleBlur('totalCharged')}
+                        className={`input-field w-full ${touched.totalCharged && fieldErrors.totalCharged ? 'border-red-400' : ''}`} />
                       <Err k="totalCharged" />
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="form-label">Adicional — descripción</label>
-                        <input value={form.extraDescription} onChange={field('extraDescription')}
-                          placeholder="Ej: Tinte extra"
-                          className="input-field w-full" />
-                      </div>
-                      <div>
-                        <label className="form-label">Adicional — monto (COP)</label>
-                        <input type="number" min={0} step={1000} value={form.extraAmount}
-                          onChange={field('extraAmount')}
-                          placeholder="0"
-                          className="input-field w-full" />
-                      </div>
+                    <div>
+                      <label className="form-label">Adicional (opcional)</label>
+                      <AdicionalesEditor items={extras} onChange={setExtras} />
                     </div>
+                    {/* Discount (optional) */}
+                    <div>
+                      <label className="form-label">Descuento (opcional)</label>
+                      <div className="flex gap-2">
+                        <div className="flex rounded-lg border border-beige-dark overflow-hidden shrink-0">
+                          {(['PORCENTAJE', 'VALOR_FIJO'] as const).map((t) => (
+                            <button key={t} type="button"
+                              onClick={() => setForm(f => ({ ...f, descuentoTipo: t }))}
+                              className={`px-3 py-2 text-sm transition-colors ${
+                                form.descuentoTipo === t ? 'bg-gold text-white' : 'bg-white text-ink-muted hover:text-ink'
+                              }`}>
+                              {t === 'PORCENTAJE' ? '%' : '$'}
+                            </button>
+                          ))}
+                        </div>
+                        <input type="number" min={0} step={form.descuentoTipo === 'PORCENTAJE' ? 1 : 1000}
+                          max={form.descuentoTipo === 'PORCENTAJE' ? 100 : undefined}
+                          value={form.descuentoValor} onChange={field('descuentoValor')} onBlur={handleBlur('descuentoValor')}
+                          placeholder={form.descuentoTipo === 'PORCENTAJE' ? '0–100' : '0'}
+                          className={`input-field w-[120px] ${touched.descuentoValor && discountTooBig ? 'border-red-400' : ''}`} />
+                      </div>
+                      {touched.descuentoValor && discountTooBig && (
+                        <p className="text-xs text-red-500 mt-0.5">El descuento no puede superar el subtotal.</p>
+                      )}
+                      <input value={form.descuentoMotivo} onChange={field('descuentoMotivo')}
+                        placeholder="Motivo del descuento (interno, opcional)…"
+                        className="input-field w-full mt-2" />
+                    </div>
+
                     <div className="bg-beige-pale rounded-lg px-4 py-3 text-sm space-y-1">
                       <div className="flex justify-between text-ink-muted">
                         <span>Servicio</span><span>{formatPrice(totalChargedNum)}</span>
                       </div>
-                      {extraAmountNum > 0 && (
-                        <div className="flex justify-between text-ink-muted">
-                          <span>Adicional{form.extraDescription.trim() ? ` (${form.extraDescription.trim()})` : ''}</span>
-                          <span>{formatPrice(extraAmountNum)}</span>
-                        </div>
+                      {extras
+                        .filter((e) => e.description.trim() && Number(e.amount) > 0)
+                        .map((e, i) => (
+                          <div key={i} className="flex justify-between text-ink-muted">
+                            <span>Adicional ({e.description.trim()})</span>
+                            <span>{formatPrice(Number(e.amount))}</span>
+                          </div>
+                        ))}
+                      {hasDiscount && !discountTooBig && (
+                        <>
+                          <div className="flex justify-between text-ink-muted border-t border-beige-dark pt-1 mt-1">
+                            <span>Subtotal</span><span>{formatPrice(subtotal)}</span>
+                          </div>
+                          <div className="flex justify-between text-gold-dark">
+                            <span>Descuento{form.descuentoTipo === 'PORCENTAJE' ? ` (${descuentoNum}%)` : ''}</span>
+                            <span>−{formatPrice(discountAmount)}</span>
+                          </div>
+                        </>
                       )}
                       <div className="flex justify-between text-ink font-medium border-t border-beige-dark pt-1 mt-1">
-                        <span>Total</span><span>{formatPrice(grandTotal)}</span>
+                        <span>Total a cobrar</span><span>{formatPrice(grandTotal)}</span>
                       </div>
+                      {hasDiscount && !discountTooBig && grandTotal === 0 && (
+                        <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 mt-1">
+                          ⚠️ El total será $0. Se registrará como cortesía.
+                        </p>
+                      )}
                     </div>
                   </div>
                 </fieldset>

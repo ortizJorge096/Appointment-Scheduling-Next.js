@@ -7,9 +7,12 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { formatPrice } from '@/lib/utils'
+import { formatPrice, shortCode, toWhatsAppNumber } from '@/lib/utils'
+import { computeDiscountAmount } from '@/lib/discount'
+import { STUDIO } from '@/lib/config'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
 import { STATUS_LABEL, STATUS_CLASS } from '@/lib/appointmentStatus'
+import AdicionalesEditor, { type Adicional } from '@/components/admin/AdicionalesEditor'
 import type { AppointmentWithService, AppointmentStatus } from '@/types'
 
 const PAYMENT_STATUS_OPTS = [
@@ -31,12 +34,13 @@ const PAYMENT_METHOD_OPTS = [
 const ACTIONS: Record<string, { label: string; status: AppointmentStatus; style: string }[]> = {
   PENDING: [
     { label: 'Confirmar',  status: 'CONFIRMED', style: 'btn-primary' },
-    { label: 'Cancelar',   status: 'CANCELLED', style: 'border border-red-300 text-red-500 px-6 py-2.5 text-xs tracking-widest uppercase hover:bg-red-50 transition-colors' },
+    { label: 'Cancelar',   status: 'CANCELLED', style: 'border border-red-300 text-red-500 px-6 py-3 sm:py-2.5 text-xs tracking-widest uppercase hover:bg-red-50 transition-colors' },
   ],
+  // No "Completar" here — registering the payment completes the appointment
+  // (see the payment form). Completing without charge = pay $0 + "Cortesía".
   CONFIRMED: [
-    { label: 'Completar',  status: 'COMPLETED', style: 'btn-primary' },
-    { label: 'No asistió', status: 'NO_SHOW',   style: 'border border-gray-300 text-gray-500 px-6 py-2.5 text-xs tracking-widest uppercase hover:bg-gray-50 transition-colors' },
-    { label: 'Cancelar',   status: 'CANCELLED', style: 'border border-red-300 text-red-500 px-6 py-2.5 text-xs tracking-widest uppercase hover:bg-red-50 transition-colors' },
+    { label: 'No asistió', status: 'NO_SHOW',   style: 'border border-gray-300 text-gray-500 px-6 py-3 sm:py-2.5 text-xs tracking-widest uppercase hover:bg-gray-50 transition-colors' },
+    { label: 'Cancelar',   status: 'CANCELLED', style: 'border border-red-300 text-red-500 px-6 py-3 sm:py-2.5 text-xs tracking-widest uppercase hover:bg-red-50 transition-colors' },
   ],
   COMPLETED: [],
   CANCELLED: [],
@@ -60,6 +64,16 @@ export default function CitaDetailPage() {
   const [payMethod, setPayMethod] = useState('')
   const [savingPay, setSavingPay] = useState(false)
 
+  // Manual discount (collapsible)
+  const [discTipo, setDiscTipo]     = useState<'PORCENTAJE' | 'VALOR_FIJO'>('PORCENTAJE')
+  const [discValor, setDiscValor]   = useState('')
+  const [discMotivo, setDiscMotivo] = useState('')
+  const [discountOpen, setDiscountOpen] = useState(false)
+
+  // Adicionales (collapsible)
+  const [extras, setExtras]         = useState<Adicional[]>([])
+  const [extrasOpen, setExtrasOpen] = useState(false)
+
   useEffect(() => {
     fetch(`/api/appointments/${id}`)
       .then((r) => r.json())
@@ -77,6 +91,15 @@ export default function CitaDetailPage() {
     setPayStatus(appt.paymentStatus)
     setPayAmount(appt.amountPaid != null ? String(appt.amountPaid) : '')
     setPayMethod(appt.paymentMethod ?? '')
+    setDiscTipo((appt.descuentoTipo as 'PORCENTAJE' | 'VALOR_FIJO') ?? 'PORCENTAJE')
+    setDiscValor(appt.descuentoValor != null ? String(appt.descuentoValor) : '')
+    setDiscMotivo(appt.descuentoMotivo ?? '')
+    // Already-saved discount → show expanded with its values.
+    setDiscountOpen(appt.descuentoValor != null)
+    const savedExtras = (appt.extras ?? []).map((e) => ({ description: e.description, amount: String(e.amount) }))
+    setExtras(savedExtras)
+    // Already-saved extras → show expanded.
+    setExtrasOpen(savedExtras.length > 0)
   }, [appt])
 
   async function updateStatus(status: AppointmentStatus) {
@@ -121,6 +144,19 @@ export default function CitaDetailPage() {
         paymentStatus: payStatus,
         amountPaid:    payAmount ? parseInt(payAmount) : null,
         paymentMethod: payMethod || null,
+        extras: extras
+          .filter((e) => e.description.trim() && Number(e.amount) > 0)
+          .map((e) => ({ description: e.description.trim(), amount: Number(e.amount) })),
+        ...(Number(discValor) > 0
+          ? {
+              descuentoTipo:   discTipo,
+              descuentoValor:  Number(discValor),
+              descuentoMotivo: discMotivo.trim() || undefined,
+            }
+          : appt?.descuentoValor != null
+            // Had a saved discount that was removed → clear it in the DB.
+            ? { descuentoTipo: null, descuentoValor: null, descuentoMotivo: null }
+            : {}),
       }),
     })
     const json = await res.json()
@@ -129,14 +165,45 @@ export default function CitaDetailPage() {
     setSavingPay(false)
   }
 
-  // Quick action: mark the full service price as paid
+  // Collapse the discount block; clears the inputs. Confirms only if there was
+  // already a saved discount (the removal persists on the next "Guardar pago").
+  async function removeDiscount() {
+    if (appt?.descuentoValor != null) {
+      const ok = await confirm({
+        message: 'Se quitará el descuento al guardar el pago. El total volverá al precio original.',
+        confirmLabel: 'Quitar descuento',
+      })
+      if (!ok) return
+    }
+    setDiscValor(''); setDiscMotivo(''); setDiscTipo('PORCENTAJE'); setDiscountOpen(false)
+  }
+
+  // Expand the adicionales block and seed the first empty row right away, so
+  // the click that opens the section lands directly on an input — same as
+  // "+ Agregar descuento", which shows its inputs in one click.
+  function showExtras() {
+    setExtras((e) => (e.length > 0 ? e : [{ description: '', amount: '' }]))
+    setExtrasOpen(true)
+  }
+
+  // Collapse the adicionales block, discarding any blank draft row left
+  // untouched (mirrors removeDiscount clearing unsaved discount inputs).
+  function hideExtras() {
+    setExtras((e) => e.filter((it) => it.description.trim() || it.amount.trim()))
+    setExtrasOpen(false)
+  }
+
+  // Quick action: mark the (discounted) total as paid
   function markPaidFull() {
     if (!appt) return
-    const totalPrice = appt.services && appt.services.length > 1
+    const svc = appt.services && appt.services.length > 1
       ? appt.services.reduce((sum, s) => sum + s.price, 0)
       : appt.service.price
+    const extrasTotal = extras.reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
+    const sub   = svc + extrasTotal
+    const final = sub - computeDiscountAmount(sub, discTipo, Number(discValor) || 0)
     setPayStatus('PAID')
-    setPayAmount(String(totalPrice))
+    setPayAmount(String(final))
     if (!payMethod) setPayMethod('EFECTIVO')
   }
 
@@ -156,12 +223,37 @@ export default function CitaDetailPage() {
 
   const actions = ACTIONS[appt.status] ?? []
 
+  // Live discount math for the breakdown + validation (server is authoritative).
+  const servicesTotal = appt.services && appt.services.length > 1
+    ? appt.services.reduce((sum, s) => sum + s.price, 0)
+    : appt.service.price
+  const extrasTotal    = extras.reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
+  const subtotal       = servicesTotal + extrasTotal
+  const discValorNum   = Number(discValor) || 0
+  const discountAmount = computeDiscountAmount(subtotal, discTipo, discValorNum)
+  const finalPrice     = subtotal - discountAmount
+  const hasDiscount    = discValorNum > 0
+  const discountTooBig = hasDiscount && discTipo === 'VALOR_FIJO' && discValorNum > subtotal
+
+  // Quick WhatsApp link to the client, with a preloaded, appointment-specific
+  // message. Only built when the stored phone normalizes to a valid number.
+  const waNumber = toWhatsAppNumber(appt.clientPhone)
+  const waServiceName = appt.services && appt.services.length > 1
+    ? appt.services.map((s) => s.service.name).join(' + ')
+    : appt.service.name
+  const waDateLabel = format(new Date(appt.date), "EEEE d 'de' MMMM", { locale: es })
+  const waUrl = waNumber
+    ? `https://wa.me/${waNumber}?text=${encodeURIComponent(
+        `Hola, te contactamos desde ${STUDIO.name} sobre tu cita de ${waServiceName} el ${waDateLabel} a las ${appt.startTime}. Código: #${shortCode(appt.id)}`
+      )}`
+    : null
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto">
 
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-xs text-ink-muted mb-6">
-        <Link href="/admin/citas" className="hover:text-gold">Citas</Link>
+        <Link href="/admin/citas" className="hover:text-gold hover:underline">Citas</Link>
         <span>/</span>
         <span className="text-ink">{appt.clientName}</span>
       </div>
@@ -211,10 +303,12 @@ export default function CitaDetailPage() {
               <p className="text-xs text-ink-muted mt-0.5">{appt.service.durationMinutes} min</p>
             </>
           )}
-          {appt.extraAmount != null && appt.extraAmount > 0 && (
-            <p className="text-xs text-ink-muted mt-2 pt-2 border-t border-beige-dark">
-              + Adicional{appt.extraDescription ? ` (${appt.extraDescription})` : ''}: {formatPrice(appt.extraAmount)}
-            </p>
+          {(appt.extras ?? []).length > 0 && (
+            <div className="text-xs text-ink-muted mt-2 pt-2 border-t border-beige-dark space-y-0.5">
+              {appt.extras!.map((e) => (
+                <p key={e.id}>+ Adicional ({e.description}): {formatPrice(e.amount)}</p>
+              ))}
+            </div>
           )}
         </div>
 
@@ -237,7 +331,22 @@ export default function CitaDetailPage() {
           ) : (
             <p className="text-sm text-ink-muted italic">📵 Sin email — el cliente no recibe notificaciones</p>
           )}
-          <p className="text-ink text-sm mt-1">{appt.clientPhone}</p>
+          <div className="flex items-center justify-between gap-3 mt-1">
+            <p className="text-ink text-sm">📱 {appt.clientPhone}</p>
+            {waUrl ? (
+              <a href={waUrl} target="_blank" rel="noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs text-gold border border-gold/40 rounded-full px-3 py-1.5 hover:bg-gold-pale transition-colors shrink-0">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                  <path d="M.057 24l1.687-6.163a11.867 11.867 0 0 1-1.587-5.946C.16 5.335 5.495 0 12.05 0a11.817 11.817 0 0 1 8.413 3.488 11.824 11.824 0 0 1 3.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 0 1-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 0 0 1.51 5.26l-.999 3.648 3.978-1.207zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                </svg>
+                WhatsApp
+              </a>
+            ) : (
+              <span className="text-xs text-ink-muted/60 italic shrink-0" title="No se puede abrir WhatsApp con un número incompleto">
+                Teléfono incompleto
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Scheduling */}
@@ -276,11 +385,11 @@ export default function CitaDetailPage() {
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
               maxLength={500}
-              className="input-field resize-none text-sm"
+              className="input-field resize-none"
               placeholder="Agrega notas sobre la cita..."
             />
             <div className="flex gap-2">
-              <button onClick={saveNotes} disabled={updating} className="btn-primary text-xs px-5 py-2">
+              <button onClick={saveNotes} disabled={updating} className="btn-primary text-xs px-5 py-2.5 sm:py-2">
                 {updating ? 'Guardando...' : 'Guardar'}
               </button>
               <button onClick={() => { setEditNotes(false); setNotes(appt.notes ?? '') }}
@@ -312,7 +421,7 @@ export default function CitaDetailPage() {
           </div>
           <div>
             <label className="form-label">Monto pagado (COP)</label>
-            <input type="number" min={0} step={1000} className="input-field" value={payAmount}
+            <input type="number" min={0} step={1} className="input-field" value={payAmount}
               onChange={(e) => setPayAmount(e.target.value)} placeholder="0" />
           </div>
           <div>
@@ -323,10 +432,113 @@ export default function CitaDetailPage() {
             </select>
           </div>
         </div>
-        <button type="submit" disabled={savingPay}
-          className="btn-primary text-xs px-5 py-2 mt-4 disabled:opacity-50">
+
+        {/* Adicionales — collapsible */}
+        <div className="mt-4">
+          <div className="flex items-center justify-between">
+            <span className="form-label !mb-0">Adicional (opcional)</span>
+            {extrasOpen ? (
+              <button type="button" onClick={hideExtras}
+                className="text-xs text-ink-muted hover:text-ink transition-colors">Ocultar</button>
+            ) : (
+              <button type="button" onClick={showExtras}
+                className="text-xs text-gold hover:underline">+ Agregar adicional</button>
+            )}
+          </div>
+          <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${extrasOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+            <div className="overflow-hidden">
+              <div className="pt-3">
+                <AdicionalesEditor items={extras} onChange={setExtras} />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Discount — collapsible */}
+        <div className="mt-4">
+          <div className="flex items-center justify-between">
+            <span className="form-label !mb-0">Descuento</span>
+            {discountOpen ? (
+              <button type="button" onClick={removeDiscount}
+                className="text-xs text-ink-muted hover:text-red-500 transition-colors">− Quitar descuento</button>
+            ) : (
+              <button type="button" onClick={() => setDiscountOpen(true)}
+                className="text-xs text-gold hover:underline">+ Agregar descuento</button>
+            )}
+          </div>
+
+          {/* Smooth expand via grid-rows 0fr → 1fr */}
+          <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${discountOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+            <div className="overflow-hidden">
+              <div className="flex flex-wrap items-center gap-2 pt-3">
+                <div className="flex rounded-lg border border-beige-dark overflow-hidden shrink-0">
+                  {(['PORCENTAJE', 'VALOR_FIJO'] as const).map((t) => (
+                    <button key={t} type="button" onClick={() => setDiscTipo(t)}
+                      className={`px-3 py-2 text-sm transition-colors ${
+                        discTipo === t ? 'bg-gold text-white' : 'bg-white text-ink-muted hover:text-ink'
+                      }`}>
+                      {t === 'PORCENTAJE' ? '%' : '$'}
+                    </button>
+                  ))}
+                </div>
+                <input type="number" min={0} step={discTipo === 'PORCENTAJE' ? 1 : 1000}
+                  max={discTipo === 'PORCENTAJE' ? 100 : undefined}
+                  className={`input-field w-[80px] ${discountTooBig ? 'border-red-400' : ''}`}
+                  value={discValor} onChange={(e) => setDiscValor(e.target.value)}
+                  placeholder={discTipo === 'PORCENTAJE' ? '0–100' : '0'} />
+                <input className="input-field flex-1 min-w-[160px]" value={discMotivo}
+                  onChange={(e) => setDiscMotivo(e.target.value)}
+                  placeholder="Motivo opcional…" />
+              </div>
+              {discountTooBig && (
+                <p className="text-xs text-red-500 mt-1">El descuento no puede superar el subtotal.</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Breakdown */}
+        {(hasDiscount || extrasTotal > 0) && (
+          <div className="bg-beige-pale rounded-lg px-4 py-3 text-sm space-y-1 mt-4">
+            <div className="flex justify-between text-ink-muted">
+              <span>Servicio{appt.services && appt.services.length > 1 ? 's' : ''}</span>
+              <span>{formatPrice(servicesTotal)}</span>
+            </div>
+            {extras
+              .filter((e) => e.description.trim() && Number(e.amount) > 0)
+              .map((e, i) => (
+                <div key={i} className="flex justify-between text-ink-muted">
+                  <span>Adicional ({e.description.trim()})</span>
+                  <span>{formatPrice(Number(e.amount))}</span>
+                </div>
+              ))}
+            {hasDiscount && !discountTooBig && (
+              <>
+                <div className="flex justify-between text-ink-muted border-t border-beige-dark pt-1 mt-1">
+                  <span>Subtotal</span><span>{formatPrice(subtotal)}</span>
+                </div>
+                <div className="flex justify-between text-gold-dark">
+                  <span>Descuento{discTipo === 'PORCENTAJE' ? ` (${discValorNum}%)` : ''}</span>
+                  <span>−{formatPrice(discountAmount)}</span>
+                </div>
+              </>
+            )}
+            <div className="flex justify-between text-ink font-medium border-t border-beige-dark pt-1 mt-1">
+              <span>Total a cobrar</span><span>{formatPrice(hasDiscount && !discountTooBig ? finalPrice : subtotal)}</span>
+            </div>
+            {hasDiscount && discMotivo.trim() && (
+              <p className="text-xs text-ink-muted/70 pt-1">Motivo: {discMotivo.trim()}</p>
+            )}
+          </div>
+        )}
+
+        <button type="submit" disabled={savingPay || discountTooBig}
+          className="btn-primary text-xs px-5 py-2.5 sm:py-2 mt-4 disabled:opacity-50">
           {savingPay ? 'Guardando...' : 'Guardar pago'}
         </button>
+        <p className="text-[11px] text-ink-muted/70 mt-2">
+          Con pago <strong>Pagado</strong> o <strong>Cortesía</strong>, la cita se marca como completada automáticamente. Un abono <strong>Parcial</strong> no la completa.
+        </p>
       </form>
 
       {/* Status actions */}

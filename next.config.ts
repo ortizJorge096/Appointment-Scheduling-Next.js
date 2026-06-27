@@ -29,6 +29,10 @@ const nextConfig: NextConfig = {
     const s3Host = process.env.AWS_S3_BUCKET
       ? `${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION ?? 'us-east-1'}.amazonaws.com`
       : '*.amazonaws.com'
+    // Next.js dev (Fast Refresh / source maps) needs eval; production does not.
+    // Only relax script-src in development — prod stays strict.
+    const isDev = process.env.NODE_ENV !== 'production'
+    const scriptSrc = `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`
     return [
       {
         source: '/(.*)',
@@ -45,7 +49,7 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline'",
+              scriptSrc,
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               `img-src 'self' data: blob: https://${s3Host}`,
               "font-src 'self' data: https://fonts.gstatic.com",

@@ -122,7 +122,7 @@ export default function ClientesPageClient() {
           placeholder="Buscar por nombre, email o teléfono…"
           value={searchInput}
           onChange={e => setSearchInput(e.target.value)}
-          className="input-field w-full max-w-md text-sm"
+          className="input-field w-full max-w-md"
         />
       </div>
 
