@@ -204,13 +204,13 @@ export default async function CitasPage({ searchParams }: { searchParams: Promis
           <div className="flex gap-2">
             {page > 1 && (
               <Link href={pageUrl(page - 1)}
-                className="px-3 py-1.5 text-xs border border-beige-dark rounded-lg text-ink-muted hover:border-gold transition-colors">
+                className="px-3 py-2.5 sm:py-1.5 text-xs border border-beige-dark rounded-lg text-ink-muted hover:border-gold transition-colors">
                 ← Anterior
               </Link>
             )}
             {page < totalPages && (
               <Link href={pageUrl(page + 1)}
-                className="px-3 py-1.5 text-xs border border-beige-dark rounded-lg text-ink-muted hover:border-gold transition-colors">
+                className="px-3 py-2.5 sm:py-1.5 text-xs border border-beige-dark rounded-lg text-ink-muted hover:border-gold transition-colors">
                 Siguiente →
               </Link>
             )}

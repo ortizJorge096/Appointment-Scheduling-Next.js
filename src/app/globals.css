@@ -56,10 +56,15 @@
     @apply inline-flex items-center justify-center py-3 px-2 -my-3 -mx-2 transition-colors;
   }
 
-  /* ── Inputs ── */
+  /* ── Inputs ──
+     text-base (16px) on mobile, not text-sm (14px): iOS Safari auto-zooms the
+     whole page on focus for any text input under 16px, and with client-side
+     routing the zoom can persist across navigations — looks like an unrelated
+     layout bug on other pages. 16px+ disables that zoom. Reverts to text-sm
+     at sm+ where it doesn't apply. */
   .input-field {
     @apply w-full bg-white border border-beige-dark text-ink rounded-lg
-           px-4 py-3 text-sm font-sans
+           px-4 py-3 text-base sm:text-sm font-sans
            placeholder:text-ink-muted/50
            focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/15
            transition-all duration-150
@@ -67,7 +72,7 @@
   }
   .input-dark {
     @apply w-full bg-white/5 border border-white/10 text-white rounded-lg
-           px-4 py-3 text-sm font-sans placeholder:text-white/30
+           px-4 py-3 text-base sm:text-sm font-sans placeholder:text-white/30
            focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20
            transition-all duration-150;
   }

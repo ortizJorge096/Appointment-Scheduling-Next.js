@@ -30,12 +30,12 @@ export default function AdicionalesEditor({ items, onChange }: AdicionalesEditor
   return (
     <div className="space-y-2">
       {items.map((item, i) => (
-        <div key={i} className="flex gap-2 items-start">
+        <div key={i} className="flex flex-wrap gap-2 items-start">
           <input
             value={item.description}
             onChange={(e) => updateItem(i, { description: e.target.value })}
             placeholder="Descripción del adicional…"
-            className="input-field flex-1"
+            className="input-field flex-1 min-w-[160px]"
           />
           <input
             type="number" min={0} step={1000}

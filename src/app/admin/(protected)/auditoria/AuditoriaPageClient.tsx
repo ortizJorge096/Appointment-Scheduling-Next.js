@@ -221,39 +221,39 @@ export default function AuditoriaPageClient() {
         placeholder="Buscar por cliente, cita o usuario…"
         value={searchInput}
         onChange={e => setSearchInput(e.target.value)}
-        className="input-field w-full max-w-md text-sm"
+        className="input-field w-full max-w-md"
       />
 
       {/* Filters */}
       <div className="bg-white rounded-xl border border-beige-dark p-3 sm:p-4 flex flex-wrap gap-3 items-end">
         <div>
           <label className="block text-xs text-ink-muted mb-1">Entidad</label>
-          <select value={entity} onChange={e => setFilter('entity', e.target.value)} className="input-field text-sm bg-white">
+          <select value={entity} onChange={e => setFilter('entity', e.target.value)} className="input-field bg-white">
             <option value="">Todas</option>
             {(Object.keys(ENTITY_LABELS) as AuditEntity[]).map(e => <option key={e} value={e}>{ENTITY_LABELS[e]}</option>)}
           </select>
         </div>
         <div>
           <label className="block text-xs text-ink-muted mb-1">Acción</label>
-          <select value={action} onChange={e => setFilter('action', e.target.value)} className="input-field text-sm bg-white">
+          <select value={action} onChange={e => setFilter('action', e.target.value)} className="input-field bg-white">
             <option value="">Todas</option>
             {(Object.keys(ACTION_LABELS) as AuditAction[]).map(a => <option key={a} value={a}>{ACTION_LABELS[a]}</option>)}
           </select>
         </div>
         <div>
           <label className="block text-xs text-ink-muted mb-1">Actor</label>
-          <select value={actorType} onChange={e => setFilter('actorType', e.target.value)} className="input-field text-sm bg-white">
+          <select value={actorType} onChange={e => setFilter('actorType', e.target.value)} className="input-field bg-white">
             <option value="">Todos</option>
             {(Object.keys(ACTOR_LABELS) as AuditActor[]).map(a => <option key={a} value={a}>{ACTOR_LABELS[a]}</option>)}
           </select>
         </div>
         <div>
           <label className="block text-xs text-ink-muted mb-1">Desde</label>
-          <input type="date" value={dateFrom} onChange={e => setFilter('dateFrom', e.target.value)} className="input-field text-sm" />
+          <input type="date" value={dateFrom} onChange={e => setFilter('dateFrom', e.target.value)} className="input-field" />
         </div>
         <div>
           <label className="block text-xs text-ink-muted mb-1">Hasta</label>
-          <input type="date" value={dateTo} onChange={e => setFilter('dateTo', e.target.value)} className="input-field text-sm" />
+          <input type="date" value={dateTo} onChange={e => setFilter('dateTo', e.target.value)} className="input-field" />
         </div>
         <button onClick={resetFilters}
           className="text-xs text-ink-muted hover:text-ink underline-offset-2 hover:underline transition-colors">

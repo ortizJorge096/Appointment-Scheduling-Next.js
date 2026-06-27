@@ -37,7 +37,7 @@ interface StatCardProps {
 export function StatCard({ label, value, accent = false, className }: StatCardProps) {
   return (
     <div className={cn(
-      'bg-white border rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow duration-200',
+      'bg-white border rounded-xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow duration-200',
       accent ? 'border-gold' : 'border-beige-dark',
       className
     )}>

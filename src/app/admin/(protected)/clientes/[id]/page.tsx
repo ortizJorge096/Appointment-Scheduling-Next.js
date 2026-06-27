@@ -122,11 +122,11 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
             {editInfo ? (
               <form onSubmit={saveInfo} className="space-y-2 max-w-xs">
                 <input value={infoForm.name} onChange={e => setInfoForm(f => ({ ...f, name: e.target.value }))}
-                  required placeholder="Nombre" className="input-field w-full text-sm" />
+                  required placeholder="Nombre" className="input-field w-full" />
                 <input type="email" value={infoForm.email} onChange={e => setInfoForm(f => ({ ...f, email: e.target.value }))}
-                  placeholder="Email (opcional)" className="input-field w-full text-sm" />
+                  placeholder="Email (opcional)" className="input-field w-full" />
                 <input value={infoForm.phone} onChange={e => setInfoForm(f => ({ ...f, phone: e.target.value }))}
-                  placeholder="Teléfono / celular" className="input-field w-full text-sm" />
+                  placeholder="Teléfono / celular" className="input-field w-full" />
                 {infoErr && <p className="text-xs text-red-600">{infoErr}</p>}
                 <div className="flex gap-2 pt-1">
                   <button type="submit" disabled={savingInfo} className="btn-primary text-xs py-1.5 px-4 disabled:opacity-50">
@@ -179,7 +179,7 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
             onChange={e => setNotes(e.target.value)}
             rows={3}
             placeholder="Alergias, preferencias, observaciones…"
-            className="input-field w-full resize-none text-sm"
+            className="input-field w-full resize-none"
           />
           <div className="flex items-center gap-3 mt-2">
             <button onClick={saveNotes} disabled={saving}

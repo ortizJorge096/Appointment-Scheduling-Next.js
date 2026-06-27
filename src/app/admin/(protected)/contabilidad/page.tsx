@@ -117,12 +117,12 @@ export default function ContabilidadPage() {
         <div>
           <label className="form-label text-[10px]">Desde</label>
           <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-            className="input-field text-sm" />
+            className="input-field" />
         </div>
         <div>
           <label className="form-label text-[10px]">Hasta</label>
           <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-            className="input-field text-sm" />
+            className="input-field" />
         </div>
       </div>
 
@@ -159,7 +159,7 @@ export default function ContabilidadPage() {
               <input required value={form.description}
                 onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                 placeholder="Ej: Esmaltes UV, bombillas, etc."
-                className="input-field w-full text-sm" />
+                className="input-field w-full" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -167,19 +167,19 @@ export default function ContabilidadPage() {
                 <input required type="number" min="1" value={form.amount}
                   onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
                   placeholder="0"
-                  className="input-field w-full text-sm" />
+                  className="input-field w-full" />
               </div>
               <div>
                 <label className="form-label text-[10px]">Fecha *</label>
                 <input required type="date" value={form.date}
                   onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
-                  className="input-field w-full text-sm" />
+                  className="input-field w-full" />
               </div>
             </div>
             <div>
               <label className="form-label text-[10px]">Categoría</label>
               <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                className="select-field w-full text-sm">
+                className="select-field w-full">
                 {EXPENSE_CATEGORIES.map(c => (
                   <option key={c} value={c}>{CAT_LABEL[c]}</option>
                 ))}
@@ -190,7 +190,7 @@ export default function ContabilidadPage() {
               <input value={form.notes}
                 onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
                 placeholder="Opcional"
-                className="input-field w-full text-sm" />
+                className="input-field w-full" />
             </div>
             {saveError && <p className="text-xs text-red-600">{saveError}</p>}
             <button type="submit" disabled={saving}
