@@ -1,11 +1,14 @@
 // prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  // pg_trgm powers the GIN indexes that accelerate the admin list's ILIKE search.
+  extensions = [pg_trgm]
 }
 
 // ─────────────────────────────────────────
@@ -241,6 +244,8 @@ model Appointment {
   @@index([paymentStatus])
   @@index([professionalId])
   @@index([origin])
+  // Trigram GIN index → fast ILIKE '%term%' for the admin list's client search.
+  @@index([clientName(ops: raw("gin_trgm_ops"))], type: Gin)
   @@map("appointments")
 }
 
@@ -253,6 +258,8 @@ model AppointmentService {
   serviceName   String?     // snapshot del nombre al reservar (preserva el historial si el servicio se renombra/elimina)
   price         Int         // price at time of booking (snapshot)
   @@unique([appointmentId, serviceId])
+  // Trigram GIN index → fast ILIKE '%term%' for the admin list's service search.
+  @@index([serviceName(ops: raw("gin_trgm_ops"))], type: Gin)
   @@map("appointment_services")
 }
 
