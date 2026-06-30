@@ -12,6 +12,23 @@ const envSchema = z.object({
   GOOGLE_CLIENT_EMAIL: z.string().email().optional(),
   GOOGLE_PRIVATE_KEY: z.string().optional(),
   GOOGLE_CALENDAR_ID: z.string().optional(),
+}).superRefine((e, ctx) => {
+  // Conditional requirements — a variable can be optional in isolation but
+  // required once a feature that depends on it is turned on.
+  if (e.ENABLE_EMAILS === 'true' && !e.SES_FROM_EMAIL) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom, path: ['SES_FROM_EMAIL'],
+      message: 'SES_FROM_EMAIL es requerida cuando ENABLE_EMAILS=true',
+    })
+  }
+  // Google Calendar is all-or-nothing: if any var is set, the trio must be.
+  const g = [e.GOOGLE_CLIENT_EMAIL, e.GOOGLE_PRIVATE_KEY, e.GOOGLE_CALENDAR_ID]
+  if (g.some(Boolean) && !g.every(Boolean)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom, path: ['GOOGLE_CALENDAR_ID'],
+      message: 'La integración de Google Calendar requiere GOOGLE_CLIENT_EMAIL, GOOGLE_PRIVATE_KEY y GOOGLE_CALENDAR_ID juntas',
+    })
+  }
 })
 
 const parsed = envSchema.safeParse(process.env)
