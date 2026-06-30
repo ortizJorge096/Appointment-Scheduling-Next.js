@@ -86,7 +86,7 @@ export default function ManualAppointmentModal() {
   }, [open, loadServices])
 
   function pickClient(c: ClientHit) {
-    setForm(f => ({ ...f, clientName: c.name, clientEmail: c.email, clientPhone: c.phone ?? '' }))
+    setForm(f => ({ ...f, clientName: c.name, clientEmail: c.email ?? '', clientPhone: c.phone ?? '' }))
     setFieldErrors(fe => ({ ...fe, clientName: undefined, clientEmail: undefined, clientPhone: undefined }))
   }
 
@@ -208,7 +208,14 @@ export default function ManualAppointmentModal() {
     setSuccess(isPast ? 'Cita registrada correctamente ✓' : 'Cita creada correctamente ✓')
     setForm(EMPTY)
     setExtras([])
-    setTimeout(() => { setOpen(false); setSuccess(''); router.refresh() }, 1200)
+    setTimeout(() => {
+      setOpen(false); setSuccess('')
+      // A past appointment is dated before today, so the default "Próximas"
+      // window would hide it. Send the admin to the "Pasadas" scope, which
+      // lists past appointments most-recent-first (see lib/appointmentList.ts).
+      if (isPast) router.push('/admin/citas?scope=past')
+      else router.refresh()
+    }, 1200)
   }
 
   // Keep "Total cobrado" in sync with the selected service's default price
