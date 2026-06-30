@@ -148,6 +148,55 @@ describe('GET /api/appointments', () => {
       expect.objectContaining({ where: expect.objectContaining({ date: expect.any(Object) }) })
     )
   })
+
+  it('filters by origin', async () => {
+    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(prisma.appointment.findMany).mockResolvedValue([])
+    vi.mocked(prisma.appointment.count).mockResolvedValue(0)
+
+    await GET(makeGetRequest({ origin: 'VIP' }))
+
+    expect(prisma.appointment.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ origin: 'VIP' }) })
+    )
+  })
+
+  it('builds an OR free-text search (client, service, code)', async () => {
+    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(prisma.appointment.findMany).mockResolvedValue([])
+    vi.mocked(prisma.appointment.count).mockResolvedValue(0)
+
+    await GET(makeGetRequest({ search: 'ana' }))
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where = vi.mocked(prisma.appointment.findMany).mock.calls[0][0]!.where as any
+    expect(Array.isArray(where.OR)).toBe(true)
+    expect(where.OR).toHaveLength(4)
+  })
+
+  it('scope=all removes the date window', async () => {
+    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(prisma.appointment.findMany).mockResolvedValue([])
+    vi.mocked(prisma.appointment.count).mockResolvedValue(0)
+
+    await GET(makeGetRequest({ scope: 'all' }))
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where = vi.mocked(prisma.appointment.findMany).mock.calls[0][0]!.where as any
+    expect(where.date).toBeUndefined()
+  })
+
+  it('filters by value range over amountPaid (finds cortesías $0)', async () => {
+    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(prisma.appointment.findMany).mockResolvedValue([])
+    vi.mocked(prisma.appointment.count).mockResolvedValue(0)
+
+    await GET(makeGetRequest({ amountMin: '0', amountMax: '0' }))
+
+    expect(prisma.appointment.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ amountPaid: { gte: 0, lte: 0 } }) })
+    )
+  })
 })
 
 // ── POST ─────────────────────────────────────────────────────────────────────
