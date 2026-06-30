@@ -207,6 +207,11 @@ model Appointment {
   status             AppointmentStatus @default(PENDING)
   // Origen de la cita
   source             AppointmentSource @default(ONLINE)
+  // Provenance, set explicitly at creation (no field-combination heuristics):
+  // PUBLIC = client self-booked, MANUAL = admin "Cita próxima", VIP = multi-
+  // service package, PAST = retroactive "Cita pasada". Legacy rows backfilled
+  // in the migration (source != ONLINE → MANUAL, else PUBLIC).
+  origin             AppointmentOrigin @default(PUBLIC)
   // Pago
   paymentStatus      PaymentStatus     @default(PENDING)
   paymentMethod      PaymentMethod?
@@ -235,6 +240,7 @@ model Appointment {
   @@index([status])
   @@index([paymentStatus])
   @@index([professionalId])
+  @@index([origin])
   @@map("appointments")
 }
 
@@ -276,6 +282,13 @@ enum AppointmentSource {
   WHATSAPP
   TELEFONO
   PRESENCIAL
+}
+
+enum AppointmentOrigin {
+  PUBLIC   // client self-booked via the public flow
+  MANUAL   // admin created ("Cita próxima")
+  VIP      // multi-service package booking
+  PAST     // retroactively registered ("Cita pasada")
 }
 
 enum PaymentStatus {
