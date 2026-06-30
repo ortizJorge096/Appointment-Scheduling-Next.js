@@ -110,7 +110,9 @@ export async function POST(
   // Check actual appointment conflict (only if admin didn't force the time).
   // We use a direct query instead of isSlotAvailable to avoid false positives
   // when no Schedule exists for that day (e.g. past dates or days without configured hours).
-  if (!skipAvailabilityCheck) {
+  // Past appointments already happened: they don't compete for a slot, so we
+  // never block a backfill on an "occupied" overlapping time.
+  if (!skipAvailabilityCheck && mode !== 'PAST') {
     let conflict
     try {
       conflict = await prisma.appointment.findFirst({
@@ -150,7 +152,7 @@ export async function POST(
         },
         select: { id: true },
       })
-      if (conflict && !skipAvailabilityCheck) throw new SlotTakenError()
+      if (conflict && !skipAvailabilityCheck && mode !== 'PAST') throw new SlotTakenError()
 
       // Create or retrieve client (by email, or by phone+name when no email)
       const clientId = await resolveOrCreateClient(tx, {
@@ -173,6 +175,7 @@ export async function POST(
           endTime,
           status:      isPast ? 'COMPLETED' : 'CONFIRMED',
           source,
+          origin:      isPast ? 'PAST' : 'MANUAL',
           notes:       notes?.trim() ?? null,
           ...(isPast ? {
             paymentStatus:    'PAID',

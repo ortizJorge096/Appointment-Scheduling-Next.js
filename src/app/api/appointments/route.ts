@@ -14,6 +14,8 @@ import { resolveOrCreateClient } from '@/lib/clients'
 import { audit, getClientIp, getUserAgent } from '@/lib/audit'
 import { createCalendarEvent } from '@/lib/calendar'
 import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
+import { buildAppointmentListQuery } from '@/lib/appointmentList'
+import { formatInTimeZone } from 'date-fns-tz'
 import type { ApiResponse, AppointmentWithService } from '@/types'
 
 // ─────────────────────────────────────────
@@ -61,22 +63,33 @@ export async function GET(
   }
 
   const { searchParams } = new URL(request.url)
-  const status = searchParams.get('status')
-  const dateFrom = searchParams.get('dateFrom')
-  const dateTo = searchParams.get('dateTo')
-  const page = Math.max(1, parseInt(searchParams.get('page') ?? '1'))
+  const page  = Math.max(1, parseInt(searchParams.get('page') ?? '1'))
   const limit = Math.min(50, parseInt(searchParams.get('limit') ?? '20'))
 
-  const where: Record<string, unknown> = {}
-
-  if (status) where.status = status
-
-  if (dateFrom || dateTo) {
-    where.date = {
-      ...(dateFrom ? { gte: new Date(`${dateFrom}T00:00:00`) } : {}),
-      ...(dateTo ? { lte: new Date(`${dateTo}T23:59:59`) } : {}),
-    }
+  // Parse optional numeric value bounds (ignore non-numbers).
+  const num = (v: string | null) => {
+    if (v == null || v.trim() === '') return undefined
+    const n = Number(v)
+    return Number.isFinite(n) ? n : undefined
   }
+
+  const today     = formatInTimeZone(new Date(), 'America/Bogota', 'yyyy-MM-dd')
+  const sortParam = searchParams.get('sort') ?? undefined
+  const { where, orderBy } = buildAppointmentListQuery({
+    status:     searchParams.get('status')     ?? undefined,
+    scope:      searchParams.get('scope')      ?? undefined,
+    origin:     searchParams.get('origin')     ?? undefined,
+    search:     searchParams.get('search')     ?? undefined,
+    serviceId:  searchParams.get('serviceId')  ?? undefined,
+    categoryId: searchParams.get('categoryId') ?? undefined,
+    amountMin:  num(searchParams.get('amountMin')),
+    amountMax:  num(searchParams.get('amountMax')),
+    dateFrom:   searchParams.get('dateFrom')   ?? undefined,
+    dateTo:     searchParams.get('dateTo')     ?? undefined,
+    sort:       sortParam,
+    sortExplicit: !!sortParam,
+    today,
+  })
 
   let appointments, total
   try {
@@ -98,7 +111,7 @@ export async function GET(
             select: { id: true, name: true },
           },
         },
-        orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
+        orderBy,
         skip: (page - 1) * limit,
         take: limit,
       }),
@@ -287,6 +300,8 @@ export async function POST(
           serviceId,
           totalDurationMinutes: computedDuration,
           discountPercent,
+          // VIP = multi-service package; otherwise a normal public self-booking.
+          origin: allServiceIds.length > 1 ? 'VIP' : 'PUBLIC',
           professionalId: assignedProfessionalId,
           date: dayStart,
           startTime,
