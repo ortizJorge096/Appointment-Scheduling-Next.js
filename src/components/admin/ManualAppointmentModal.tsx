@@ -7,6 +7,7 @@ import { formatPrice, isValidPhone } from '@/lib/utils'
 import { computeDiscountAmount } from '@/lib/discount'
 import ClientSearchInput, { type ClientHit } from './ClientSearchInput'
 import AdicionalesEditor, { type Adicional } from './AdicionalesEditor'
+import DescuentoEditor from './DescuentoEditor'
 
 interface Service { id: string; name: string; price: number; durationMinutes: number }
 
@@ -62,6 +63,7 @@ export default function ManualAppointmentModal() {
   const [services, setServices] = useState<Service[]>([])
   const [form, setForm]         = useState(EMPTY)
   const [extras, setExtras]     = useState<Adicional[]>([])
+  const [descuentoOpen, setDescuentoOpen] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [touched, setTouched]   = useState<Touched>({})
   const [saving, setSaving]     = useState(false)
@@ -81,7 +83,7 @@ export default function ManualAppointmentModal() {
       loadServices()
       setFieldErrors({}); setTouched({}); setApiError(''); setSuccess('')
     } else {
-      setExtras([])
+      setExtras([]); setDescuentoOpen(false)
     }
   }, [open, loadServices])
 
@@ -208,6 +210,7 @@ export default function ManualAppointmentModal() {
     setSuccess(isPast ? 'Cita registrada correctamente ✓' : 'Cita creada correctamente ✓')
     setForm(EMPTY)
     setExtras([])
+    setDescuentoOpen(false)
     setTimeout(() => {
       setOpen(false); setSuccess('')
       // A past appointment is dated before today, so the default "Próximas"
@@ -418,34 +421,31 @@ export default function ManualAppointmentModal() {
                       <label className="form-label">Adicional (opcional)</label>
                       <AdicionalesEditor items={extras} onChange={setExtras} />
                     </div>
-                    {/* Discount (optional) */}
-                    <div>
-                      <label className="form-label">Descuento (opcional)</label>
-                      <div className="flex gap-2">
-                        <div className="flex rounded-lg border border-beige-dark overflow-hidden shrink-0">
-                          {(['PORCENTAJE', 'VALOR_FIJO'] as const).map((t) => (
-                            <button key={t} type="button"
-                              onClick={() => setForm(f => ({ ...f, descuentoTipo: t }))}
-                              className={`px-3 py-2 text-sm transition-colors ${
-                                form.descuentoTipo === t ? 'bg-gold text-white' : 'bg-white text-ink-muted hover:text-ink'
-                              }`}>
-                              {t === 'PORCENTAJE' ? '%' : '$'}
-                            </button>
-                          ))}
-                        </div>
-                        <input type="number" min={0} step={form.descuentoTipo === 'PORCENTAJE' ? 1 : 1000}
-                          max={form.descuentoTipo === 'PORCENTAJE' ? 100 : undefined}
-                          value={form.descuentoValor} onChange={field('descuentoValor')} onBlur={handleBlur('descuentoValor')}
-                          placeholder={form.descuentoTipo === 'PORCENTAJE' ? '0–100' : '0'}
-                          className={`input-field w-[120px] ${touched.descuentoValor && discountTooBig ? 'border-red-400' : ''}`} />
-                      </div>
-                      {touched.descuentoValor && discountTooBig && (
-                        <p className="text-xs text-red-500 mt-0.5">El descuento no puede superar el subtotal.</p>
-                      )}
-                      <input value={form.descuentoMotivo} onChange={field('descuentoMotivo')}
-                        placeholder="Motivo del descuento (interno, opcional)…"
-                        className="input-field w-full mt-2" />
-                    </div>
+                    {/* Discount (optional) — shared collapsible editor */}
+                    <DescuentoEditor
+                      open={descuentoOpen}
+                      tipo={form.descuentoTipo}
+                      valor={form.descuentoValor}
+                      motivo={form.descuentoMotivo}
+                      error={descuentoOpen && discountTooBig ? 'El descuento no puede superar el subtotal.' : null}
+                      onAdd={() => setDescuentoOpen(true)}
+                      onRemove={() => {
+                        setDescuentoOpen(false)
+                        setForm(f => ({ ...f, descuentoValor: '', descuentoMotivo: '' }))
+                        setFieldErrors(fe => ({ ...fe, descuentoValor: undefined }))
+                      }}
+                      onChange={(patch) => {
+                        setForm(f => ({
+                          ...f,
+                          ...(patch.tipo   !== undefined ? { descuentoTipo:   patch.tipo }   : {}),
+                          ...(patch.valor  !== undefined ? { descuentoValor:  patch.valor }  : {}),
+                          ...(patch.motivo !== undefined ? { descuentoMotivo: patch.motivo } : {}),
+                        }))
+                        if (patch.valor !== undefined && fieldErrors.descuentoValor) {
+                          setFieldErrors(fe => ({ ...fe, descuentoValor: undefined }))
+                        }
+                      }}
+                    />
 
                     <div className="bg-beige-pale rounded-lg px-4 py-3 text-sm space-y-1">
                       <div className="flex justify-between text-ink-muted">

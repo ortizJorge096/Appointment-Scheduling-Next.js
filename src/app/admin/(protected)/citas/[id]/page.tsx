@@ -13,6 +13,7 @@ import { STUDIO } from '@/lib/config'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
 import { STATUS_LABEL, STATUS_CLASS } from '@/lib/appointmentStatus'
 import AdicionalesEditor, { type Adicional } from '@/components/admin/AdicionalesEditor'
+import DescuentoEditor from '@/components/admin/DescuentoEditor'
 import type { AppointmentWithService, AppointmentStatus } from '@/types'
 
 const PAYMENT_STATUS_OPTS = [
@@ -454,47 +455,22 @@ export default function CitaDetailPage() {
           </div>
         </div>
 
-        {/* Discount — collapsible */}
+        {/* Discount — shared collapsible editor */}
         <div className="mt-4">
-          <div className="flex items-center justify-between">
-            <span className="form-label !mb-0">Descuento</span>
-            {discountOpen ? (
-              <button type="button" onClick={removeDiscount}
-                className="text-xs text-ink-muted hover:text-red-500 transition-colors">− Quitar descuento</button>
-            ) : (
-              <button type="button" onClick={() => setDiscountOpen(true)}
-                className="text-xs text-gold hover:underline">+ Agregar descuento</button>
-            )}
-          </div>
-
-          {/* Smooth expand via grid-rows 0fr → 1fr */}
-          <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${discountOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
-            <div className="overflow-hidden">
-              <div className="flex flex-wrap items-center gap-2 pt-3">
-                <div className="flex rounded-lg border border-beige-dark overflow-hidden shrink-0">
-                  {(['PORCENTAJE', 'VALOR_FIJO'] as const).map((t) => (
-                    <button key={t} type="button" onClick={() => setDiscTipo(t)}
-                      className={`px-3 py-2 text-sm transition-colors ${
-                        discTipo === t ? 'bg-gold text-white' : 'bg-white text-ink-muted hover:text-ink'
-                      }`}>
-                      {t === 'PORCENTAJE' ? '%' : '$'}
-                    </button>
-                  ))}
-                </div>
-                <input type="number" min={0} step={discTipo === 'PORCENTAJE' ? 1 : 1000}
-                  max={discTipo === 'PORCENTAJE' ? 100 : undefined}
-                  className={`input-field w-[80px] ${discountTooBig ? 'border-red-400' : ''}`}
-                  value={discValor} onChange={(e) => setDiscValor(e.target.value)}
-                  placeholder={discTipo === 'PORCENTAJE' ? '0–100' : '0'} />
-                <input className="input-field flex-1 min-w-[160px]" value={discMotivo}
-                  onChange={(e) => setDiscMotivo(e.target.value)}
-                  placeholder="Motivo opcional…" />
-              </div>
-              {discountTooBig && (
-                <p className="text-xs text-red-500 mt-1">El descuento no puede superar el subtotal.</p>
-              )}
-            </div>
-          </div>
+          <DescuentoEditor
+            open={discountOpen}
+            tipo={discTipo}
+            valor={discValor}
+            motivo={discMotivo}
+            error={discountTooBig ? 'El descuento no puede superar el subtotal.' : null}
+            onAdd={() => setDiscountOpen(true)}
+            onRemove={removeDiscount}
+            onChange={(patch) => {
+              if (patch.tipo   !== undefined) setDiscTipo(patch.tipo)
+              if (patch.valor  !== undefined) setDiscValor(patch.valor)
+              if (patch.motivo !== undefined) setDiscMotivo(patch.motivo)
+            }}
+          />
         </div>
 
         {/* Breakdown */}
