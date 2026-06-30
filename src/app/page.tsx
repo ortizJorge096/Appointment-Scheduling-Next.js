@@ -16,10 +16,12 @@ import { PinIcon, ClockIcon, PhoneIcon, MailIcon } from '@/components/public/Ser
 
 export const metadata: Metadata = { title: `Uñas, pestañas y cejas en ${STUDIO.city}` }
 
-// Rendered per-request: BookingSection reads the booking settings from the DB
-// (server-side, no flash). This opts the home out of build-time static
-// prerender (where DATABASE_URL isn't available).
-export const dynamic = 'force-dynamic'
+// ISR instead of per-request rendering: BookingSection reads booking settings
+// from the DB server-side (no flash), but the page is cached and revalidated
+// hourly rather than rebuilt on every visit. getBookingSettings() never throws
+// (returns defaults if the DB is unreachable), so build-time prerender — when
+// DATABASE_URL isn't available — falls back to defaults and refreshes at runtime.
+export const revalidate = 3600
 
 export default function HomePage() {
   return (
