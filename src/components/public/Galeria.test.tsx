@@ -25,8 +25,12 @@ describe('Galeria', () => {
   it('muestra las imágenes reales devueltas por /api/gallery', async () => {
     mockFetch(MOCK_IMAGES)
     render(<Galeria />)
-    expect(await screen.findByAltText('Nail art')).toHaveAttribute('src', MOCK_IMAGES[0].url)
-    expect(await screen.findByAltText('Diseño')).toHaveAttribute('src', MOCK_IMAGES[1].url)
+    // next/image rewrites src to the optimizer URL (/_next/image?url=<encoded>…),
+    // so assert the original URL is embedded rather than an exact src match.
+    const first  = await screen.findByAltText('Nail art')
+    const second = await screen.findByAltText('Diseño')
+    expect(first.getAttribute('src')).toContain(encodeURIComponent(MOCK_IMAGES[0].url))
+    expect(second.getAttribute('src')).toContain(encodeURIComponent(MOCK_IMAGES[1].url))
   })
 
   it('cae a los gradientes placeholder cuando no hay imágenes activas', async () => {
