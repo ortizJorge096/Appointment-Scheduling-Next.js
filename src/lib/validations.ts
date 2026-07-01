@@ -286,6 +286,17 @@ export const blockedDateSchema = z.object({
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const
 
+// CSS object-position values for the cover crop. Kept as a closed set so the
+// stored value is always a valid `object-position` string.
+export const FOCAL_POINTS = [
+  'top left', 'top center', 'top right',
+  'center left', 'center center', 'center right',
+  'bottom left', 'bottom center', 'bottom right',
+] as const
+const focalPointSchema = z.enum(FOCAL_POINTS, {
+  errorMap: () => ({ message: 'Punto focal inválido' }),
+})
+
 export const galleryUploadUrlSchema = z.object({
   filename:    z.string().min(1).max(200),
   contentType: z.enum(ALLOWED_IMAGE_TYPES, {
@@ -300,6 +311,7 @@ export const galleryCreateSchema = z.object({
   categoryId:  z.string().cuid('Categoría inválida').nullable().optional(),
   width:       z.number().int().positive().optional(),
   height:      z.number().int().positive().optional(),
+  focalPoint:  focalPointSchema.optional(),
 })
 
 export const galleryUpdateSchema = z.object({
@@ -309,6 +321,7 @@ export const galleryUpdateSchema = z.object({
   categoryId:  z.string().cuid('Categoría inválida').nullable().optional(),
   order:       z.number().int().min(0).optional(),
   isActive:    z.boolean().optional(),
+  focalPoint:  focalPointSchema.optional(),
 })
 
 // ─────────────────────────────────────────

@@ -41,6 +41,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     height: i.height,
     order: i.order,
     isActive: i.isActive,
+    focalPoint: i.focalPoint,
     url: getPublicUrl(i.s3Key),
     s3Key: session ? i.s3Key : undefined, // only admin needs the key
   }))

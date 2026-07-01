@@ -16,6 +16,7 @@ interface GalleryImage {
   title: string | null
   description: string | null
   category: { id: string; name: string; slug: string } | null
+  focalPoint?: string | null
 }
 
 const PLACEHOLDER_GRADIENTS = [
@@ -95,6 +96,7 @@ export default function Galeria() {
                     alt={img.title ?? 'Diseño'}
                     fill
                     sizes="(max-width: 640px) 50vw, 25vw"
+                    style={{ objectPosition: img.focalPoint ?? 'center center' }}
                     className="object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-ink/70 via-ink/10 to-transparent

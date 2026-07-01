@@ -17,6 +17,7 @@ interface GalleryImage {
   height: number | null
   order: number
   isActive: boolean
+  focalPoint: string
   url: string
   s3Key?: string
 }
@@ -27,6 +28,21 @@ interface Category {
 }
 
 const MAX_BYTES = 5 * 1024 * 1024  // 5 MB
+
+// 3×3 focal-point grid (matches FOCAL_POINTS in validations). Labels are for
+// the non-technical admin; the value is a CSS object-position string.
+const FOCAL_OPTIONS: { value: string; label: string }[] = [
+  { value: 'top left',      label: 'Arriba izq.' },
+  { value: 'top center',    label: 'Arriba'      },
+  { value: 'top right',     label: 'Arriba der.' },
+  { value: 'center left',   label: 'Izquierda'   },
+  { value: 'center center', label: 'Centro'      },
+  { value: 'center right',  label: 'Derecha'     },
+  { value: 'bottom left',   label: 'Abajo izq.'  },
+  { value: 'bottom center', label: 'Abajo'       },
+  { value: 'bottom right',  label: 'Abajo der.'  },
+]
+const FOCAL_LABEL: Record<string, string> = Object.fromEntries(FOCAL_OPTIONS.map((o) => [o.value, o.label]))
 
 export default function GaleriaAdminPage() {
   usePermissionGuard('galeria:ver')
@@ -47,7 +63,7 @@ export default function GaleriaAdminPage() {
 
   // Inline editing state
   const [editing, setEditing] = useState<string | null>(null)
-  const [editForm, setEditForm] = useState<{ title: string; description: string; categoryId: string }>({ title: '', description: '', categoryId: '' })
+  const [editForm, setEditForm] = useState<{ title: string; description: string; categoryId: string; focalPoint: string }>({ title: '', description: '', categoryId: '', focalPoint: 'center center' })
 
   function load() {
     setLoading(true)
@@ -185,6 +201,7 @@ export default function GaleriaAdminPage() {
         title: editForm.title.trim() || null,
         description: editForm.description.trim() || null,
         categoryId: editForm.categoryId || null,
+        focalPoint: editForm.focalPoint,
       }),
     })
     const j = await r.json()
@@ -288,6 +305,7 @@ export default function GaleriaAdminPage() {
               className={`bg-white border ${img.isActive ? 'border-beige-dark' : 'border-beige-dark opacity-60'} flex flex-col`}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={img.url} alt={img.title ?? ''}
+                style={{ objectPosition: img.focalPoint ?? 'center center' }}
                 className="w-full aspect-square object-cover bg-beige" />
 
               <div className="p-4 flex-1 flex flex-col gap-2">
@@ -309,6 +327,39 @@ export default function GaleriaAdminPage() {
                       <option value="">— Sin categoría —</option>
                       {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
+
+                    {/* Focal point: pick where the crop centers. The preview shows the
+                        result live in the (taller) proportion where it matters most. */}
+                    <div>
+                      <p className="text-[10px] uppercase tracking-widest text-ink-muted mb-1">Punto focal</p>
+                      <div className="relative w-full max-w-[180px] aspect-[4/5] rounded overflow-hidden bg-beige mx-auto">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={img.url} alt=""
+                          style={{ objectPosition: editForm.focalPoint }}
+                          className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 grid grid-cols-3 grid-rows-3">
+                          {FOCAL_OPTIONS.map((o) => {
+                            const active = editForm.focalPoint === o.value
+                            return (
+                              <button key={o.value} type="button" title={o.label}
+                                aria-label={o.label}
+                                onClick={() => setEditForm({ ...editForm, focalPoint: o.value })}
+                                className="flex items-center justify-center group/fp">
+                                <span className={`w-3 h-3 rounded-full border transition-all ${
+                                  active
+                                    ? 'bg-gold border-gold scale-110 shadow'
+                                    : 'bg-black/25 border-white/70 group-hover/fp:bg-white/50'
+                                }`} />
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                      <p className="text-[11px] text-ink-muted mt-1 text-center">
+                        Punto focal: <span className="text-ink">{FOCAL_LABEL[editForm.focalPoint] ?? 'Centro'}</span>
+                      </p>
+                    </div>
+
                     <div className="flex gap-2 mt-1">
                       <button onClick={() => saveEdit(img.id)} className="btn-primary flex-1 text-xs py-2">Guardar</button>
                       <button onClick={() => setEditing(null)} className="btn-secondary text-xs py-2">Cancelar</button>
@@ -338,7 +389,7 @@ export default function GaleriaAdminPage() {
                             className="btn-row-action text-ink-muted hover:text-gold disabled:opacity-40">
                             {replacingId === img.id ? `${progress}%` : '📷'}
                           </button>
-                          <button onClick={() => { setEditing(img.id); setEditForm({ title: img.title ?? '', description: img.description ?? '', categoryId: img.categoryId ?? '' }) }}
+                          <button onClick={() => { setEditing(img.id); setEditForm({ title: img.title ?? '', description: img.description ?? '', categoryId: img.categoryId ?? '', focalPoint: img.focalPoint ?? 'center center' }) }}
                             className="btn-row-action text-ink-muted hover:text-gold">✏️</button>
                           <button onClick={() => toggleActive(img)}
                             className={`btn-row-action ${img.isActive ? 'text-ink-muted hover:text-red-500' : 'text-green-600 hover:text-green-700'}`}>

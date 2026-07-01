@@ -63,7 +63,7 @@ export async function PATCH(
 
     const before = await prisma.galleryImage.findUnique({
       where: { id },
-      select: { title: true, description: true, categoryId: true, order: true, isActive: true },
+      select: { title: true, description: true, categoryId: true, order: true, isActive: true, focalPoint: true },
     })
 
     const updated = await prisma.galleryImage.update({
