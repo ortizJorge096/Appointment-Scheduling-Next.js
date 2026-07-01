@@ -62,7 +62,13 @@ patches:
         value: "true"
       - op: replace
         path: /data/SES_FROM_EMAIL
-        value: "citas@vjbeautystudio.com"
+        value: "no-reply@vjbeautystudio.com"
+      - op: replace
+        path: /data/GOOGLE_CLIENT_EMAIL
+        value: "vj-beauty-studio@vj-beauty-studio-498718.iam.gserviceaccount.com"
+      - op: replace
+        path: /data/GOOGLE_CALENDAR_ID
+        value: "valentinajimenezbeautystudio@gmail.com"
       - op: replace
         path: /data/NEXT_PUBLIC_APP_URL
         value: "https://appointment-scheduling.example.com"

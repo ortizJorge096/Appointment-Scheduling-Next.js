@@ -8,6 +8,8 @@ import { useState } from 'react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { ROLES, ROLE_LABELS, ROLE_DESCRIPTIONS, roleCapabilities, type Role } from '@/lib/permissions'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
+import { useToast } from '@/components/ui/Toast'
 
 interface AdminRow {
   id: string
@@ -40,6 +42,8 @@ export default function UsuariosClient({
   const [form, setForm]   = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [showPerms, setShowPerms] = useState(false)
+  const confirm = useConfirm()
+  const toast = useToast()
 
   async function reload() {
     const res = await fetch('/api/users')
@@ -79,6 +83,7 @@ export default function UsuariosClient({
       }
       setModal(null)
       await reload()
+      toast.success(modal.mode === 'create' ? 'Admin creado' : 'Cambios guardados')
     } finally {
       setSaving(false)
     }
@@ -93,15 +98,22 @@ export default function UsuariosClient({
     const j = await res.json()
     if (!j.success) { setError(j.error ?? 'No se pudo cambiar el estado'); return }
     await reload()
+    toast.success(u.isActive ? `${u.name} desactivado` : `${u.name} activado`)
   }
 
   async function remove(u: AdminRow) {
-    if (!window.confirm(`¿Eliminar a ${u.name}? Esta acción no se puede deshacer.`)) return
+    const ok = await confirm({
+      message: `¿Eliminar a ${u.name}? Esta acción no se puede deshacer.`,
+      confirmLabel: 'Eliminar',
+      danger: true,
+    })
+    if (!ok) return
     setError('')
     const res = await fetch(`/api/users/${u.id}`, { method: 'DELETE' })
     const j = await res.json()
     if (!j.success) { setError(j.error ?? 'No se pudo eliminar'); return }
     await reload()
+    toast.success('Admin eliminado')
   }
 
   return (
