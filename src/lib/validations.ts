@@ -355,6 +355,10 @@ export const createManualAppointmentSchema = z.object({
   clientName:  z.string().min(2).max(100),
   clientEmail: optionalEmail,
   clientPhone: phoneSchema,
+  // When an existing client was picked in the modal: its id, so we reuse and
+  // enrich that exact profile (e.g. save a phone it was missing) instead of
+  // re-resolving identity and risking a duplicate.
+  clientId:    z.string().cuid('ID de cliente inválido').optional(),
   serviceId:   z.string().cuid('ID de servicio inválido'),
   // Optional multi-service: when 2+ are sent, serviceId stays the primary and
   // the appointment gets one AppointmentService row per service.
