@@ -25,6 +25,7 @@ const CONFIG_NAV = [
 export default function AdminSidebar() {
   const pathname = usePathname()
   const { data: session } = useSession()
+  const role = (session?.user as { role?: string } | undefined)?.role
   const [open, setOpen] = useState(false)
   const [pendingTestimonials, setPendingTestimonials] = useState(0)
 
@@ -114,11 +115,17 @@ export default function AdminSidebar() {
           </p>
           <div className="space-y-0.5">
             {CONFIG_NAV.map(renderNavItem)}
+            {/* Admin management — SUPER_ADMIN only */}
+            {role === 'SUPER_ADMIN' && renderNavItem({ href: '/admin/usuarios', label: 'Usuarios', icon: '⚿' })}
           </div>
         </nav>
 
         <div className="px-4 py-5 border-t border-white/10">
           <p className="text-xs text-white/30 truncate mb-3">{session?.user?.email}</p>
+          <Link href="/admin/perfil"
+            className="block text-xs text-white/30 hover:text-gold transition-colors mb-2">
+            Mi perfil
+          </Link>
           <button
             onClick={() => signOut({ callbackUrl: '/admin/login' })}
             className="text-xs text-white/30 hover:text-gold transition-colors"
