@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { audit, getClientIp, getUserAgent } from '@/lib/audit'
 
 export const dynamic = 'force-dynamic'
 
@@ -63,6 +64,20 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     l.description ?? '',
     l.entityId,
   ].map(csvCell).join(','))
+
+  // Exporting the audit trail is itself a security-relevant event — record who
+  // did it, with what filters and how many rows (fire-and-forget; never blocks).
+  audit({
+    action:    'EXPORT',
+    entity:    'AUTH',
+    entityId:  'audit_logs',
+    actorType: 'ADMIN',
+    userEmail: session.user?.email ?? undefined,
+    ip:        getClientIp(request),
+    userAgent: getUserAgent(request),
+    description: `${session.user?.email ?? 'Admin'} exportó el log de auditoría (${logs.length} filas)`,
+    metadata:  { rowCount: logs.length, filters: { entity, action, actorType, search, dateFrom, dateTo } },
+  })
 
   // BOM so Excel opens UTF-8 (acentos) correctly.
   const csv = '﻿' + [header.map(csvCell).join(','), ...rows].join('\r\n')

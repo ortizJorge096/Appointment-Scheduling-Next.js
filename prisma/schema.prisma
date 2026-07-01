@@ -493,6 +493,7 @@ enum AuditAction {
   LOGOUT
   EMAIL_SENT
   EMAIL_FAILED
+  EXPORT        // audit-log export (reading/exfiltrating the trace is itself an event)
 }
 
 enum AuditEntity {
