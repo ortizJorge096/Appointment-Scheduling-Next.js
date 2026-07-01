@@ -4,6 +4,7 @@
 
 import { useState, useEffect } from 'react'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
+import { usePermissionGuard, useCan } from '@/components/admin/usePermissionGuard'
 
 const DAYS = [
   { key: 'MONDAY',    label: 'Lunes'     },
@@ -32,7 +33,9 @@ interface BlockedDate {
 }
 
 export default function HorariosPage() {
+  usePermissionGuard('horarios:ver')
   const confirm = useConfirm()
+  const can = useCan()
   const [schedules, setSchedules]       = useState<Schedule[]>([])
   const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([])
   const [loading, setLoading]           = useState(true)
@@ -202,6 +205,7 @@ export default function HorariosPage() {
                         className="input-field py-1.5 w-24 sm:w-28" />
                     </div>
 
+                    {can('horarios:editar') && (
                     <button
                       onClick={() => saveSchedule(sched)}
                       disabled={saving === sched.dayOfWeek}
@@ -209,6 +213,7 @@ export default function HorariosPage() {
                     >
                       {saving === sched.dayOfWeek ? 'Guardando...' : 'Guardar'}
                     </button>
+                    )}
                   </div>
                 )
               })}
@@ -222,6 +227,7 @@ export default function HorariosPage() {
               <p className="text-xs text-ink-muted mt-0.5">Festivos, vacaciones o días sin atención.</p>
             </div>
 
+            {can('horarios:editar') && (
             <div className="px-4 sm:px-6 py-4 border-b border-beige-dark flex flex-wrap gap-3 items-end">
               <div>
                 <label className="form-label text-[10px]">Fecha</label>
@@ -251,6 +257,7 @@ export default function HorariosPage() {
                 {addingBlock ? '...' : 'Bloquear'}
               </button>
             </div>
+            )}
 
             {blockedDates.length === 0 ? (
               <div className="px-6 py-8 text-center text-ink-muted text-sm">
@@ -272,12 +279,14 @@ export default function HorariosPage() {
                         <p className="text-xs text-ink-muted mt-0.5 truncate">{b.reason}</p>
                       )}
                     </div>
+                    {can('horarios:editar') && (
                     <button
                       onClick={() => removeBlockedDate(b.id)}
                       className="btn-row-action text-xs text-red-400 hover:text-red-600 shrink-0"
                     >
                       Desbloquear
                     </button>
+                    )}
                   </div>
                 ))}
               </div>

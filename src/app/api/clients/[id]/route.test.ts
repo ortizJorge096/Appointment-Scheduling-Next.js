@@ -20,7 +20,7 @@ const { getServerSession } = await import('next-auth')
 const { prisma }           = await import('@/lib/prisma')
 const { GET, PATCH }       = await import('./route')
 
-const MOCK_SESSION = { user: { email: 'admin@test.com' } }
+const MOCK_SESSION = { user: { id: 'a1', email: 'admin@test.com', role: 'SUPER_ADMIN' } }
 const MOCK_CLIENT = {
   id: 'c1', name: 'Ana López', email: 'ana@test.com',
   phone: '3001234567', notes: 'Alérgica al acrílico',

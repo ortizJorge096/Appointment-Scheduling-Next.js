@@ -3,8 +3,8 @@
 // POST /api/schedules  → create/update schedule (upsert by day)
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getCurrentAdmin } from '@/lib/authz'
+import { hasPermission } from '@/lib/permissions'
 import { prisma } from '@/lib/prisma'
 import { scheduleSchema } from '@/lib/validations'
 import { audit, getClientIp } from '@/lib/audit'
@@ -21,8 +21,9 @@ export async function GET(): Promise<NextResponse> {
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 })
+  const admin = await getCurrentAdmin()
+  if (!admin) return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 })
+  if (!hasPermission(admin.role, 'horarios:editar')) return NextResponse.json({ success: false, error: 'Sin permiso' }, { status: 403 })
 
   let body: unknown
   try {
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     action:      'UPDATE',
     entity:      'SCHEDULE',
     entityId:    schedule.id,
-    userEmail:   session.user?.email ?? undefined,
+    userEmail:   admin.email,
     ip:          getClientIp(request),
     description: `Horario de ${dayLabel} actualizado (${detail})`,
     before:      before ?? undefined,

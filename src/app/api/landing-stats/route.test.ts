@@ -68,13 +68,13 @@ describe('PUT /api/landing-stats', () => {
   })
 
   it('returns 400 for an out-of-range rating', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     const res = await PUT(makeRequest({ appointmentsCount: 400, clientsCount: 200, yearsExperience: 4, rating: 9 }))
     expect(res.status).toBe(400)
   })
 
   it('updates the metrics and echoes back the derived servicesCount', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.landingStats.findFirst).mockResolvedValue(MOCK_ROW)
     vi.mocked(prisma.landingStats.update).mockResolvedValue(MOCK_ROW)
     vi.mocked(prisma.service.count).mockResolvedValue(25)

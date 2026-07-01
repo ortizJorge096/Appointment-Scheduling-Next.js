@@ -3,8 +3,8 @@
 // PUT → update the editable metrics (admin only)
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getCurrentAdmin } from '@/lib/authz'
+import { hasPermission } from '@/lib/permissions'
 import { prisma } from '@/lib/prisma'
 import { getLandingStats } from '@/lib/landingStats'
 import { landingStatsSchema } from '@/lib/validations'
@@ -18,9 +18,12 @@ export async function GET(): Promise<NextResponse> {
 }
 
 export async function PUT(request: NextRequest): Promise<NextResponse> {
-  const session = await getServerSession(authOptions)
-  if (!session) {
+  const admin = await getCurrentAdmin()
+  if (!admin) {
     return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 })
+  }
+  if (!hasPermission(admin.role, 'configuracion:editar')) {
+    return NextResponse.json({ success: false, error: 'Sin permiso' }, { status: 403 })
   }
 
   let body: unknown
@@ -49,7 +52,7 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
     action:      'UPDATE',
     entity:      'SERVICE',          // no dedicated entity; mirrors booking-settings convention
     entityId:    'landing-stats',
-    userEmail:   session.user?.email ?? undefined,
+    userEmail:   admin.email,
     ip:          getClientIp(request),
     description: 'Métricas del sitio actualizadas',
     before:      existing ? {

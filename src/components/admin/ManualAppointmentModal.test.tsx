@@ -3,6 +3,10 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import ManualAppointmentModal from './ManualAppointmentModal'
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn() }) }))
+// useCan() reads the session; provide an authenticated SUPER_ADMIN so every control renders.
+vi.mock('next-auth/react', () => ({
+  useSession: () => ({ data: { user: { id: 'a1', role: 'SUPER_ADMIN' } }, status: 'authenticated' }),
+}))
 
 const MOCK_SERVICES = [
   { id: 's1', name: 'Manicura', price: 35000, durationMinutes: 45 },

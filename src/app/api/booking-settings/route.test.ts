@@ -64,19 +64,19 @@ describe('PUT /api/booking-settings', () => {
   })
 
   it('returns 400 for an out-of-range maxAdvanceDays', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     const res = await PUT(makeRequest({ maxAdvanceDays: 500 }))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 for an empty body (nothing to update)', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     const res = await PUT(makeRequest({}))
     expect(res.status).toBe(400)
   })
 
   it('updates only maxAdvanceDays (partial) and audits a readable description', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.bookingSettings.findFirst).mockResolvedValue(ROW)
     vi.mocked(prisma.bookingSettings.update).mockResolvedValue({ ...ROW, maxAdvanceDays: 120 })
 

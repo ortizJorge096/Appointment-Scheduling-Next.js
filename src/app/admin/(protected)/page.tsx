@@ -1,6 +1,8 @@
 // src/app/admin/(protected)/page.tsx
 import type { Metadata } from 'next'
 import { prisma } from '@/lib/prisma'
+import { redirect } from 'next/navigation'
+import { requirePermission } from '@/lib/authz'
 import Link from 'next/link'
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, subDays } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -17,6 +19,8 @@ const STATUS_ORDER = ['CONFIRMED', 'PENDING', 'COMPLETED', 'NO_SHOW'] as const
 const PERIOD_DAYS = 14
 
 export default async function DashboardPage() {
+  if (!(await requirePermission('metricas:ver'))) redirect('/admin/no-autorizado')
+
   const now        = new Date()
   const todayStart = startOfDay(now)
   const todayEnd   = endOfDay(now)

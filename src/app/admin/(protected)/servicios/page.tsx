@@ -10,6 +10,7 @@ import { formatPrice } from '@/lib/utils'
 import VipDiscountConfigCard from '@/components/admin/VipDiscountConfigCard'
 import { Icon } from '@/components/public/ServiceIcons'
 import CategoriesManager, { type AdminCategory } from '@/components/admin/CategoriesManager'
+import { usePermissionGuard, useCan } from '@/components/admin/usePermissionGuard'
 
 const PER_PAGE = 8
 
@@ -41,6 +42,8 @@ const EMPTY_SERVICE: ServiceForm = {
 }
 
 export default function ServiciosPage() {
+  usePermissionGuard('servicios:ver')
+  const can = useCan()
   const [tab, setTab]               = useState<Tab>('servicios')
   const [services, setServices]     = useState<Service[]>([])
   const [categories, setCategories] = useState<AdminCategory[]>([])
@@ -200,12 +203,14 @@ export default function ServiciosPage() {
             <p className="text-gold font-medium text-sm">{formatPrice(svc.price)}</p>
             <p className="text-xs text-ink-muted">{svc.durationMinutes} min</p>
           </div>
+          {can('servicios:editar') && (<>
           <button onClick={() => openEdit(svc)} className="btn-row-action text-xs text-ink-muted hover:text-gold">Editar</button>
           <button onClick={() => toggleActive(svc)}
             className={`btn-row-action text-xs ${svc.isActive ? 'text-ink-muted hover:text-amber-600' : 'text-green-600 hover:text-green-700'}`}>
             {svc.isActive ? 'Desactivar' : 'Activar'}
           </button>
           <button onClick={() => handleDelete(svc)} className="btn-row-action text-xs text-ink-muted hover:text-red-500">Eliminar</button>
+          </>)}
         </div>
       </div>
     )
@@ -239,12 +244,9 @@ export default function ServiciosPage() {
       {loading ? (
         <div className="py-10 text-center text-ink-muted text-sm">Cargando...</div>
       ) : tab === 'categorias' ? (
-        <CategoriesManager
-          categories={categories}
-          reload={load}
-          onError={setError}
-          onSuccess={flash}
-        />
+        can('servicios:editar')
+          ? <CategoriesManager categories={categories} reload={load} onError={setError} onSuccess={flash} />
+          : <p className="text-sm text-ink-muted py-6">No tienes permiso para gestionar categorías.</p>
       ) : (
         <>
           {/* Services toolbar */}
@@ -259,9 +261,11 @@ export default function ServiciosPage() {
                 onChange={(e) => { setSearch(e.target.value); setPage(1) }}
                 className="input-field !w-full sm:!w-auto sm:min-w-[200px]" />
             </div>
-            <button onClick={openNew} className="btn-primary text-sm" disabled={categories.length === 0}>
-              + Nuevo servicio
-            </button>
+            {can('servicios:editar') && (
+              <button onClick={openNew} className="btn-primary text-sm" disabled={categories.length === 0}>
+                + Nuevo servicio
+              </button>
+            )}
           </div>
 
           {categories.length === 0 && (
@@ -270,7 +274,7 @@ export default function ServiciosPage() {
             </div>
           )}
 
-          {!selectedCategory && !searching && <VipDiscountConfigCard />}
+          {!selectedCategory && !searching && can('configuracion:editar') && <VipDiscountConfigCard />}
 
           {/* Service form */}
           {showForm && (

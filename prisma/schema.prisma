@@ -408,6 +408,9 @@ model GalleryImage {
   height      Int?
   order       Int              @default(0)
   isActive    Boolean          @default(true)
+  // CSS object-position for the public cover crop, e.g. "top left" | "center center".
+  // Existing rows default to center → no visual change until edited.
+  focalPoint  String           @default("center center")
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
   @@index([isActive])

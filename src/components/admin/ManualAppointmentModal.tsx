@@ -8,6 +8,7 @@ import { computeDiscountAmount } from '@/lib/discount'
 import ClientSearchInput, { type ClientHit } from './ClientSearchInput'
 import AdicionalesEditor, { type Adicional } from './AdicionalesEditor'
 import DescuentoEditor from './DescuentoEditor'
+import { useCan } from './usePermissionGuard'
 
 interface Service { id: string; name: string; price: number; durationMinutes: number; category?: { id: string; name: string; order: number } | null }
 
@@ -59,6 +60,7 @@ function yesterday()     { return offsetDate(-1) }
 
 export default function ManualAppointmentModal() {
   const router = useRouter()
+  const can = useCan()
   const [open, setOpen]         = useState(false)
   const [services, setServices] = useState<Service[]>([])
   const [form, setForm]         = useState(EMPTY)
@@ -66,6 +68,8 @@ export default function ManualAppointmentModal() {
   const [descuentoOpen, setDescuentoOpen] = useState(false)
   const [extrasOpen, setExtrasOpen] = useState(false)
   const [serviceQuery, setServiceQuery] = useState('')
+  // Id of the existing client picked from the search (null = new/typed client).
+  const [pickedClientId, setPickedClientId] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [touched, setTouched]   = useState<Touched>({})
   const [saving, setSaving]     = useState(false)
@@ -85,12 +89,13 @@ export default function ManualAppointmentModal() {
       loadServices()
       setFieldErrors({}); setTouched({}); setApiError(''); setSuccess('')
     } else {
-      setExtras([]); setDescuentoOpen(false); setExtrasOpen(false); setServiceQuery('')
+      setExtras([]); setDescuentoOpen(false); setExtrasOpen(false); setServiceQuery(''); setPickedClientId(null)
     }
   }, [open, loadServices])
 
   function pickClient(c: ClientHit) {
     setForm(f => ({ ...f, clientName: c.name, clientEmail: c.email ?? '', clientPhone: c.phone ?? '' }))
+    setPickedClientId(c.id)
     setFieldErrors(fe => ({ ...fe, clientName: undefined, clientEmail: undefined, clientPhone: undefined }))
   }
 
@@ -99,6 +104,7 @@ export default function ManualAppointmentModal() {
   // Client record gets created (upserted by email) when the appointment is saved.
   function startNewClient(query: string) {
     setForm(f => ({ ...f, clientName: query }))
+    setPickedClientId(null)
     if (fieldErrors.clientName) setFieldErrors(fe => ({ ...fe, clientName: undefined }))
     emailInputRef.current?.focus()
   }
@@ -181,6 +187,7 @@ export default function ManualAppointmentModal() {
     const isPast = form.mode === 'PAST'
     const payload = {
       clientName: form.clientName, clientEmail: form.clientEmail, clientPhone: form.clientPhone,
+      ...(pickedClientId ? { clientId: pickedClientId } : {}),
       serviceId: form.serviceIds[0], serviceIds: form.serviceIds, date: form.date, startTime: form.startTime,
       source: form.source, notes: form.notes,
       skipAvailabilityCheck: form.skipAvailabilityCheck,
@@ -215,6 +222,7 @@ export default function ManualAppointmentModal() {
     setDescuentoOpen(false)
     setExtrasOpen(false)
     setServiceQuery('')
+    setPickedClientId(null)
     setTimeout(() => {
       setOpen(false); setSuccess('')
       // A past appointment is dated before today, so the default "Próximas"
@@ -290,6 +298,9 @@ export default function ManualAppointmentModal() {
 
   const Err = ({ k }: { k: keyof typeof EMPTY }) =>
     touched[k] && fieldErrors[k] ? <p className="text-xs text-red-500 mt-0.5">{fieldErrors[k]}</p> : null
+
+  // Roles without citas:crear (e.g. solo lectura) don't get the manual-booking entry point.
+  if (!can('citas:crear')) return null
 
   return (
     <>

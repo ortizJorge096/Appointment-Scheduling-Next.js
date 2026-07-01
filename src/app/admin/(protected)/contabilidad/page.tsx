@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback } from 'react'
 import type { ExpenseSummary, AccountingSummary } from '@/types'
 import { Pagination } from '@/components/admin/Pagination'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
+import { usePermissionGuard, useCan } from '@/components/admin/usePermissionGuard'
 
 const PER_PAGE = 10
 
@@ -30,7 +31,9 @@ function currentMonthRange() {
 const EMPTY_FORM = { description: '', amount: '', date: new Date().toISOString().slice(0, 10), category: 'OTROS', notes: '' }
 
 export default function ContabilidadPage() {
+  usePermissionGuard('contabilidad:ver')
   const confirm = useConfirm()
+  const can = useCan()
   const { from: initFrom, to: initTo } = currentMonthRange()
   const [dateFrom, setDateFrom]   = useState(initFrom)
   const [dateTo, setDateTo]       = useState(initTo)
@@ -150,7 +153,8 @@ export default function ContabilidadPage() {
       )}
 
       <div className="grid md:grid-cols-2 gap-8">
-        {/* Register expense */}
+        {/* Register expense — only for roles that can edit accounting (contabilidad:editar) */}
+        {can('contabilidad:editar') && (
         <div>
           <h2 className="text-lg font-serif text-ink mb-3">Registrar gasto</h2>
           <form onSubmit={addExpense} className="bg-white rounded-xl border border-beige-dark p-5 space-y-3">
@@ -199,6 +203,7 @@ export default function ContabilidadPage() {
             </button>
           </form>
         </div>
+        )}
 
         {/* Period expense list */}
         <div>
@@ -225,12 +230,14 @@ export default function ContabilidadPage() {
                   </div>
                   <div className="text-right shrink-0">
                     <p className="text-sm font-medium text-red-500">{COP(exp.amount)}</p>
-                    <button
-                      onClick={() => deleteExpense(exp.id)}
-                      disabled={deleting === exp.id}
-                      className="btn-row-action text-xs text-ink-muted/50 hover:text-red-500 mt-0.5">
-                      {deleting === exp.id ? '…' : 'Eliminar'}
-                    </button>
+                    {can('contabilidad:editar') && (
+                      <button
+                        onClick={() => deleteExpense(exp.id)}
+                        disabled={deleting === exp.id}
+                        className="btn-row-action text-xs text-ink-muted/50 hover:text-red-500 mt-0.5">
+                        {deleting === exp.id ? '…' : 'Eliminar'}
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}

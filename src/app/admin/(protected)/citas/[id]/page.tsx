@@ -11,6 +11,7 @@ import { formatPrice, shortCode, toWhatsAppNumber } from '@/lib/utils'
 import { computeDiscountAmount } from '@/lib/discount'
 import { STUDIO } from '@/lib/config'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
+import { usePermissionGuard, useCan } from '@/components/admin/usePermissionGuard'
 import { STATUS_LABEL, STATUS_CLASS } from '@/lib/appointmentStatus'
 import AdicionalesEditor, { type Adicional } from '@/components/admin/AdicionalesEditor'
 import DescuentoEditor from '@/components/admin/DescuentoEditor'
@@ -49,8 +50,10 @@ const ACTIONS: Record<string, { label: string; status: AppointmentStatus; style:
 }
 
 export default function CitaDetailPage() {
+  usePermissionGuard('citas:ver')
   const { id }    = useParams<{ id: string }>()
   const confirm   = useConfirm()
+  const can       = useCan()
 
   const [appt, setAppt]         = useState<AppointmentWithService | null>(null)
   const [loading, setLoading]   = useState(true)
@@ -223,6 +226,9 @@ export default function CitaDetailPage() {
   )
 
   const actions = ACTIONS[appt.status] ?? []
+  // Cancelling needs citas:cancelar; every other status change needs citas:editar.
+  const visibleActions = actions.filter((a) =>
+    a.status === 'CANCELLED' ? can('citas:cancelar') : can('citas:editar'))
 
   // Live discount math for the breakdown + validation (server is authoritative).
   const servicesTotal = appt.services && appt.services.length > 1
@@ -374,7 +380,7 @@ export default function CitaDetailPage() {
       <div className="bg-white rounded-xl border border-beige-dark p-5 mb-8">
         <div className="flex items-center justify-between mb-3">
           <p className="text-xs text-ink-muted uppercase tracking-widest">Notas</p>
-          {!editNotes && (
+          {!editNotes && can('citas:editar') && (
             <button
               onClick={() => setEditNotes(true)}
               className="text-xs text-gold hover:underline"
@@ -410,7 +416,8 @@ export default function CitaDetailPage() {
         )}
       </div>
 
-      {/* Payment */}
+      {/* Payment — only for roles that can register payments (citas:pago) */}
+      {can('citas:pago') && (
       <form onSubmit={savePayment} className="bg-white rounded-xl border border-beige-dark p-5 mb-8">
         <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
           <p className="text-xs text-ink-muted uppercase tracking-widest">Pago</p>
@@ -505,11 +512,12 @@ export default function CitaDetailPage() {
           Con pago <strong>Pagado</strong> o <strong>Cortesía</strong>, la cita se marca como completada automáticamente. Un abono <strong>Parcial</strong> no la completa.
         </p>
       </form>
+      )}
 
       {/* Status actions */}
-      {actions.length > 0 && (
+      {visibleActions.length > 0 && (
         <div className="flex flex-wrap gap-3">
-          {actions.map((action) => (
+          {visibleActions.map((action) => (
             <button
               key={action.status}
               onClick={() => updateStatus(action.status)}

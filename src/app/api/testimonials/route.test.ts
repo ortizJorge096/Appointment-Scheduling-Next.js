@@ -32,7 +32,7 @@ describe('GET /api/testimonials', () => {
   })
 
   it('admin on the landing (no manage flag) still gets the public-safe set', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     await GET(getReq())
     expect(prisma.testimonial.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: PUBLIC_WHERE })
@@ -40,7 +40,7 @@ describe('GET /api/testimonials', () => {
   })
 
   it('admin with ?manage=true gets all non-deleted testimonials', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     await GET(getReq('http://localhost/api/testimonials?manage=true'))
     expect(prisma.testimonial.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { deletedAt: null } })
@@ -48,7 +48,7 @@ describe('GET /api/testimonials', () => {
   })
 
   it('admin management view honors status/active filters', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     await GET(getReq('http://localhost/api/testimonials?manage=true&status=PENDING&active=false'))
     expect(prisma.testimonial.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { deletedAt: null, status: 'PENDING', isActive: false } })

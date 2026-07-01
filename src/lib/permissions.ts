@@ -34,8 +34,9 @@ export const PERMISSIONS = {
   'testimonios:moderar': 'Aprobar y rechazar testimonios',
 
   // Métricas y contabilidad
-  'metricas:ver':     'Ver dashboard y métricas',
-  'contabilidad:ver': 'Ver reportes de ingresos',
+  'metricas:ver':        'Ver dashboard y métricas',
+  'contabilidad:ver':    'Ver reportes de ingresos',
+  'contabilidad:editar': 'Registrar y editar gastos',
 
   // Auditoría
   'auditoria:ver': 'Ver y exportar el log de auditoría',
@@ -72,7 +73,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     'horarios:ver', 'horarios:editar',
     'galeria:ver', 'galeria:editar',
     'testimonios:ver', 'testimonios:editar', 'testimonios:moderar',
-    'metricas:ver', 'contabilidad:ver',
+    'metricas:ver', 'contabilidad:ver', 'contabilidad:editar',
     'auditoria:ver',
     'configuracion:ver', 'configuracion:editar',
   ],

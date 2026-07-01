@@ -45,27 +45,27 @@ describe('PATCH /api/gallery/[id]', () => {
   })
 
   it('returns 400 for malformed JSON', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     const req = { json: () => Promise.reject(new Error('bad')) } as unknown as NextRequest
     const res = await PATCH(req, CTX())
     expect(res.status).toBe(400)
   })
 
   it('returns 400 for invalid body schema', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     const res = await PATCH(makeRequest({ order: -1 }), CTX())
     expect(res.status).toBe(400)
   })
 
   it('returns 404 when image not found', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.galleryImage.update).mockRejectedValue(new Error('Not found'))
     const res = await PATCH(makeRequest({ isActive: false }), CTX('missing'))
     expect(res.status).toBe(404)
   })
 
   it('updates image metadata successfully', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.galleryImage.update).mockResolvedValue({ ...MOCK_IMAGE, isActive: false })
 
     const res  = await PATCH(makeRequest({ isActive: false }), CTX())
@@ -77,7 +77,7 @@ describe('PATCH /api/gallery/[id]', () => {
   })
 
   it('deletes old S3 object when s3Key changes', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.galleryImage.findUnique).mockResolvedValue(MOCK_IMAGE)
     vi.mocked(prisma.galleryImage.update).mockResolvedValue({ ...MOCK_IMAGE, s3Key: 'gallery/new.jpg' })
 
@@ -99,14 +99,14 @@ describe('DELETE /api/gallery/[id]', () => {
   })
 
   it('returns 404 when image not found', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.galleryImage.findUnique).mockResolvedValue(null)
     const res = await DELETE(makeRequest(), CTX('missing'))
     expect(res.status).toBe(404)
   })
 
   it('deletes from S3 and DB, returns id', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.galleryImage.findUnique).mockResolvedValue(MOCK_IMAGE)
     vi.mocked(prisma.galleryImage.delete).mockResolvedValue(MOCK_IMAGE)
 

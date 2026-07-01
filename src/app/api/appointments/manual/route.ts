@@ -49,7 +49,7 @@ export async function POST(
   }
 
   const {
-    clientName, clientEmail, clientPhone,
+    clientName, clientEmail, clientPhone, clientId: pickedClientId,
     serviceId, serviceIds, date, startTime, source, notes,
     skipAvailabilityCheck, notifyClient,
     mode, totalCharged, extras,
@@ -159,10 +159,25 @@ export async function POST(
       })
       if (conflict && !skipAvailabilityCheck && mode !== 'PAST') throw new SlotTakenError()
 
-      // Create or retrieve client (by email, or by phone+name when no email)
-      const clientId = await resolveOrCreateClient(tx, {
-        name: clientName, email: emailNorm, phone: clientPhone,
-      })
+      // If the admin picked an existing client, reuse that exact profile and
+      // save its name/phone (enriches a client that was missing a phone) —
+      // avoids creating a duplicate. Otherwise resolve/create by email or
+      // phone+name. Email isn't overwritten here (it's the dedup key).
+      let clientId: string
+      const picked = pickedClientId
+        ? await tx.client.findUnique({ where: { id: pickedClientId }, select: { id: true } })
+        : null
+      if (picked) {
+        await tx.client.update({
+          where: { id: picked.id },
+          data:  { name: clientName.trim(), phone: clientPhone.trim() },
+        })
+        clientId = picked.id
+      } else {
+        clientId = await resolveOrCreateClient(tx, {
+          name: clientName, email: emailNorm, phone: clientPhone,
+        })
+      }
 
       const isPast = mode === 'PAST'
       // Per-service snapshot: catalog price. For a SINGLE-service past charge the

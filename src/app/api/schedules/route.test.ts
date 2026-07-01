@@ -55,26 +55,26 @@ describe('POST /api/schedules', () => {
   })
 
   it('returns 400 for malformed JSON', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     const req = { json: () => Promise.reject(new Error('bad')) } as unknown as NextRequest
     const res = await POST(req)
     expect(res.status).toBe(400)
   })
 
   it('returns 400 when endTime <= startTime', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     const res = await POST(makeRequest({ ...MOCK_SCHEDULE, startTime: '18:00', endTime: '09:00' }))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 for unknown dayOfWeek', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     const res = await POST(makeRequest({ ...MOCK_SCHEDULE, dayOfWeek: 'FUNDAY' }))
     expect(res.status).toBe(400)
   })
 
   it('upserts schedule and returns it', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.schedule.upsert).mockResolvedValue(MOCK_SCHEDULE)
 
     const res  = await POST(makeRequest(MOCK_SCHEDULE))

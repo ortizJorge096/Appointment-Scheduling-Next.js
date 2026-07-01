@@ -3,8 +3,8 @@
 //        uploads the file directly to S3.
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getCurrentAdmin } from '@/lib/authz'
+import { hasPermission } from '@/lib/permissions'
 import { galleryUploadUrlSchema } from '@/lib/validations'
 import { getPresignedUploadUrl, buildGalleryKey } from '@/lib/s3'
 import { randomBytes } from 'crypto'
@@ -12,9 +12,12 @@ import { randomBytes } from 'crypto'
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const session = await getServerSession(authOptions)
-  if (!session) {
+  const admin = await getCurrentAdmin()
+  if (!admin) {
     return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 })
+  }
+  if (!hasPermission(admin.role, 'galeria:editar')) {
+    return NextResponse.json({ success: false, error: 'Sin permiso' }, { status: 403 })
   }
 
   let body: unknown
