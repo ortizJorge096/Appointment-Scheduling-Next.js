@@ -153,8 +153,7 @@ describe('ManualAppointmentModal', () => {
     fireEvent.change(screen.getByPlaceholderText('ana@ejemplo.com'),  { target: { value: 'ana@test.com' } })
     fireEvent.change(screen.getByPlaceholderText('3001234567'),       { target: { value: '3001234567' } })
 
-    const select = screen.getByRole('combobox')
-    fireEvent.change(select, { target: { value: 's1' } })
+    fireEvent.click(screen.getByRole('checkbox', { name: /Manicura/i }))
 
     // Robust selection by accessible label (no fragile index lookup)
     fireEvent.change(screen.getByLabelText('Fecha'), { target: { value: '2026-12-01' } })
