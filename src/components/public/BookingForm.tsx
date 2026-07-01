@@ -102,7 +102,7 @@ export default function BookingForm() {
   const [vipSettings, setVipSettings] = useState<VipSettings>({ enabled: false, tiers: [] })
   // Admin toggle (/admin/profesionales): when off, the client never picks a
   // professional — the server already auto-assigns "primera disponible".
-  const [showProfessionalStep, setShowProfessionalStep] = useState(true)
+  const [showProfessionalStep, setShowProfessionalStep] = useState(false)
   const [maxAdvanceDays, setMaxAdvanceDays] = useState(90)
   const [submitting, setSubmitting]   = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -244,16 +244,20 @@ export default function BookingForm() {
     }, 50)
   }, [step])
 
+  // The professional step only appears when the admin enabled it AND there is at
+  // least one active professional to choose from.
+  const effectiveShowProfessionalStep = showProfessionalStep && professionals.length > 0
+
   // Steps adjust automatically when the admin toggles professional selection.
-  const STEPS: FormStep[] = showProfessionalStep
+  const STEPS: FormStep[] = effectiveShowProfessionalStep
     ? ['service', 'professional', 'datetime', 'confirm']
     : ['service', 'datetime', 'confirm']
 
-  // Defensive: if the setting flips off while the client is on that step
-  // (e.g. it loaded a beat late), bump them forward instead of stranding them.
+  // Defensive: if the step becomes unavailable while the client is on it
+  // (e.g. settings loaded a beat late), bump them forward instead of stranding them.
   useEffect(() => {
-    if (!showProfessionalStep && step === 'professional') setStep('datetime')
-  }, [showProfessionalStep, step])
+    if (!effectiveShowProfessionalStep && step === 'professional') setStep('datetime')
+  }, [effectiveShowProfessionalStep, step])
 
   const selectedService = services.find((s) => s.id === form.serviceId)
   const isVipCategory = form.category === VIP_PSEUDO_CATEGORY
@@ -824,7 +828,7 @@ export default function BookingForm() {
                 <span className="font-serif text-ink font-semibold text-right max-w-[60%]">{summaryServices[0]?.name ?? ''}</span>
               </div>
             )}
-            {showProfessionalStep && (
+            {effectiveShowProfessionalStep && (
               <div className="flex justify-between text-[15px] border-b border-dashed border-beige-deeper py-3">
                 <span className="text-ink-muted">Profesional</span>
                 <span className="text-ink font-medium text-right max-w-[60%]">{selectedProfessional?.name ?? 'Primera disponible'}</span>

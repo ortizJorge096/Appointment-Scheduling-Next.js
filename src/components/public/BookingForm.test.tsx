@@ -47,6 +47,10 @@ function setupApiMocks() {
     if (u === '/api/availability/today') {
       return Promise.resolve({ json: () => Promise.resolve({ success: true, data: { remaining: 3 } }) })
     }
+    if (u === '/api/booking-settings') {
+      // Enable the professional step so navigateToConfirmStep can walk all 4 steps.
+      return Promise.resolve({ json: () => Promise.resolve({ success: true, data: { showProfessionalStep: true, maxAdvanceDays: 90 } }) })
+    }
     return Promise.resolve({ json: () => Promise.resolve({ success: false }) })
   }) as unknown as typeof fetch
 }

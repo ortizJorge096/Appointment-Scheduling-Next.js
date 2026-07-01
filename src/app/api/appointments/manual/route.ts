@@ -5,14 +5,14 @@
 // Automatically creates or links a Client profile.
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { getCurrentAdmin } from '@/lib/authz'
+import { hasPermission } from '@/lib/permissions'
 import { STUDIO } from '@/lib/config'
 import { createManualAppointmentSchema } from '@/lib/validations'
 import { timeToMinutes, minutesToTime } from '@/lib/availability'
 import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
-import { audit, getClientIp } from '@/lib/audit'
+import { audit, getClientIp, getUserAgent } from '@/lib/audit'
 import { sendConfirmationEmail } from '@/lib/email'
 import { resolveOrCreateClient } from '@/lib/clients'
 import { computeFinalPrice } from '@/lib/discount'
@@ -31,9 +31,12 @@ class SlotTakenError extends Error {}
 export async function POST(
   request: NextRequest
 ): Promise<NextResponse<ApiResponse<AppointmentWithService>>> {
-  const session = await getServerSession(authOptions)
-  if (!session) {
+  const admin = await getCurrentAdmin()
+  if (!admin) {
     return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 })
+  }
+  if (!hasPermission(admin.role, 'citas:crear')) {
+    return NextResponse.json({ success: false, error: 'Sin permiso para crear citas' }, { status: 403 })
   }
 
   let body: unknown
@@ -47,7 +50,7 @@ export async function POST(
 
   const {
     clientName, clientEmail, clientPhone,
-    serviceId, date, startTime, source, notes,
+    serviceId, serviceIds, date, startTime, source, notes,
     skipAvailabilityCheck, notifyClient,
     mode, totalCharged, extras,
     descuentoTipo, descuentoValor, descuentoMotivo,
@@ -73,11 +76,12 @@ export async function POST(
     )
   }
 
-  // Verify service
-  let service
+  // Verify services (one or several). serviceId stays the primary for back-compat.
+  const allServiceIds = serviceIds && serviceIds.length > 1 ? serviceIds : [serviceId]
+  let servicesList
   try {
-    service = await prisma.service.findUnique({
-      where: { id: serviceId },
+    servicesList = await prisma.service.findMany({
+      where: { id: { in: allServiceIds } },
       select: { id: true, name: true, price: true, durationMinutes: true },
     })
   } catch (err) {
@@ -85,12 +89,13 @@ export async function POST(
     return NextResponse.json({ success: false, error: 'Error interno' }, { status: 500 })
   }
 
-  if (!service) {
-    return NextResponse.json({ success: false, error: 'Servicio no encontrado' }, { status: 404 })
+  if (servicesList.length !== allServiceIds.length) {
+    return NextResponse.json({ success: false, error: 'Uno o más servicios no existen' }, { status: 404 })
   }
 
-  const startMinutes = timeToMinutes(startTime)
-  const endTime      = minutesToTime(startMinutes + service.durationMinutes)
+  const totalDuration = servicesList.reduce((sum, s) => sum + s.durationMinutes, 0)
+  const startMinutes  = timeToMinutes(startTime)
+  const endTime       = minutesToTime(startMinutes + totalDuration)
 
   // Manual discount — only on a past appointment's charge. Validate against the
   // subtotal (service + extra) and compute the final price snapshot here.
@@ -110,7 +115,9 @@ export async function POST(
   // Check actual appointment conflict (only if admin didn't force the time).
   // We use a direct query instead of isSlotAvailable to avoid false positives
   // when no Schedule exists for that day (e.g. past dates or days without configured hours).
-  if (!skipAvailabilityCheck) {
+  // Past appointments already happened: they don't compete for a slot, so we
+  // never block a backfill on an "occupied" overlapping time.
+  if (!skipAvailabilityCheck && mode !== 'PAST') {
     let conflict
     try {
       conflict = await prisma.appointment.findFirst({
@@ -150,15 +157,19 @@ export async function POST(
         },
         select: { id: true },
       })
-      if (conflict && !skipAvailabilityCheck) throw new SlotTakenError()
+      if (conflict && !skipAvailabilityCheck && mode !== 'PAST') throw new SlotTakenError()
 
       // Create or retrieve client (by email, or by phone+name when no email)
       const clientId = await resolveOrCreateClient(tx, {
         name: clientName, email: emailNorm, phone: clientPhone,
       })
 
-      const servicePrice = mode === 'PAST' ? totalCharged! : service.price
       const isPast = mode === 'PAST'
+      // Per-service snapshot: catalog price. For a SINGLE-service past charge the
+      // whole amount sits on that one service (preserves prior behavior); with
+      // multiple services the real total lives in amountPaid.
+      const priceFor = (s: { price: number }) =>
+        isPast && servicesList.length === 1 ? totalCharged! : s.price
 
       return tx.appointment.create({
         data: {
@@ -167,16 +178,17 @@ export async function POST(
           clientPhone: clientPhone.trim(),
           clientId,
           serviceId,
-          totalDurationMinutes: service.durationMinutes,
+          totalDurationMinutes: totalDuration,
           date:        dayStart,
           startTime,
           endTime,
           status:      isPast ? 'COMPLETED' : 'CONFIRMED',
           source,
+          origin:      isPast ? 'PAST' : 'MANUAL',
           notes:       notes?.trim() ?? null,
           ...(isPast ? {
             paymentStatus:    'PAID',
-            amountPaid:       precioFinal ?? (servicePrice + extraTotal),
+            amountPaid:       precioFinal ?? (totalCharged! + extraTotal),
             ...(precioFinal != null ? {
               descuentoTipo,
               descuentoValor,
@@ -185,11 +197,11 @@ export async function POST(
             } : {}),
           } : {}),
           services: {
-            create: [{
-              serviceId,
-              serviceName: service.name, // snapshot — preserves history
-              price: servicePrice,
-            }],
+            create: servicesList.map((s) => ({
+              serviceId:   s.id,
+              serviceName: s.name, // snapshot — preserves history
+              price:       priceFor(s),
+            })),
           },
           ...(isPast && extras && extras.length > 0 ? {
             extras: {
@@ -240,8 +252,9 @@ export async function POST(
     action:    'CREATE',
     entity:    'APPOINTMENT',
     entityId:  appointment.id,
-    userEmail: session.user?.email ?? undefined,
+    userEmail: admin.email,
     ip:        getClientIp(request),
+    userAgent: getUserAgent(request),
     description: discountLabel
       ? `Descuento de ${discountLabel} aplicado en la cita de ${appointment.clientName}${descuentoMotivo?.trim() ? ` (motivo: ${descuentoMotivo.trim()})` : ''}`
       : undefined,

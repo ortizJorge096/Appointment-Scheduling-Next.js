@@ -31,7 +31,7 @@ export default function ClientesPageClient() {
   const [saving, setSaving]         = useState(false)
   const [formError, setFormError]   = useState('')
 
-  function setParams(updates: Record<string, string | null>) {
+  const setParams = useCallback((updates: Record<string, string | null>) => {
     const params = new URLSearchParams(searchParams.toString())
     for (const [key, value] of Object.entries(updates)) {
       if (value) params.set(key, value)
@@ -39,7 +39,7 @@ export default function ClientesPageClient() {
     }
     const qs = params.toString()
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
-  }
+  }, [router, pathname, searchParams])
 
   // Keep the input in sync if the URL changes externally (e.g. back button)
   useEffect(() => { setSearchInput(query) }, [query])
@@ -50,8 +50,7 @@ export default function ClientesPageClient() {
       if (searchInput !== query) setParams({ search: searchInput || null, page: null })
     }, 350)
     return () => clearTimeout(t)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchInput])
+  }, [searchInput, query, setParams])
 
   const load = useCallback(async () => {
     setLoading(true)

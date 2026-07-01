@@ -9,7 +9,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 export interface ClientHit {
   id: string
   name: string
-  email: string
+  email: string | null
   phone: string | null
   appointmentCount: number
 }
@@ -17,7 +17,7 @@ export interface ClientHit {
 interface ClientsApiResponse {
   success: boolean
   data?: {
-    clients: Array<{ id: string; name: string; email: string; phone: string | null; _count: { appointments: number } }>
+    clients: Array<{ id: string; name: string; email: string | null; phone: string | null; _count: { appointments: number } }>
   }
 }
 

@@ -243,6 +243,12 @@ export const updateServiceSchema = createServiceSchema.partial().extend({
 // SCHEDULES (admin)
 // ─────────────────────────────────────────
 
+// Optional time: '' or undefined → null; otherwise must be HH:MM.
+const optionalTime = z.preprocess(
+  (v) => (v === '' || v === undefined ? null : v),
+  z.string().regex(timeRegex, 'Formato de hora inválido. Use HH:MM').nullable(),
+)
+
 export const scheduleSchema = z.object({
   dayOfWeek: z.enum([
     'MONDAY', 'TUESDAY', 'WEDNESDAY',
@@ -250,10 +256,19 @@ export const scheduleSchema = z.object({
   ]),
   startTime: timeString,
   endTime: timeString,
+  breakStart: optionalTime,
+  breakEnd:   optionalTime,
   isActive: z.boolean(),
 }).refine(
   (data) => data.startTime < data.endTime,
   { message: 'La hora de inicio debe ser anterior a la hora de fin' }
+).refine(
+  (d) => (d.breakStart == null) === (d.breakEnd == null),
+  { message: 'El descanso necesita hora de inicio y de fin', path: ['breakEnd'] }
+).refine(
+  (d) => d.breakStart == null || d.breakEnd == null ||
+    (d.breakStart < d.breakEnd && d.breakStart >= d.startTime && d.breakEnd <= d.endTime),
+  { message: 'El descanso debe estar dentro del horario de atención', path: ['breakStart'] }
 )
 
 // ─────────────────────────────────────────
@@ -341,6 +356,9 @@ export const createManualAppointmentSchema = z.object({
   clientEmail: optionalEmail,
   clientPhone: phoneSchema,
   serviceId:   z.string().cuid('ID de servicio inválido'),
+  // Optional multi-service: when 2+ are sent, serviceId stays the primary and
+  // the appointment gets one AppointmentService row per service.
+  serviceIds:  z.array(z.string().cuid('ID de servicio inválido')).min(1).max(5).optional(),
   date:        dateString,
   startTime:   timeString,
   source:      z.enum(['ONLINE','WHATSAPP','TELEFONO','PRESENCIAL']).default('PRESENCIAL'),
@@ -448,4 +466,43 @@ export const landingStatsSchema = z.object({
   clientsCount:      z.number().int().min(0, 'No puede ser negativo').max(1_000_000),
   yearsExperience:   z.number().int().min(0, 'No puede ser negativo').max(100),
   rating:            z.number().min(0).max(5, 'La calificación máxima es 5'),
+})
+
+// ─────────────────────────────────────────
+// ADMINS / AUTH (admin)
+// ─────────────────────────────────────────
+
+// Password policy: at least 8 chars, one uppercase, one digit.
+const strongPassword = z
+  .string()
+  .min(8, 'La contraseña debe tener al menos 8 caracteres')
+  .regex(/[A-Z]/, 'Debe incluir al menos una mayúscula')
+  .regex(/[0-9]/, 'Debe incluir al menos un número')
+
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Ingresa tu contraseña actual'),
+  newPassword:     strongPassword,
+  confirmPassword: z.string(),
+}).refine((d) => d.newPassword === d.confirmPassword, {
+  message: 'Las contraseñas no coinciden', path: ['confirmPassword'],
+}).refine((d) => d.newPassword !== d.currentPassword, {
+  message: 'La nueva contraseña debe ser distinta de la actual', path: ['newPassword'],
+})
+
+export const createUserSchema = z.object({
+  name:     z.string().min(2, 'El nombre debe tener al menos 2 caracteres').max(80),
+  email:    z.string().email('Email inválido'),
+  password: strongPassword,
+  role:     z.enum(['ADMIN', 'SUPER_ADMIN']).default('ADMIN'),
+})
+
+export const updateUserSchema = z.object({
+  name:        z.string().min(2, 'El nombre debe tener al menos 2 caracteres').max(80).optional(),
+  email:       z.string().email('Email inválido').optional(),
+  role:        z.enum(['ADMIN', 'SUPER_ADMIN']).optional(),
+  isActive:    z.boolean().optional(),
+  // Optional admin-driven password reset (sets a new password for the target).
+  newPassword: strongPassword.optional(),
+}).refine((d) => Object.values(d).some((v) => v !== undefined), {
+  message: 'No hay nada que actualizar',
 })

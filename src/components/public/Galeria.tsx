@@ -7,6 +7,7 @@
 // already used by ServicesGrid and NextAvailability.
 
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { INSTAGRAM_URL, TIKTOK_URL } from '@/lib/config'
 
 interface GalleryImage {
@@ -90,11 +91,11 @@ export default function Galeria() {
             : images.map((img, i) => (
                 <div key={img.id}
                   className={`relative overflow-hidden rounded-2xl shadow-sm group cursor-pointer bg-beige-dark ${spanFor(i)}`}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={img.url}
+                  <Image src={img.url}
                     alt={img.title ?? 'Diseño'}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    loading="lazy"
+                    fill
+                    sizes="(max-width: 640px) 50vw, 25vw"
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-ink/70 via-ink/10 to-transparent
                                   opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-5">

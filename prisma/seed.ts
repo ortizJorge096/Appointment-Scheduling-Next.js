@@ -14,9 +14,9 @@ async function main() {
   await prisma.user.upsert({
     where:  { email: 'admin@vjbeautystudio.com' },
     update: {},
-    create: { email: 'admin@vjbeautystudio.com', password: passwordHash, name: 'Admin', role: 'ADMIN' },
+    create: { email: 'admin@vjbeautystudio.com', password: passwordHash, name: 'Admin', role: 'SUPER_ADMIN' },
   })
-  console.log('✅ Admin — admin@vjbeautystudio.com / Admin123!')
+  console.log('✅ Admin (SUPER_ADMIN) — admin@vjbeautystudio.com / Admin123!')
 
   // ─────────────────────────────────────────────────────────────
   // CATEGORÍAS — ahora viven en DB. Upsert por slug (estable) para que
@@ -171,14 +171,16 @@ async function main() {
   }
   console.log(`✅ ${professionals.length} profesionales creados/actualizados`)
 
+  // Weekdays: 9–12 and 2–6 (lunch break 12:00–14:00). Weekends: not bookable
+  // online — clients contact by WhatsApp.
   const schedules = [
-    { dayOfWeek: DayOfWeek.MONDAY,    startTime: '09:00', endTime: '18:00', isActive: true  },
-    { dayOfWeek: DayOfWeek.TUESDAY,   startTime: '09:00', endTime: '18:00', isActive: true  },
-    { dayOfWeek: DayOfWeek.WEDNESDAY, startTime: '09:00', endTime: '18:00', isActive: true  },
-    { dayOfWeek: DayOfWeek.THURSDAY,  startTime: '09:00', endTime: '18:00', isActive: true  },
-    { dayOfWeek: DayOfWeek.FRIDAY,    startTime: '09:00', endTime: '18:00', isActive: true  },
-    { dayOfWeek: DayOfWeek.SATURDAY,  startTime: '09:00', endTime: '14:00', isActive: true  },
-    { dayOfWeek: DayOfWeek.SUNDAY,    startTime: '09:00', endTime: '12:00', isActive: false },
+    { dayOfWeek: DayOfWeek.MONDAY,    startTime: '09:00', endTime: '18:00', breakStart: '12:00', breakEnd: '14:00', isActive: true  },
+    { dayOfWeek: DayOfWeek.TUESDAY,   startTime: '09:00', endTime: '18:00', breakStart: '12:00', breakEnd: '14:00', isActive: true  },
+    { dayOfWeek: DayOfWeek.WEDNESDAY, startTime: '09:00', endTime: '18:00', breakStart: '12:00', breakEnd: '14:00', isActive: true  },
+    { dayOfWeek: DayOfWeek.THURSDAY,  startTime: '09:00', endTime: '18:00', breakStart: '12:00', breakEnd: '14:00', isActive: true  },
+    { dayOfWeek: DayOfWeek.FRIDAY,    startTime: '09:00', endTime: '18:00', breakStart: '12:00', breakEnd: '14:00', isActive: true  },
+    { dayOfWeek: DayOfWeek.SATURDAY,  startTime: '09:00', endTime: '14:00', breakStart: null, breakEnd: null, isActive: false },
+    { dayOfWeek: DayOfWeek.SUNDAY,    startTime: '09:00', endTime: '12:00', breakStart: null, breakEnd: null, isActive: false },
   ]
   for (const s of schedules) {
     await prisma.schedule.upsert({ where: { dayOfWeek: s.dayOfWeek }, update: s, create: s })
