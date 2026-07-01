@@ -9,7 +9,7 @@ import ClientSearchInput, { type ClientHit } from './ClientSearchInput'
 import AdicionalesEditor, { type Adicional } from './AdicionalesEditor'
 import DescuentoEditor from './DescuentoEditor'
 
-interface Service { id: string; name: string; price: number; durationMinutes: number }
+interface Service { id: string; name: string; price: number; durationMinutes: number; category?: { id: string; name: string; order: number } | null }
 
 const SOURCE_OPTIONS = [
   { value: 'PRESENCIAL', label: 'Presencial' },
@@ -65,6 +65,7 @@ export default function ManualAppointmentModal() {
   const [extras, setExtras]     = useState<Adicional[]>([])
   const [descuentoOpen, setDescuentoOpen] = useState(false)
   const [extrasOpen, setExtrasOpen] = useState(false)
+  const [serviceQuery, setServiceQuery] = useState('')
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [touched, setTouched]   = useState<Touched>({})
   const [saving, setSaving]     = useState(false)
@@ -84,7 +85,7 @@ export default function ManualAppointmentModal() {
       loadServices()
       setFieldErrors({}); setTouched({}); setApiError(''); setSuccess('')
     } else {
-      setExtras([]); setDescuentoOpen(false); setExtrasOpen(false)
+      setExtras([]); setDescuentoOpen(false); setExtrasOpen(false); setServiceQuery('')
     }
   }, [open, loadServices])
 
@@ -213,6 +214,7 @@ export default function ManualAppointmentModal() {
     setExtras([])
     setDescuentoOpen(false)
     setExtrasOpen(false)
+    setServiceQuery('')
     setTimeout(() => {
       setOpen(false); setSuccess('')
       // A past appointment is dated before today, so the default "Próximas"
@@ -257,6 +259,24 @@ export default function ManualAppointmentModal() {
     setExtras((e) => e.filter((it) => it.description.trim() || it.amount.trim()))
     setExtrasOpen(false)
   }
+
+  // Multi-service picker: selected chips + a searchable, category-grouped list.
+  const selectedServices = form.serviceIds
+    .map((id) => services.find((s) => s.id === id))
+    .filter((s): s is Service => Boolean(s))
+  const svcQuery = serviceQuery.trim().toLowerCase()
+  const filteredServices = svcQuery
+    ? services.filter((s) => s.name.toLowerCase().includes(svcQuery))
+    : services
+  const groupedServices = Array.from(
+    filteredServices.reduce((map, s) => {
+      const key = s.category?.id ?? '—'
+      const g = map.get(key) ?? { name: s.category?.name ?? 'Otros', order: s.category?.order ?? 999, items: [] as Service[] }
+      g.items.push(s)
+      map.set(key, g)
+      return map
+    }, new Map<string, { name: string; order: number; items: Service[] }>()).values(),
+  ).sort((a, b) => a.order - b.order)
 
   const extraAmountNum  = extras.reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
   const totalChargedNum = Number(form.totalCharged) || 0
@@ -369,14 +389,38 @@ export default function ManualAppointmentModal() {
                     <label className="form-label">
                       Servicio <span className="text-red-500">*</span>
                     </label>
-                    <div className={`space-y-1 max-h-48 overflow-y-auto rounded-lg border p-2 ${touched.serviceIds && fieldErrors.serviceIds ? 'border-red-400' : 'border-beige-dark'}`}>
-                      {services.map(s => (
-                        <label key={s.id} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-beige cursor-pointer text-sm">
-                          <input type="checkbox" checked={form.serviceIds.includes(s.id)}
-                            onChange={() => toggleService(s.id)} className="accent-gold w-4 h-4 shrink-0" />
-                          <span className="flex-1 text-ink">{s.name}</span>
-                          <span className="text-xs text-ink-muted whitespace-nowrap">{s.durationMinutes} min · {formatPrice(s.price)}</span>
-                        </label>
+                    {/* Selected services as removable chips */}
+                    {selectedServices.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {selectedServices.map(s => (
+                          <button key={s.id} type="button" onClick={() => toggleService(s.id)}
+                            className="inline-flex items-center gap-1 text-xs bg-gold-pale text-ink border border-gold/30 rounded-full px-2.5 py-1 hover:bg-gold/20 transition-colors">
+                            {s.name} <span className="text-ink-muted">×</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    <input type="search" value={serviceQuery} onChange={e => setServiceQuery(e.target.value)}
+                      placeholder="🔍 Buscar servicio…" aria-label="Buscar servicio"
+                      className="input-field w-full mb-2" />
+
+                    {/* Category-grouped, searchable list */}
+                    <div className={`space-y-2 max-h-56 overflow-y-auto rounded-lg border p-2 ${touched.serviceIds && fieldErrors.serviceIds ? 'border-red-400' : 'border-beige-dark'}`}>
+                      {groupedServices.length === 0 ? (
+                        <p className="text-xs text-ink-muted text-center py-3">Sin resultados</p>
+                      ) : groupedServices.map(g => (
+                        <div key={g.name}>
+                          <p className="text-[10px] uppercase tracking-wider text-ink-muted/70 px-2 pt-1 pb-0.5">{g.name}</p>
+                          {g.items.map(s => (
+                            <label key={s.id} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-beige cursor-pointer text-sm">
+                              <input type="checkbox" checked={form.serviceIds.includes(s.id)}
+                                onChange={() => toggleService(s.id)} className="accent-gold w-4 h-4 shrink-0" />
+                              <span className="flex-1 text-ink">{s.name}</span>
+                              <span className="text-xs text-ink-muted whitespace-nowrap">{s.durationMinutes} min · {formatPrice(s.price)}</span>
+                            </label>
+                          ))}
+                        </div>
                       ))}
                     </div>
                     {form.serviceIds.length > 1 && (
