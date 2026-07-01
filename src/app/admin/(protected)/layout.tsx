@@ -7,6 +7,7 @@ import { redirect } from 'next/navigation'
 import AdminSidebar from '@/components/admin/Sidebar'
 import AdminSessionProvider from '@/components/admin/SessionProvider'
 import { ConfirmDialogProvider } from '@/components/ui/ConfirmDialog'
+import { ToastProvider } from '@/components/ui/Toast'
 
 export const metadata = {
   title: { template: '%s · Admin', default: 'Admin · Valentina Jimenez' },
@@ -25,13 +26,15 @@ export default async function ProtectedAdminLayout({
   return (
     <AdminSessionProvider>
       <ConfirmDialogProvider>
-        <div className="min-h-screen bg-beige/30 flex">
-          <AdminSidebar />
-          {/* pt-14 on mobile clears the fixed top bar; reset on md+ */}
-          <main className="flex-1 overflow-auto pt-14 md:pt-0 min-w-0">
-            {children}
-          </main>
-        </div>
+        <ToastProvider>
+          <div className="min-h-screen bg-beige/30 flex">
+            <AdminSidebar />
+            {/* pt-14 on mobile clears the fixed top bar; reset on md+ */}
+            <main className="flex-1 overflow-auto pt-14 md:pt-0 min-w-0">
+              {children}
+            </main>
+          </div>
+        </ToastProvider>
       </ConfirmDialogProvider>
     </AdminSessionProvider>
   )

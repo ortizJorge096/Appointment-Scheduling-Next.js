@@ -129,13 +129,17 @@ function ContactoSection() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
           {/* Contact info — unified clean list (same row style for every item) */}
           <div>
-            <div className="flex gap-4 py-4 border-b border-beige-deeper items-start">
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(STUDIO.address)}`}
+              target="_blank" rel="noreferrer"
+              className="group flex gap-4 py-4 border-b border-beige-deeper items-start"
+            >
               <PinIcon className="text-gold w-5 h-5 shrink-0 mt-1" />
               <div className="min-w-0">
                 <p className="text-xs text-gold tracking-widest uppercase mb-1">Dirección</p>
-                <p className="text-[15px] text-ink">{STUDIO.address}</p>
+                <p className="text-[15px] text-ink group-hover:text-gold transition-colors">{STUDIO.address}</p>
               </div>
-            </div>
+            </a>
 
             <div className="flex gap-4 py-4 border-b border-beige-deeper items-start">
               <ClockIcon className="text-gold w-5 h-5 shrink-0 mt-1" />
