@@ -3,8 +3,8 @@
 // POST → create blocked date
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getCurrentAdmin } from '@/lib/authz'
+import { hasPermission } from '@/lib/permissions'
 import { prisma } from '@/lib/prisma'
 import { blockedDateSchema } from '@/lib/validations'
 import { audit, getClientIp } from '@/lib/audit'
@@ -18,8 +18,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 })
+  const admin = await getCurrentAdmin()
+  if (!admin) return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 })
+  if (!hasPermission(admin.role, 'horarios:editar')) return NextResponse.json({ success: false, error: 'Sin permiso' }, { status: 403 })
 
   let body: unknown
   try {
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest) {
     action:      'CREATE',
     entity:      'SCHEDULE',
     entityId:    blocked.id,
-    userEmail:   session.user?.email ?? undefined,
+    userEmail:   admin.email,
     ip:          getClientIp(request),
     description: `Fecha bloqueada: ${parsed.data.date}${parsed.data.reason ? ` (${parsed.data.reason})` : ''}`,
   })

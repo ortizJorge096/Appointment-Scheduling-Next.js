@@ -31,27 +31,27 @@ describe('POST /api/gallery/upload-url', () => {
   })
 
   it('returns 400 for malformed JSON', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     const req = { json: () => Promise.reject(new Error('bad')) } as unknown as NextRequest
     const res = await POST(req)
     expect(res.status).toBe(400)
   })
 
   it('returns 400 for unsupported content type', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     const res = await POST(makeRequest({ filename: 'file.gif', contentType: 'image/gif' }))
     expect(res.status).toBe(400)
     expect((await res.json()).error).toContain('JPG')
   })
 
   it('returns 400 for empty filename', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     const res = await POST(makeRequest({ filename: '', contentType: 'image/jpeg' }))
     expect(res.status).toBe(400)
   })
 
   it('returns presigned URL on valid request', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(getPresignedUploadUrl).mockResolvedValue({
       uploadUrl: 'https://s3.amazonaws.com/bucket/gallery/abc.jpg?sig=xyz',
       key:       'gallery/abc.jpg',
@@ -69,7 +69,7 @@ describe('POST /api/gallery/upload-url', () => {
   })
 
   it('returns 500 when S3 presign fails', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(getPresignedUploadUrl).mockRejectedValue(new Error('AWS_S3_BUCKET no está configurado'))
 
     const res  = await POST(makeRequest(VALID_BODY))
@@ -80,7 +80,7 @@ describe('POST /api/gallery/upload-url', () => {
   })
 
   it('accepts image/png content type', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(getPresignedUploadUrl).mockResolvedValue({
       uploadUrl: 'https://s3.amazonaws.com/bucket/gallery/abc.png?sig=xyz',
       key:       'gallery/abc.png',
@@ -92,7 +92,7 @@ describe('POST /api/gallery/upload-url', () => {
   })
 
   it('accepts image/webp content type', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(getPresignedUploadUrl).mockResolvedValue({
       uploadUrl: 'https://s3.amazonaws.com/bucket/gallery/abc.webp?sig=xyz',
       key:       'gallery/abc.webp',

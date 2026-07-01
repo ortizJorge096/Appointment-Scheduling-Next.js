@@ -51,7 +51,7 @@ describe('GET /api/gallery', () => {
   })
 
   it('admin without the flag still gets active-only (public home must never leak hidden)', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.galleryImage.findMany).mockResolvedValue([ACTIVE_IMAGE])
 
     await GET(getReq())
@@ -62,7 +62,7 @@ describe('GET /api/gallery', () => {
   })
 
   it('returns all images (including hidden) to admin with ?includeInactive=true', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.galleryImage.findMany).mockResolvedValue([ACTIVE_IMAGE, INACTIVE_IMAGE])
 
     const res  = await GET(getReq('http://localhost/api/gallery?includeInactive=true'))
@@ -89,7 +89,7 @@ describe('GET /api/gallery', () => {
     const publicJson = await (await GET(getReq())).json()
     expect(publicJson.data[0].s3Key).toBeUndefined()
 
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.galleryImage.findMany).mockResolvedValue([ACTIVE_IMAGE])
     const adminJson = await (await GET(getReq())).json()
     expect(adminJson.data[0].s3Key).toBe('gallery/img-1.jpg')
@@ -108,20 +108,20 @@ describe('POST /api/gallery', () => {
   })
 
   it('returns 400 for malformed JSON', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     const req = { json: () => Promise.reject(new Error('bad')) } as unknown as NextRequest
     const res = await POST(req)
     expect(res.status).toBe(400)
   })
 
   it('returns 400 for empty s3Key', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     const res = await POST(makeRequest({ s3Key: '' }))
     expect(res.status).toBe(400)
   })
 
   it('creates image and returns 201 with url', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.galleryImage.findFirst).mockResolvedValue({ order: 3 })
     vi.mocked(prisma.galleryImage.create).mockResolvedValue(ACTIVE_IMAGE)
 

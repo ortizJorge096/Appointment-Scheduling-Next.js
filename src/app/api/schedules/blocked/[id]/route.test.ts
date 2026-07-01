@@ -29,7 +29,7 @@ describe('DELETE /api/schedules/blocked/[id]', () => {
   })
 
   it('returns 404 when blocked date not found', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.blockedDate.delete).mockRejectedValue(new Error('Record not found'))
 
     const res = await DELETE(makeRequest(), CTX('missing'))
@@ -37,7 +37,7 @@ describe('DELETE /api/schedules/blocked/[id]', () => {
   })
 
   it('deletes blocked date and returns id', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.blockedDate.findUnique).mockResolvedValue({ id: 'bd-1', date: new Date('2026-07-01T12:00:00'), reason: null })
     vi.mocked(prisma.blockedDate.delete).mockResolvedValue({ id: 'bd-1', date: new Date('2026-07-01T12:00:00'), reason: null })
 

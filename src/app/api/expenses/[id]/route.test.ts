@@ -21,7 +21,7 @@ const { getServerSession } = await import('next-auth')
 const { prisma }           = await import('@/lib/prisma')
 const { PATCH, DELETE }    = await import('./route')
 
-const MOCK_SESSION = { user: { email: 'admin@test.com' } }
+const MOCK_SESSION = { user: { id: 'a1', email: 'admin@test.com', role: 'SUPER_ADMIN' } }
 const MOCK_EXPENSE = {
   id: 'e1', description: 'Esmaltes UV', amount: 80000,
   date: new Date('2026-06-01'), category: 'INSUMOS', notes: null,

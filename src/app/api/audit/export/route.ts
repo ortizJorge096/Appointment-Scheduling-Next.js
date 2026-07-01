@@ -2,8 +2,8 @@
 // GET /api/audit/export → download the audit log as CSV (admin), honoring filters.
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getCurrentAdmin } from '@/lib/authz'
+import { hasPermission } from '@/lib/permissions'
 import { prisma } from '@/lib/prisma'
 import { audit, getClientIp, getUserAgent } from '@/lib/audit'
 
@@ -18,8 +18,9 @@ function csvCell(value: unknown): string {
 }
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 })
+  const admin = await getCurrentAdmin()
+  if (!admin) return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 })
+  if (!hasPermission(admin.role, 'auditoria:ver')) return NextResponse.json({ success: false, error: 'Sin permiso' }, { status: 403 })
 
   const { searchParams } = new URL(request.url)
   const entity    = searchParams.get('entity')
@@ -72,10 +73,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     entity:    'AUTH',
     entityId:  'audit_logs',
     actorType: 'ADMIN',
-    userEmail: session.user?.email ?? undefined,
+    userEmail: admin.email,
     ip:        getClientIp(request),
     userAgent: getUserAgent(request),
-    description: `${session.user?.email ?? 'Admin'} exportó el log de auditoría (${logs.length} filas)`,
+    description: `${admin.email || 'Admin'} exportó el log de auditoría (${logs.length} filas)`,
     metadata:  { rowCount: logs.length, filters: { entity, action, actorType, search, dateFrom, dateTo } },
   })
 

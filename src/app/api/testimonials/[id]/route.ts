@@ -3,8 +3,8 @@
 // DELETE /api/testimonials/[id] → soft delete (admin)
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getCurrentAdmin } from '@/lib/authz'
+import { hasPermission } from '@/lib/permissions'
 import { prisma } from '@/lib/prisma'
 import { updateTestimonialSchema } from '@/lib/validations'
 import { audit, getClientIp } from '@/lib/audit'
@@ -20,8 +20,8 @@ export async function PATCH(
 ): Promise<NextResponse> {
   const { id } = await context.params
 
-  const session = await getServerSession(authOptions)
-  if (!session) {
+  const admin = await getCurrentAdmin()
+  if (!admin) {
     return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 })
   }
 
@@ -35,6 +35,15 @@ export async function PATCH(
   const parsed = updateTestimonialSchema.safeParse(body)
   if (!parsed.success) {
     return NextResponse.json({ success: false, error: parsed.error.errors[0].message }, { status: 400 })
+  }
+
+  // Moderation (approve/reject) requires a higher permission than a plain edit.
+  const requiredPerm =
+    parsed.data.status === 'APPROVED' || parsed.data.status === 'REJECTED'
+      ? 'testimonios:moderar'
+      : 'testimonios:editar'
+  if (!hasPermission(admin.role, requiredPerm)) {
+    return NextResponse.json({ success: false, error: 'Sin permiso' }, { status: 403 })
   }
 
   const before = await prisma.testimonial.findUnique({
@@ -80,7 +89,7 @@ export async function PATCH(
     action:      d.status === 'APPROVED' || d.status === 'REJECTED' ? 'STATUS_CHANGE' : 'UPDATE',
     entity:      'TESTIMONIAL',
     entityId:    id,
-    userEmail:   session.user?.email ?? undefined,
+    userEmail:   admin.email,
     ip:          getClientIp(request),
     description,
     before,
@@ -96,9 +105,12 @@ export async function DELETE(
 ): Promise<NextResponse> {
   const { id } = await context.params
 
-  const session = await getServerSession(authOptions)
-  if (!session) {
+  const admin = await getCurrentAdmin()
+  if (!admin) {
     return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 })
+  }
+  if (!hasPermission(admin.role, 'testimonios:editar')) {
+    return NextResponse.json({ success: false, error: 'Sin permiso' }, { status: 403 })
   }
 
   const target = await prisma.testimonial.findUnique({ where: { id }, select: { clientName: true } })
@@ -117,7 +129,7 @@ export async function DELETE(
     action:      'DELETE',
     entity:      'TESTIMONIAL',
     entityId:    id,
-    userEmail:   session.user?.email ?? undefined,
+    userEmail:   admin.email,
     ip:          getClientIp(request),
     description: `Testimonio de "${target?.clientName ?? 'desconocido'}" eliminado`,
   })

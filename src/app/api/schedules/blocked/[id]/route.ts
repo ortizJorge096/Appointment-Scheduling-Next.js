@@ -2,8 +2,8 @@
 // DELETE /api/schedules/blocked/:id
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getCurrentAdmin } from '@/lib/authz'
+import { hasPermission } from '@/lib/permissions'
 import { prisma } from '@/lib/prisma'
 import { audit, getClientIp } from '@/lib/audit'
 
@@ -13,12 +13,15 @@ export async function DELETE(
 ) {
   const { id } = await context.params
 
-  const session = await getServerSession(authOptions)
-  if (!session) {
+  const admin = await getCurrentAdmin()
+  if (!admin) {
     return NextResponse.json(
       { success: false, error: 'No autorizado' },
       { status: 401 }
     )
+  }
+  if (!hasPermission(admin.role, 'horarios:editar')) {
+    return NextResponse.json({ success: false, error: 'Sin permiso' }, { status: 403 })
   }
 
   const target = await prisma.blockedDate.findUnique({ where: { id }, select: { date: true } })
@@ -38,7 +41,7 @@ export async function DELETE(
     action:      'DELETE',
     entity:      'SCHEDULE',
     entityId:    id,
-    userEmail:   session.user?.email ?? undefined,
+    userEmail:   admin.email,
     ip:          getClientIp(_req),
     description: `Fecha desbloqueada: ${dateLabel}`,
   })

@@ -43,7 +43,7 @@ describe('PATCH /api/professionals/[id]', () => {
   })
 
   it('returns 404 when the professional does not exist', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.professional.findUnique).mockResolvedValue(null)
 
     const res = await PATCH(makeRequest({ isActive: false }), CTX('missing'))
@@ -51,7 +51,7 @@ describe('PATCH /api/professionals/[id]', () => {
   })
 
   it('disables a professional and audits a readable description with a diff', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.professional.findUnique).mockResolvedValue(BEFORE)
     vi.mocked(prisma.professional.update).mockResolvedValue({ id: 'pro-1', isActive: false })
 
@@ -78,7 +78,7 @@ describe('DELETE /api/professionals/[id]', () => {
   })
 
   it('blocks deletion (409) when there are upcoming appointments', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.professional.findUnique).mockResolvedValue({ name: 'Valentina Jiménez' })
     vi.mocked(prisma.appointment.count).mockResolvedValue(1)
 
@@ -89,7 +89,7 @@ describe('DELETE /api/professionals/[id]', () => {
   })
 
   it('soft-deletes (never hard-deletes) and audits a readable description (no id)', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.professional.findUnique).mockResolvedValue({ name: 'Valentina Jiménez' })
     vi.mocked(prisma.appointment.count).mockResolvedValue(0)
     vi.mocked(prisma.professional.update).mockResolvedValue({ id: 'pro-1' })

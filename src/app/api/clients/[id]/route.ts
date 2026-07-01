@@ -3,8 +3,8 @@
 // PATCH /api/clients/:id  → update client data
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getCurrentAdmin } from '@/lib/authz'
+import { hasPermission } from '@/lib/permissions'
 import { prisma } from '@/lib/prisma'
 import { updateClientSchema } from '@/lib/validations'
 import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
@@ -15,8 +15,9 @@ export const dynamic = 'force-dynamic'
 type Ctx = { params: Promise<{ id: string }> }
 
 export async function GET(_req: NextRequest, { params }: Ctx): Promise<NextResponse> {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 })
+  const admin = await getCurrentAdmin()
+  if (!admin) return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 })
+  if (!hasPermission(admin.role, 'clientes:ver')) return NextResponse.json({ success: false, error: 'Sin permiso' }, { status: 403 })
 
   const { id } = await params
 
@@ -50,8 +51,9 @@ export async function GET(_req: NextRequest, { params }: Ctx): Promise<NextRespo
 }
 
 export async function PATCH(request: NextRequest, { params }: Ctx): Promise<NextResponse> {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 })
+  const admin = await getCurrentAdmin()
+  if (!admin) return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 })
+  if (!hasPermission(admin.role, 'clientes:editar')) return NextResponse.json({ success: false, error: 'Sin permiso' }, { status: 403 })
 
   const { id } = await params
 
@@ -98,7 +100,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx): Promise<Next
     entity:    'CLIENT',
     entityId:  id,
     actorType: 'ADMIN',
-    userEmail: session.user?.email ?? undefined,
+    userEmail: admin.email,
     ip:        getClientIp(request),
     userAgent: getUserAgent(request),
     description: `Admin editó los datos de ${client.name}`,

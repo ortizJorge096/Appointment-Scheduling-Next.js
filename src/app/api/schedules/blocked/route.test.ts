@@ -51,20 +51,20 @@ describe('POST /api/schedules/blocked', () => {
   })
 
   it('returns 400 for malformed JSON', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     const req = { json: () => Promise.reject(new Error('bad json')) } as unknown as NextRequest
     const res = await POST(req)
     expect(res.status).toBe(400)
   })
 
   it('returns 400 for invalid date format', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     const res = await POST(makeRequest({ date: '25/12/2026' }))
     expect(res.status).toBe(400)
   })
 
   it('creates blocked date and returns 201', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.blockedDate.create).mockResolvedValue(MOCK_BLOCKED)
 
     const res  = await POST(makeRequest({ date: '2026-12-25', reason: 'Navidad' }))
@@ -76,7 +76,7 @@ describe('POST /api/schedules/blocked', () => {
   })
 
   it('creates blocked date without reason (optional)', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.blockedDate.create).mockResolvedValue({ ...MOCK_BLOCKED, reason: null })
 
     const res  = await POST(makeRequest({ date: '2026-12-25' }))
