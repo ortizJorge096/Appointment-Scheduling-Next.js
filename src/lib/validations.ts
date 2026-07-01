@@ -449,3 +449,42 @@ export const landingStatsSchema = z.object({
   yearsExperience:   z.number().int().min(0, 'No puede ser negativo').max(100),
   rating:            z.number().min(0).max(5, 'La calificación máxima es 5'),
 })
+
+// ─────────────────────────────────────────
+// ADMINS / AUTH (admin)
+// ─────────────────────────────────────────
+
+// Password policy: at least 8 chars, one uppercase, one digit.
+const strongPassword = z
+  .string()
+  .min(8, 'La contraseña debe tener al menos 8 caracteres')
+  .regex(/[A-Z]/, 'Debe incluir al menos una mayúscula')
+  .regex(/[0-9]/, 'Debe incluir al menos un número')
+
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Ingresa tu contraseña actual'),
+  newPassword:     strongPassword,
+  confirmPassword: z.string(),
+}).refine((d) => d.newPassword === d.confirmPassword, {
+  message: 'Las contraseñas no coinciden', path: ['confirmPassword'],
+}).refine((d) => d.newPassword !== d.currentPassword, {
+  message: 'La nueva contraseña debe ser distinta de la actual', path: ['newPassword'],
+})
+
+export const createUserSchema = z.object({
+  name:     z.string().min(2, 'El nombre debe tener al menos 2 caracteres').max(80),
+  email:    z.string().email('Email inválido'),
+  password: strongPassword,
+  role:     z.enum(['ADMIN', 'SUPER_ADMIN']).default('ADMIN'),
+})
+
+export const updateUserSchema = z.object({
+  name:        z.string().min(2, 'El nombre debe tener al menos 2 caracteres').max(80).optional(),
+  email:       z.string().email('Email inválido').optional(),
+  role:        z.enum(['ADMIN', 'SUPER_ADMIN']).optional(),
+  isActive:    z.boolean().optional(),
+  // Optional admin-driven password reset (sets a new password for the target).
+  newPassword: strongPassword.optional(),
+}).refine((d) => Object.values(d).some((v) => v !== undefined), {
+  message: 'No hay nada que actualizar',
+})

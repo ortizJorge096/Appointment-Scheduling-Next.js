@@ -18,7 +18,9 @@ export default async function ProtectedAdminLayout({
   children: React.ReactNode
 }) {
   const session = await getServerSession(authOptions)
-  if (!session) redirect('/admin/login')
+  // session.user is cleared by the auth session callback when the account is
+  // deactivated or the password changed after the token was issued.
+  if (!session?.user) redirect('/admin/login')
 
   return (
     <AdminSessionProvider>

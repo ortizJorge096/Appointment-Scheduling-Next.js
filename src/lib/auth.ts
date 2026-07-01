@@ -103,8 +103,21 @@ export const authOptions: NextAuthOptions = {
           return null
         }
 
-        // Successful login → clear this IP's attempt counter.
+        // A deactivated admin can't sign in (checked after the password match so
+        // account status isn't revealed without valid credentials).
+        if (!user.isActive) {
+          audit({
+            action: 'LOGIN_FAILED', entity: 'AUTH', entityId: user.id,
+            actorType: 'SYSTEM', userEmail: attempted, ip, userAgent,
+            description: `Acceso denegado: cuenta desactivada (${attempted})`,
+          })
+          return null
+        }
+
+        // Successful login → clear this IP's attempt counter + stamp last login.
         if (ip) loginAttempts.delete(ip)
+        await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } })
+          .catch(() => { /* non-critical */ })
 
         audit({
           action: 'LOGIN', entity: 'AUTH', entityId: user.id,
@@ -117,6 +130,8 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           name: user.name,
           role: user.role,
+          // Embedded in the JWT so a later password change invalidates old tokens.
+          pwdAt: user.passwordChangedAt?.getTime() ?? 0,
         }
       },
     }),
@@ -128,20 +143,50 @@ export const authOptions: NextAuthOptions = {
   },
 
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
-        const t = token as JWT & { id: string; role: string }
-        t.id = user.id
-        t.role = (user as User & { role: string }).role
+        const t = token as JWT & { id: string; role: string; pwdAt: number }
+        t.id    = user.id
+        t.role  = (user as User & { role: string }).role
+        t.pwdAt = (user as User & { pwdAt?: number }).pwdAt ?? 0
+      } else if (trigger === 'update') {
+        // The current device just changed its own password and called update():
+        // refresh pwdAt so THIS session stays valid while other devices' older
+        // tokens get invalidated by the session callback.
+        const t = token as JWT & { id?: string; pwdAt?: number }
+        if (t.id) {
+          const u = await prisma.user.findUnique({ where: { id: t.id }, select: { passwordChangedAt: true } })
+          t.pwdAt = u?.passwordChangedAt?.getTime() ?? t.pwdAt ?? 0
+        }
       }
       return token
     },
+    // Re-validates the token against the DB on each request: a deactivated admin,
+    // or one whose password changed after this token was issued, is signed out
+    // (session.user cleared → layout/guards redirect to login). One PK lookup per
+    // request — fine at this scale, and the only way to invalidate stateless JWTs
+    // without a session store.
     async session({ session, token }) {
-      if (session.user) {
+      const t = token as JWT & { id?: string; role?: string; pwdAt?: number }
+      if (!session.user || !t.id) return session
+      try {
+        const u = await prisma.user.findUnique({
+          where:  { id: t.id },
+          select: { isActive: true, role: true, passwordChangedAt: true },
+        })
+        const dbPwdAt = u?.passwordChangedAt?.getTime() ?? 0
+        if (!u || !u.isActive || dbPwdAt > (t.pwdAt ?? 0)) {
+          ;(session as { user?: unknown }).user = undefined
+          return session
+        }
         const s = session as unknown as { user: { id: string; role: string } }
-        const t = token as JWT & { id: string; role: string }
-        s.user.id = t.id
-        s.user.role = t.role
+        s.user.id   = t.id
+        s.user.role = u.role
+      } catch {
+        // DB blip → trust the token rather than logging everyone out.
+        const s = session as unknown as { user: { id: string; role: string } }
+        s.user.id   = t.id
+        s.user.role = t.role ?? 'ADMIN'
       }
       return session
     },
