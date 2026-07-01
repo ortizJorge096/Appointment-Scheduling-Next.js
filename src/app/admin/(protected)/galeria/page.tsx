@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
+import { Pagination } from '@/components/admin/Pagination'
 
 interface GalleryImage {
   id: string
@@ -35,6 +36,7 @@ export default function GaleriaAdminPage() {
   const [images, setImages]   = useState<GalleryImage[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
+  const [page, setPage]       = useState(1)
   const [uploading, setUploading] = useState(false)
   const [replacingId, setReplacingId] = useState<string | null>(null)
   const [progress, setProgress]   = useState(0)
@@ -226,6 +228,13 @@ export default function GaleriaAdminPage() {
     load()
   }
 
+  const PAGE_SIZE = 12
+  const sortedImages = [...images].sort((a, b) => a.order - b.order)
+  const totalPages = Math.max(1, Math.ceil(sortedImages.length / PAGE_SIZE))
+  const pageImages = sortedImages.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  // Keep the page in range when images are added/removed.
+  useEffect(() => { if (page > totalPages) setPage(totalPages) }, [page, totalPages])
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
       <div className="mb-6 sm:mb-8 flex items-center justify-between">
@@ -268,8 +277,11 @@ export default function GaleriaAdminPage() {
           <p className="text-ink-muted/60 text-xs mt-2">JPG · PNG · WebP · hasta 5 MB</p>
         </div>
       ) : (
+        <>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...images].sort((a, b) => a.order - b.order).map((img, idx, arr) => (
+          {pageImages.map((img, i) => {
+            const idx = (page - 1) * PAGE_SIZE + i
+            return (
             <article key={img.id}
               className={`bg-white border ${img.isActive ? 'border-beige-dark' : 'border-beige-dark opacity-60'} flex flex-col`}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -313,7 +325,7 @@ export default function GaleriaAdminPage() {
                           <button disabled={idx === 0}
                             onClick={() => move(img, -1)}
                             className="btn-row-action text-xs text-ink-muted hover:text-gold disabled:opacity-20">↑</button>
-                          <button disabled={idx === arr.length - 1}
+                          <button disabled={idx === sortedImages.length - 1}
                             onClick={() => move(img, +1)}
                             className="btn-row-action text-xs text-ink-muted hover:text-gold disabled:opacity-20">↓</button>
                         </div>
@@ -338,8 +350,11 @@ export default function GaleriaAdminPage() {
                 )}
               </div>
             </article>
-          ))}
+            )
+          })}
         </div>
+        <Pagination page={page} totalPages={totalPages} onPage={setPage} />
+        </>
       )}
     </div>
   )
