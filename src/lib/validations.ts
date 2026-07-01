@@ -243,6 +243,12 @@ export const updateServiceSchema = createServiceSchema.partial().extend({
 // SCHEDULES (admin)
 // ─────────────────────────────────────────
 
+// Optional time: '' or undefined → null; otherwise must be HH:MM.
+const optionalTime = z.preprocess(
+  (v) => (v === '' || v === undefined ? null : v),
+  z.string().regex(timeRegex, 'Formato de hora inválido. Use HH:MM').nullable(),
+)
+
 export const scheduleSchema = z.object({
   dayOfWeek: z.enum([
     'MONDAY', 'TUESDAY', 'WEDNESDAY',
@@ -250,10 +256,19 @@ export const scheduleSchema = z.object({
   ]),
   startTime: timeString,
   endTime: timeString,
+  breakStart: optionalTime,
+  breakEnd:   optionalTime,
   isActive: z.boolean(),
 }).refine(
   (data) => data.startTime < data.endTime,
   { message: 'La hora de inicio debe ser anterior a la hora de fin' }
+).refine(
+  (d) => (d.breakStart == null) === (d.breakEnd == null),
+  { message: 'El descanso necesita hora de inicio y de fin', path: ['breakEnd'] }
+).refine(
+  (d) => d.breakStart == null || d.breakEnd == null ||
+    (d.breakStart < d.breakEnd && d.breakStart >= d.startTime && d.breakEnd <= d.endTime),
+  { message: 'El descanso debe estar dentro del horario de atención', path: ['breakStart'] }
 )
 
 // ─────────────────────────────────────────
@@ -341,6 +356,9 @@ export const createManualAppointmentSchema = z.object({
   clientEmail: optionalEmail,
   clientPhone: phoneSchema,
   serviceId:   z.string().cuid('ID de servicio inválido'),
+  // Optional multi-service: when 2+ are sent, serviceId stays the primary and
+  // the appointment gets one AppointmentService row per service.
+  serviceIds:  z.array(z.string().cuid('ID de servicio inválido')).min(1).max(5).optional(),
   date:        dateString,
   startTime:   timeString,
   source:      z.enum(['ONLINE','WHATSAPP','TELEFONO','PRESENCIAL']).default('PRESENCIAL'),

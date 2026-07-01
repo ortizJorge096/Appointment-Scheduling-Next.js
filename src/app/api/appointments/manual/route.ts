@@ -47,7 +47,7 @@ export async function POST(
 
   const {
     clientName, clientEmail, clientPhone,
-    serviceId, date, startTime, source, notes,
+    serviceId, serviceIds, date, startTime, source, notes,
     skipAvailabilityCheck, notifyClient,
     mode, totalCharged, extras,
     descuentoTipo, descuentoValor, descuentoMotivo,
@@ -73,11 +73,12 @@ export async function POST(
     )
   }
 
-  // Verify service
-  let service
+  // Verify services (one or several). serviceId stays the primary for back-compat.
+  const allServiceIds = serviceIds && serviceIds.length > 1 ? serviceIds : [serviceId]
+  let servicesList
   try {
-    service = await prisma.service.findUnique({
-      where: { id: serviceId },
+    servicesList = await prisma.service.findMany({
+      where: { id: { in: allServiceIds } },
       select: { id: true, name: true, price: true, durationMinutes: true },
     })
   } catch (err) {
@@ -85,12 +86,13 @@ export async function POST(
     return NextResponse.json({ success: false, error: 'Error interno' }, { status: 500 })
   }
 
-  if (!service) {
-    return NextResponse.json({ success: false, error: 'Servicio no encontrado' }, { status: 404 })
+  if (servicesList.length !== allServiceIds.length) {
+    return NextResponse.json({ success: false, error: 'Uno o más servicios no existen' }, { status: 404 })
   }
 
-  const startMinutes = timeToMinutes(startTime)
-  const endTime      = minutesToTime(startMinutes + service.durationMinutes)
+  const totalDuration = servicesList.reduce((sum, s) => sum + s.durationMinutes, 0)
+  const startMinutes  = timeToMinutes(startTime)
+  const endTime       = minutesToTime(startMinutes + totalDuration)
 
   // Manual discount — only on a past appointment's charge. Validate against the
   // subtotal (service + extra) and compute the final price snapshot here.
@@ -159,8 +161,12 @@ export async function POST(
         name: clientName, email: emailNorm, phone: clientPhone,
       })
 
-      const servicePrice = mode === 'PAST' ? totalCharged! : service.price
       const isPast = mode === 'PAST'
+      // Per-service snapshot: catalog price. For a SINGLE-service past charge the
+      // whole amount sits on that one service (preserves prior behavior); with
+      // multiple services the real total lives in amountPaid.
+      const priceFor = (s: { price: number }) =>
+        isPast && servicesList.length === 1 ? totalCharged! : s.price
 
       return tx.appointment.create({
         data: {
@@ -169,7 +175,7 @@ export async function POST(
           clientPhone: clientPhone.trim(),
           clientId,
           serviceId,
-          totalDurationMinutes: service.durationMinutes,
+          totalDurationMinutes: totalDuration,
           date:        dayStart,
           startTime,
           endTime,
@@ -179,7 +185,7 @@ export async function POST(
           notes:       notes?.trim() ?? null,
           ...(isPast ? {
             paymentStatus:    'PAID',
-            amountPaid:       precioFinal ?? (servicePrice + extraTotal),
+            amountPaid:       precioFinal ?? (totalCharged! + extraTotal),
             ...(precioFinal != null ? {
               descuentoTipo,
               descuentoValor,
@@ -188,11 +194,11 @@ export async function POST(
             } : {}),
           } : {}),
           services: {
-            create: [{
-              serviceId,
-              serviceName: service.name, // snapshot — preserves history
-              price: servicePrice,
-            }],
+            create: servicesList.map((s) => ({
+              serviceId:   s.id,
+              serviceName: s.name, // snapshot — preserves history
+              price:       priceFor(s),
+            })),
           },
           ...(isPast && extras && extras.length > 0 ? {
             extras: {

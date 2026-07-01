@@ -5,7 +5,7 @@ vi.mock('next-auth', () => ({ getServerSession: vi.fn() }))
 vi.mock('@/lib/auth',   () => ({ authOptions: {} }))
 vi.mock('@/lib/prisma', () => ({
   prisma: {
-    service:     { findUnique: vi.fn() },
+    service:     { findUnique: vi.fn(), findMany: vi.fn() },
     appointment: { findFirst: vi.fn(), update: vi.fn().mockResolvedValue(undefined) },
     client:      { upsert: vi.fn() },
     $transaction: vi.fn(),
@@ -87,7 +87,7 @@ describe('POST /api/appointments/manual', () => {
 
   it('returns 404 when service not found', async () => {
     vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
-    vi.mocked(prisma.service.findUnique).mockResolvedValue(null)
+    vi.mocked(prisma.service.findMany).mockResolvedValue([] as never)
 
     const res = await POST(makeRequest(VALID_BODY))
     expect(res.status).toBe(404)
@@ -95,7 +95,7 @@ describe('POST /api/appointments/manual', () => {
 
   it('returns 409 when slot is unavailable (without skip)', async () => {
     vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
-    vi.mocked(prisma.service.findUnique).mockResolvedValue(MOCK_SERVICE as never)
+    vi.mocked(prisma.service.findMany).mockResolvedValue([MOCK_SERVICE] as never)
     vi.mocked(prisma.appointment.findFirst).mockResolvedValue({ id: 'conflict-1' } as never)
 
     const res = await POST(makeRequest(VALID_BODY))
@@ -104,7 +104,7 @@ describe('POST /api/appointments/manual', () => {
 
   it('creates appointment and upserts client', async () => {
     vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
-    vi.mocked(prisma.service.findUnique).mockResolvedValue(MOCK_SERVICE as never)
+    vi.mocked(prisma.service.findMany).mockResolvedValue([MOCK_SERVICE] as never)
     vi.mocked(prisma.appointment.findFirst).mockResolvedValue(null)
     vi.mocked(prisma.$transaction).mockImplementation(async (fn) => {
       return fn({
@@ -123,7 +123,7 @@ describe('POST /api/appointments/manual', () => {
 
   it('skips availability check when skipAvailabilityCheck=true', async () => {
     vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
-    vi.mocked(prisma.service.findUnique).mockResolvedValue(MOCK_SERVICE as never)
+    vi.mocked(prisma.service.findMany).mockResolvedValue([MOCK_SERVICE] as never)
     vi.mocked(prisma.$transaction).mockImplementation(async (fn) => {
       return fn({
         appointment: { findFirst: vi.fn().mockResolvedValue(null), create: vi.fn().mockResolvedValue(MOCK_APPOINTMENT) },
@@ -162,7 +162,7 @@ describe('POST /api/appointments/manual', () => {
 
     it('creates the appointment as COMPLETED/PAID with service + extra total', async () => {
       vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
-      vi.mocked(prisma.service.findUnique).mockResolvedValue(MOCK_SERVICE as never)
+      vi.mocked(prisma.service.findMany).mockResolvedValue([MOCK_SERVICE] as never)
       vi.mocked(prisma.appointment.findFirst).mockResolvedValue(null)
       const create = vi.fn().mockResolvedValue({ ...MOCK_APPOINTMENT, status: 'COMPLETED', paymentStatus: 'PAID', amountPaid: 45000 })
       vi.mocked(prisma.$transaction).mockImplementation(async (fn) => {
@@ -192,7 +192,7 @@ describe('POST /api/appointments/manual', () => {
 
     it('does not change the UPCOMING (default) creation path', async () => {
       vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
-      vi.mocked(prisma.service.findUnique).mockResolvedValue(MOCK_SERVICE as never)
+      vi.mocked(prisma.service.findMany).mockResolvedValue([MOCK_SERVICE] as never)
       vi.mocked(prisma.appointment.findFirst).mockResolvedValue(null)
       const create = vi.fn().mockResolvedValue(MOCK_APPOINTMENT)
       vi.mocked(prisma.$transaction).mockImplementation(async (fn) => {
@@ -213,7 +213,7 @@ describe('POST /api/appointments/manual', () => {
 
   describe('notifyClient (checkbox de notificación)', () => {
     function mockTransaction(appt = MOCK_APPOINTMENT) {
-      vi.mocked(prisma.service.findUnique).mockResolvedValue(MOCK_SERVICE as never)
+      vi.mocked(prisma.service.findMany).mockResolvedValue([MOCK_SERVICE] as never)
       vi.mocked(prisma.appointment.findFirst).mockResolvedValue(null)
       vi.mocked(prisma.$transaction).mockImplementation(async (fn) => {
         return fn({
@@ -258,7 +258,7 @@ describe('POST /api/appointments/manual', () => {
   describe('sin email (cliente opcional)', () => {
     // tx mock that exposes the no-email path (findFirst + create), not upsert
     function mockNoEmailTransaction(upsert = vi.fn()) {
-      vi.mocked(prisma.service.findUnique).mockResolvedValue(MOCK_SERVICE as never)
+      vi.mocked(prisma.service.findMany).mockResolvedValue([MOCK_SERVICE] as never)
       vi.mocked(prisma.appointment.findFirst).mockResolvedValue(null)
       vi.mocked(prisma.$transaction).mockImplementation(async (fn) =>
         fn({

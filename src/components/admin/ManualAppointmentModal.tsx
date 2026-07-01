@@ -25,7 +25,7 @@ const MODE_OPTIONS = [
 
 const EMPTY = {
   clientName: '', clientEmail: '', clientPhone: '',
-  serviceId: '', date: '', startTime: '',
+  serviceIds: [] as string[], date: '', startTime: '',
   source: 'PRESENCIAL', notes: '',
   skipAvailabilityCheck: false,
   // Premarcado según el origen: un cliente presencial ya sabe que su cita
@@ -43,7 +43,7 @@ type Touched = Partial<Record<keyof typeof EMPTY, boolean>>
 
 // Fields validated on blur/submit (in display order).
 const VALIDATED_FIELDS: (keyof typeof EMPTY)[] = [
-  'clientName', 'clientEmail', 'clientPhone', 'serviceId', 'date', 'startTime',
+  'clientName', 'clientEmail', 'clientPhone', 'serviceIds', 'date', 'startTime',
   'totalCharged', 'descuentoValor',
 ]
 
@@ -124,8 +124,8 @@ export default function ManualAppointmentModal() {
         if (!form.clientPhone.trim()) return 'El teléfono es requerido'
         if (!isValidPhone(form.clientPhone)) return 'El teléfono debe tener al menos 10 dígitos'
         return undefined
-      case 'serviceId':
-        return form.serviceId ? undefined : 'Selecciona un servicio'
+      case 'serviceIds':
+        return form.serviceIds.length ? undefined : 'Selecciona al menos un servicio'
       case 'date':
         if (!form.date) return 'La fecha es requerida'
         if (form.mode === 'PAST' && form.date >= offsetDate(0)) return 'Debe ser una fecha anterior a hoy'
@@ -180,7 +180,7 @@ export default function ManualAppointmentModal() {
     const isPast = form.mode === 'PAST'
     const payload = {
       clientName: form.clientName, clientEmail: form.clientEmail, clientPhone: form.clientPhone,
-      serviceId: form.serviceId, date: form.date, startTime: form.startTime,
+      serviceId: form.serviceIds[0], serviceIds: form.serviceIds, date: form.date, startTime: form.startTime,
       source: form.source, notes: form.notes,
       skipAvailabilityCheck: form.skipAvailabilityCheck,
       mode: form.mode,
@@ -227,23 +227,25 @@ export default function ManualAppointmentModal() {
   // while in "Cita pasada" mode (admin can still edit it afterwards).
   function selectMode(mode: 'UPCOMING' | 'PAST') {
     setForm(f => {
-      if (mode === 'PAST' && f.serviceId) {
-        const svc = services.find(s => s.id === f.serviceId)
-        return { ...f, mode, totalCharged: svc ? String(svc.price) : f.totalCharged }
+      if (mode === 'PAST' && f.serviceIds.length) {
+        const sum = f.serviceIds.reduce((t, id) => t + (services.find(s => s.id === id)?.price ?? 0), 0)
+        return { ...f, mode, totalCharged: sum ? String(sum) : f.totalCharged }
       }
       return { ...f, mode }
     })
   }
 
-  function selectService(serviceId: string) {
+  // Toggle a service in/out of the selection. In "Cita pasada" the "Total
+  // cobrado" auto-syncs to the sum of the selected services' catalog prices.
+  function toggleService(id: string) {
     setForm(f => {
-      const svc = services.find(s => s.id === serviceId)
-      return {
-        ...f, serviceId,
-        totalCharged: f.mode === 'PAST' && svc ? String(svc.price) : f.totalCharged,
-      }
+      const serviceIds = f.serviceIds.includes(id)
+        ? f.serviceIds.filter(x => x !== id)
+        : [...f.serviceIds, id]
+      const sum = serviceIds.reduce((t, sid) => t + (services.find(s => s.id === sid)?.price ?? 0), 0)
+      return { ...f, serviceIds, totalCharged: f.mode === 'PAST' ? String(sum) : f.totalCharged }
     })
-    if (fieldErrors.serviceId) setFieldErrors(fe => ({ ...fe, serviceId: undefined }))
+    if (fieldErrors.serviceIds) setFieldErrors(fe => ({ ...fe, serviceIds: undefined }))
   }
 
   // "+ Agregar adicional" seeds one empty row; "Ocultar" drops the empty rows.
@@ -367,16 +369,22 @@ export default function ManualAppointmentModal() {
                     <label className="form-label">
                       Servicio <span className="text-red-500">*</span>
                     </label>
-                    <select value={form.serviceId} onChange={e => selectService(e.target.value)} onBlur={handleBlur('serviceId')}
-                      className={`input-field w-full bg-white ${touched.serviceId && fieldErrors.serviceId ? 'border-red-400' : ''}`}>
-                      <option value="">— Selecciona un servicio —</option>
+                    <div className={`space-y-1 max-h-48 overflow-y-auto rounded-lg border p-2 ${touched.serviceIds && fieldErrors.serviceIds ? 'border-red-400' : 'border-beige-dark'}`}>
                       {services.map(s => (
-                        <option key={s.id} value={s.id}>
-                          {s.name} — {s.durationMinutes} min
-                        </option>
+                        <label key={s.id} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-beige cursor-pointer text-sm">
+                          <input type="checkbox" checked={form.serviceIds.includes(s.id)}
+                            onChange={() => toggleService(s.id)} className="accent-gold w-4 h-4 shrink-0" />
+                          <span className="flex-1 text-ink">{s.name}</span>
+                          <span className="text-xs text-ink-muted whitespace-nowrap">{s.durationMinutes} min · {formatPrice(s.price)}</span>
+                        </label>
                       ))}
-                    </select>
-                    <Err k="serviceId" />
+                    </div>
+                    {form.serviceIds.length > 1 && (
+                      <p className="text-[11px] text-ink-muted mt-1">
+                        {form.serviceIds.length} servicios · {form.serviceIds.reduce((t, id) => t + (services.find(s => s.id === id)?.durationMinutes ?? 0), 0)} min en total
+                      </p>
+                    )}
+                    <Err k="serviceIds" />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
