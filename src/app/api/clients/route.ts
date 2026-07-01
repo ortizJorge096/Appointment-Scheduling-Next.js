@@ -3,9 +3,9 @@
 // POST /api/clients   → create client (admin)
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { getCurrentAdmin } from '@/lib/authz'
+import { hasPermission } from '@/lib/permissions'
 import { createClientSchema } from '@/lib/validations'
 import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
 import { audit, getClientIp } from '@/lib/audit'
@@ -14,8 +14,9 @@ import type { ApiResponse, ClientSummary } from '@/types'
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 })
+  const admin = await getCurrentAdmin()
+  if (!admin) return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 })
+  if (!hasPermission(admin.role, 'clientes:ver')) return NextResponse.json({ success: false, error: 'Sin permiso' }, { status: 403 })
 
   const { searchParams } = new URL(request.url)
   const search = searchParams.get('search')?.trim() ?? ''
@@ -60,8 +61,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse<ApiResponse<ClientSummary>>> {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 })
+  const admin = await getCurrentAdmin()
+  if (!admin) return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 })
+  if (!hasPermission(admin.role, 'clientes:editar')) return NextResponse.json({ success: false, error: 'Sin permiso' }, { status: 403 })
 
   let body: unknown
   try { body = await request.json() }
@@ -97,7 +99,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
     action:      'CREATE',
     entity:      'CLIENT',
     entityId:    client.id,
-    userEmail:   session.user?.email ?? undefined,
+    userEmail:   admin.email,
     ip:          getClientIp(request),
     description: `Cliente "${client.name}" creado`,
   })

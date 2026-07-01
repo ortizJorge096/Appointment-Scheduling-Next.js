@@ -1,11 +1,14 @@
 // prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  // pg_trgm powers the GIN indexes that accelerate the admin list's ILIKE search.
+  extensions = [pg_trgm]
 }
 
 // ─────────────────────────────────────────
@@ -18,6 +21,14 @@ model User {
   password  String
   name      String
   role      Role     @default(ADMIN)
+  // Deactivated admins can't log in and their active sessions are invalidated,
+  // but the row persists so audit history keeps their name.
+  isActive  Boolean  @default(true)
+  // Last successful login (shown in the admin-management list).
+  lastLoginAt DateTime?
+  // Bumped on every password change; embedded in the JWT so tokens issued
+  // before the change are rejected → forces re-login on other devices.
+  passwordChangedAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@map("users")
@@ -26,6 +37,8 @@ model User {
 enum Role {
   ADMIN
   SUPER_ADMIN
+  RECEPCIONISTA
+  SOLO_LECTURA
 }
 
 // ─────────────────────────────────────────
@@ -154,7 +167,7 @@ model Professional {
 // "Primera disponible" auto-assignment in /api/appointments already covers it.
 model BookingSettings {
   id                  String   @id @default(cuid())
-  showProfessionalStep Boolean @default(true)
+  showProfessionalStep Boolean @default(false)
   // How many days into the future clients can book (booking horizon).
   // Drives the date strip in /agendar. Editable from the admin (7–365).
   maxAdvanceDays      Int      @default(90)
@@ -207,6 +220,11 @@ model Appointment {
   status             AppointmentStatus @default(PENDING)
   // Origen de la cita
   source             AppointmentSource @default(ONLINE)
+  // Provenance, set explicitly at creation (no field-combination heuristics):
+  // PUBLIC = client self-booked, MANUAL = admin "Cita próxima", VIP = multi-
+  // service package, PAST = retroactive "Cita pasada". Legacy rows backfilled
+  // in the migration (source != ONLINE → MANUAL, else PUBLIC).
+  origin             AppointmentOrigin @default(PUBLIC)
   // Pago
   paymentStatus      PaymentStatus     @default(PENDING)
   paymentMethod      PaymentMethod?
@@ -235,6 +253,9 @@ model Appointment {
   @@index([status])
   @@index([paymentStatus])
   @@index([professionalId])
+  @@index([origin])
+  // Trigram GIN index → fast ILIKE '%term%' for the admin list's client search.
+  @@index([clientName(ops: raw("gin_trgm_ops"))], type: Gin)
   @@map("appointments")
 }
 
@@ -247,6 +268,8 @@ model AppointmentService {
   serviceName   String?     // snapshot del nombre al reservar (preserva el historial si el servicio se renombra/elimina)
   price         Int         // price at time of booking (snapshot)
   @@unique([appointmentId, serviceId])
+  // Trigram GIN index → fast ILIKE '%term%' for the admin list's service search.
+  @@index([serviceName(ops: raw("gin_trgm_ops"))], type: Gin)
   @@map("appointment_services")
 }
 
@@ -278,6 +301,13 @@ enum AppointmentSource {
   PRESENCIAL
 }
 
+enum AppointmentOrigin {
+  PUBLIC   // client self-booked via the public flow
+  MANUAL   // admin created ("Cita próxima")
+  VIP      // multi-service package booking
+  PAST     // retroactively registered ("Cita pasada")
+}
+
 enum PaymentStatus {
   PENDING   // sin registrar pago
   PAID      // pagado completo
@@ -307,6 +337,10 @@ model Schedule {
   dayOfWeek DayOfWeek @unique
   startTime String
   endTime   String
+  // Optional lunch break within the day (e.g. 12:00–14:00). Slots overlapping
+  // it are not offered. Both null = continuous day, no break.
+  breakStart String?
+  breakEnd   String?
   isActive  Boolean   @default(true)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -465,6 +499,7 @@ enum AuditAction {
   LOGOUT
   EMAIL_SENT
   EMAIL_FAILED
+  EXPORT        // audit-log export (reading/exfiltrating the trace is itself an event)
 }
 
 enum AuditEntity {

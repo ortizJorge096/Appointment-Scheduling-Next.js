@@ -77,7 +77,7 @@ describe('GET /api/appointments/[id]', () => {
 
   it('returns full appointment to admin', async () => {
     vi.mocked(prisma.appointment.findUnique).mockResolvedValue(MOCK_APPOINTMENT)
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
 
     const json = await (await GET(makeRequest(), CTX())).json()
     expect(json.success).toBe(true)
@@ -107,14 +107,14 @@ describe('PATCH /api/appointments/[id]', () => {
   })
 
   it('returns 404 when appointment not found', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.appointment.findUnique).mockResolvedValue(null)
     const res = await PATCH(makeRequest({ status: 'CONFIRMED' }), CTX('missing'))
     expect(res.status).toBe(404)
   })
 
   it('returns 400 for malformed JSON', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.appointment.findUnique).mockResolvedValue(MOCK_APPOINTMENT)
     const req = { json: () => Promise.reject(new Error('bad')) } as unknown as NextRequest
     const res = await PATCH(req, CTX())
@@ -122,14 +122,14 @@ describe('PATCH /api/appointments/[id]', () => {
   })
 
   it('returns 400 for invalid status value', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.appointment.findUnique).mockResolvedValue(MOCK_APPOINTMENT)
     const res = await PATCH(makeRequest({ status: 'INVALID_STATUS' }), CTX())
     expect(res.status).toBe(400)
   })
 
   it('updates status successfully', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.appointment.findUnique).mockResolvedValue(MOCK_APPOINTMENT)
     vi.mocked(prisma.appointment.update).mockResolvedValue({ ...MOCK_APPOINTMENT, status: 'COMPLETED' })
 
@@ -145,7 +145,7 @@ describe('PATCH /api/appointments/[id]', () => {
   })
 
   it('completes the appointment when a full payment (PAID) is saved', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.appointment.findUnique).mockResolvedValue(MOCK_APPOINTMENT)
     vi.mocked(prisma.appointment.update).mockResolvedValue({ ...MOCK_APPOINTMENT, status: 'COMPLETED', paymentStatus: 'PAID' })
 
@@ -157,7 +157,7 @@ describe('PATCH /api/appointments/[id]', () => {
   })
 
   it('completes on courtesy (WAIVED) with $0', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.appointment.findUnique).mockResolvedValue(MOCK_APPOINTMENT)
     vi.mocked(prisma.appointment.update).mockResolvedValue({ ...MOCK_APPOINTMENT, status: 'COMPLETED', paymentStatus: 'WAIVED' })
 
@@ -169,7 +169,7 @@ describe('PATCH /api/appointments/[id]', () => {
   })
 
   it('does NOT complete the appointment on a partial payment (deposit)', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.appointment.findUnique).mockResolvedValue(MOCK_APPOINTMENT)
     vi.mocked(prisma.appointment.update).mockResolvedValue({ ...MOCK_APPOINTMENT, paymentStatus: 'PARTIAL' })
 
@@ -180,7 +180,7 @@ describe('PATCH /api/appointments/[id]', () => {
   })
 
   it('does not re-complete a cancelled appointment when a payment is saved', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.appointment.findUnique).mockResolvedValue({ ...MOCK_APPOINTMENT, status: 'CANCELLED' })
     vi.mocked(prisma.appointment.update).mockResolvedValue({ ...MOCK_APPOINTMENT, status: 'CANCELLED' })
 
@@ -191,7 +191,7 @@ describe('PATCH /api/appointments/[id]', () => {
   })
 
   it('clears the saved discount when fields are sent as null', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.appointment.findUnique).mockResolvedValue({
       ...MOCK_APPOINTMENT, descuentoTipo: 'PORCENTAJE', descuentoValor: 10, precioFinal: 31500,
     })
@@ -205,7 +205,7 @@ describe('PATCH /api/appointments/[id]', () => {
   })
 
   it('sends a reschedule email when date or startTime change', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.appointment.findUnique).mockResolvedValue(MOCK_APPOINTMENT)
     const updated = { ...MOCK_APPOINTMENT, date: new Date('2026-12-05'), startTime: '14:00' }
     vi.mocked(prisma.appointment.update).mockResolvedValue(updated)
@@ -216,7 +216,7 @@ describe('PATCH /api/appointments/[id]', () => {
   })
 
   it('does not send a reschedule email if the same request cancels the appointment', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.appointment.findUnique).mockResolvedValue(MOCK_APPOINTMENT)
     vi.mocked(prisma.appointment.update).mockResolvedValue({
       ...MOCK_APPOINTMENT, date: new Date('2026-12-05'), status: 'CANCELLED',
@@ -240,14 +240,14 @@ describe('DELETE /api/appointments/[id]', () => {
   })
 
   it('returns 404 when appointment not found', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.appointment.findUnique).mockResolvedValue(null)
     const res = await DELETE(makeRequest(), CTX('missing'))
     expect(res.status).toBe(404)
   })
 
   it('soft-deletes appointment (sets status CANCELLED)', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.appointment.findUnique).mockResolvedValue(MOCK_APPOINTMENT)
     vi.mocked(prisma.appointment.update).mockResolvedValue({ ...MOCK_APPOINTMENT, status: 'CANCELLED' })
 

@@ -131,14 +131,14 @@ export default function AuditoriaPageClient() {
 
   const [searchInput, setSearchInput] = useState(search)
 
-  function setParams(updates: Record<string, string | null>) {
+  const setParams = useCallback((updates: Record<string, string | null>) => {
     const params = new URLSearchParams(searchParams.toString())
     for (const [key, value] of Object.entries(updates)) {
       if (value) params.set(key, value)
       else params.delete(key)
     }
     router.replace(`${pathname}?${params.toString()}`, { scroll: false })
-  }
+  }, [router, pathname, searchParams])
 
   function setFilter(key: string, value: string) {
     setParams({ [key]: value, page: null })
@@ -151,10 +151,7 @@ export default function AuditoriaPageClient() {
       if (searchInput !== search) setParams({ search: searchInput || null, page: null })
     }, 350)
     return () => clearTimeout(t)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchInput])
-
-  const queryKey = searchParams.toString()
+  }, [searchInput, search, setParams])
 
   const fetchLogs = useCallback(async () => {
     setLoading(true)
@@ -176,8 +173,7 @@ export default function AuditoriaPageClient() {
     } finally {
       setLoading(false)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [queryKey])
+  }, [page, entity, action, actorType, search, dateFrom, dateTo])
 
   useEffect(() => { fetchLogs() }, [fetchLogs])
 

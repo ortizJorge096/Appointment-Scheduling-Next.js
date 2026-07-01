@@ -20,6 +20,8 @@ interface Schedule {
   dayOfWeek: string
   startTime: string
   endTime: string
+  breakStart: string | null
+  breakEnd: string | null
   isActive: boolean
 }
 
@@ -58,7 +60,7 @@ export default function HorariosPage() {
       // Ensure every day has a record (even if empty)
       const map = Object.fromEntries(schJson.data.map((s: Schedule) => [s.dayOfWeek, s]))
       setSchedules(
-        DAYS.map((d) => map[d.key] ?? { dayOfWeek: d.key, startTime: '09:00', endTime: '18:00', isActive: false })
+        DAYS.map((d) => map[d.key] ?? { dayOfWeek: d.key, startTime: '09:00', endTime: '18:00', breakStart: null, breakEnd: null, isActive: false })
       )
     }
 
@@ -188,6 +190,18 @@ export default function HorariosPage() {
                       </div>
                     </div>
 
+                    {/* Optional lunch break — leave both empty for a continuous day */}
+                    <div className="flex items-center gap-2 text-sm text-ink-muted">
+                      <span className="text-[10px] uppercase tracking-wider text-ink-muted/70 min-w-[64px]">Descanso</span>
+                      <input type="time" value={sched.breakStart ?? ''} disabled={!sched.isActive}
+                        onChange={(e) => updateSchedule(sched.dayOfWeek, 'breakStart', e.target.value)}
+                        className="input-field py-1.5 w-24 sm:w-28" />
+                      <span>–</span>
+                      <input type="time" value={sched.breakEnd ?? ''} disabled={!sched.isActive}
+                        onChange={(e) => updateSchedule(sched.dayOfWeek, 'breakEnd', e.target.value)}
+                        className="input-field py-1.5 w-24 sm:w-28" />
+                    </div>
+
                     <button
                       onClick={() => saveSchedule(sched)}
                       disabled={saving === sched.dayOfWeek}
@@ -248,7 +262,9 @@ export default function HorariosPage() {
                   <div key={b.id} className="px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-sm text-ink">
-                        {new Date(`${b.date}T12:00:00`).toLocaleDateString('es-CO', {
+                        {/* b.date is a full ISO datetime from the serialized DateTime;
+                            take just the day part before rebuilding at local noon. */}
+                        {new Date(`${b.date.slice(0, 10)}T12:00:00`).toLocaleDateString('es-CO', {
                           weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
                         })}
                       </p>

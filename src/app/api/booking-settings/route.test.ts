@@ -3,6 +3,7 @@ import { NextRequest } from 'next/server'
 import { GET, PUT } from './route'
 
 vi.mock('next-auth', () => ({ getServerSession: vi.fn() }))
+vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 vi.mock('@/lib/auth', () => ({ authOptions: {} }))
 vi.mock('@/lib/prisma', () => ({
   prisma: {
@@ -49,7 +50,7 @@ describe('GET /api/booking-settings', () => {
 
     const json = await (await GET()).json()
     expect(json.data.maxAdvanceDays).toBe(90)
-    expect(json.data.showProfessionalStep).toBe(true)
+    expect(json.data.showProfessionalStep).toBe(false) // default is now OFF (opt-in)
   })
 })
 

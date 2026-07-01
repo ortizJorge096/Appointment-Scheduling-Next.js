@@ -3,9 +3,9 @@
 // Financial summary for the period: income, expenses, net profit
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { getCurrentAdmin } from '@/lib/authz'
+import { hasPermission } from '@/lib/permissions'
 import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
 import type { ApiResponse, AccountingSummary } from '@/types'
 
@@ -14,9 +14,12 @@ export const dynamic = 'force-dynamic'
 export async function GET(
   request: NextRequest
 ): Promise<NextResponse<ApiResponse<AccountingSummary>>> {
-  const session = await getServerSession(authOptions)
-  if (!session) {
+  const admin = await getCurrentAdmin()
+  if (!admin) {
     return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 })
+  }
+  if (!hasPermission(admin.role, 'contabilidad:ver')) {
+    return NextResponse.json({ success: false, error: 'Sin permiso' }, { status: 403 })
   }
 
   const { searchParams } = new URL(request.url)

@@ -9,7 +9,7 @@ export interface BookingSettingsData {
   maxAdvanceDays: number
 }
 
-const DEFAULTS: BookingSettingsData = { showProfessionalStep: true, maxAdvanceDays: 90 }
+const DEFAULTS: BookingSettingsData = { showProfessionalStep: false, maxAdvanceDays: 90 }
 
 /** Reads the current booking settings from the DB (sane defaults if missing or
  *  unreachable — never throws, so SSR pages that read it can't 500 on a DB blip). */

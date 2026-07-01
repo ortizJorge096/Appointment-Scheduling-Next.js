@@ -7,8 +7,9 @@ import { formatPrice, isValidPhone } from '@/lib/utils'
 import { computeDiscountAmount } from '@/lib/discount'
 import ClientSearchInput, { type ClientHit } from './ClientSearchInput'
 import AdicionalesEditor, { type Adicional } from './AdicionalesEditor'
+import DescuentoEditor from './DescuentoEditor'
 
-interface Service { id: string; name: string; price: number; durationMinutes: number }
+interface Service { id: string; name: string; price: number; durationMinutes: number; category?: { id: string; name: string; order: number } | null }
 
 const SOURCE_OPTIONS = [
   { value: 'PRESENCIAL', label: 'Presencial' },
@@ -24,7 +25,7 @@ const MODE_OPTIONS = [
 
 const EMPTY = {
   clientName: '', clientEmail: '', clientPhone: '',
-  serviceId: '', date: '', startTime: '',
+  serviceIds: [] as string[], date: '', startTime: '',
   source: 'PRESENCIAL', notes: '',
   skipAvailabilityCheck: false,
   // Premarcado según el origen: un cliente presencial ya sabe que su cita
@@ -42,7 +43,7 @@ type Touched = Partial<Record<keyof typeof EMPTY, boolean>>
 
 // Fields validated on blur/submit (in display order).
 const VALIDATED_FIELDS: (keyof typeof EMPTY)[] = [
-  'clientName', 'clientEmail', 'clientPhone', 'serviceId', 'date', 'startTime',
+  'clientName', 'clientEmail', 'clientPhone', 'serviceIds', 'date', 'startTime',
   'totalCharged', 'descuentoValor',
 ]
 
@@ -62,6 +63,9 @@ export default function ManualAppointmentModal() {
   const [services, setServices] = useState<Service[]>([])
   const [form, setForm]         = useState(EMPTY)
   const [extras, setExtras]     = useState<Adicional[]>([])
+  const [descuentoOpen, setDescuentoOpen] = useState(false)
+  const [extrasOpen, setExtrasOpen] = useState(false)
+  const [serviceQuery, setServiceQuery] = useState('')
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [touched, setTouched]   = useState<Touched>({})
   const [saving, setSaving]     = useState(false)
@@ -81,12 +85,12 @@ export default function ManualAppointmentModal() {
       loadServices()
       setFieldErrors({}); setTouched({}); setApiError(''); setSuccess('')
     } else {
-      setExtras([])
+      setExtras([]); setDescuentoOpen(false); setExtrasOpen(false); setServiceQuery('')
     }
   }, [open, loadServices])
 
   function pickClient(c: ClientHit) {
-    setForm(f => ({ ...f, clientName: c.name, clientEmail: c.email, clientPhone: c.phone ?? '' }))
+    setForm(f => ({ ...f, clientName: c.name, clientEmail: c.email ?? '', clientPhone: c.phone ?? '' }))
     setFieldErrors(fe => ({ ...fe, clientName: undefined, clientEmail: undefined, clientPhone: undefined }))
   }
 
@@ -121,8 +125,8 @@ export default function ManualAppointmentModal() {
         if (!form.clientPhone.trim()) return 'El teléfono es requerido'
         if (!isValidPhone(form.clientPhone)) return 'El teléfono debe tener al menos 10 dígitos'
         return undefined
-      case 'serviceId':
-        return form.serviceId ? undefined : 'Selecciona un servicio'
+      case 'serviceIds':
+        return form.serviceIds.length ? undefined : 'Selecciona al menos un servicio'
       case 'date':
         if (!form.date) return 'La fecha es requerida'
         if (form.mode === 'PAST' && form.date >= offsetDate(0)) return 'Debe ser una fecha anterior a hoy'
@@ -177,7 +181,7 @@ export default function ManualAppointmentModal() {
     const isPast = form.mode === 'PAST'
     const payload = {
       clientName: form.clientName, clientEmail: form.clientEmail, clientPhone: form.clientPhone,
-      serviceId: form.serviceId, date: form.date, startTime: form.startTime,
+      serviceId: form.serviceIds[0], serviceIds: form.serviceIds, date: form.date, startTime: form.startTime,
       source: form.source, notes: form.notes,
       skipAvailabilityCheck: form.skipAvailabilityCheck,
       mode: form.mode,
@@ -208,31 +212,71 @@ export default function ManualAppointmentModal() {
     setSuccess(isPast ? 'Cita registrada correctamente ✓' : 'Cita creada correctamente ✓')
     setForm(EMPTY)
     setExtras([])
-    setTimeout(() => { setOpen(false); setSuccess(''); router.refresh() }, 1200)
+    setDescuentoOpen(false)
+    setExtrasOpen(false)
+    setServiceQuery('')
+    setTimeout(() => {
+      setOpen(false); setSuccess('')
+      // A past appointment is dated before today, so the default "Próximas"
+      // window would hide it. Send the admin to the "Pasadas" scope, which
+      // lists past appointments most-recent-first (see lib/appointmentList.ts).
+      if (isPast) router.push('/admin/citas?scope=past')
+      else router.refresh()
+    }, 1200)
   }
 
   // Keep "Total cobrado" in sync with the selected service's default price
   // while in "Cita pasada" mode (admin can still edit it afterwards).
   function selectMode(mode: 'UPCOMING' | 'PAST') {
     setForm(f => {
-      if (mode === 'PAST' && f.serviceId) {
-        const svc = services.find(s => s.id === f.serviceId)
-        return { ...f, mode, totalCharged: svc ? String(svc.price) : f.totalCharged }
+      if (mode === 'PAST' && f.serviceIds.length) {
+        const sum = f.serviceIds.reduce((t, id) => t + (services.find(s => s.id === id)?.price ?? 0), 0)
+        return { ...f, mode, totalCharged: sum ? String(sum) : f.totalCharged }
       }
       return { ...f, mode }
     })
   }
 
-  function selectService(serviceId: string) {
+  // Toggle a service in/out of the selection. In "Cita pasada" the "Total
+  // cobrado" auto-syncs to the sum of the selected services' catalog prices.
+  function toggleService(id: string) {
     setForm(f => {
-      const svc = services.find(s => s.id === serviceId)
-      return {
-        ...f, serviceId,
-        totalCharged: f.mode === 'PAST' && svc ? String(svc.price) : f.totalCharged,
-      }
+      const serviceIds = f.serviceIds.includes(id)
+        ? f.serviceIds.filter(x => x !== id)
+        : [...f.serviceIds, id]
+      const sum = serviceIds.reduce((t, sid) => t + (services.find(s => s.id === sid)?.price ?? 0), 0)
+      return { ...f, serviceIds, totalCharged: f.mode === 'PAST' ? String(sum) : f.totalCharged }
     })
-    if (fieldErrors.serviceId) setFieldErrors(fe => ({ ...fe, serviceId: undefined }))
+    if (fieldErrors.serviceIds) setFieldErrors(fe => ({ ...fe, serviceIds: undefined }))
   }
+
+  // "+ Agregar adicional" seeds one empty row; "Ocultar" drops the empty rows.
+  function showExtras() {
+    setExtras((e) => (e.length > 0 ? e : [{ description: '', amount: '' }]))
+    setExtrasOpen(true)
+  }
+  function hideExtras() {
+    setExtras((e) => e.filter((it) => it.description.trim() || it.amount.trim()))
+    setExtrasOpen(false)
+  }
+
+  // Multi-service picker: selected chips + a searchable, category-grouped list.
+  const selectedServices = form.serviceIds
+    .map((id) => services.find((s) => s.id === id))
+    .filter((s): s is Service => Boolean(s))
+  const svcQuery = serviceQuery.trim().toLowerCase()
+  const filteredServices = svcQuery
+    ? services.filter((s) => s.name.toLowerCase().includes(svcQuery))
+    : services
+  const groupedServices = Array.from(
+    filteredServices.reduce((map, s) => {
+      const key = s.category?.id ?? '—'
+      const g = map.get(key) ?? { name: s.category?.name ?? 'Otros', order: s.category?.order ?? 999, items: [] as Service[] }
+      g.items.push(s)
+      map.set(key, g)
+      return map
+    }, new Map<string, { name: string; order: number; items: Service[] }>()).values(),
+  ).sort((a, b) => a.order - b.order)
 
   const extraAmountNum  = extras.reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
   const totalChargedNum = Number(form.totalCharged) || 0
@@ -345,16 +389,46 @@ export default function ManualAppointmentModal() {
                     <label className="form-label">
                       Servicio <span className="text-red-500">*</span>
                     </label>
-                    <select value={form.serviceId} onChange={e => selectService(e.target.value)} onBlur={handleBlur('serviceId')}
-                      className={`input-field w-full bg-white ${touched.serviceId && fieldErrors.serviceId ? 'border-red-400' : ''}`}>
-                      <option value="">— Selecciona un servicio —</option>
-                      {services.map(s => (
-                        <option key={s.id} value={s.id}>
-                          {s.name} — {s.durationMinutes} min
-                        </option>
+                    {/* Selected services as removable chips */}
+                    {selectedServices.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {selectedServices.map(s => (
+                          <button key={s.id} type="button" onClick={() => toggleService(s.id)}
+                            className="inline-flex items-center gap-1 text-xs bg-gold-pale text-ink border border-gold/30 rounded-full px-2.5 py-1 hover:bg-gold/20 transition-colors">
+                            {s.name} <span className="text-ink-muted">×</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    <input type="search" value={serviceQuery} onChange={e => setServiceQuery(e.target.value)}
+                      placeholder="🔍 Buscar servicio…" aria-label="Buscar servicio"
+                      className="input-field w-full mb-2" />
+
+                    {/* Category-grouped, searchable list */}
+                    <div className={`space-y-2 max-h-56 overflow-y-auto rounded-lg border p-2 ${touched.serviceIds && fieldErrors.serviceIds ? 'border-red-400' : 'border-beige-dark'}`}>
+                      {groupedServices.length === 0 ? (
+                        <p className="text-xs text-ink-muted text-center py-3">Sin resultados</p>
+                      ) : groupedServices.map(g => (
+                        <div key={g.name}>
+                          <p className="text-[10px] uppercase tracking-wider text-ink-muted/70 px-2 pt-1 pb-0.5">{g.name}</p>
+                          {g.items.map(s => (
+                            <label key={s.id} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-beige cursor-pointer text-sm">
+                              <input type="checkbox" checked={form.serviceIds.includes(s.id)}
+                                onChange={() => toggleService(s.id)} className="accent-gold w-4 h-4 shrink-0" />
+                              <span className="flex-1 text-ink">{s.name}</span>
+                              <span className="text-xs text-ink-muted whitespace-nowrap">{s.durationMinutes} min · {formatPrice(s.price)}</span>
+                            </label>
+                          ))}
+                        </div>
                       ))}
-                    </select>
-                    <Err k="serviceId" />
+                    </div>
+                    {form.serviceIds.length > 1 && (
+                      <p className="text-[11px] text-ink-muted mt-1">
+                        {form.serviceIds.length} servicios · {form.serviceIds.reduce((t, id) => t + (services.find(s => s.id === id)?.durationMinutes ?? 0), 0)} min en total
+                      </p>
+                    )}
+                    <Err k="serviceIds" />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -407,38 +481,33 @@ export default function ManualAppointmentModal() {
                         className={`input-field w-full ${touched.totalCharged && fieldErrors.totalCharged ? 'border-red-400' : ''}`} />
                       <Err k="totalCharged" />
                     </div>
-                    <div>
-                      <label className="form-label">Adicional (opcional)</label>
-                      <AdicionalesEditor items={extras} onChange={setExtras} />
-                    </div>
-                    {/* Discount (optional) */}
-                    <div>
-                      <label className="form-label">Descuento (opcional)</label>
-                      <div className="flex gap-2">
-                        <div className="flex rounded-lg border border-beige-dark overflow-hidden shrink-0">
-                          {(['PORCENTAJE', 'VALOR_FIJO'] as const).map((t) => (
-                            <button key={t} type="button"
-                              onClick={() => setForm(f => ({ ...f, descuentoTipo: t }))}
-                              className={`px-3 py-2 text-sm transition-colors ${
-                                form.descuentoTipo === t ? 'bg-gold text-white' : 'bg-white text-ink-muted hover:text-ink'
-                              }`}>
-                              {t === 'PORCENTAJE' ? '%' : '$'}
-                            </button>
-                          ))}
-                        </div>
-                        <input type="number" min={0} step={form.descuentoTipo === 'PORCENTAJE' ? 1 : 1000}
-                          max={form.descuentoTipo === 'PORCENTAJE' ? 100 : undefined}
-                          value={form.descuentoValor} onChange={field('descuentoValor')} onBlur={handleBlur('descuentoValor')}
-                          placeholder={form.descuentoTipo === 'PORCENTAJE' ? '0–100' : '0'}
-                          className={`input-field w-[120px] ${touched.descuentoValor && discountTooBig ? 'border-red-400' : ''}`} />
-                      </div>
-                      {touched.descuentoValor && discountTooBig && (
-                        <p className="text-xs text-red-500 mt-0.5">El descuento no puede superar el subtotal.</p>
-                      )}
-                      <input value={form.descuentoMotivo} onChange={field('descuentoMotivo')}
-                        placeholder="Motivo del descuento (interno, opcional)…"
-                        className="input-field w-full mt-2" />
-                    </div>
+                    <AdicionalesEditor items={extras} onChange={setExtras}
+                      open={extrasOpen} onAdd={showExtras} onRemove={hideExtras} />
+                    {/* Discount (optional) — shared collapsible editor */}
+                    <DescuentoEditor
+                      open={descuentoOpen}
+                      tipo={form.descuentoTipo}
+                      valor={form.descuentoValor}
+                      motivo={form.descuentoMotivo}
+                      error={descuentoOpen && discountTooBig ? 'El descuento no puede superar el subtotal.' : null}
+                      onAdd={() => setDescuentoOpen(true)}
+                      onRemove={() => {
+                        setDescuentoOpen(false)
+                        setForm(f => ({ ...f, descuentoValor: '', descuentoMotivo: '' }))
+                        setFieldErrors(fe => ({ ...fe, descuentoValor: undefined }))
+                      }}
+                      onChange={(patch) => {
+                        setForm(f => ({
+                          ...f,
+                          ...(patch.tipo   !== undefined ? { descuentoTipo:   patch.tipo }   : {}),
+                          ...(patch.valor  !== undefined ? { descuentoValor:  patch.valor }  : {}),
+                          ...(patch.motivo !== undefined ? { descuentoMotivo: patch.motivo } : {}),
+                        }))
+                        if (patch.valor !== undefined && fieldErrors.descuentoValor) {
+                          setFieldErrors(fe => ({ ...fe, descuentoValor: undefined }))
+                        }
+                      }}
+                    />
 
                     <div className="bg-beige-pale rounded-lg px-4 py-3 text-sm space-y-1">
                       <div className="flex justify-between text-ink-muted">
