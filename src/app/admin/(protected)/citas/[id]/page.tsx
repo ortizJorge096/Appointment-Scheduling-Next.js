@@ -291,11 +291,15 @@ export default function CitaDetailPage() {
           {appt.services && appt.services.length > 1 ? (
             <>
               {appt.services.map((s) => (
-                <p key={s.id} className="text-sm text-ink">{s.service.name}</p>
+                <div key={s.id} className="flex justify-between gap-3 text-sm">
+                  <span className="text-ink">{s.service.name}</span>
+                  <span className="text-ink-muted whitespace-nowrap">{formatPrice(s.price)}</span>
+                </div>
               ))}
-              <p className="text-gold text-lg font-medium mt-1">
-                {formatPrice(appt.services.reduce((sum, s) => sum + s.price, 0))}
-              </p>
+              <div className="flex justify-between gap-3 border-t border-beige-dark mt-2 pt-2">
+                <span className="text-ink font-medium">Total</span>
+                <span className="text-gold text-lg font-medium">{formatPrice(appt.services.reduce((sum, s) => sum + s.price, 0))}</span>
+              </div>
             </>
           ) : (
             <>
