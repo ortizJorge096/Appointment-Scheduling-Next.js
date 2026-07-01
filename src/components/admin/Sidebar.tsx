@@ -3,23 +3,26 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut, useSession } from 'next-auth/react'
+import { hasPermission, type Permission } from '@/lib/permissions'
 
-const MAIN_NAV = [
-  { href: '/admin',              label: 'Dashboard',    icon: '▦' },
-  { href: '/admin/citas',        label: 'Citas',        icon: '◷' },
-  { href: '/admin/contabilidad', label: 'Contabilidad', icon: '◈' },
-  { href: '/admin/auditoria',    label: 'Auditoría',    icon: '◎' },
+interface NavItem { href: string; label: string; icon: string; perm: Permission }
+
+const MAIN_NAV: NavItem[] = [
+  { href: '/admin',              label: 'Dashboard',    icon: '▦', perm: 'metricas:ver' },
+  { href: '/admin/citas',        label: 'Citas',        icon: '◷', perm: 'citas:ver' },
+  { href: '/admin/contabilidad', label: 'Contabilidad', icon: '◈', perm: 'contabilidad:ver' },
+  { href: '/admin/auditoria',    label: 'Auditoría',    icon: '◎', perm: 'auditoria:ver' },
 ]
 
 // Grouped under "Configuración"
-const CONFIG_NAV = [
-  { href: '/admin/clientes',      label: 'Clientes',      icon: '◉' },
-  { href: '/admin/servicios',     label: 'Servicios',     icon: '✦' },
-  { href: '/admin/profesionales', label: 'Profesionales', icon: '☆' },
-  { href: '/admin/horarios',      label: 'Horarios',      icon: '◻' },
-  { href: '/admin/galeria',       label: 'Galería',       icon: '◫' },
-  { href: '/admin/testimonios',   label: 'Testimonios',   icon: '❝' },
-  { href: '/admin/sitio',         label: 'Métricas',      icon: '▤' },
+const CONFIG_NAV: NavItem[] = [
+  { href: '/admin/clientes',      label: 'Clientes',      icon: '◉', perm: 'clientes:ver' },
+  { href: '/admin/servicios',     label: 'Servicios',     icon: '✦', perm: 'servicios:ver' },
+  { href: '/admin/profesionales', label: 'Profesionales', icon: '☆', perm: 'servicios:ver' },
+  { href: '/admin/horarios',      label: 'Horarios',      icon: '◻', perm: 'horarios:ver' },
+  { href: '/admin/galeria',       label: 'Galería',       icon: '◫', perm: 'galeria:ver' },
+  { href: '/admin/testimonios',   label: 'Testimonios',   icon: '❝', perm: 'testimonios:ver' },
+  { href: '/admin/sitio',         label: 'Métricas',      icon: '▤', perm: 'configuracion:ver' },
 ]
 
 export default function AdminSidebar() {
@@ -40,7 +43,7 @@ export default function AdminSidebar() {
       .catch(() => {})
   }, [pathname])
 
-  function renderNavItem(item: { href: string; label: string; icon: string }) {
+  function renderNavItem(item: NavItem) {
     const active =
       pathname === item.href ||
       (item.href !== '/admin' && pathname.startsWith(item.href))
@@ -107,16 +110,17 @@ export default function AdminSidebar() {
 
         <nav className="flex-1 px-3 py-4 overflow-y-auto">
           <div className="space-y-0.5">
-            {MAIN_NAV.map(renderNavItem)}
+            {MAIN_NAV.filter((i) => hasPermission(role, i.perm)).map(renderNavItem)}
           </div>
 
           <p className="px-3 mt-5 mb-1.5 text-[10px] tracking-widest uppercase text-white/25">
             Configuración
           </p>
           <div className="space-y-0.5">
-            {CONFIG_NAV.map(renderNavItem)}
-            {/* Admin management — SUPER_ADMIN only */}
-            {role === 'SUPER_ADMIN' && renderNavItem({ href: '/admin/usuarios', label: 'Usuarios', icon: '⚿' })}
+            {CONFIG_NAV.filter((i) => hasPermission(role, i.perm)).map(renderNavItem)}
+            {/* Admin management — requires the admins:gestionar permission (SUPER_ADMIN) */}
+            {hasPermission(role, 'admins:gestionar') &&
+              renderNavItem({ href: '/admin/usuarios', label: 'Usuarios', icon: '⚿', perm: 'admins:gestionar' })}
           </div>
         </nav>
 

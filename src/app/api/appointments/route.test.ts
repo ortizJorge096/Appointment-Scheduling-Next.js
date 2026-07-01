@@ -112,7 +112,7 @@ describe('GET /api/appointments', () => {
   })
 
   it('returns paginated appointment list for admin', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.appointment.findMany).mockResolvedValue([MOCK_APPOINTMENT])
     vi.mocked(prisma.appointment.count).mockResolvedValue(1)
 
@@ -126,7 +126,7 @@ describe('GET /api/appointments', () => {
   })
 
   it('filters by status query param', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.appointment.findMany).mockResolvedValue([])
     vi.mocked(prisma.appointment.count).mockResolvedValue(0)
 
@@ -138,7 +138,7 @@ describe('GET /api/appointments', () => {
   })
 
   it('filters by dateFrom and dateTo', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.appointment.findMany).mockResolvedValue([])
     vi.mocked(prisma.appointment.count).mockResolvedValue(0)
 
@@ -150,7 +150,7 @@ describe('GET /api/appointments', () => {
   })
 
   it('filters by origin', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.appointment.findMany).mockResolvedValue([])
     vi.mocked(prisma.appointment.count).mockResolvedValue(0)
 
@@ -162,7 +162,7 @@ describe('GET /api/appointments', () => {
   })
 
   it('builds an OR free-text search (client, service, code)', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.appointment.findMany).mockResolvedValue([])
     vi.mocked(prisma.appointment.count).mockResolvedValue(0)
 
@@ -175,7 +175,7 @@ describe('GET /api/appointments', () => {
   })
 
   it('scope=all removes the date window', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.appointment.findMany).mockResolvedValue([])
     vi.mocked(prisma.appointment.count).mockResolvedValue(0)
 
@@ -187,7 +187,7 @@ describe('GET /api/appointments', () => {
   })
 
   it('filters by value range over amountPaid (finds cortesías $0)', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.appointment.findMany).mockResolvedValue([])
     vi.mocked(prisma.appointment.count).mockResolvedValue(0)
 

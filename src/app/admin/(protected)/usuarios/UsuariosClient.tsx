@@ -7,25 +7,26 @@
 import { useState } from 'react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { ROLES, ROLE_LABELS, type Role } from '@/lib/permissions'
 
 interface AdminRow {
   id: string
   name: string
   email: string
-  role: 'ADMIN' | 'SUPER_ADMIN'
+  role: Role
   isActive: boolean
   lastLoginAt: string | null
   createdAt: string
 }
 
-const ROLE_LABEL: Record<string, string> = { ADMIN: 'Admin', SUPER_ADMIN: 'Super admin' }
+const ROLE_LABEL = ROLE_LABELS
 
 type ModalState =
   | null
   | { mode: 'create' }
   | { mode: 'edit'; user: AdminRow }
 
-const EMPTY_FORM = { name: '', email: '', password: '', role: 'ADMIN' as 'ADMIN' | 'SUPER_ADMIN', newPassword: '' }
+const EMPTY_FORM = { name: '', email: '', password: '', role: 'ADMIN' as Role, newPassword: '' }
 
 export default function UsuariosClient({
   initialUsers, currentAdminId,
@@ -180,10 +181,9 @@ export default function UsuariosClient({
               </div>
               <div>
                 <label className="form-label">Rol</label>
-                <select value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as 'ADMIN' | 'SUPER_ADMIN' }))}
+                <select value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as Role }))}
                   className="input-field w-full bg-white">
-                  <option value="ADMIN">Admin</option>
-                  <option value="SUPER_ADMIN">Super admin</option>
+                  {ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
                 </select>
               </div>
               {modal.mode === 'create' ? (

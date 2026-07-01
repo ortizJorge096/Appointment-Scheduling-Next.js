@@ -5,9 +5,9 @@
 // Automatically creates or links a Client profile.
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { getCurrentAdmin } from '@/lib/authz'
+import { hasPermission } from '@/lib/permissions'
 import { STUDIO } from '@/lib/config'
 import { createManualAppointmentSchema } from '@/lib/validations'
 import { timeToMinutes, minutesToTime } from '@/lib/availability'
@@ -31,9 +31,12 @@ class SlotTakenError extends Error {}
 export async function POST(
   request: NextRequest
 ): Promise<NextResponse<ApiResponse<AppointmentWithService>>> {
-  const session = await getServerSession(authOptions)
-  if (!session) {
+  const admin = await getCurrentAdmin()
+  if (!admin) {
     return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 })
+  }
+  if (!hasPermission(admin.role, 'citas:crear')) {
+    return NextResponse.json({ success: false, error: 'Sin permiso para crear citas' }, { status: 403 })
   }
 
   let body: unknown
@@ -249,7 +252,7 @@ export async function POST(
     action:    'CREATE',
     entity:    'APPOINTMENT',
     entityId:  appointment.id,
-    userEmail: session.user?.email ?? undefined,
+    userEmail: admin.email,
     ip:        getClientIp(request),
     userAgent: getUserAgent(request),
     description: discountLabel

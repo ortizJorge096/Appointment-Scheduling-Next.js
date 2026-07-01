@@ -37,6 +37,8 @@ model User {
 enum Role {
   ADMIN
   SUPER_ADMIN
+  RECEPCIONISTA
+  SOLO_LECTURA
 }
 
 // ─────────────────────────────────────────

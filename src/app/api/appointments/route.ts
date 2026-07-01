@@ -3,9 +3,9 @@
 // POST /api/appointments   → create new appointment (public, with rate limit)
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { getCurrentAdmin } from '@/lib/authz'
+import { hasPermission } from '@/lib/permissions'
 import { createAppointmentSchema } from '@/lib/validations'
 import { isSlotAvailable, timeToMinutes, minutesToTime } from '@/lib/availability'
 import { getVipSettings, resolveDiscountPercent } from '@/lib/vip'
@@ -64,9 +64,12 @@ function checkRateLimit(ip: string): boolean {
 export async function GET(
   request: NextRequest
 ): Promise<NextResponse> {
-  const session = await getServerSession(authOptions)
-  if (!session) {
+  const admin = await getCurrentAdmin()
+  if (!admin) {
     return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 })
+  }
+  if (!hasPermission(admin.role, 'citas:ver')) {
+    return NextResponse.json({ success: false, error: 'Sin permiso' }, { status: 403 })
   }
 
   const { searchParams } = new URL(request.url)

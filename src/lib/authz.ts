@@ -1,39 +1,38 @@
 // src/lib/authz.ts
-// Authorization helpers for admin API routes. The JWT session callback already
-// invalidates deactivated/stale tokens, but these helpers re-confirm the admin
-// against the DB so sensitive endpoints never trust a token blindly.
+// Authorization helpers for admin routes. Permissions derive from the admin's
+// role, which the auth `session` callback already re-reads from the DB each
+// request (and clears for deactivated accounts). So these helpers read from the
+// session — zero extra queries — and the role is always fresh.
 
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import { hasPermission, type Permission, type Role } from '@/lib/permissions'
 
-export type AdminRole = 'ADMIN' | 'SUPER_ADMIN'
+export type { Role, Permission }
 
 export interface CurrentAdmin {
   id: string
   email: string
   name: string
-  role: AdminRole
+  role: Role
 }
 
-/** The signed-in admin, re-validated against the DB (must exist and be active),
- *  or null. Use in API routes instead of trusting the session payload. */
+/** The signed-in admin (from the validated session), or null. */
 export async function getCurrentAdmin(): Promise<CurrentAdmin | null> {
   const session = await getServerSession(authOptions)
-  const id = (session?.user as { id?: string } | undefined)?.id
-  if (!id) return null
-
-  const u = await prisma.user.findUnique({
-    where:  { id },
-    select: { id: true, email: true, name: true, role: true, isActive: true },
-  })
-  if (!u || !u.isActive) return null
-
-  return { id: u.id, email: u.email, name: u.name, role: u.role as AdminRole }
+  const u = session?.user as { id?: string; email?: string; name?: string; role?: string } | undefined
+  if (!u?.id || !u.role) return null
+  return { id: u.id, email: u.email ?? '', name: u.name ?? '', role: u.role as Role }
 }
 
-/** The signed-in admin only if they are a SUPER_ADMIN, else null. */
-export async function requireSuperAdmin(): Promise<CurrentAdmin | null> {
+/** The signed-in admin only if they hold `permission`, else null. */
+export async function requirePermission(permission: Permission): Promise<CurrentAdmin | null> {
   const admin = await getCurrentAdmin()
-  return admin?.role === 'SUPER_ADMIN' ? admin : null
+  if (!admin) return null
+  return hasPermission(admin.role, permission) ? admin : null
+}
+
+/** Back-compat gate — equivalent to the 'admins:gestionar' permission (SUPER_ADMIN only). */
+export async function requireSuperAdmin(): Promise<CurrentAdmin | null> {
+  return requirePermission('admins:gestionar')
 }

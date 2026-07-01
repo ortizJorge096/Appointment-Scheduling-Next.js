@@ -7,6 +7,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { getCurrentAdmin } from '@/lib/authz'
+import { hasPermission, type Permission } from '@/lib/permissions'
 import { updateAppointmentSchema } from '@/lib/validations'
 import { timeToMinutes, minutesToTime } from '@/lib/availability'
 import { audit, getClientIp, getUserAgent } from '@/lib/audit'
@@ -82,8 +84,8 @@ export async function PATCH(
 ): Promise<NextResponse> {
   const { id } = await context.params
 
-  const session = await getServerSession(authOptions)
-  if (!session) {
+  const admin = await getCurrentAdmin()
+  if (!admin) {
     return NextResponse.json(
       { success: false, error: 'No autorizado' },
       { status: 401 }
@@ -128,6 +130,15 @@ export async function PATCH(
 
   const { status, notes, date, startTime, paymentStatus, paymentMethod, amountPaid,
           descuentoTipo, descuentoValor, descuentoMotivo, extras } = parsed.data
+
+  // Granular permission by intent: paying vs cancelling vs a generic edit.
+  const touchesPayment = paymentStatus !== undefined || amountPaid !== undefined || paymentMethod !== undefined
+  const requiredPerm: Permission =
+    touchesPayment ? 'citas:pago' : status === 'CANCELLED' ? 'citas:cancelar' : 'citas:editar'
+  if (!hasPermission(admin.role, requiredPerm)) {
+    return NextResponse.json({ success: false, error: 'Sin permiso' }, { status: 403 })
+  }
+
   const updateData: Record<string, unknown> = {}
 
   // Adicionales: when provided, replace the appointment's full set.
@@ -254,7 +265,7 @@ export async function PATCH(
     entity:    'APPOINTMENT',
     entityId:  id,
     actorType: 'ADMIN',
-    userEmail: session.user?.email ?? undefined,
+    userEmail: admin.email,
     ip:        getClientIp(request),
     userAgent: getUserAgent(request),
     description: auditDescription,
@@ -293,12 +304,12 @@ export async function DELETE(
 ): Promise<NextResponse> {
   const { id } = await context.params
 
-  const session = await getServerSession(authOptions)
-  if (!session) {
-    return NextResponse.json(
-      { success: false, error: 'No autorizado' },
-      { status: 401 }
-    )
+  const admin = await getCurrentAdmin()
+  if (!admin) {
+    return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 })
+  }
+  if (!hasPermission(admin.role, 'citas:cancelar')) {
+    return NextResponse.json({ success: false, error: 'Sin permiso' }, { status: 403 })
   }
 
   const appointment = await prisma.appointment.findUnique({
@@ -323,7 +334,7 @@ export async function DELETE(
     entity:    'APPOINTMENT',
     entityId:  id,
     actorType: 'ADMIN',
-    userEmail: session.user?.email ?? undefined,
+    userEmail: admin.email,
     ip:        getClientIp(request),
     userAgent: getUserAgent(request),
     description: `Admin canceló la cita de ${appointment.clientName} (desde el panel)`,
