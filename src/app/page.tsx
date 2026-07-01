@@ -142,6 +142,12 @@ function ContactoSection() {
               <div className="min-w-0">
                 <p className="text-xs text-gold tracking-widest uppercase mb-1">Horario</p>
                 <p className="text-[15px] text-ink">{STUDIO.hours}</p>
+                <p className="text-sm text-ink-muted mt-0.5">
+                  {STUDIO.hoursWeekend}:{' '}
+                  <a href={WHATSAPP_URL} target="_blank" rel="noreferrer" className="text-gold hover:underline">
+                    por WhatsApp
+                  </a>
+                </p>
               </div>
             </div>
 
