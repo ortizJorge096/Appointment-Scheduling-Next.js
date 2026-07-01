@@ -265,6 +265,7 @@ export async function PATCH(
       date:          appointment.date.toISOString().slice(0, 10),
       startTime:     appointment.startTime,
       ...(discountAudit || discountCleared ? { precioFinal: appointment.precioFinal } : {}),
+      ...(extras !== undefined ? { extras: appointment.extras.map((e) => ({ description: e.description, amount: e.amount })) } : {}),
     },
     after: {
       ...(effectiveStatus !== undefined ? { status: effectiveStatus } : {}),
@@ -275,6 +276,7 @@ export async function PATCH(
       ...(notes         !== undefined ? { notes } : {}),
       ...(discountAudit ?? {}),
       ...(discountCleared ? { descuentoTipo: null, descuentoValor: null, precioFinal: null } : {}),
+      ...(extras !== undefined ? { extras } : {}),
     },
   })
 

@@ -12,7 +12,7 @@ import { STUDIO } from '@/lib/config'
 import { createManualAppointmentSchema } from '@/lib/validations'
 import { timeToMinutes, minutesToTime } from '@/lib/availability'
 import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
-import { audit, getClientIp } from '@/lib/audit'
+import { audit, getClientIp, getUserAgent } from '@/lib/audit'
 import { sendConfirmationEmail } from '@/lib/email'
 import { resolveOrCreateClient } from '@/lib/clients'
 import { computeFinalPrice } from '@/lib/discount'
@@ -245,6 +245,7 @@ export async function POST(
     entityId:  appointment.id,
     userEmail: session.user?.email ?? undefined,
     ip:        getClientIp(request),
+    userAgent: getUserAgent(request),
     description: discountLabel
       ? `Descuento de ${discountLabel} aplicado en la cita de ${appointment.clientName}${descuentoMotivo?.trim() ? ` (motivo: ${descuentoMotivo.trim()})` : ''}`
       : undefined,
