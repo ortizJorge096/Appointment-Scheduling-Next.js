@@ -2,6 +2,7 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { getCurrentAdmin } from '@/lib/authz'
+import { hasPermission } from '@/lib/permissions'
 import { prisma } from '@/lib/prisma'
 import UsuariosClient from './UsuariosClient'
 
@@ -11,8 +12,8 @@ export const dynamic = 'force-dynamic'
 export default async function UsuariosPage() {
   const admin = await getCurrentAdmin()
   if (!admin) redirect('/admin/login')
-  // Route guard: admin management is SUPER_ADMIN only.
-  if (admin.role !== 'SUPER_ADMIN') redirect('/admin')
+  // Route guard: admin management requires the admins:gestionar permission (SUPER_ADMIN).
+  if (!hasPermission(admin.role, 'admins:gestionar')) redirect('/admin/no-autorizado')
 
   const users = await prisma.user.findMany({
     select:  { id: true, name: true, email: true, role: true, isActive: true, lastLoginAt: true, createdAt: true },

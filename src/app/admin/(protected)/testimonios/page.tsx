@@ -6,6 +6,7 @@
 
 import { useState, useEffect } from 'react'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
+import { usePermissionGuard } from '@/components/admin/usePermissionGuard'
 
 interface Testimonial {
   id: string
@@ -57,6 +58,7 @@ const EMPTY: FormState = {
 }
 
 export default function TestimoniosPage() {
+  usePermissionGuard('testimonios:ver')
   const confirm = useConfirm()
   const [items, setItems]     = useState<Testimonial[]>([])
   const [tab, setTab]         = useState<Tab>('todos')

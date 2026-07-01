@@ -5,6 +5,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { getCurrentAdmin } from '@/lib/authz'
+import { hasPermission } from '@/lib/permissions'
 import { prisma } from '@/lib/prisma'
 import { galleryCreateSchema } from '@/lib/validations'
 import { getPublicUrl } from '@/lib/s3'
@@ -39,6 +41,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     height: i.height,
     order: i.order,
     isActive: i.isActive,
+    focalPoint: i.focalPoint,
     url: getPublicUrl(i.s3Key),
     s3Key: session ? i.s3Key : undefined, // only admin needs the key
   }))
@@ -47,9 +50,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const session = await getServerSession(authOptions)
-  if (!session) {
+  const admin = await getCurrentAdmin()
+  if (!admin) {
     return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 })
+  }
+  if (!hasPermission(admin.role, 'galeria:editar')) {
+    return NextResponse.json({ success: false, error: 'Sin permiso' }, { status: 403 })
   }
 
   let body: unknown
@@ -92,7 +98,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     action:      'CREATE',
     entity:      'GALLERY',
     entityId:    created.id,
-    userEmail:   session.user?.email ?? undefined,
+    userEmail:   admin.email,
     ip:          getClientIp(request),
     description: `Imagen ${created.title ? `"${created.title}" ` : ''}agregada a la galería`,
   })

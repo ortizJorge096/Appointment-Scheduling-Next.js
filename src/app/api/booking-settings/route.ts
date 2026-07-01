@@ -3,9 +3,9 @@
 // PUT → update booking flow settings (admin only)
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
 import { revalidatePath } from 'next/cache'
-import { authOptions } from '@/lib/auth'
+import { getCurrentAdmin } from '@/lib/authz'
+import { hasPermission } from '@/lib/permissions'
 import { prisma } from '@/lib/prisma'
 import { getBookingSettings } from '@/lib/bookingSettings'
 import { bookingSettingsSchema } from '@/lib/validations'
@@ -19,9 +19,12 @@ export async function GET(): Promise<NextResponse> {
 }
 
 export async function PUT(request: NextRequest): Promise<NextResponse> {
-  const session = await getServerSession(authOptions)
-  if (!session) {
+  const admin = await getCurrentAdmin()
+  if (!admin) {
     return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 })
+  }
+  if (!hasPermission(admin.role, 'configuracion:editar')) {
+    return NextResponse.json({ success: false, error: 'Sin permiso' }, { status: 403 })
   }
 
   let body: unknown
@@ -59,7 +62,7 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
     action:      'UPDATE',
     entity:      'SERVICE',
     entityId:    'booking-settings',
-    userEmail:   session.user?.email ?? undefined,
+    userEmail:   admin.email,
     ip:          getClientIp(request),
     description: `Configuración de reserva: ${changes.join(' · ')}`,
     before:      existing ? { showProfessionalStep: existing.showProfessionalStep, maxAdvanceDays: existing.maxAdvanceDays } : undefined,

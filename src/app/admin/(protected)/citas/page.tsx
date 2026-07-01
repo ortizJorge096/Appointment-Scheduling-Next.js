@@ -3,6 +3,8 @@
 // to <CitasList> (client) which filters via /api/appointments without reloads.
 import type { Metadata } from 'next'
 import { prisma } from '@/lib/prisma'
+import { redirect } from 'next/navigation'
+import { requirePermission } from '@/lib/authz'
 import { formatInTimeZone } from 'date-fns-tz'
 import ManualAppointmentModal from '@/components/admin/ManualAppointmentModal'
 import { buildAppointmentListQuery } from '@/lib/appointmentList'
@@ -25,6 +27,8 @@ const num = (v?: string) => {
 }
 
 export default async function CitasPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  if (!(await requirePermission('citas:ver'))) redirect('/admin/no-autorizado')
+
   const sp   = await searchParams
   const page = Math.max(1, parseInt(sp.page ?? '1'))
   const today = formatInTimeZone(new Date(), 'America/Bogota', 'yyyy-MM-dd')

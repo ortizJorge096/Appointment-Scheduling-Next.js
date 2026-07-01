@@ -6,6 +6,7 @@ import { useState, useEffect, use } from 'react'
 import Link from 'next/link'
 import { STATUS_LABEL, STATUS_CLASS } from '@/lib/appointmentStatus'
 import type { AppointmentWithService } from '@/types'
+import { usePermissionGuard, useCan } from '@/components/admin/usePermissionGuard'
 
 const COP = (n: number) =>
   new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n)
@@ -24,6 +25,8 @@ interface ClientData {
 }
 
 export default function ClienteDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  usePermissionGuard('clientes:ver')
+  const can = useCan()
   const { id } = use(params)
 
   const [client, setClient]     = useState<ClientData | null>(null)
@@ -141,7 +144,9 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
               <>
                 <div className="flex items-center gap-3 flex-wrap">
                   <h1 className="text-2xl font-serif text-ink">{client.name}</h1>
-                  <button onClick={openEditInfo} className="btn-row-action text-xs text-gold hover:underline">Editar datos</button>
+                  {can('clientes:editar') && (
+                    <button onClick={openEditInfo} className="btn-row-action text-xs text-gold hover:underline">Editar datos</button>
+                  )}
                 </div>
                 <p className="text-sm text-ink-muted mt-1">{client.email}</p>
                 {client.phone && <p className="text-sm text-ink-muted">{client.phone}</p>}
@@ -178,16 +183,19 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
             value={notes}
             onChange={e => setNotes(e.target.value)}
             rows={3}
+            readOnly={!can('clientes:editar')}
             placeholder="Alergias, preferencias, observaciones…"
             className="input-field w-full resize-none"
           />
-          <div className="flex items-center gap-3 mt-2">
-            <button onClick={saveNotes} disabled={saving}
-              className="btn-primary text-xs py-1.5 px-4 disabled:opacity-50">
-              {saving ? 'Guardando…' : 'Guardar notas'}
-            </button>
-            {saveMsg && <span className="text-xs text-green-600">{saveMsg}</span>}
-          </div>
+          {can('clientes:editar') && (
+            <div className="flex items-center gap-3 mt-2">
+              <button onClick={saveNotes} disabled={saving}
+                className="btn-primary text-xs py-1.5 px-4 disabled:opacity-50">
+                {saving ? 'Guardando…' : 'Guardar notas'}
+              </button>
+              {saveMsg && <span className="text-xs text-green-600">{saveMsg}</span>}
+            </div>
+          )}
         </div>
       </div>
 

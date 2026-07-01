@@ -95,13 +95,13 @@ describe('POST /api/categories', () => {
   })
 
   it('returns 400 for an invalid name', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     const res = await POST(makeRequest({ name: 'X' }))
     expect(res.status).toBe(400)
   })
 
   it('returns 409 when the name already exists', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.category.findFirst).mockResolvedValueOnce({ id: 'dup', deletedAt: null })
 
     const res = await POST(makeRequest({ name: 'Uñas' }))
@@ -109,7 +109,7 @@ describe('POST /api/categories', () => {
   })
 
   it('creates a category with a slug generated from the name', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.category.findFirst)
       .mockResolvedValueOnce(null)          // duplicate-name check
       .mockResolvedValueOnce({ order: 4 })  // last order
@@ -133,7 +133,7 @@ describe('POST /api/categories', () => {
   })
 
   it('rejects an invalid icon key', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     const res = await POST(makeRequest({ name: 'Spa', icon: 'not-an-icon' }))
     expect(res.status).toBe(400)
   })

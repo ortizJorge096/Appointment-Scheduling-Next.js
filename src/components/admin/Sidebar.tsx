@@ -6,31 +6,62 @@ import { signOut, useSession } from 'next-auth/react'
 import { hasPermission, type Permission } from '@/lib/permissions'
 
 interface NavItem { href: string; label: string; icon: string; perm: Permission }
+interface NavGroup { id: string; label: string; defaultOpen: boolean; items: NavItem[] }
 
-const MAIN_NAV: NavItem[] = [
-  { href: '/admin',              label: 'Dashboard',    icon: '▦', perm: 'metricas:ver' },
-  { href: '/admin/citas',        label: 'Citas',        icon: '◷', perm: 'citas:ver' },
-  { href: '/admin/contabilidad', label: 'Contabilidad', icon: '◈', perm: 'contabilidad:ver' },
-  { href: '/admin/auditoria',    label: 'Auditoría',    icon: '◎', perm: 'auditoria:ver' },
+// Grouped navigation. Routes and permissions are unchanged — only the visual
+// grouping is new. Each item stays gated by its permission, and a whole group
+// hides when the role can't see any of its items.
+const GROUPS: NavGroup[] = [
+  {
+    id: 'operacion', label: 'Operación', defaultOpen: true,
+    items: [
+      { href: '/admin',              label: 'Dashboard',    icon: '▦', perm: 'metricas:ver' },
+      { href: '/admin/citas',        label: 'Citas',        icon: '◷', perm: 'citas:ver' },
+      { href: '/admin/clientes',     label: 'Clientes',     icon: '◉', perm: 'clientes:ver' },
+      { href: '/admin/contabilidad', label: 'Contabilidad', icon: '◈', perm: 'contabilidad:ver' },
+    ],
+  },
+  {
+    id: 'studio', label: 'Studio', defaultOpen: true,
+    items: [
+      { href: '/admin/servicios',     label: 'Servicios',     icon: '✦', perm: 'servicios:ver' },
+      { href: '/admin/profesionales', label: 'Profesionales', icon: '☆', perm: 'servicios:ver' },
+      { href: '/admin/horarios',      label: 'Horarios',      icon: '◻', perm: 'horarios:ver' },
+      { href: '/admin/galeria',       label: 'Galería',       icon: '◫', perm: 'galeria:ver' },
+      { href: '/admin/testimonios',   label: 'Testimonios',   icon: '❝', perm: 'testimonios:ver' },
+    ],
+  },
+  {
+    id: 'sistema', label: 'Sistema', defaultOpen: false,
+    items: [
+      { href: '/admin/usuarios',  label: 'Usuarios',      icon: '⚿', perm: 'admins:gestionar' },
+      { href: '/admin/auditoria', label: 'Auditoría',     icon: '◎', perm: 'auditoria:ver' },
+      { href: '/admin/sitio',     label: 'Configuración', icon: '▤', perm: 'configuracion:ver' },
+    ],
+  },
 ]
 
-// Grouped under "Configuración"
-const CONFIG_NAV: NavItem[] = [
-  { href: '/admin/clientes',      label: 'Clientes',      icon: '◉', perm: 'clientes:ver' },
-  { href: '/admin/servicios',     label: 'Servicios',     icon: '✦', perm: 'servicios:ver' },
-  { href: '/admin/profesionales', label: 'Profesionales', icon: '☆', perm: 'servicios:ver' },
-  { href: '/admin/horarios',      label: 'Horarios',      icon: '◻', perm: 'horarios:ver' },
-  { href: '/admin/galeria',       label: 'Galería',       icon: '◫', perm: 'galeria:ver' },
-  { href: '/admin/testimonios',   label: 'Testimonios',   icon: '❝', perm: 'testimonios:ver' },
-  { href: '/admin/sitio',         label: 'Métricas',      icon: '▤', perm: 'configuracion:ver' },
-]
+const STORAGE_KEY = 'admin.sidebar.groups'
 
 export default function AdminSidebar() {
   const pathname = usePathname()
   const { data: session } = useSession()
   const role = (session?.user as { role?: string } | undefined)?.role
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(false) // mobile drawer
   const [pendingTestimonials, setPendingTestimonials] = useState(0)
+
+  // Per-group expand/collapse. Starts from the defaults so SSR and the first
+  // client render match; the persisted state is merged in after mount.
+  const [groupOpen, setGroupOpen] = useState<Record<string, boolean>>(
+    () => Object.fromEntries(GROUPS.map((g) => [g.id, g.defaultOpen]))
+  )
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY)
+      if (raw) setGroupOpen((prev) => ({ ...prev, ...JSON.parse(raw) }))
+    } catch { /* ignore malformed storage */ }
+  }, [])
 
   // Close the mobile drawer whenever the route changes
   useEffect(() => { setOpen(false) }, [pathname])
@@ -43,16 +74,25 @@ export default function AdminSidebar() {
       .catch(() => {})
   }, [pathname])
 
+  const isActiveHref = (href: string) =>
+    pathname === href || (href !== '/admin' && pathname.startsWith(href))
+
+  function toggleGroup(id: string) {
+    setGroupOpen((prev) => {
+      const next = { ...prev, [id]: !prev[id] }
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)) } catch { /* ignore */ }
+      return next
+    })
+  }
+
   function renderNavItem(item: NavItem) {
-    const active =
-      pathname === item.href ||
-      (item.href !== '/admin' && pathname.startsWith(item.href))
+    const active = isActiveHref(item.href)
     const badge = item.href === '/admin/testimonios' && pendingTestimonials > 0 ? pendingTestimonials : null
     return (
       <Link
         key={item.href}
         href={item.href}
-        className={`flex items-center gap-3 px-3 py-3 text-sm transition-colors border-l-2 pl-[10px] ${
+        className={`flex items-center gap-3 px-3 py-2.5 text-sm transition-colors border-l-2 pl-[10px] ${
           active
             ? 'bg-gold/10 text-gold border-gold'
             : 'text-white/40 hover:text-white hover:bg-white/5 border-transparent'
@@ -67,6 +107,38 @@ export default function AdminSidebar() {
           </span>
         )}
       </Link>
+    )
+  }
+
+  function renderGroup(group: NavGroup) {
+    const items = group.items.filter((i) => hasPermission(role, i.perm))
+    if (items.length === 0) return null // hide groups with nothing visible for this role
+
+    const hasActive = items.some((i) => isActiveHref(i.href))
+    const expanded  = hasActive || groupOpen[group.id] // the active group is always open
+
+    return (
+      <div key={group.id} className="mb-1">
+        <button
+          type="button"
+          onClick={() => toggleGroup(group.id)}
+          aria-expanded={expanded}
+          className={`w-full flex items-center gap-2 px-3 mt-4 mb-1 text-[10px] tracking-widest uppercase
+                      transition-colors ${hasActive ? 'text-gold/80' : 'text-white/25 hover:text-white/50'}`}
+        >
+          <span className={`text-[8px] leading-none transition-transform duration-200 ${expanded ? 'rotate-90' : ''}`}>▶</span>
+          <span className="flex-1 text-left">{group.label}</span>
+        </button>
+
+        {/* Smooth collapse via grid-rows 0fr↔1fr — no height measuring needed. */}
+        <div className={`grid transition-[grid-template-rows] duration-200 ease-in-out ${expanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+          <div className="overflow-hidden">
+            <div className="space-y-0.5">
+              {items.map(renderNavItem)}
+            </div>
+          </div>
+        </div>
+      </div>
     )
   }
 
@@ -109,19 +181,7 @@ export default function AdminSidebar() {
         </div>
 
         <nav className="flex-1 px-3 py-4 overflow-y-auto">
-          <div className="space-y-0.5">
-            {MAIN_NAV.filter((i) => hasPermission(role, i.perm)).map(renderNavItem)}
-          </div>
-
-          <p className="px-3 mt-5 mb-1.5 text-[10px] tracking-widest uppercase text-white/25">
-            Configuración
-          </p>
-          <div className="space-y-0.5">
-            {CONFIG_NAV.filter((i) => hasPermission(role, i.perm)).map(renderNavItem)}
-            {/* Admin management — requires the admins:gestionar permission (SUPER_ADMIN) */}
-            {hasPermission(role, 'admins:gestionar') &&
-              renderNavItem({ href: '/admin/usuarios', label: 'Usuarios', icon: '⚿', perm: 'admins:gestionar' })}
-          </div>
+          {GROUPS.map(renderGroup)}
         </nav>
 
         <div className="px-4 py-5 border-t border-white/10">

@@ -30,7 +30,7 @@ describe('GET /api/professionals', () => {
   })
 
   it('admin without the flag still gets active-only (booking flow must never leak inactive)', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     await GET(makeRequest())
     expect(prisma.professional.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { deletedAt: null, isActive: true } })
@@ -38,7 +38,7 @@ describe('GET /api/professionals', () => {
   })
 
   it('admin with ?includeInactive=true gets all non-deleted professionals', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     await GET(makeRequest('http://localhost/api/professionals?includeInactive=true'))
     expect(prisma.professional.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { deletedAt: null } })

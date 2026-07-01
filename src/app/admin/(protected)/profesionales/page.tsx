@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react'
 import BookingSettingsCard from '@/components/admin/BookingSettingsCard'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
+import { usePermissionGuard, useCan } from '@/components/admin/usePermissionGuard'
 
 interface Professional {
   id: string
@@ -21,7 +22,9 @@ const EMPTY: Omit<Professional, 'id' | 'isActive'> = {
 }
 
 export default function ProfesionalesPage() {
+  usePermissionGuard('servicios:ver')
   const confirm = useConfirm()
+  const can = useCan()
   const [professionals, setProfessionals] = useState<Professional[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving]   = useState(false)
@@ -134,14 +137,16 @@ export default function ProfesionalesPage() {
             Cada profesional activo puede atender una cita a la vez — define la capacidad real de la agenda.
           </p>
         </div>
-        <button onClick={openNew} className="btn-primary text-sm shrink-0">+ Nuevo</button>
+        {can('servicios:editar') && (
+          <button onClick={openNew} className="btn-primary text-sm shrink-0">+ Nuevo</button>
+        )}
       </div>
 
       {/* Messages */}
       {error   && <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 mb-5">{error}</div>}
       {success && <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 mb-5">✓ {success}</div>}
 
-      <BookingSettingsCard />
+      {can('configuracion:editar') && <BookingSettingsCard />}
 
       {/* Inline modal form */}
       {showForm && (
@@ -238,6 +243,7 @@ export default function ProfesionalesPage() {
                         Inactivo
                       </span>
                     )}
+                    {can('servicios:editar') && (<>
                     <button onClick={() => openEdit(p)} className="btn-row-action text-xs text-ink-muted hover:text-gold">
                       Editar
                     </button>
@@ -248,6 +254,7 @@ export default function ProfesionalesPage() {
                     <button onClick={() => handleDelete(p)} className="btn-row-action text-xs text-ink-muted hover:text-red-500">
                       Eliminar
                     </button>
+                    </>)}
                   </div>
                 </div>
 
@@ -273,6 +280,7 @@ export default function ProfesionalesPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-4 mt-1.5">
+                    {can('servicios:editar') && (<>
                     <button onClick={() => openEdit(p)} className="btn-row-action text-xs text-ink-muted hover:text-gold">
                       Editar
                     </button>
@@ -283,6 +291,7 @@ export default function ProfesionalesPage() {
                     <button onClick={() => handleDelete(p)} className="btn-row-action text-xs text-ink-muted hover:text-red-500">
                       Eliminar
                     </button>
+                    </>)}
                   </div>
                 </div>
               </div>

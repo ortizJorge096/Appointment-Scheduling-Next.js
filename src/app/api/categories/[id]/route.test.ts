@@ -45,13 +45,13 @@ describe('PATCH /api/categories/[id]', () => {
   })
 
   it('returns 400 for an invalid body', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     const res = await PATCH(makeRequest({ order: -1 }), CTX())
     expect(res.status).toBe(400)
   })
 
   it('returns 404 when the category does not exist', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.category.findUnique).mockResolvedValue(null)
 
     const res = await PATCH(makeRequest({ isActive: false }), CTX('missing'))
@@ -59,7 +59,7 @@ describe('PATCH /api/categories/[id]', () => {
   })
 
   it('returns 409 when renaming to an existing name', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.category.findUnique).mockResolvedValue(BEFORE)
     vi.mocked(prisma.category.findFirst).mockResolvedValue({ id: 'other' })
 
@@ -68,7 +68,7 @@ describe('PATCH /api/categories/[id]', () => {
   })
 
   it('updates the category and audits a readable description with a diff', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.category.findUnique).mockResolvedValue(BEFORE)
     vi.mocked(prisma.category.update).mockResolvedValue({ id: 'cat-1', isActive: false })
 
@@ -94,7 +94,7 @@ describe('DELETE /api/categories/[id]', () => {
   })
 
   it('blocks deletion (409) when the category still has services', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.category.findUnique).mockResolvedValue({ name: 'Uñas' })
     vi.mocked(prisma.service.count).mockResolvedValue(2)
 
@@ -108,7 +108,7 @@ describe('DELETE /api/categories/[id]', () => {
   })
 
   it('soft-deletes and audits a readable description (no id)', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.category.findUnique).mockResolvedValue({ name: 'Uñas' })
     vi.mocked(prisma.service.count).mockResolvedValue(0)
     vi.mocked(prisma.category.update).mockResolvedValue({ id: 'cat-1' })

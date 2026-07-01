@@ -3,8 +3,8 @@
 // POST /api/expenses   → register expense (admin)
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getCurrentAdmin } from '@/lib/authz'
+import { hasPermission } from '@/lib/permissions'
 import { prisma } from '@/lib/prisma'
 import { createExpenseSchema } from '@/lib/validations'
 import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
@@ -13,8 +13,9 @@ import { audit, getClientIp } from '@/lib/audit'
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 })
+  const admin = await getCurrentAdmin()
+  if (!admin) return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 })
+  if (!hasPermission(admin.role, 'contabilidad:ver')) return NextResponse.json({ success: false, error: 'Sin permiso' }, { status: 403 })
 
   const { searchParams } = new URL(request.url)
   const dateFrom = searchParams.get('dateFrom')
@@ -59,8 +60,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 })
+  const admin = await getCurrentAdmin()
+  if (!admin) return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 })
+  if (!hasPermission(admin.role, 'contabilidad:editar')) return NextResponse.json({ success: false, error: 'Sin permiso' }, { status: 403 })
 
   let body: unknown
   try { body = await request.json() }
@@ -92,7 +94,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     action:      'CREATE',
     entity:      'EXPENSE',
     entityId:    expense.id,
-    userEmail:   session.user?.email ?? undefined,
+    userEmail:   admin.email,
     ip:          getClientIp(request),
     description: `Gasto "${expense.description}" registrado`,
     after:       { description: expense.description, amount: expense.amount, category: expense.category, date: parsed.data.date },

@@ -51,7 +51,7 @@ describe('PATCH /api/services/[id]', () => {
   })
 
   it('updates a service and audits a readable description with a diff', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.service.findUnique).mockResolvedValue(BEFORE)
     vi.mocked(prisma.service.update).mockResolvedValue({ id: 'svc-1', price: 50000 })
 
@@ -68,7 +68,7 @@ describe('PATCH /api/services/[id]', () => {
   })
 
   it('returns 400 when reassigning to a non-existent category', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.category.findFirst).mockResolvedValue(null)
 
     const res = await PATCH(makeRequest({ categoryId: VALID_CATEGORY_ID }), CTX())
@@ -87,7 +87,7 @@ describe('DELETE /api/services/[id]', () => {
   })
 
   it('blocks deletion (409) when there are upcoming appointments', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.service.findUnique).mockResolvedValue({ name: 'Manicura' })
     vi.mocked(prisma.appointment.count).mockResolvedValue(1)
 
@@ -101,7 +101,7 @@ describe('DELETE /api/services/[id]', () => {
   })
 
   it('soft-deletes (never hard-deletes) and audits a readable description', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.service.findUnique).mockResolvedValue({ name: 'Manicura' })
     vi.mocked(prisma.appointment.count).mockResolvedValue(0)
     vi.mocked(prisma.service.update).mockResolvedValue({ id: 'svc-1' })

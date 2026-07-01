@@ -1,6 +1,16 @@
 import { render, screen } from '@testing-library/react'
 import GaleriaAdminPage from './page'
 
+// usePermissionGuard() uses useRouter + useSession; mock both. An authenticated
+// SUPER_ADMIN has every permission, so the guard never redirects and all
+// management controls render.
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ replace: vi.fn(), push: vi.fn(), refresh: vi.fn() }),
+}))
+vi.mock('next-auth/react', () => ({
+  useSession: () => ({ data: { user: { id: 'a1', role: 'SUPER_ADMIN' } }, status: 'authenticated' }),
+}))
+
 const MOCK_IMAGES = [
   {
     id: 'img-1',
