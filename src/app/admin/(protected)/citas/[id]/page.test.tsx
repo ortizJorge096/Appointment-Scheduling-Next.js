@@ -4,9 +4,15 @@ import CitaDetailPage from './page'
 
 vi.mock('next/navigation', () => ({
   useParams: () => ({ id: 'a1' }),
+  useRouter: () => ({ replace: vi.fn(), push: vi.fn(), refresh: vi.fn() }),
 }))
 vi.mock('next/link', () => ({
   default: ({ href, children }: { href: string; children: React.ReactNode }) => <a href={href}>{children}</a>,
+}))
+// usePermissionGuard + useCan read the session; SUPER_ADMIN has all permissions,
+// so the guard never redirects and pago/cancelar/editar controls all render.
+vi.mock('next-auth/react', () => ({
+  useSession: () => ({ data: { user: { id: 'a1', role: 'SUPER_ADMIN' } }, status: 'authenticated' }),
 }))
 
 const APPT = {

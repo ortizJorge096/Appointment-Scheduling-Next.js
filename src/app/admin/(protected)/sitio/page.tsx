@@ -4,6 +4,7 @@
 // servicesCount is read-only — it is derived live from the active catalog.
 
 import { useState, useEffect } from 'react'
+import { usePermissionGuard } from '@/components/admin/usePermissionGuard'
 
 interface Form {
   appointmentsCount: number
@@ -13,6 +14,7 @@ interface Form {
 }
 
 export default function SitioPage() {
+  usePermissionGuard('configuracion:ver')
   const [form, setForm]           = useState<Form | null>(null)
   const [servicesCount, setServicesCount] = useState<number | null>(null)
   const [loading, setLoading]     = useState(true)

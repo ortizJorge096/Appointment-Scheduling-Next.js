@@ -8,6 +8,7 @@ import { computeDiscountAmount } from '@/lib/discount'
 import ClientSearchInput, { type ClientHit } from './ClientSearchInput'
 import AdicionalesEditor, { type Adicional } from './AdicionalesEditor'
 import DescuentoEditor from './DescuentoEditor'
+import { useCan } from './usePermissionGuard'
 
 interface Service { id: string; name: string; price: number; durationMinutes: number; category?: { id: string; name: string; order: number } | null }
 
@@ -59,6 +60,7 @@ function yesterday()     { return offsetDate(-1) }
 
 export default function ManualAppointmentModal() {
   const router = useRouter()
+  const can = useCan()
   const [open, setOpen]         = useState(false)
   const [services, setServices] = useState<Service[]>([])
   const [form, setForm]         = useState(EMPTY)
@@ -296,6 +298,9 @@ export default function ManualAppointmentModal() {
 
   const Err = ({ k }: { k: keyof typeof EMPTY }) =>
     touched[k] && fieldErrors[k] ? <p className="text-xs text-red-500 mt-0.5">{fieldErrors[k]}</p> : null
+
+  // Roles without citas:crear (e.g. solo lectura) don't get the manual-booking entry point.
+  if (!can('citas:crear')) return null
 
   return (
     <>

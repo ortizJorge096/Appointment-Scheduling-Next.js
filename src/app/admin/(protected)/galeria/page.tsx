@@ -5,6 +5,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
 import { Pagination } from '@/components/admin/Pagination'
+import { usePermissionGuard } from '@/components/admin/usePermissionGuard'
 
 interface GalleryImage {
   id: string
@@ -28,6 +29,7 @@ interface Category {
 const MAX_BYTES = 5 * 1024 * 1024  // 5 MB
 
 export default function GaleriaAdminPage() {
+  usePermissionGuard('galeria:ver')
   const confirm = useConfirm()
   const fileInputRef    = useRef<HTMLInputElement>(null)
   const replaceInputRef = useRef<HTMLInputElement>(null)
