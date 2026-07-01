@@ -193,6 +193,9 @@ export async function getAvailableSlots(
   // 6. Generate slots every [slotGranularityMin] within the schedule
   const scheduleStart = timeToMinutes(schedule.startTime)
   const scheduleEnd = timeToMinutes(schedule.endTime)
+  // Optional lunch break (e.g. 12:00–14:00): slots overlapping it are dropped.
+  const breakStart = schedule.breakStart ? timeToMinutes(schedule.breakStart) : null
+  const breakEnd   = schedule.breakEnd   ? timeToMinutes(schedule.breakEnd)   : null
   const step = STUDIO.slotGranularityMin
   const slots: TimeSlot[] = []
 
@@ -213,6 +216,11 @@ export async function getAvailableSlots(
 
     // Drop past slots (when it's today)
     if (slotStart < currentMinutes) {
+      continue
+    }
+
+    // Drop slots overlapping the lunch break
+    if (breakStart != null && breakEnd != null && slotStart < breakEnd && slotEnd > breakStart) {
       continue
     }
 
@@ -307,6 +315,9 @@ export async function getAvailableSlotsByDuration(
   // 5. Generate slots every [slotGranularityMin] within the schedule
   const scheduleStart = timeToMinutes(schedule.startTime)
   const scheduleEnd = timeToMinutes(schedule.endTime)
+  // Optional lunch break (e.g. 12:00–14:00): slots overlapping it are dropped.
+  const breakStart = schedule.breakStart ? timeToMinutes(schedule.breakStart) : null
+  const breakEnd   = schedule.breakEnd   ? timeToMinutes(schedule.breakEnd)   : null
   const step = STUDIO.slotGranularityMin
   const slots: TimeSlot[] = []
 
@@ -327,6 +338,11 @@ export async function getAvailableSlotsByDuration(
 
     // Drop past slots (when it's today)
     if (slotStart < currentMinutes) {
+      continue
+    }
+
+    // Drop slots overlapping the lunch break
+    if (breakStart != null && breakEnd != null && slotStart < breakEnd && slotEnd > breakStart) {
       continue
     }
 

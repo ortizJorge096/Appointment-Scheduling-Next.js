@@ -335,6 +335,10 @@ model Schedule {
   dayOfWeek DayOfWeek @unique
   startTime String
   endTime   String
+  // Optional lunch break within the day (e.g. 12:00–14:00). Slots overlapping
+  // it are not offered. Both null = continuous day, no break.
+  breakStart String?
+  breakEnd   String?
   isActive  Boolean   @default(true)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt

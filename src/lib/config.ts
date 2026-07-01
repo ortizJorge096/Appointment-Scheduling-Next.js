@@ -27,7 +27,7 @@ export const STUDIO = {
   tiktok:     'valebeautystudio1',
 
   // Business hours (display text for the UI)
-  hours: 'Lun–Sáb 9am–6pm',
+  hours: 'Lun–Vie 9am–12pm y 2pm–6pm · Fines de semana y festivos: por WhatsApp',
 
   // Hero image (editorial split layout). Empty string = elegant gradient
   // placeholder (no broken image). To use a real photo, drop a file in /public
