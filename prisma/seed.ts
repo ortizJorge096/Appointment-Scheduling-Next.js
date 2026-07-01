@@ -14,9 +14,9 @@ async function main() {
   await prisma.user.upsert({
     where:  { email: 'admin@vjbeautystudio.com' },
     update: {},
-    create: { email: 'admin@vjbeautystudio.com', password: passwordHash, name: 'Admin', role: 'ADMIN' },
+    create: { email: 'admin@vjbeautystudio.com', password: passwordHash, name: 'Admin', role: 'SUPER_ADMIN' },
   })
-  console.log('✅ Admin — admin@vjbeautystudio.com / Admin123!')
+  console.log('✅ Admin (SUPER_ADMIN) — admin@vjbeautystudio.com / Admin123!')
 
   // ─────────────────────────────────────────────────────────────
   // CATEGORÍAS — ahora viven en DB. Upsert por slug (estable) para que

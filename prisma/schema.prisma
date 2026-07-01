@@ -21,6 +21,14 @@ model User {
   password  String
   name      String
   role      Role     @default(ADMIN)
+  // Deactivated admins can't log in and their active sessions are invalidated,
+  // but the row persists so audit history keeps their name.
+  isActive  Boolean  @default(true)
+  // Last successful login (shown in the admin-management list).
+  lastLoginAt DateTime?
+  // Bumped on every password change; embedded in the JWT so tokens issued
+  // before the change are rejected → forces re-login on other devices.
+  passwordChangedAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@map("users")
