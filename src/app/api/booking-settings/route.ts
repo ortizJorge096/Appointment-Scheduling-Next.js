@@ -4,6 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
+import { revalidatePath } from 'next/cache'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getBookingSettings } from '@/lib/bookingSettings'
@@ -64,6 +65,11 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
     before:      existing ? { showProfessionalStep: existing.showProfessionalStep, maxAdvanceDays: existing.maxAdvanceDays } : undefined,
     after:       data,
   })
+
+  // The landing (ISR) and /agendar advertise the step count — refresh the cache
+  // on toggle so the change is reflected immediately, not up to 1h later.
+  revalidatePath('/')
+  revalidatePath('/agendar')
 
   const settings = await getBookingSettings()
   return NextResponse.json({ success: true, data: settings })

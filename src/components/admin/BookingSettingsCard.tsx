@@ -7,7 +7,7 @@
 import { useState, useEffect } from 'react'
 
 export default function BookingSettingsCard() {
-  const [showProfessionalStep, setShowProfessionalStep] = useState(true)
+  const [showProfessionalStep, setShowProfessionalStep] = useState(false)
   const [maxAdvanceDays, setMaxAdvanceDays] = useState(90)
   const [maxAdvanceInput, setMaxAdvanceInput] = useState('90')
   const [loading, setLoading] = useState(true)

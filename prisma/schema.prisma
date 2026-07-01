@@ -165,7 +165,7 @@ model Professional {
 // "Primera disponible" auto-assignment in /api/appointments already covers it.
 model BookingSettings {
   id                  String   @id @default(cuid())
-  showProfessionalStep Boolean @default(true)
+  showProfessionalStep Boolean @default(false)
   // How many days into the future clients can book (booking horizon).
   // Drives the date strip in /agendar. Editable from the admin (7–365).
   maxAdvanceDays      Int      @default(90)

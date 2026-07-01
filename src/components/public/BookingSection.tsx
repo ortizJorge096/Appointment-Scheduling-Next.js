@@ -1,16 +1,26 @@
 // src/components/public/BookingSection.tsx
 import Link from 'next/link'
 import { getBookingSettings } from '@/lib/bookingSettings'
+import { prisma } from '@/lib/prisma'
 
 export default async function BookingSection() {
   // Same source as the /agendar stepper (getBookingSettings → BookingSettings
   // singleton), read server-side so the step count never flashes and the two
-  // always stay in sync. The professional step is inserted only when enabled.
+  // always stay in sync. The professional step is shown only when the admin
+  // enabled it AND there is at least one active professional to choose from.
   const { showProfessionalStep } = await getBookingSettings()
+  let activeProfessionals = 0
+  if (showProfessionalStep) {
+    // Guarded: at build time (no DB) this stays 0 rather than failing the build.
+    try {
+      activeProfessionals = await prisma.professional.count({ where: { isActive: true, deletedAt: null } })
+    } catch { activeProfessionals = 0 }
+  }
+  const showStep = showProfessionalStep && activeProfessionals > 0
 
   const steps = [
     { title: 'Elige tu servicio',       desc: 'Uñas, pestañas, cejas y más' },
-    ...(showProfessionalStep
+    ...(showStep
       ? [{ title: 'Elige tu profesional', desc: 'Selecciona quién te atenderá' }]
       : []),
     { title: 'Selecciona fecha y hora', desc: 'Disponibilidad en tiempo real' },
