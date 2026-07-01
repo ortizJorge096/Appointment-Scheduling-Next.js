@@ -7,7 +7,7 @@
 import { useState } from 'react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { ROLES, ROLE_LABELS, type Role } from '@/lib/permissions'
+import { ROLES, ROLE_LABELS, ROLE_DESCRIPTIONS, roleCapabilities, type Role } from '@/lib/permissions'
 
 interface AdminRow {
   id: string
@@ -39,6 +39,7 @@ export default function UsuariosClient({
   const [modal, setModal] = useState<ModalState>(null)
   const [form, setForm]   = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
+  const [showPerms, setShowPerms] = useState(false)
 
   async function reload() {
     const res = await fetch('/api/users')
@@ -47,11 +48,11 @@ export default function UsuariosClient({
   }
 
   function openCreate() {
-    setForm(EMPTY_FORM); setError(''); setModal({ mode: 'create' })
+    setForm(EMPTY_FORM); setError(''); setShowPerms(false); setModal({ mode: 'create' })
   }
   function openEdit(user: AdminRow) {
     setForm({ name: user.name, email: user.email, password: '', role: user.role, newPassword: '' })
-    setError(''); setModal({ mode: 'edit', user })
+    setError(''); setShowPerms(false); setModal({ mode: 'edit', user })
   }
 
   async function submitModal(e: React.FormEvent) {
@@ -185,6 +186,21 @@ export default function UsuariosClient({
                   className="input-field w-full bg-white">
                   {ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
                 </select>
+                {/* What this role can do — derived from permissions.ts */}
+                <div className="mt-2 text-xs text-ink-muted bg-beige-pale border border-beige-dark rounded-lg p-2.5">
+                  <p>{ROLE_DESCRIPTIONS[form.role]}</p>
+                  <button type="button" onClick={() => setShowPerms((v) => !v)}
+                    className="text-gold hover:underline mt-1">
+                    {showPerms ? 'Ocultar permisos' : 'Ver qué puede hacer'}
+                  </button>
+                  {showPerms && (
+                    <ul className="mt-1.5 space-y-0.5">
+                      {roleCapabilities(form.role).map((c) => (
+                        <li key={c.area}><span className="text-ink font-medium">{c.area}</span> · {c.actions.join(', ')}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               </div>
               {modal.mode === 'create' ? (
                 <div>
