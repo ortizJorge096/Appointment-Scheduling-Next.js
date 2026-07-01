@@ -434,25 +434,10 @@ export default function CitaDetailPage() {
           </div>
         </div>
 
-        {/* Adicionales — collapsible */}
+        {/* Adicionales — shared collapsible editor */}
         <div className="mt-4">
-          <div className="flex items-center justify-between">
-            <span className="form-label !mb-0">Adicional (opcional)</span>
-            {extrasOpen ? (
-              <button type="button" onClick={hideExtras}
-                className="text-xs text-ink-muted hover:text-ink transition-colors">Ocultar</button>
-            ) : (
-              <button type="button" onClick={showExtras}
-                className="text-xs text-gold hover:underline">+ Agregar adicional</button>
-            )}
-          </div>
-          <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${extrasOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
-            <div className="overflow-hidden">
-              <div className="pt-3">
-                <AdicionalesEditor items={extras} onChange={setExtras} />
-              </div>
-            </div>
-          </div>
+          <AdicionalesEditor items={extras} onChange={setExtras}
+            open={extrasOpen} onAdd={showExtras} onRemove={hideExtras} />
         </div>
 
         {/* Discount — shared collapsible editor */}

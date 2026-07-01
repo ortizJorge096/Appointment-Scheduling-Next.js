@@ -64,6 +64,7 @@ export default function ManualAppointmentModal() {
   const [form, setForm]         = useState(EMPTY)
   const [extras, setExtras]     = useState<Adicional[]>([])
   const [descuentoOpen, setDescuentoOpen] = useState(false)
+  const [extrasOpen, setExtrasOpen] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [touched, setTouched]   = useState<Touched>({})
   const [saving, setSaving]     = useState(false)
@@ -83,7 +84,7 @@ export default function ManualAppointmentModal() {
       loadServices()
       setFieldErrors({}); setTouched({}); setApiError(''); setSuccess('')
     } else {
-      setExtras([]); setDescuentoOpen(false)
+      setExtras([]); setDescuentoOpen(false); setExtrasOpen(false)
     }
   }, [open, loadServices])
 
@@ -211,6 +212,7 @@ export default function ManualAppointmentModal() {
     setForm(EMPTY)
     setExtras([])
     setDescuentoOpen(false)
+    setExtrasOpen(false)
     setTimeout(() => {
       setOpen(false); setSuccess('')
       // A past appointment is dated before today, so the default "Próximas"
@@ -242,6 +244,16 @@ export default function ManualAppointmentModal() {
       }
     })
     if (fieldErrors.serviceId) setFieldErrors(fe => ({ ...fe, serviceId: undefined }))
+  }
+
+  // "+ Agregar adicional" seeds one empty row; "Ocultar" drops the empty rows.
+  function showExtras() {
+    setExtras((e) => (e.length > 0 ? e : [{ description: '', amount: '' }]))
+    setExtrasOpen(true)
+  }
+  function hideExtras() {
+    setExtras((e) => e.filter((it) => it.description.trim() || it.amount.trim()))
+    setExtrasOpen(false)
   }
 
   const extraAmountNum  = extras.reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
@@ -417,10 +429,8 @@ export default function ManualAppointmentModal() {
                         className={`input-field w-full ${touched.totalCharged && fieldErrors.totalCharged ? 'border-red-400' : ''}`} />
                       <Err k="totalCharged" />
                     </div>
-                    <div>
-                      <label className="form-label">Adicional (opcional)</label>
-                      <AdicionalesEditor items={extras} onChange={setExtras} />
-                    </div>
+                    <AdicionalesEditor items={extras} onChange={setExtras}
+                      open={extrasOpen} onAdd={showExtras} onRemove={hideExtras} />
                     {/* Discount (optional) — shared collapsible editor */}
                     <DescuentoEditor
                       open={descuentoOpen}
