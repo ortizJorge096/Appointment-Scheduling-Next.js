@@ -4,6 +4,8 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
+import { getCurrentAdmin } from '@/lib/authz'
+import { hasPermission } from '@/lib/permissions'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createCategorySchema } from '@/lib/validations'
@@ -43,9 +45,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const session = await getServerSession(authOptions)
-  if (!session) {
+  const admin = await getCurrentAdmin()
+  if (!admin) {
     return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 })
+  }
+  if (!hasPermission(admin.role, 'servicios:editar')) {
+    return NextResponse.json({ success: false, error: 'Sin permiso' }, { status: 403 })
   }
 
   let body: unknown
@@ -98,7 +103,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     action:      'CREATE',
     entity:      'CATEGORY',
     entityId:    category.id,
-    userEmail:   session.user?.email ?? undefined,
+    userEmail:   admin.email,
     ip:          getClientIp(request),
     description: `Categoría "${category.name}" creada`,
   })

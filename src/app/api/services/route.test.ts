@@ -90,13 +90,13 @@ describe('POST /api/services', () => {
   })
 
   it('returns 400 for invalid body', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     const res  = await POST(makeRequest({ name: 'X', price: -1, durationMinutes: 5 }))
     expect(res.status).toBe(400)
   })
 
   it('creates service when admin and valid body', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.category.findFirst).mockResolvedValue({ id: VALID_CATEGORY_ID })
     vi.mocked(prisma.service.create).mockResolvedValue(MOCK_SERVICES[0])
 
@@ -107,7 +107,7 @@ describe('POST /api/services', () => {
   })
 
   it('returns 400 when the category does not exist', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.category.findFirst).mockResolvedValue(null)
 
     const res = await POST(makeRequest({ name: 'Manicura', categoryId: VALID_CATEGORY_ID, price: 35000, durationMinutes: 45 }))
@@ -115,7 +115,7 @@ describe('POST /api/services', () => {
   })
 
   it('returns 400 when body is invalid JSON', async () => {
-    vi.mocked(getServerSession).mockResolvedValue({ user: {} })
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     const req = { json: () => Promise.reject(new Error('bad json')) } as NextRequest
     const res = await POST(req)
     expect(res.status).toBe(400)
