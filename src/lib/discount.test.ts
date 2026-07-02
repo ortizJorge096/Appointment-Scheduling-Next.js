@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { computeDiscountAmount, computeFinalPrice } from './discount'
+import { computeDiscountAmount, computeFinalPrice, computeAppointmentTotal } from './discount'
 
 describe('computeDiscountAmount', () => {
   it('computes a percentage (rounded to the nearest peso)', () => {
@@ -34,5 +34,61 @@ describe('computeFinalPrice', () => {
 
   it('equals the subtotal when there is no discount', () => {
     expect(computeFinalPrice(80000, null, null)).toBe(80000)
+  })
+})
+
+describe('computeAppointmentTotal', () => {
+  it('no discount: total is services + extras', () => {
+    const r = computeAppointmentTotal([{ price: 35000, extras: [5000] }], [2000])
+    expect(r.servicesSubtotal).toBe(35000)
+    expect(r.extrasTotal).toBe(7000)
+    expect(r.discount).toBe(0)
+    expect(r.total).toBe(42000)
+  })
+
+  it('applies a per-line percentage discount', () => {
+    const r = computeAppointmentTotal([{ price: 35000, descuentoTipo: 'PORCENTAJE', descuentoValor: 10 }])
+    expect(r.discount).toBe(3500)
+    expect(r.total).toBe(31500)
+  })
+
+  it('sums per-line discounts across lines; extras still add', () => {
+    const r = computeAppointmentTotal(
+      [
+        { price: 30000, descuentoTipo: 'PORCENTAJE', descuentoValor: 10, extras: [4000] },
+        { price: 20000, descuentoTipo: 'VALOR_FIJO', descuentoValor: 5000 },
+      ],
+      [1000],
+    )
+    expect(r.servicesSubtotal).toBe(50000)
+    expect(r.extrasTotal).toBe(5000)  // 4000 (line) + 1000 (general)
+    expect(r.discount).toBe(8000)     // 3000 + 5000
+    expect(r.total).toBe(47000)       // 50000 − 8000 + 5000
+  })
+
+  it('applies an order-level percentage discount over services + extras', () => {
+    const r = computeAppointmentTotal([{ price: 35000, extras: [5000] }], [], { tipo: 'PORCENTAJE', valor: 20 })
+    expect(r.discount).toBe(8000)     // 20% of 40000
+    expect(r.total).toBe(32000)
+  })
+
+  it('applies an order-level fixed discount', () => {
+    const r = computeAppointmentTotal([{ price: 35000 }], [], { tipo: 'VALOR_FIJO', valor: 5000 })
+    expect(r.total).toBe(30000)
+  })
+
+  it('order discount takes precedence and does not double-apply line discounts', () => {
+    const r = computeAppointmentTotal(
+      [{ price: 35000, descuentoTipo: 'PORCENTAJE', descuentoValor: 50 }],
+      [],
+      { tipo: 'PORCENTAJE', valor: 10 },
+    )
+    expect(r.discount).toBe(3500)     // 10% order, NOT the 50% line
+    expect(r.total).toBe(31500)
+  })
+
+  it('never lets the total go below 0', () => {
+    const r = computeAppointmentTotal([{ price: 10000, descuentoTipo: 'VALOR_FIJO', descuentoValor: 999999 }])
+    expect(r.total).toBe(0)
   })
 })

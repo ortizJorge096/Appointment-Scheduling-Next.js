@@ -32,7 +32,9 @@ const nextConfig: NextConfig = {
     // Next.js dev (Fast Refresh / source maps) needs eval; production does not.
     // Only relax script-src in development — prod stays strict.
     const isDev = process.env.NODE_ENV !== 'production'
-    const scriptSrc = `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`
+    // Google Analytics 4 loads gtag.js from googletagmanager and may pull the
+    // measurement library from google-analytics.
+    const scriptSrc = `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''} https://www.googletagmanager.com https://www.google-analytics.com`
     return [
       {
         source: '/(.*)',
@@ -51,10 +53,12 @@ const nextConfig: NextConfig = {
               "default-src 'self'",
               scriptSrc,
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              `img-src 'self' data: blob: https://${s3Host}`,
+              // GA4 may fire pixel/beacon requests as images.
+              `img-src 'self' data: blob: https://${s3Host} https://www.google-analytics.com https://stats.g.doubleclick.net`,
               "font-src 'self' data: https://fonts.gstatic.com",
-              // connect-src must include S3 for the admin's presigned PUT
-              `connect-src 'self' https://${s3Host}`,
+              // connect-src must include S3 for the admin's presigned PUT, and the
+              // GA4 collect endpoints (incl. regionalized *.google-analytics.com).
+              `connect-src 'self' https://${s3Host} https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://stats.g.doubleclick.net`,
               "object-src 'none'",
               "frame-ancestors 'none'",
               // Allow the embedded Google Maps iframe in the "Visítanos" section

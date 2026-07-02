@@ -8,6 +8,7 @@ import { Icon } from './ServiceIcons'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { formatPrice, isValidPhone } from '@/lib/utils'
+import { trackBeginBooking, trackBookingConfirmed } from '@/lib/analytics'
 
 interface Service {
   id: string
@@ -86,6 +87,7 @@ export default function BookingForm() {
   const searchParams = useSearchParams()
   const continueRef  = useRef<HTMLButtonElement>(null)
   const formTopRef   = useRef<HTMLDivElement>(null)
+  const beganRef     = useRef(false) // GA begin_checkout fires once per visit
 
   // mounted prevents SSR vs client hydration mismatch
   const [mounted, setMounted]                 = useState(false)
@@ -125,6 +127,13 @@ export default function BookingForm() {
 
   // 1. Signal we are already on the client
   useEffect(() => { setMounted(true) }, [])
+
+  // 1b. GA4: reaching the booking flow counts as starting checkout (once).
+  useEffect(() => {
+    if (beganRef.current) return
+    beganRef.current = true
+    trackBeginBooking()
+  }, [])
 
   // 2. Read localStorage only after mounting (never in SSR).
   //    Data feeds the <datalist> of each field — they appear as
@@ -423,6 +432,8 @@ export default function BookingForm() {
         setSubmitError(json.error ?? 'Ocurrió un error. Intenta de nuevo.')
         return
       }
+      // GA4: booking confirmed — report the final price as the conversion value.
+      trackBookingConfirmed(summaryTotal)
       // Pass the cancel token in the URL (only for the person who just booked)
       // so the confirmation screen can show the cancel link without exposing the
       // token via a public GET — essential for clients who left no email.

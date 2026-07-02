@@ -4,10 +4,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatPrice, isValidPhone } from '@/lib/utils'
-import { computeDiscountAmount } from '@/lib/discount'
+import { computeAppointmentTotal } from '@/lib/discount'
 import ClientSearchInput, { type ClientHit } from './ClientSearchInput'
 import AdicionalesEditor, { type Adicional } from './AdicionalesEditor'
-import DescuentoEditor from './DescuentoEditor'
 import { useCan } from './usePermissionGuard'
 
 interface Service { id: string; name: string; price: number; durationMinutes: number; category?: { id: string; name: string; order: number } | null }
@@ -24,6 +23,12 @@ const MODE_OPTIONS = [
   { value: 'PAST',     label: 'Cita pasada'  },
 ] as const
 
+// Per-service discount + extras (past charge). Kept separate from `form`,
+// keyed by serviceId.
+interface LineExtraInput { description: string; amount: string }
+interface LineInput { descTipo: 'PORCENTAJE' | 'VALOR_FIJO'; descValor: string; descMotivo: string; extras: LineExtraInput[] }
+const emptyLine = (): LineInput => ({ descTipo: 'PORCENTAJE', descValor: '', descMotivo: '', extras: [] })
+
 const EMPTY = {
   clientName: '', clientEmail: '', clientPhone: '',
   serviceIds: [] as string[], date: '', startTime: '',
@@ -33,8 +38,7 @@ const EMPTY = {
   // quedó agendada; los demás orígenes se benefician de recibirlo por mail.
   notifyClient: false,
   mode: 'UPCOMING' as 'UPCOMING' | 'PAST',
-  totalCharged: '',
-  // Manual discount (optional): empty descuentoValor = no discount.
+  // Order-level (total) discount (optional): empty descuentoValor = no discount.
   descuentoTipo: 'PORCENTAJE' as 'PORCENTAJE' | 'VALOR_FIJO',
   descuentoValor: '', descuentoMotivo: '',
 }
@@ -45,7 +49,6 @@ type Touched = Partial<Record<keyof typeof EMPTY, boolean>>
 // Fields validated on blur/submit (in display order).
 const VALIDATED_FIELDS: (keyof typeof EMPTY)[] = [
   'clientName', 'clientEmail', 'clientPhone', 'serviceIds', 'date', 'startTime',
-  'totalCharged', 'descuentoValor',
 ]
 
 // Earliest date allowed for manual backfill: 15 days ago
@@ -56,7 +59,13 @@ function offsetDate(days: number) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 function minManualDate() { return offsetDate(-PAST_LIMIT_DAYS) }
-function yesterday()     { return offsetDate(-1) }
+function today()         { return offsetDate(0) }
+// Current wall-clock time HH:MM (browser local). The API re-validates in the
+// studio timezone, so this is only a best-effort UI guard.
+function nowHHMM() {
+  const d = new Date()
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
 
 export default function ManualAppointmentModal() {
   const router = useRouter()
@@ -65,8 +74,11 @@ export default function ManualAppointmentModal() {
   const [services, setServices] = useState<Service[]>([])
   const [form, setForm]         = useState(EMPTY)
   const [extras, setExtras]     = useState<Adicional[]>([])
-  const [descuentoOpen, setDescuentoOpen] = useState(false)
   const [extrasOpen, setExtrasOpen] = useState(false)
+  // Per-service discount + extras, keyed by serviceId (past charge only).
+  const [lines, setLines] = useState<Record<string, LineInput>>({})
+  // Discount scope for a past charge: none | per service | order total (exclusive).
+  const [discountScope, setDiscountScope] = useState<'none' | 'line' | 'order'>('none')
   const [serviceQuery, setServiceQuery] = useState('')
   // Id of the existing client picked from the search (null = new/typed client).
   const [pickedClientId, setPickedClientId] = useState<string | null>(null)
@@ -89,7 +101,8 @@ export default function ManualAppointmentModal() {
       loadServices()
       setFieldErrors({}); setTouched({}); setApiError(''); setSuccess('')
     } else {
-      setExtras([]); setDescuentoOpen(false); setExtrasOpen(false); setServiceQuery(''); setPickedClientId(null)
+      setExtras([]); setExtrasOpen(false); setServiceQuery(''); setPickedClientId(null)
+      setLines({}); setDiscountScope('none')
     }
   }, [open, loadServices])
 
@@ -135,22 +148,19 @@ export default function ManualAppointmentModal() {
         return form.serviceIds.length ? undefined : 'Selecciona al menos un servicio'
       case 'date':
         if (!form.date) return 'La fecha es requerida'
-        if (form.mode === 'PAST' && form.date >= offsetDate(0)) return 'Debe ser una fecha anterior a hoy'
+        if (form.mode === 'PAST') {
+          if (form.date < minManualDate()) return `Solo hasta ${PAST_LIMIT_DAYS} días atrás`
+          if (form.date > today())         return 'No puede ser una fecha futura'
+        } else if (form.date < today()) {
+          return 'La fecha debe ser hoy o futura'
+        }
         return undefined
       case 'startTime':
-        return form.startTime ? undefined : 'La hora es requerida'
-      case 'totalCharged':
-        if (form.mode !== 'PAST') return undefined
-        return form.totalCharged === '' || Number(form.totalCharged) < 0
-          ? 'El total cobrado es requerido' : undefined
-      case 'descuentoValor': {
-        if (form.mode !== 'PAST') return undefined
-        const sub = (Number(form.totalCharged) || 0) + extras.reduce((s, e) => s + (Number(e.amount) || 0), 0)
-        const dv  = Number(form.descuentoValor) || 0
-        if (dv > 0 && form.descuentoTipo === 'PORCENTAJE' && dv > 100) return 'El porcentaje no puede superar 100'
-        if (dv > 0 && form.descuentoTipo === 'VALOR_FIJO' && dv > sub) return 'El descuento no puede superar el subtotal'
+        if (!form.startTime) return 'La hora es requerida'
+        // A "past" appointment dated today must have a time earlier than now.
+        if (form.mode === 'PAST' && form.date === today() && form.startTime >= nowHHMM())
+          return 'La hora debe ser anterior a la hora actual'
         return undefined
-      }
       default:
         return undefined
     }
@@ -181,6 +191,10 @@ export default function ManualAppointmentModal() {
   async function submit(e: React.FormEvent) {
     e.preventDefault()
     if (!validate()) return
+    if (form.mode === 'PAST' && orderDiscountTooBig) {
+      setApiError('El descuento al total no puede superar el subtotal.')
+      return
+    }
 
     setSaving(true); setApiError(''); setSuccess('')
 
@@ -194,11 +208,26 @@ export default function ManualAppointmentModal() {
       mode: form.mode,
       ...(!isPast ? { notifyClient: form.notifyClient } : {}),
       ...(isPast ? {
-        totalCharged: Number(form.totalCharged),
         extras: extras
           .filter((e) => e.description.trim() && Number(e.amount) > 0)
           .map((e) => ({ description: e.description.trim(), amount: Number(e.amount) })),
-        ...(Number(form.descuentoValor) > 0 ? {
+        services: selectedServices.map((s) => {
+          const l = lines[s.id]
+          const lineDisc = discountScope === 'line' && !!l && Number(l.descValor) > 0
+          const lineExtras = (l?.extras ?? [])
+            .filter((e) => e.description.trim() && Number(e.amount) > 0)
+            .map((e) => ({ description: e.description.trim(), amount: Number(e.amount) }))
+          return {
+            serviceId: s.id,
+            ...(lineDisc ? {
+              descuentoTipo:   l!.descTipo,
+              descuentoValor:  Number(l!.descValor),
+              descuentoMotivo: l!.descMotivo.trim() || undefined,
+            } : {}),
+            ...(lineExtras.length ? { extras: lineExtras } : {}),
+          }
+        }).filter((e) => 'descuentoTipo' in e || 'extras' in e),
+        ...(discountScope === 'order' && Number(form.descuentoValor) > 0 ? {
           descuentoTipo:   form.descuentoTipo,
           descuentoValor:  Number(form.descuentoValor),
           descuentoMotivo: form.descuentoMotivo.trim() || undefined,
@@ -219,10 +248,11 @@ export default function ManualAppointmentModal() {
     setSuccess(isPast ? 'Cita registrada correctamente ✓' : 'Cita creada correctamente ✓')
     setForm(EMPTY)
     setExtras([])
-    setDescuentoOpen(false)
     setExtrasOpen(false)
     setServiceQuery('')
     setPickedClientId(null)
+    setLines({})
+    setDiscountScope('none')
     setTimeout(() => {
       setOpen(false); setSuccess('')
       // A past appointment is dated before today, so the default "Próximas"
@@ -233,29 +263,53 @@ export default function ManualAppointmentModal() {
     }, 1200)
   }
 
-  // Keep "Total cobrado" in sync with the selected service's default price
-  // while in "Cita pasada" mode (admin can still edit it afterwards).
+  // Switching modes resets date/time so a value valid in one mode can't linger
+  // as invalid in the other (past window vs. today-onwards).
   function selectMode(mode: 'UPCOMING' | 'PAST') {
-    setForm(f => {
-      if (mode === 'PAST' && f.serviceIds.length) {
-        const sum = f.serviceIds.reduce((t, id) => t + (services.find(s => s.id === id)?.price ?? 0), 0)
-        return { ...f, mode, totalCharged: sum ? String(sum) : f.totalCharged }
-      }
-      return { ...f, mode }
-    })
+    setForm(f => ({ ...f, mode, date: '', startTime: '' }))
+    setFieldErrors(fe => ({ ...fe, date: undefined, startTime: undefined }))
   }
 
-  // Toggle a service in/out of the selection. In "Cita pasada" the "Total
-  // cobrado" auto-syncs to the sum of the selected services' catalog prices.
+  // Toggle a service in/out of the selection; drop its per-service line on removal.
   function toggleService(id: string) {
-    setForm(f => {
-      const serviceIds = f.serviceIds.includes(id)
-        ? f.serviceIds.filter(x => x !== id)
-        : [...f.serviceIds, id]
-      const sum = serviceIds.reduce((t, sid) => t + (services.find(s => s.id === sid)?.price ?? 0), 0)
-      return { ...f, serviceIds, totalCharged: f.mode === 'PAST' ? String(sum) : f.totalCharged }
-    })
+    const wasSelected = form.serviceIds.includes(id)
+    setForm(f => ({
+      ...f,
+      serviceIds: wasSelected ? f.serviceIds.filter(x => x !== id) : [...f.serviceIds, id],
+    }))
+    if (wasSelected) setLines(prev => { const n = { ...prev }; delete n[id]; return n })
     if (fieldErrors.serviceIds) setFieldErrors(fe => ({ ...fe, serviceIds: undefined }))
+  }
+
+  // ── Per-service discount/extras helpers (past charge) ──
+  function setLine(id: string, patch: Partial<LineInput>) {
+    setLines(prev => ({ ...prev, [id]: { ...(prev[id] ?? emptyLine()), ...patch } }))
+  }
+  function addLineExtra(id: string) {
+    setLines(prev => {
+      const l = prev[id] ?? emptyLine()
+      return { ...prev, [id]: { ...l, extras: [...l.extras, { description: '', amount: '' }] } }
+    })
+  }
+  function setLineExtra(id: string, idx: number, patch: Partial<LineExtraInput>) {
+    setLines(prev => {
+      const l = prev[id] ?? emptyLine()
+      return { ...prev, [id]: { ...l, extras: l.extras.map((e, i) => (i === idx ? { ...e, ...patch } : e)) } }
+    })
+  }
+  function removeLineExtra(id: string, idx: number) {
+    setLines(prev => {
+      const l = prev[id] ?? emptyLine()
+      return { ...prev, [id]: { ...l, extras: l.extras.filter((_, i) => i !== idx) } }
+    })
+  }
+  // Discount scopes are exclusive: switching clears the other scope's values.
+  function changeScope(scope: 'none' | 'line' | 'order') {
+    setDiscountScope(scope)
+    if (scope !== 'order') setForm(f => ({ ...f, descuentoValor: '', descuentoMotivo: '' }))
+    if (scope !== 'line') setLines(prev => Object.fromEntries(
+      Object.entries(prev).map(([k, l]) => [k, { ...l, descValor: '', descMotivo: '' }]),
+    ))
   }
 
   // "+ Agregar adicional" seeds one empty row; "Ocultar" drops the empty rows.
@@ -286,15 +340,25 @@ export default function ManualAppointmentModal() {
     }, new Map<string, { name: string; order: number; items: Service[] }>()).values(),
   ).sort((a, b) => a.order - b.order)
 
-  const extraAmountNum  = extras.reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
-  const totalChargedNum = Number(form.totalCharged) || 0
-  const subtotal        = totalChargedNum + extraAmountNum
-  const descuentoNum    = Number(form.descuentoValor) || 0
-  const hasDiscount     = descuentoNum > 0
-  const discountAmount  = computeDiscountAmount(subtotal, form.descuentoTipo, descuentoNum)
-  const grandTotal      = subtotal - discountAmount
-  // Fixed discount bigger than the subtotal is invalid (percentage is capped at 100).
-  const discountTooBig  = hasDiscount && form.descuentoTipo === 'VALOR_FIJO' && descuentoNum > subtotal
+  // Live money breakdown, mirroring the API (per-line OR order discount + extras).
+  const calcLines = selectedServices.map((s) => {
+    const l = lines[s.id]
+    const lineDisc = discountScope === 'line' && !!l && Number(l.descValor) > 0
+    return {
+      price:          s.price,
+      descuentoTipo:  lineDisc ? l!.descTipo : null,
+      descuentoValor: lineDisc ? Number(l!.descValor) : null,
+      extras:         (l?.extras ?? []).filter((e) => e.description.trim() && Number(e.amount) > 0).map((e) => Number(e.amount)),
+    }
+  })
+  const generalExtraAmts = extras.filter((e) => e.description.trim() && Number(e.amount) > 0).map((e) => Number(e.amount))
+  const orderDiscount = discountScope === 'order'
+    ? { tipo: form.descuentoTipo, valor: Number(form.descuentoValor) || 0 }
+    : undefined
+  const breakdown = computeAppointmentTotal(calcLines, generalExtraAmts, orderDiscount)
+  const orderBase = breakdown.servicesSubtotal + breakdown.extrasTotal
+  const orderDiscountTooBig = discountScope === 'order' &&
+    form.descuentoTipo === 'VALOR_FIJO' && (Number(form.descuentoValor) || 0) > orderBase
 
   const Err = ({ k }: { k: keyof typeof EMPTY }) =>
     touched[k] && fieldErrors[k] ? <p className="text-xs text-red-500 mt-0.5">{fieldErrors[k]}</p> : null
@@ -448,13 +512,13 @@ export default function ManualAppointmentModal() {
                       </label>
                       <input type="date" value={form.date} onChange={field('date')} onBlur={handleBlur('date')}
                         aria-label="Fecha"
-                        min={minManualDate()}
-                        max={form.mode === 'PAST' ? yesterday() : undefined}
+                        min={form.mode === 'PAST' ? minManualDate() : today()}
+                        max={form.mode === 'PAST' ? today() : undefined}
                         className={`input-field w-full ${touched.date && fieldErrors.date ? 'border-red-400' : ''}`} />
                       <p className="text-[11px] text-ink-muted mt-1">
                         {form.mode === 'PAST'
-                          ? `Hasta ${PAST_LIMIT_DAYS} días atrás, antes de hoy`
-                          : `Hasta ${PAST_LIMIT_DAYS} días atrás`}
+                          ? `Hoy o hasta ${PAST_LIMIT_DAYS} días atrás`
+                          : 'Desde hoy en adelante'}
                       </p>
                       <Err k="date" />
                     </div>
@@ -464,6 +528,7 @@ export default function ManualAppointmentModal() {
                       </label>
                       <input type="time" value={form.startTime}
                         aria-label="Hora"
+                        max={form.mode === 'PAST' && form.date === today() ? nowHHMM() : undefined}
                         onChange={e => {
                           setForm(f => ({ ...f, startTime: e.target.value.slice(0, 5) }))
                           if (fieldErrors.startTime) setFieldErrors(fe => ({ ...fe, startTime: undefined }))
@@ -476,77 +541,126 @@ export default function ManualAppointmentModal() {
                 </div>
               </fieldset>
 
-              {/* Precio (solo cita pasada) */}
+              {/* Precio (solo cita pasada). El total se calcula solo. */}
               {form.mode === 'PAST' && (
                 <fieldset>
                   <p className="text-xs font-medium text-ink-muted uppercase tracking-wider mb-3">
                     Precio
                   </p>
-                  <div className="space-y-3">
+                  <div className="space-y-4">
+
+                    {/* Descuento: sin / por servicio / al total (excluyentes) */}
                     <div>
-                      <label className="form-label">
-                        Total cobrado (COP) <span className="text-red-500">*</span>
-                      </label>
-                      <input type="number" min={0} step={1000} value={form.totalCharged}
-                        onChange={field('totalCharged')} onBlur={handleBlur('totalCharged')}
-                        className={`input-field w-full ${touched.totalCharged && fieldErrors.totalCharged ? 'border-red-400' : ''}`} />
-                      <Err k="totalCharged" />
+                      <span className="form-label !mb-1 block">Descuento</span>
+                      <div className="flex gap-2">
+                        {([['none', 'Sin descuento'], ['line', 'Por servicio'], ['order', 'Al total']] as const).map(([v, label]) => (
+                          <button key={v} type="button" onClick={() => changeScope(v)}
+                            className={`flex-1 px-2 py-1.5 rounded-lg text-xs border transition-colors ${
+                              discountScope === v ? 'bg-gold text-white border-gold' : 'border-beige-dark text-ink-muted hover:border-gold/50'
+                            }`}>
+                            {label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
+
+                    {/* Cada servicio: precio + descuento por línea (si aplica) + adicionales */}
+                    <div className="space-y-2">
+                      {selectedServices.length === 0 && (
+                        <p className="text-xs text-ink-muted">Selecciona al menos un servicio arriba.</p>
+                      )}
+                      {selectedServices.map((s) => {
+                        const l = lines[s.id] ?? emptyLine()
+                        return (
+                          <div key={s.id} className="border border-beige-dark rounded-lg p-3">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-ink font-medium">{s.name}</span>
+                              <span className="text-ink-muted">{formatPrice(s.price)}</span>
+                            </div>
+
+                            {discountScope === 'line' && (
+                              <div className="flex flex-wrap items-center gap-2 mt-2">
+                                <div className="flex rounded-lg border border-beige-dark overflow-hidden shrink-0">
+                                  {(['PORCENTAJE', 'VALOR_FIJO'] as const).map((t) => (
+                                    <button key={t} type="button" onClick={() => setLine(s.id, { descTipo: t })}
+                                      className={`px-2.5 py-1.5 text-xs ${l.descTipo === t ? 'bg-gold text-white' : 'bg-white text-ink-muted'}`}>
+                                      {t === 'PORCENTAJE' ? '%' : '$'}
+                                    </button>
+                                  ))}
+                                </div>
+                                <input type="number" min={0} value={l.descValor}
+                                  onChange={(e) => setLine(s.id, { descValor: e.target.value })}
+                                  placeholder="Descuento" className="input-field w-[110px] text-sm" />
+                                <input value={l.descMotivo}
+                                  onChange={(e) => setLine(s.id, { descMotivo: e.target.value })}
+                                  placeholder="Motivo" className="input-field flex-1 min-w-[120px] text-sm" />
+                              </div>
+                            )}
+
+                            {l.extras.map((ex, i) => (
+                              <div key={i} className="flex gap-2 mt-2">
+                                <input value={ex.description} onChange={(e) => setLineExtra(s.id, i, { description: e.target.value })}
+                                  placeholder="Adicional…" className="input-field flex-1 text-sm" />
+                                <input type="number" min={0} value={ex.amount} onChange={(e) => setLineExtra(s.id, i, { amount: e.target.value })}
+                                  placeholder="$ valor" className="input-field w-[110px] text-sm" />
+                                <button type="button" onClick={() => removeLineExtra(s.id, i)}
+                                  aria-label="Eliminar adicional" className="text-ink-muted hover:text-red-500 px-1.5 text-lg leading-none">×</button>
+                              </div>
+                            ))}
+                            <button type="button" onClick={() => addLineExtra(s.id)}
+                              className="text-xs text-gold hover:underline mt-2">+ Adicional a este servicio</button>
+                          </div>
+                        )
+                      })}
+                    </div>
+
+                    {/* Descuento al total (solo scope 'order') */}
+                    {discountScope === 'order' && (
+                      <div>
+                        <span className="form-label !mb-1 block">Descuento al total</span>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <div className="flex rounded-lg border border-beige-dark overflow-hidden shrink-0">
+                            {(['PORCENTAJE', 'VALOR_FIJO'] as const).map((t) => (
+                              <button key={t} type="button" onClick={() => setForm(f => ({ ...f, descuentoTipo: t }))}
+                                className={`px-3 py-2 text-sm ${form.descuentoTipo === t ? 'bg-gold text-white' : 'bg-white text-ink-muted'}`}>
+                                {t === 'PORCENTAJE' ? '%' : '$'}
+                              </button>
+                            ))}
+                          </div>
+                          <input type="number" min={0} value={form.descuentoValor}
+                            onChange={field('descuentoValor')}
+                            placeholder={form.descuentoTipo === 'PORCENTAJE' ? '0–100' : '0'}
+                            className={`input-field w-[120px] ${orderDiscountTooBig ? 'border-red-400' : ''}`} />
+                          <input value={form.descuentoMotivo} onChange={field('descuentoMotivo')}
+                            placeholder="Motivo (opcional)" className="input-field flex-1 min-w-[120px]" />
+                        </div>
+                        {orderDiscountTooBig && <p className="text-xs text-red-500 mt-1">El descuento no puede superar el subtotal.</p>}
+                      </div>
+                    )}
+
+                    {/* Adicional de la cita (general, no atado a un servicio) */}
                     <AdicionalesEditor items={extras} onChange={setExtras}
                       open={extrasOpen} onAdd={showExtras} onRemove={hideExtras} />
-                    {/* Discount (optional) — shared collapsible editor */}
-                    <DescuentoEditor
-                      open={descuentoOpen}
-                      tipo={form.descuentoTipo}
-                      valor={form.descuentoValor}
-                      motivo={form.descuentoMotivo}
-                      error={descuentoOpen && discountTooBig ? 'El descuento no puede superar el subtotal.' : null}
-                      onAdd={() => setDescuentoOpen(true)}
-                      onRemove={() => {
-                        setDescuentoOpen(false)
-                        setForm(f => ({ ...f, descuentoValor: '', descuentoMotivo: '' }))
-                        setFieldErrors(fe => ({ ...fe, descuentoValor: undefined }))
-                      }}
-                      onChange={(patch) => {
-                        setForm(f => ({
-                          ...f,
-                          ...(patch.tipo   !== undefined ? { descuentoTipo:   patch.tipo }   : {}),
-                          ...(patch.valor  !== undefined ? { descuentoValor:  patch.valor }  : {}),
-                          ...(patch.motivo !== undefined ? { descuentoMotivo: patch.motivo } : {}),
-                        }))
-                        if (patch.valor !== undefined && fieldErrors.descuentoValor) {
-                          setFieldErrors(fe => ({ ...fe, descuentoValor: undefined }))
-                        }
-                      }}
-                    />
 
+                    {/* Desglose en vivo */}
                     <div className="bg-beige-pale rounded-lg px-4 py-3 text-sm space-y-1">
                       <div className="flex justify-between text-ink-muted">
-                        <span>Servicio</span><span>{formatPrice(totalChargedNum)}</span>
+                        <span>Servicios</span><span>{formatPrice(breakdown.servicesSubtotal)}</span>
                       </div>
-                      {extras
-                        .filter((e) => e.description.trim() && Number(e.amount) > 0)
-                        .map((e, i) => (
-                          <div key={i} className="flex justify-between text-ink-muted">
-                            <span>Adicional ({e.description.trim()})</span>
-                            <span>{formatPrice(Number(e.amount))}</span>
-                          </div>
-                        ))}
-                      {hasDiscount && !discountTooBig && (
-                        <>
-                          <div className="flex justify-between text-ink-muted border-t border-beige-dark pt-1 mt-1">
-                            <span>Subtotal</span><span>{formatPrice(subtotal)}</span>
-                          </div>
-                          <div className="flex justify-between text-gold-dark">
-                            <span>Descuento{form.descuentoTipo === 'PORCENTAJE' ? ` (${descuentoNum}%)` : ''}</span>
-                            <span>−{formatPrice(discountAmount)}</span>
-                          </div>
-                        </>
+                      {breakdown.extrasTotal > 0 && (
+                        <div className="flex justify-between text-ink-muted">
+                          <span>Adicionales</span><span>{formatPrice(breakdown.extrasTotal)}</span>
+                        </div>
+                      )}
+                      {breakdown.discount > 0 && (
+                        <div className="flex justify-between text-gold-dark">
+                          <span>Descuento</span><span>−{formatPrice(breakdown.discount)}</span>
+                        </div>
                       )}
                       <div className="flex justify-between text-ink font-medium border-t border-beige-dark pt-1 mt-1">
-                        <span>Total a cobrar</span><span>{formatPrice(grandTotal)}</span>
+                        <span>Total a cobrar</span><span>{formatPrice(breakdown.total)}</span>
                       </div>
-                      {hasDiscount && !discountTooBig && grandTotal === 0 && (
+                      {breakdown.total === 0 && breakdown.discount > 0 && (
                         <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 mt-1">
                           ⚠️ El total será $0. Se registrará como cortesía.
                         </p>
@@ -599,13 +713,15 @@ export default function ManualAppointmentModal() {
                   rows={2} className="input-field w-full resize-none" />
               </div>
 
-              {/* Forzar horario */}
-              <label className="flex items-start gap-2 text-sm text-ink-muted cursor-pointer">
-                <input type="checkbox" checked={form.skipAvailabilityCheck}
-                  onChange={e => setForm(f => ({ ...f, skipAvailabilityCheck: e.target.checked }))}
-                  className="mt-0.5 rounded border-beige-dark text-gold focus:ring-gold/40" />
-                <span>Forzar aunque el horario esté ocupado</span>
-              </label>
+              {/* Forzar horario — solo aplica a "Cita próxima" (una pasada no valida horario) */}
+              {form.mode === 'UPCOMING' && (
+                <label className="flex items-start gap-2 text-sm text-ink-muted cursor-pointer">
+                  <input type="checkbox" checked={form.skipAvailabilityCheck}
+                    onChange={e => setForm(f => ({ ...f, skipAvailabilityCheck: e.target.checked }))}
+                    className="mt-0.5 rounded border-beige-dark text-gold focus:ring-gold/40" />
+                  <span>Forzar (ignorar horario y disponibilidad)</span>
+                </label>
+              )}
 
               {apiError && (
                 <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-3 py-2 rounded-lg">

@@ -1,5 +1,7 @@
+'use client'
 // src/components/public/WhatsAppFab.tsx
 import { WHATSAPP_URL } from '@/lib/config'
+import { trackWhatsAppClick } from '@/lib/analytics'
 
 export default function WhatsAppFab() {
   return (
@@ -8,6 +10,7 @@ export default function WhatsAppFab() {
       target="_blank"
       rel="noreferrer"
       aria-label="Escríbenos por WhatsApp"
+      onClick={() => trackWhatsAppClick()}
       className="wa-fab group"
     >
       <span
