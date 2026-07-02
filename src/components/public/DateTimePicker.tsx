@@ -12,7 +12,8 @@ import {
 } from 'date-fns'
 import { formatInTimeZone } from 'date-fns-tz'
 import { es } from 'date-fns/locale'
-import { STUDIO, WHATSAPP_URL } from '@/lib/config'
+import { STUDIO } from '@/lib/config'
+import WhatsAppLink from './WhatsAppLink'
 import type { TimeSlot } from '@/types'
 
 interface Props {
@@ -297,10 +298,9 @@ export default function DateTimePicker({
         {!autoPicking && !loading && noUpcoming && (
           <div className="bg-beige/40 border border-beige-dark rounded-xl px-4 py-4 text-sm text-ink-muted">
             En este momento no tenemos disponibilidad próxima.{' '}
-            <a href={WHATSAPP_URL} target="_blank" rel="noreferrer"
-              className="text-gold hover:underline font-medium">
+            <WhatsAppLink className="text-gold hover:underline font-medium">
               Escríbenos por WhatsApp
-            </a>{' '}y te ayudamos.
+            </WhatsAppLink>{' '}y te ayudamos.
           </div>
         )}
 

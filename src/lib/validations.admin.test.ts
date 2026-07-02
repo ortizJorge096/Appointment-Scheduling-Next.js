@@ -1,6 +1,7 @@
 // src/lib/validations.admin.test.ts
 import { describe, it, expect } from 'vitest'
 import { changePasswordSchema, createUserSchema, updateUserSchema } from './validations'
+import { Role } from '@prisma/client'
 
 const STRONG = 'NewPass1'
 
@@ -34,6 +35,16 @@ describe('createUserSchema', () => {
     expect(createUserSchema.safeParse({ name: 'Ana', email: 'nope', password: STRONG }).success).toBe(false)
     expect(createUserSchema.safeParse({ name: 'Ana', email: 'ana@test.com', password: 'weak' }).success).toBe(false)
   })
+  it('accepts every role defined in the Prisma enum', () => {
+    for (const role of Object.values(Role)) {
+      const r = createUserSchema.safeParse({ name: 'Ana', email: 'ana@test.com', password: STRONG, role })
+      expect(r.success).toBe(true)
+      if (r.success) expect(r.data.role).toBe(role)
+    }
+  })
+  it('rejects a role outside the Prisma enum', () => {
+    expect(createUserSchema.safeParse({ name: 'Ana', email: 'ana@test.com', password: STRONG, role: 'GOD_MODE' }).success).toBe(false)
+  })
 })
 
 describe('updateUserSchema', () => {
@@ -46,5 +57,13 @@ describe('updateUserSchema', () => {
   })
   it('rejects a weak reset password', () => {
     expect(updateUserSchema.safeParse({ newPassword: 'weak' }).success).toBe(false)
+  })
+  it('accepts every role defined in the Prisma enum', () => {
+    for (const role of Object.values(Role)) {
+      expect(updateUserSchema.safeParse({ role }).success).toBe(true)
+    }
+  })
+  it('rejects a role outside the Prisma enum', () => {
+    expect(updateUserSchema.safeParse({ role: 'GOD_MODE' }).success).toBe(false)
   })
 })

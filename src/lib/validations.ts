@@ -2,6 +2,7 @@
 // Zod validation schemas — valentinajimenez
 
 import { z } from 'zod'
+import { Role } from '@prisma/client'
 import { ICON_KEYS } from '@/lib/config'
 
 const iconEnum = z.enum(ICON_KEYS as unknown as [string, ...string[]])
@@ -70,6 +71,53 @@ function checkDiscount(
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['descuentoTipo'], message: 'Indica el tipo de descuento' })
   if (descuentoTipo === 'PORCENTAJE' && (descuentoValor ?? 0) > 100)
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['descuentoValor'], message: 'El porcentaje no puede superar 100' })
+}
+
+// Per-service discount + extras (admin). Discounts are EITHER per line OR at the
+// order total — never both (see checkDiscountExclusivity). Extras always add.
+const lineExtrasSchema = z.array(z.object({
+  description: z.string().min(1, 'La descripción del adicional es requerida').max(200),
+  amount:      z.number().int().min(0, 'El monto no puede ser negativo'),
+})).max(20).optional()
+
+// Manual create keys lines by serviceId (rows don't exist yet); the appointment
+// update keys them by the existing AppointmentService id.
+const manualServiceLineSchema = z.object({
+  serviceId:       z.string().cuid('ID de servicio inválido'),
+  descuentoTipo:   z.enum(['PORCENTAJE', 'VALOR_FIJO']).nullable().optional(),
+  descuentoValor:  z.number().int().min(0).nullable().optional(),
+  descuentoMotivo: z.string().max(200).nullable().optional(),
+  extras:          lineExtrasSchema,
+})
+const updateServiceLineSchema = z.object({
+  appointmentServiceId: z.string().cuid('ID de línea inválido'),
+  descuentoTipo:   z.enum(['PORCENTAJE', 'VALOR_FIJO']).nullable().optional(),
+  descuentoValor:  z.number().int().min(0).nullable().optional(),
+  descuentoMotivo: z.string().max(200).nullable().optional(),
+  extras:          lineExtrasSchema,
+})
+
+// Enforces "per-line OR order-total discount, not both" + per-line coherence.
+function checkDiscountExclusivity(
+  data: {
+    descuentoTipo?: string | null; descuentoValor?: number | null
+    services?: Array<{ descuentoTipo?: string | null; descuentoValor?: number | null }>
+  },
+  ctx: z.RefinementCtx,
+): void {
+  const orderHas = data.descuentoTipo != null && (data.descuentoValor ?? 0) > 0
+  const lines = data.services ?? []
+  const lineHas = lines.some((l) => l.descuentoTipo != null && (l.descuentoValor ?? 0) > 0)
+  if (orderHas && lineHas) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['descuentoValor'],
+      message: 'Aplica el descuento por servicio O al total, no ambos.' })
+  }
+  lines.forEach((l, i) => {
+    if (l.descuentoTipo === 'PORCENTAJE' && (l.descuentoValor ?? 0) > 100)
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['services', i, 'descuentoValor'], message: 'El porcentaje no puede superar 100' })
+    if (l.descuentoTipo != null && (l.descuentoValor ?? 0) <= 0)
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['services', i, 'descuentoValor'], message: 'Indica el valor del descuento' })
+  })
 }
 
 // ─────────────────────────────────────────
@@ -170,12 +218,15 @@ export const updateAppointmentSchema = z.object({
 
   startTime: timeString.optional(),
 
-  // Manual discount (applied from the detail payment block).
+  // Order-level (total) discount, applied from the detail payment block.
   ...discountFields,
 
-  // Adicionales (replaces the full set when provided).
+  // General adicionales (replaces the full general set when provided).
   extras: extrasSchema,
-}).superRefine(checkDiscount)
+
+  // Per-service discount + extras. Keyed by AppointmentService id.
+  services: z.array(updateServiceLineSchema).max(5).optional(),
+}).superRefine(checkDiscount).superRefine(checkDiscountExclusivity)
 
 // ─────────────────────────────────────────
 // CATEGORIES (admin)
@@ -390,15 +441,17 @@ export const createManualAppointmentSchema = z.object({
   // "Cita pasada": registers an already-rendered appointment directly as
   // completed and paid. Defaults to the existing ("Cita próxima") behavior.
   mode:             z.enum(['UPCOMING', 'PAST']).optional().default('UPCOMING'),
-  totalCharged:     z.number().int().min(0).optional(),
+
+  // General adicionales (not tied to a service line).
   extras:           extrasSchema,
 
-  // Manual discount on a past appointment's charge.
+  // Order-level (total) discount on a past appointment's charge.
   ...discountFields,
-}).refine(
-  (data) => data.mode !== 'PAST' || data.totalCharged !== undefined,
-  { message: 'El total cobrado es requerido para registrar una cita pasada', path: ['totalCharged'] }
-).superRefine(checkDiscount)
+
+  // Per-service discount + extras (keyed by serviceId). The past charge is
+  // computed from service prices − discounts + extras (no free-typed total).
+  services:         z.array(manualServiceLineSchema).max(5).optional(),
+}).superRefine(checkDiscount).superRefine(checkDiscountExclusivity)
 
 // ─────────────────────────────────────────
 // CLIENTS (admin)
@@ -510,13 +563,14 @@ export const createUserSchema = z.object({
   name:     z.string().min(2, 'El nombre debe tener al menos 2 caracteres').max(80),
   email:    z.string().email('Email inválido'),
   password: strongPassword,
-  role:     z.enum(['ADMIN', 'SUPER_ADMIN']).default('ADMIN'),
+  // Derived from the Prisma enum so new roles are accepted automatically.
+  role:     z.nativeEnum(Role).default(Role.ADMIN),
 })
 
 export const updateUserSchema = z.object({
   name:        z.string().min(2, 'El nombre debe tener al menos 2 caracteres').max(80).optional(),
   email:       z.string().email('Email inválido').optional(),
-  role:        z.enum(['ADMIN', 'SUPER_ADMIN']).optional(),
+  role:        z.nativeEnum(Role).optional(),
   isActive:    z.boolean().optional(),
   // Optional admin-driven password reset (sets a new password for the target).
   newPassword: strongPassword.optional(),

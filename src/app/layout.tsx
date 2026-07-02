@@ -1,6 +1,7 @@
 // src/app/layout.tsx
 import type { Metadata } from 'next'
 import { STUDIO } from '@/lib/config'
+import { GoogleAnalytics } from '@/components/GoogleAnalytics'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -31,7 +32,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
       </head>
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        {/* GA4 — public pages only; self-disables on /admin and without an ID. */}
+        <GoogleAnalytics />
+        {children}
+      </body>
     </html>
   )
 }

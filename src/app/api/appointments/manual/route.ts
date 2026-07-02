@@ -10,12 +10,12 @@ import { getCurrentAdmin } from '@/lib/authz'
 import { hasPermission } from '@/lib/permissions'
 import { STUDIO } from '@/lib/config'
 import { createManualAppointmentSchema } from '@/lib/validations'
-import { timeToMinutes, minutesToTime } from '@/lib/availability'
+import { timeToMinutes, minutesToTime, getAvailableSlotsByDuration } from '@/lib/availability'
 import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
 import { audit, getClientIp, getUserAgent } from '@/lib/audit'
 import { sendConfirmationEmail } from '@/lib/email'
 import { resolveOrCreateClient } from '@/lib/clients'
-import { computeFinalPrice } from '@/lib/discount'
+import { computeAppointmentTotal } from '@/lib/discount'
 import { formatPrice } from '@/lib/utils'
 import type { ApiResponse, AppointmentWithService } from '@/types'
 import { toZonedTime } from 'date-fns-tz'
@@ -52,28 +52,45 @@ export async function POST(
     clientName, clientEmail, clientPhone, clientId: pickedClientId,
     serviceId, serviceIds, date, startTime, source, notes,
     skipAvailabilityCheck, notifyClient,
-    mode, totalCharged, extras,
+    mode, extras, services: serviceLines,
     descuentoTipo, descuentoValor, descuentoMotivo,
   } = parsed.data
 
-  const extraTotal = (extras ?? []).reduce((sum, e) => sum + e.amount, 0)
-
-  // Backfill window: allow past dates only up to PAST_LIMIT_DAYS days ago
-  // (business timezone). Future dates are always allowed for scheduling.
+  // Date/time window depends on the mode (business timezone is authoritative).
   const todayBogota = toZonedTime(new Date(), STUDIO.timezone)
   const todayStr    = format(todayBogota, 'yyyy-MM-dd')
+  const nowHHMM     = format(todayBogota, 'HH:mm')
   const minDateStr  = format(subDays(todayBogota, PAST_LIMIT_DAYS), 'yyyy-MM-dd')
-  if (date < minDateStr) {
-    return NextResponse.json(
-      { success: false, error: `Solo puedes registrar citas de hasta ${PAST_LIMIT_DAYS} días atrás.` },
-      { status: 400 }
-    )
-  }
-  if (mode === 'PAST' && date >= todayStr) {
-    return NextResponse.json(
-      { success: false, error: 'Una cita pasada debe tener una fecha anterior a hoy.' },
-      { status: 400 }
-    )
+
+  if (mode === 'PAST') {
+    // Backfill window: [today - PAST_LIMIT_DAYS, today]. Today is allowed only
+    // with a time strictly earlier than the current moment.
+    if (date < minDateStr) {
+      return NextResponse.json(
+        { success: false, error: `Solo puedes registrar citas de hasta ${PAST_LIMIT_DAYS} días atrás.` },
+        { status: 400 }
+      )
+    }
+    if (date > todayStr) {
+      return NextResponse.json(
+        { success: false, error: 'Una cita pasada no puede tener una fecha futura.' },
+        { status: 400 }
+      )
+    }
+    if (date === todayStr && startTime >= nowHHMM) {
+      return NextResponse.json(
+        { success: false, error: 'La hora debe ser anterior a la hora actual.' },
+        { status: 400 }
+      )
+    }
+  } else {
+    // Upcoming: today or later. No past-window limit and no "15 days" message.
+    if (date < todayStr) {
+      return NextResponse.json(
+        { success: false, error: 'Una cita próxima debe tener una fecha de hoy o futura.' },
+        { status: 400 }
+      )
+    }
   }
 
   // Verify services (one or several). serviceId stays the primary for back-compat.
@@ -97,43 +114,60 @@ export async function POST(
   const startMinutes  = timeToMinutes(startTime)
   const endTime       = minutesToTime(startMinutes + totalDuration)
 
-  // Manual discount — only on a past appointment's charge. Validate against the
-  // subtotal (service + extra) and compute the final price snapshot here.
-  let precioFinal: number | null = null
-  const hasDiscount = mode === 'PAST' && !!descuentoTipo && descuentoValor != null
-  if (hasDiscount) {
-    const subtotal = totalCharged! + extraTotal
-    if (descuentoTipo === 'VALOR_FIJO' && descuentoValor! > subtotal) {
-      return NextResponse.json(
-        { success: false, error: 'El descuento no puede superar el subtotal.' },
-        { status: 400 }
-      )
+  // Money breakdown for the past charge. Per-service discounts live on each line;
+  // an order-level discount (descuento*) applies to the whole — the schema
+  // enforces they're mutually exclusive. Extras always add.
+  const lineByService = new Map((serviceLines ?? []).map((l) => [l.serviceId, l]))
+  const calcLines = servicesList.map((s) => {
+    const line = lineByService.get(s.id)
+    return {
+      price:          s.price,
+      descuentoTipo:  line?.descuentoTipo ?? null,
+      descuentoValor: line?.descuentoValor ?? null,
+      extras:         (line?.extras ?? []).map((e) => e.amount),
     }
-    precioFinal = computeFinalPrice(subtotal, descuentoTipo, descuentoValor)
+  })
+  const generalExtras = extras ?? []
+  const breakdown = computeAppointmentTotal(
+    calcLines,
+    generalExtras.map((e) => e.amount),
+    { tipo: descuentoTipo, valor: descuentoValor },
+  )
+
+  // Order-level fixed discount can't exceed the subtotal (clearer than clamping).
+  if (
+    descuentoTipo === 'VALOR_FIJO' && descuentoValor != null &&
+    descuentoValor > breakdown.servicesSubtotal + breakdown.extrasTotal
+  ) {
+    return NextResponse.json(
+      { success: false, error: 'El descuento no puede superar el subtotal.' },
+      { status: 400 }
+    )
   }
 
-  // Check actual appointment conflict (only if admin didn't force the time).
-  // We use a direct query instead of isSlotAvailable to avoid false positives
-  // when no Schedule exists for that day (e.g. past dates or days without configured hours).
-  // Past appointments already happened: they don't compete for a slot, so we
-  // never block a backfill on an "occupied" overlapping time.
+  const hasOrderDiscount = descuentoTipo != null && descuentoValor != null && descuentoValor > 0
+  const precioFinal: number | null = mode === 'PAST' && hasOrderDiscount ? breakdown.total : null
+
+  // Upcoming manual bookings must fall within the studio's schedule for that day
+  // (open day, business hours, outside the lunch break, not a blocked date) AND
+  // land on a free slot — unless the admin explicitly forces it. Past bookings
+  // already happened, so they are never schedule-checked.
   if (!skipAvailabilityCheck && mode !== 'PAST') {
-    let conflict
+    let slots
     try {
-      conflict = await prisma.appointment.findFirst({
-        where: {
-          date:      new Date(`${date}T00:00:00`),
-          status:    { notIn: ['CANCELLED', 'NO_SHOW'] },
-          startTime: { lt: endTime },
-          endTime:   { gt: startTime },
-        },
-        select: { id: true },
-      })
+      ;({ slots } = await getAvailableSlotsByDuration(date, totalDuration))
     } catch (err) {
       if (isDbUnavailable(err)) return dbUnavailableResponse()
       return NextResponse.json({ success: false, error: 'Error interno' }, { status: 500 })
     }
-    if (conflict) {
+    const slot = slots.find((s) => s.startTime === startTime)
+    if (!slot) {
+      return NextResponse.json(
+        { success: false, error: 'La hora está fuera del horario de atención de ese día. Usa "Forzar" si quieres registrarla igual.' },
+        { status: 400 }
+      )
+    }
+    if (!slot.available) {
       return NextResponse.json(
         { success: false, error: 'Este horario ya está ocupado.' },
         { status: 409 }
@@ -180,13 +214,14 @@ export async function POST(
       }
 
       const isPast = mode === 'PAST'
-      // Per-service snapshot: catalog price. For a SINGLE-service past charge the
-      // whole amount sits on that one service (preserves prior behavior); with
-      // multiple services the real total lives in amountPaid.
-      const priceFor = (s: { price: number }) =>
-        isPast && servicesList.length === 1 ? totalCharged! : s.price
 
-      return tx.appointment.create({
+      const include = {
+        service:  { select: { id: true, name: true, price: true, durationMinutes: true } },
+        services: { include: { service: { select: { id: true, name: true, price: true, durationMinutes: true } } } },
+        extras:   { orderBy: { createdAt: 'asc' as const } },
+      }
+
+      const created = await tx.appointment.create({
         data: {
           clientName:  clientName.trim(),
           clientEmail: emailNorm,
@@ -202,9 +237,9 @@ export async function POST(
           origin:      isPast ? 'PAST' : 'MANUAL',
           notes:       notes?.trim() ?? null,
           ...(isPast ? {
-            paymentStatus:    'PAID',
-            amountPaid:       precioFinal ?? (totalCharged! + extraTotal),
-            ...(precioFinal != null ? {
+            paymentStatus: 'PAID',
+            amountPaid:    breakdown.total,
+            ...(hasOrderDiscount ? {
               descuentoTipo,
               descuentoValor,
               descuentoMotivo: descuentoMotivo?.trim() || null,
@@ -212,28 +247,52 @@ export async function POST(
             } : {}),
           } : {}),
           services: {
-            create: servicesList.map((s) => ({
-              serviceId:   s.id,
-              serviceName: s.name, // snapshot — preserves history
-              price:       priceFor(s),
-            })),
+            create: servicesList.map((s) => {
+              const line = lineByService.get(s.id)
+              return {
+                serviceId:   s.id,
+                serviceName: s.name, // snapshot — preserves history
+                price:       s.price,
+                // Per-line discount only matters for a past charge.
+                ...(isPast && line?.descuentoTipo && line.descuentoValor != null ? {
+                  descuentoTipo:   line.descuentoTipo,
+                  descuentoValor:  line.descuentoValor,
+                  descuentoMotivo: line.descuentoMotivo?.trim() || null,
+                } : {}),
+              }
+            }),
           },
-          ...(isPast && extras && extras.length > 0 ? {
+          // General extras (not tied to a service line) are nested here.
+          ...(isPast && generalExtras.length > 0 ? {
             extras: {
-              create: extras.map((e) => ({ description: e.description.trim(), amount: e.amount })),
+              create: generalExtras.map((e) => ({ description: e.description.trim(), amount: e.amount })),
             },
           } : {}),
         },
-        include: {
-          service: { select: { id: true, name: true, price: true, durationMinutes: true } },
-          services: {
-            include: {
-              service: { select: { id: true, name: true, price: true, durationMinutes: true } },
-            },
-          },
-          extras: { orderBy: { createdAt: 'asc' } },
-        },
-      }) as unknown as AppointmentWithService
+        include,
+      })
+
+      // Per-line extras need the created AppointmentService ids, so they're
+      // written in a second step and the appointment is re-read with them.
+      const perLineExtraRows = isPast
+        ? (serviceLines ?? []).flatMap((line) => {
+            const row = created.services.find((sv) => sv.serviceId === line.serviceId)
+            if (!row) return []
+            return (line.extras ?? []).map((e) => ({
+              appointmentId:        created.id,
+              appointmentServiceId: row.id,
+              description:          e.description.trim(),
+              amount:              e.amount,
+            }))
+          })
+        : []
+
+      if (perLineExtraRows.length > 0) {
+        await tx.appointmentExtra.createMany({ data: perLineExtraRows })
+        const full = await tx.appointment.findUnique({ where: { id: created.id }, include })
+        return full as unknown as AppointmentWithService
+      }
+      return created as unknown as AppointmentWithService
     }, { isolationLevel: 'Serializable' })
   } catch (err) {
     if (err instanceof SlotTakenError) {
@@ -283,10 +342,13 @@ export async function POST(
       mode,
       notifyClient: mode !== 'PAST' ? notifyClient : undefined,
       ...(mode === 'PAST' ? {
-        totalCharged,
-        extras: extras && extras.length > 0 ? extras : undefined,
-        amountPaid: appointment.amountPaid,
-        ...(precioFinal != null ? { descuentoTipo, descuentoValor, descuentoMotivo: descuentoMotivo?.trim() || undefined, precioFinal } : {}),
+        amountPaid:          appointment.amountPaid,
+        servicesSubtotal:    breakdown.servicesSubtotal,
+        extrasTotal:         breakdown.extrasTotal,
+        discountTotal:       breakdown.discount,
+        extras:              generalExtras.length > 0 ? generalExtras : undefined,
+        perServiceDiscounts: (serviceLines ?? []).filter((l) => l.descuentoValor != null && l.descuentoValor > 0).length || undefined,
+        ...(hasOrderDiscount ? { descuentoTipo, descuentoValor, descuentoMotivo: descuentoMotivo?.trim() || undefined, precioFinal } : {}),
       } : {}),
     },
   })

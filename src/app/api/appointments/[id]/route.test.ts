@@ -10,6 +10,9 @@ vi.mock('@/lib/prisma', () => ({
       findUnique: vi.fn(),
       update:     vi.fn(),
     },
+    appointmentService: { update: vi.fn(), updateMany: vi.fn() },
+    appointmentExtra:   { deleteMany: vi.fn(), createMany: vi.fn() },
+    $transaction: vi.fn(),
   },
 }))
 vi.mock('@/lib/availability', () => ({
@@ -225,6 +228,38 @@ describe('PATCH /api/appointments/[id]', () => {
     const res = await PATCH(makeRequest({ date: '2026-12-05', status: 'CANCELLED' }), CTX())
     expect(res.status).toBe(200)
     expect(sendRescheduledEmail).not.toHaveBeenCalled()
+  })
+
+  it('applies a per-service discount via the transaction path', async () => {
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
+    const apptWithRows = {
+      ...MOCK_APPOINTMENT,
+      services: [{ id: 'clxxxxxxxxxxxxxxxxxxxxxxx', price: 35000, descuentoTipo: null, descuentoValor: null }],
+      extras: [],
+    }
+    vi.mocked(prisma.appointment.findUnique).mockResolvedValue(apptWithRows as never)
+    const svcUpdate = vi.fn().mockResolvedValue({})
+    const txAppointmentUpdate = vi.fn().mockResolvedValue(apptWithRows)
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn) => fn({
+      appointmentService: { update: svcUpdate, updateMany: vi.fn().mockResolvedValue({}) },
+      appointmentExtra:   { deleteMany: vi.fn().mockResolvedValue({}), createMany: vi.fn().mockResolvedValue({}) },
+      appointment:        { update: txAppointmentUpdate },
+    }) as never)
+
+    const res = await PATCH(makeRequest({
+      services: [{ appointmentServiceId: 'clxxxxxxxxxxxxxxxxxxxxxxx', descuentoTipo: 'PORCENTAJE', descuentoValor: 10, extras: [] }],
+    }), CTX())
+
+    expect(res.status).toBe(200)
+    // The per-line discount is written to the AppointmentService row…
+    expect(svcUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 'clxxxxxxxxxxxxxxxxxxxxxxx' },
+      data: expect.objectContaining({ descuentoTipo: 'PORCENTAJE', descuentoValor: 10 }),
+    }))
+    // …and a discounted total is snapshotted as precioFinal (below the 35000 subtotal).
+    const precioFinal = txAppointmentUpdate.mock.calls[0][0].data.precioFinal
+    expect(precioFinal).toBeGreaterThan(0)
+    expect(precioFinal).toBeLessThan(35000)
   })
 })
 
