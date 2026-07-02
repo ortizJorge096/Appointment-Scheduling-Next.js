@@ -296,6 +296,21 @@ export default function CitaDetailPage() {
   const orderBase = breakdown.servicesSubtotal + breakdown.extrasTotal
   const orderDiscountTooBig = discountScope === 'order' && discTipo === 'VALOR_FIJO' && (Number(discValor) || 0) > orderBase
 
+  // Saved (persisted) breakdown — powers the read-only SERVICIOS summary card,
+  // so it reflects the discount actually stored on the appointment.
+  const savedBreakdown = computeAppointmentTotal(
+    svcRows.length > 0
+      ? svcRows.map((sv) => ({
+          price: sv.price,
+          descuentoTipo: sv.descuentoTipo ?? null,
+          descuentoValor: sv.descuentoValor ?? null,
+          extras: (appt.extras ?? []).filter((e) => e.appointmentServiceId === sv.id).map((e) => e.amount),
+        }))
+      : [{ price: appt.service.price, descuentoTipo: null, descuentoValor: null, extras: [] as number[] }],
+    (appt.extras ?? []).filter((e) => !e.appointmentServiceId).map((e) => e.amount),
+    appt.descuentoValor != null ? { tipo: appt.descuentoTipo, valor: appt.descuentoValor } : undefined,
+  )
+
   // Quick WhatsApp link to the client, with a preloaded, appointment-specific
   // message. Only built when the stored phone normalizes to a valid number.
   const waNumber = toWhatsAppNumber(appt.clientPhone)
@@ -348,26 +363,20 @@ export default function CitaDetailPage() {
           <p className="text-xs text-ink-muted uppercase tracking-widest mb-3">
             Servicio{appt.services && appt.services.length > 1 ? 's' : ''}
           </p>
-          {appt.services && appt.services.length > 1 ? (
-            <>
-              {appt.services.map((s) => (
-                <div key={s.id} className="flex justify-between gap-3 text-sm">
-                  <span className="text-ink">{s.service.name}</span>
-                  <span className="text-ink-muted whitespace-nowrap">{formatPrice(s.price)}</span>
-                </div>
-              ))}
-              <div className="flex justify-between gap-3 border-t border-beige-dark mt-2 pt-2">
-                <span className="text-ink font-medium">Total</span>
-                <span className="text-gold text-lg font-medium">{formatPrice(appt.services.reduce((sum, s) => sum + s.price, 0))}</span>
+          {svcRows.length > 0 ? (
+            svcRows.map((s) => (
+              <div key={s.id} className="flex justify-between gap-3 text-sm">
+                <span className="text-ink">{s.service.name}</span>
+                <span className="text-ink-muted whitespace-nowrap">{formatPrice(s.price)}</span>
               </div>
-            </>
+            ))
           ) : (
-            <>
-              <p className="font-serif text-xl text-ink mb-0.5">{appt.service.name}</p>
-              <p className="text-gold text-lg font-medium">{formatPrice(appt.service.price)}</p>
-              <p className="text-xs text-ink-muted mt-0.5">{appt.service.durationMinutes} min</p>
-            </>
+            <div className="flex justify-between gap-3 text-sm">
+              <span className="text-ink">{appt.service.name}</span>
+              <span className="text-ink-muted whitespace-nowrap">{formatPrice(appt.service.price)}</span>
+            </div>
           )}
+
           {(appt.extras ?? []).length > 0 && (
             <div className="text-xs text-ink-muted mt-2 pt-2 border-t border-beige-dark space-y-0.5">
               {appt.extras!.map((e) => (
@@ -375,6 +384,25 @@ export default function CitaDetailPage() {
               ))}
             </div>
           )}
+
+          {/* Subtotal / descuento / total (refleja el descuento guardado) */}
+          <div className="mt-2 pt-2 border-t border-beige-dark text-sm space-y-1">
+            {(savedBreakdown.discount > 0 || savedBreakdown.extrasTotal > 0) && (
+              <div className="flex justify-between text-ink-muted">
+                <span>Subtotal</span>
+                <span>{formatPrice(savedBreakdown.servicesSubtotal + savedBreakdown.extrasTotal)}</span>
+              </div>
+            )}
+            {savedBreakdown.discount > 0 && (
+              <div className="flex justify-between text-gold-dark">
+                <span>Descuento</span><span>−{formatPrice(savedBreakdown.discount)}</span>
+              </div>
+            )}
+            <div className="flex justify-between items-center">
+              <span className="text-ink font-medium">Total</span>
+              <span className="text-gold text-lg font-medium">{formatPrice(savedBreakdown.total)}</span>
+            </div>
+          </div>
         </div>
 
         {/* Date and time */}
