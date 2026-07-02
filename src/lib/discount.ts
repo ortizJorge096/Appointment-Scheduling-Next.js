@@ -27,3 +27,44 @@ export function computeFinalPrice(
 ): number {
   return subtotal - computeDiscountAmount(subtotal, tipo, valor)
 }
+
+export interface AppointmentLineForTotal {
+  price: number
+  descuentoTipo?: DiscountKind | null
+  descuentoValor?: number | null
+  extras?: number[] // per-line extra amounts (COP)
+}
+
+/**
+ * Full money breakdown for an appointment. Discounts are EITHER per service line
+ * OR a single order-level total — never both (the UI and API enforce this).
+ * Extras always add. All integer COP; the total is clamped to ≥ 0.
+ */
+export function computeAppointmentTotal(
+  lines: AppointmentLineForTotal[],
+  generalExtras: number[] = [],
+  order?: { tipo?: DiscountKind | null; valor?: number | null },
+): { servicesSubtotal: number; extrasTotal: number; discount: number; total: number } {
+  const servicesSubtotal = lines.reduce((s, l) => s + l.price, 0)
+  const lineExtras = lines.reduce((s, l) => s + (l.extras ?? []).reduce((a, b) => a + b, 0), 0)
+  const extrasTotal = lineExtras + generalExtras.reduce((a, b) => a + b, 0)
+
+  const orderValor = order?.valor ?? 0
+  if (order?.tipo && orderValor > 0) {
+    // Order-level (total) discount over services + extras.
+    const base = servicesSubtotal + extrasTotal
+    const discount = computeDiscountAmount(base, order.tipo, orderValor)
+    return { servicesSubtotal, extrasTotal, discount, total: Math.max(0, base - discount) }
+  }
+
+  // Per-line discounts (or none).
+  const lineDiscount = lines.reduce(
+    (s, l) => s + computeDiscountAmount(l.price, l.descuentoTipo, l.descuentoValor), 0,
+  )
+  return {
+    servicesSubtotal,
+    extrasTotal,
+    discount: lineDiscount,
+    total: Math.max(0, servicesSubtotal - lineDiscount + extrasTotal),
+  }
+}
