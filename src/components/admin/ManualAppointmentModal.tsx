@@ -56,7 +56,13 @@ function offsetDate(days: number) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 function minManualDate() { return offsetDate(-PAST_LIMIT_DAYS) }
-function yesterday()     { return offsetDate(-1) }
+function today()         { return offsetDate(0) }
+// Current wall-clock time HH:MM (browser local). The API re-validates in the
+// studio timezone, so this is only a best-effort UI guard.
+function nowHHMM() {
+  const d = new Date()
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
 
 export default function ManualAppointmentModal() {
   const router = useRouter()
@@ -135,10 +141,19 @@ export default function ManualAppointmentModal() {
         return form.serviceIds.length ? undefined : 'Selecciona al menos un servicio'
       case 'date':
         if (!form.date) return 'La fecha es requerida'
-        if (form.mode === 'PAST' && form.date >= offsetDate(0)) return 'Debe ser una fecha anterior a hoy'
+        if (form.mode === 'PAST') {
+          if (form.date < minManualDate()) return `Solo hasta ${PAST_LIMIT_DAYS} días atrás`
+          if (form.date > today())         return 'No puede ser una fecha futura'
+        } else if (form.date < today()) {
+          return 'La fecha debe ser hoy o futura'
+        }
         return undefined
       case 'startTime':
-        return form.startTime ? undefined : 'La hora es requerida'
+        if (!form.startTime) return 'La hora es requerida'
+        // A "past" appointment dated today must have a time earlier than now.
+        if (form.mode === 'PAST' && form.date === today() && form.startTime >= nowHHMM())
+          return 'La hora debe ser anterior a la hora actual'
+        return undefined
       case 'totalCharged':
         if (form.mode !== 'PAST') return undefined
         return form.totalCharged === '' || Number(form.totalCharged) < 0
@@ -237,12 +252,17 @@ export default function ManualAppointmentModal() {
   // while in "Cita pasada" mode (admin can still edit it afterwards).
   function selectMode(mode: 'UPCOMING' | 'PAST') {
     setForm(f => {
+      // Reset date/time when switching modes so a value valid in one mode can't
+      // linger as invalid in the other (past window vs. today-onwards).
+      const base = { ...f, mode, date: '', startTime: '' }
       if (mode === 'PAST' && f.serviceIds.length) {
         const sum = f.serviceIds.reduce((t, id) => t + (services.find(s => s.id === id)?.price ?? 0), 0)
-        return { ...f, mode, totalCharged: sum ? String(sum) : f.totalCharged }
+        return { ...base, totalCharged: sum ? String(sum) : f.totalCharged }
       }
-      return { ...f, mode }
+      return base
     })
+    // Clear any date/time errors carried over from the previous mode.
+    setFieldErrors(fe => ({ ...fe, date: undefined, startTime: undefined }))
   }
 
   // Toggle a service in/out of the selection. In "Cita pasada" the "Total
@@ -448,13 +468,13 @@ export default function ManualAppointmentModal() {
                       </label>
                       <input type="date" value={form.date} onChange={field('date')} onBlur={handleBlur('date')}
                         aria-label="Fecha"
-                        min={minManualDate()}
-                        max={form.mode === 'PAST' ? yesterday() : undefined}
+                        min={form.mode === 'PAST' ? minManualDate() : today()}
+                        max={form.mode === 'PAST' ? today() : undefined}
                         className={`input-field w-full ${touched.date && fieldErrors.date ? 'border-red-400' : ''}`} />
                       <p className="text-[11px] text-ink-muted mt-1">
                         {form.mode === 'PAST'
-                          ? `Hasta ${PAST_LIMIT_DAYS} días atrás, antes de hoy`
-                          : `Hasta ${PAST_LIMIT_DAYS} días atrás`}
+                          ? `Hoy o hasta ${PAST_LIMIT_DAYS} días atrás`
+                          : 'Desde hoy en adelante'}
                       </p>
                       <Err k="date" />
                     </div>
@@ -464,6 +484,7 @@ export default function ManualAppointmentModal() {
                       </label>
                       <input type="time" value={form.startTime}
                         aria-label="Hora"
+                        max={form.mode === 'PAST' && form.date === today() ? nowHHMM() : undefined}
                         onChange={e => {
                           setForm(f => ({ ...f, startTime: e.target.value.slice(0, 5) }))
                           if (fieldErrors.startTime) setFieldErrors(fe => ({ ...fe, startTime: undefined }))

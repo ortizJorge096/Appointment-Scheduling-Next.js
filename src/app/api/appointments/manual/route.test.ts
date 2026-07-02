@@ -76,13 +76,21 @@ describe('POST /api/appointments/manual', () => {
     expect(res.status).toBe(400)
   })
 
-  it('rejects dates older than 15 days (backfill limit)', async () => {
+  it('rejects PAST dates older than 15 days (backfill limit)', async () => {
     vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
-    // A date clearly more than 15 days in the past is always rejected
-    const res = await POST(makeRequest({ ...VALID_BODY, date: '2020-01-01' }))
+    // A PAST date clearly more than 15 days ago is rejected by the backfill window.
+    const res = await POST(makeRequest({ ...VALID_BODY, date: '2020-01-01', mode: 'PAST', totalCharged: 35000 }))
     expect(res.status).toBe(400)
     const json = await res.json()
     expect(json.error).toMatch(/15 días/)
+  })
+
+  it('rejects an UPCOMING appointment with a past date (no 15-day message)', async () => {
+    vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
+    const res = await POST(makeRequest({ ...VALID_BODY, date: '2020-01-01' })) // default mode = UPCOMING
+    expect(res.status).toBe(400)
+    const json = await res.json()
+    expect(json.error).toMatch(/hoy o futura/)
   })
 
   it('returns 404 when service not found', async () => {
@@ -150,14 +158,48 @@ describe('POST /api/appointments/manual', () => {
       expect(res.status).toBe(400)
     })
 
-    it('rejects a PAST appointment dated today or later', async () => {
+    it('rejects a PAST appointment dated in the future', async () => {
       vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
       const res = await POST(makeRequest({
-        ...VALID_BODY, date: recentPastDate(0), mode: 'PAST', totalCharged: 35000,
+        ...VALID_BODY, date: '2030-01-01', mode: 'PAST', totalCharged: 35000,
       }))
       expect(res.status).toBe(400)
-      const json = await res.json()
-      expect(json.error).toMatch(/anterior a hoy/)
+      expect((await res.json()).error).toMatch(/futura/)
+    })
+
+    it('rejects a PAST appointment dated today with a time later than now', async () => {
+      vi.useFakeTimers()
+      try {
+        vi.setSystemTime(new Date('2026-06-15T18:00:00.000Z')) // 13:00 in America/Bogota
+        vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
+        const res = await POST(makeRequest({
+          ...VALID_BODY, date: '2026-06-15', startTime: '17:00', mode: 'PAST', totalCharged: 35000,
+        }))
+        expect(res.status).toBe(400)
+        expect((await res.json()).error).toMatch(/hora actual/)
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('allows a PAST appointment dated today with a time earlier than now', async () => {
+      vi.useFakeTimers()
+      try {
+        vi.setSystemTime(new Date('2026-06-15T18:00:00.000Z')) // 13:00 in America/Bogota
+        vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
+        vi.mocked(prisma.service.findMany).mockResolvedValue([MOCK_SERVICE] as never)
+        vi.mocked(prisma.appointment.findFirst).mockResolvedValue(null)
+        vi.mocked(prisma.$transaction).mockImplementation(async (fn) => fn({
+          appointment: { findFirst: vi.fn().mockResolvedValue(null), create: vi.fn().mockResolvedValue({ ...MOCK_APPOINTMENT, status: 'COMPLETED', paymentStatus: 'PAID' }) },
+          client:      { upsert: vi.fn().mockResolvedValue(MOCK_CLIENT) },
+        }))
+        const res = await POST(makeRequest({
+          ...VALID_BODY, date: '2026-06-15', startTime: '09:00', mode: 'PAST', totalCharged: 35000,
+        }))
+        expect(res.status).toBe(201)
+      } finally {
+        vi.useRealTimers()
+      }
     })
 
     it('creates the appointment as COMPLETED/PAID with service + extra total', async () => {

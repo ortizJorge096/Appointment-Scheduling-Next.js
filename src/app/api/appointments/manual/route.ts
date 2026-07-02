@@ -58,22 +58,41 @@ export async function POST(
 
   const extraTotal = (extras ?? []).reduce((sum, e) => sum + e.amount, 0)
 
-  // Backfill window: allow past dates only up to PAST_LIMIT_DAYS days ago
-  // (business timezone). Future dates are always allowed for scheduling.
+  // Date/time window depends on the mode (business timezone is authoritative).
   const todayBogota = toZonedTime(new Date(), STUDIO.timezone)
   const todayStr    = format(todayBogota, 'yyyy-MM-dd')
+  const nowHHMM     = format(todayBogota, 'HH:mm')
   const minDateStr  = format(subDays(todayBogota, PAST_LIMIT_DAYS), 'yyyy-MM-dd')
-  if (date < minDateStr) {
-    return NextResponse.json(
-      { success: false, error: `Solo puedes registrar citas de hasta ${PAST_LIMIT_DAYS} días atrás.` },
-      { status: 400 }
-    )
-  }
-  if (mode === 'PAST' && date >= todayStr) {
-    return NextResponse.json(
-      { success: false, error: 'Una cita pasada debe tener una fecha anterior a hoy.' },
-      { status: 400 }
-    )
+
+  if (mode === 'PAST') {
+    // Backfill window: [today - PAST_LIMIT_DAYS, today]. Today is allowed only
+    // with a time strictly earlier than the current moment.
+    if (date < minDateStr) {
+      return NextResponse.json(
+        { success: false, error: `Solo puedes registrar citas de hasta ${PAST_LIMIT_DAYS} días atrás.` },
+        { status: 400 }
+      )
+    }
+    if (date > todayStr) {
+      return NextResponse.json(
+        { success: false, error: 'Una cita pasada no puede tener una fecha futura.' },
+        { status: 400 }
+      )
+    }
+    if (date === todayStr && startTime >= nowHHMM) {
+      return NextResponse.json(
+        { success: false, error: 'La hora debe ser anterior a la hora actual.' },
+        { status: 400 }
+      )
+    }
+  } else {
+    // Upcoming: today or later. No past-window limit and no "15 days" message.
+    if (date < todayStr) {
+      return NextResponse.json(
+        { success: false, error: 'Una cita próxima debe tener una fecha de hoy o futura.' },
+        { status: 400 }
+      )
+    }
   }
 
   // Verify services (one or several). serviceId stays the primary for back-compat.
