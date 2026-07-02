@@ -96,7 +96,7 @@ export interface AppointmentWithService {
   paymentStatus: PaymentStatus
   paymentMethod: PaymentMethod | null
   amountPaid: number | null
-  extras?: Array<{ id: string; description: string; amount: number }>
+  extras?: Array<{ id: string; description: string; amount: number; appointmentServiceId?: string | null }>
   descuentoTipo?: 'PORCENTAJE' | 'VALOR_FIJO' | null
   descuentoValor?: number | null
   descuentoMotivo?: string | null
@@ -121,6 +121,9 @@ export interface AppointmentWithService {
     id: string
     serviceId: string
     price: number
+    descuentoTipo?: 'PORCENTAJE' | 'VALOR_FIJO' | null
+    descuentoValor?: number | null
+    descuentoMotivo?: string | null
     service: {
       id: string
       name: string

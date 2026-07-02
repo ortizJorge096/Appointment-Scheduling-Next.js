@@ -8,14 +8,18 @@ import Link from 'next/link'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { formatPrice, shortCode, toWhatsAppNumber } from '@/lib/utils'
-import { computeDiscountAmount } from '@/lib/discount'
+import { computeAppointmentTotal } from '@/lib/discount'
 import { STUDIO } from '@/lib/config'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
 import { usePermissionGuard, useCan } from '@/components/admin/usePermissionGuard'
 import { STATUS_LABEL, STATUS_CLASS } from '@/lib/appointmentStatus'
 import AdicionalesEditor, { type Adicional } from '@/components/admin/AdicionalesEditor'
-import DescuentoEditor from '@/components/admin/DescuentoEditor'
 import type { AppointmentWithService, AppointmentStatus } from '@/types'
+
+// Per-service discount + extras (keyed by AppointmentService id).
+interface LineExtraInput { description: string; amount: string }
+interface LineInput { descTipo: 'PORCENTAJE' | 'VALOR_FIJO'; descValor: string; descMotivo: string; extras: LineExtraInput[] }
+const emptyLine = (): LineInput => ({ descTipo: 'PORCENTAJE', descValor: '', descMotivo: '', extras: [] })
 
 const PAYMENT_STATUS_OPTS = [
   { v: 'PENDING', l: 'Sin pago' },
@@ -68,15 +72,18 @@ export default function CitaDetailPage() {
   const [payMethod, setPayMethod] = useState('')
   const [savingPay, setSavingPay] = useState(false)
 
-  // Manual discount (collapsible)
+  // Order-level (total) discount
   const [discTipo, setDiscTipo]     = useState<'PORCENTAJE' | 'VALOR_FIJO'>('PORCENTAJE')
   const [discValor, setDiscValor]   = useState('')
   const [discMotivo, setDiscMotivo] = useState('')
-  const [discountOpen, setDiscountOpen] = useState(false)
 
-  // Adicionales (collapsible)
+  // General adicionales (collapsible)
   const [extras, setExtras]         = useState<Adicional[]>([])
   const [extrasOpen, setExtrasOpen] = useState(false)
+
+  // Per-service discount + extras, keyed by AppointmentService id.
+  const [lines, setLines] = useState<Record<string, LineInput>>({})
+  const [discountScope, setDiscountScope] = useState<'none' | 'line' | 'order'>('none')
 
   useEffect(() => {
     fetch(`/api/appointments/${id}`)
@@ -98,12 +105,30 @@ export default function CitaDetailPage() {
     setDiscTipo((appt.descuentoTipo as 'PORCENTAJE' | 'VALOR_FIJO') ?? 'PORCENTAJE')
     setDiscValor(appt.descuentoValor != null ? String(appt.descuentoValor) : '')
     setDiscMotivo(appt.descuentoMotivo ?? '')
-    // Already-saved discount → show expanded with its values.
-    setDiscountOpen(appt.descuentoValor != null)
-    const savedExtras = (appt.extras ?? []).map((e) => ({ description: e.description, amount: String(e.amount) }))
-    setExtras(savedExtras)
-    // Already-saved extras → show expanded.
-    setExtrasOpen(savedExtras.length > 0)
+
+    // General extras (not tied to a service line).
+    const allExtras = appt.extras ?? []
+    const generalExtras = allExtras.filter((e) => !e.appointmentServiceId)
+      .map((e) => ({ description: e.description, amount: String(e.amount) }))
+    setExtras(generalExtras)
+    setExtrasOpen(generalExtras.length > 0)
+
+    // Per-service discount + extras, from the saved AppointmentService rows.
+    const svcRows = appt.services ?? []
+    const initLines: Record<string, LineInput> = {}
+    let anyLineDiscount = false
+    for (const sv of svcRows) {
+      if (sv.descuentoValor != null) anyLineDiscount = true
+      initLines[sv.id] = {
+        descTipo:   (sv.descuentoTipo as 'PORCENTAJE' | 'VALOR_FIJO') ?? 'PORCENTAJE',
+        descValor:  sv.descuentoValor != null ? String(sv.descuentoValor) : '',
+        descMotivo: sv.descuentoMotivo ?? '',
+        extras: allExtras.filter((e) => e.appointmentServiceId === sv.id)
+          .map((e) => ({ description: e.description, amount: String(e.amount) })),
+      }
+    }
+    setLines(initLines)
+    setDiscountScope(appt.descuentoValor != null ? 'order' : anyLineDiscount ? 'line' : 'none')
   }, [appt])
 
   async function updateStatus(status: AppointmentStatus) {
@@ -140,28 +165,38 @@ export default function CitaDetailPage() {
 
   async function savePayment(e: React.FormEvent) {
     e.preventDefault()
+    if (orderDiscountTooBig) { setError('El descuento al total no puede superar el subtotal.'); return }
     setSavingPay(true)
+    const svcRows = appt?.services ?? []
+    const payload: Record<string, unknown> = {
+      paymentStatus: payStatus,
+      amountPaid:    payAmount ? parseInt(payAmount) : null,
+      paymentMethod: payMethod || null,
+      // General extras (not tied to a service line).
+      extras: extras
+        .filter((e) => e.description.trim() && Number(e.amount) > 0)
+        .map((e) => ({ description: e.description.trim(), amount: Number(e.amount) })),
+      // Per-service discount + extras (extras always sent → replaces the line's set).
+      services: svcRows.map((sv) => {
+        const l = lines[sv.id]
+        const lineDisc = discountScope === 'line' && !!l && Number(l.descValor) > 0
+        return {
+          appointmentServiceId: sv.id,
+          ...(lineDisc ? { descuentoTipo: l!.descTipo, descuentoValor: Number(l!.descValor), descuentoMotivo: l!.descMotivo.trim() || undefined } : {}),
+          extras: (l?.extras ?? [])
+            .filter((e) => e.description.trim() && Number(e.amount) > 0)
+            .map((e) => ({ description: e.description.trim(), amount: Number(e.amount) })),
+        }
+      }),
+      // Order-level discount (cleared when not in 'order' scope).
+      ...(discountScope === 'order' && Number(discValor) > 0
+        ? { descuentoTipo: discTipo, descuentoValor: Number(discValor), descuentoMotivo: discMotivo.trim() || undefined }
+        : { descuentoTipo: null, descuentoValor: null, descuentoMotivo: null }),
+    }
     const res = await fetch(`/api/appointments/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        paymentStatus: payStatus,
-        amountPaid:    payAmount ? parseInt(payAmount) : null,
-        paymentMethod: payMethod || null,
-        extras: extras
-          .filter((e) => e.description.trim() && Number(e.amount) > 0)
-          .map((e) => ({ description: e.description.trim(), amount: Number(e.amount) })),
-        ...(Number(discValor) > 0
-          ? {
-              descuentoTipo:   discTipo,
-              descuentoValor:  Number(discValor),
-              descuentoMotivo: discMotivo.trim() || undefined,
-            }
-          : appt?.descuentoValor != null
-            // Had a saved discount that was removed → clear it in the DB.
-            ? { descuentoTipo: null, descuentoValor: null, descuentoMotivo: null }
-            : {}),
-      }),
+      body: JSON.stringify(payload),
     })
     const json = await res.json()
     if (json.success) setAppt(json.data)
@@ -169,17 +204,35 @@ export default function CitaDetailPage() {
     setSavingPay(false)
   }
 
-  // Collapse the discount block; clears the inputs. Confirms only if there was
-  // already a saved discount (the removal persists on the next "Guardar pago").
-  async function removeDiscount() {
-    if (appt?.descuentoValor != null) {
-      const ok = await confirm({
-        message: 'Se quitará el descuento al guardar el pago. El total volverá al precio original.',
-        confirmLabel: 'Quitar descuento',
-      })
-      if (!ok) return
-    }
-    setDiscValor(''); setDiscMotivo(''); setDiscTipo('PORCENTAJE'); setDiscountOpen(false)
+  // ── Per-service discount/extras helpers ──
+  function setLine(sid: string, patch: Partial<LineInput>) {
+    setLines((prev) => ({ ...prev, [sid]: { ...(prev[sid] ?? emptyLine()), ...patch } }))
+  }
+  function addLineExtra(sid: string) {
+    setLines((prev) => {
+      const l = prev[sid] ?? emptyLine()
+      return { ...prev, [sid]: { ...l, extras: [...l.extras, { description: '', amount: '' }] } }
+    })
+  }
+  function setLineExtra(sid: string, idx: number, patch: Partial<LineExtraInput>) {
+    setLines((prev) => {
+      const l = prev[sid] ?? emptyLine()
+      return { ...prev, [sid]: { ...l, extras: l.extras.map((e, i) => (i === idx ? { ...e, ...patch } : e)) } }
+    })
+  }
+  function removeLineExtra(sid: string, idx: number) {
+    setLines((prev) => {
+      const l = prev[sid] ?? emptyLine()
+      return { ...prev, [sid]: { ...l, extras: l.extras.filter((_, i) => i !== idx) } }
+    })
+  }
+  // Discount scopes are exclusive: switching clears the other scope's values.
+  function changeScope(scope: 'none' | 'line' | 'order') {
+    setDiscountScope(scope)
+    if (scope !== 'order') { setDiscValor(''); setDiscMotivo('') }
+    if (scope !== 'line') setLines((prev) => Object.fromEntries(
+      Object.entries(prev).map(([k, l]) => [k, { ...l, descValor: '', descMotivo: '' }]),
+    ))
   }
 
   // Expand the adicionales block and seed the first empty row right away, so
@@ -197,17 +250,10 @@ export default function CitaDetailPage() {
     setExtrasOpen(false)
   }
 
-  // Quick action: mark the (discounted) total as paid
+  // Quick action: mark the computed (discounted) total as paid.
   function markPaidFull() {
-    if (!appt) return
-    const svc = appt.services && appt.services.length > 1
-      ? appt.services.reduce((sum, s) => sum + s.price, 0)
-      : appt.service.price
-    const extrasTotal = extras.reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
-    const sub   = svc + extrasTotal
-    const final = sub - computeDiscountAmount(sub, discTipo, Number(discValor) || 0)
     setPayStatus('PAID')
-    setPayAmount(String(final))
+    setPayAmount(String(breakdown.total))
     if (!payMethod) setPayMethod('EFECTIVO')
   }
 
@@ -230,17 +276,25 @@ export default function CitaDetailPage() {
   const visibleActions = actions.filter((a) =>
     a.status === 'CANCELLED' ? can('citas:cancelar') : can('citas:editar'))
 
-  // Live discount math for the breakdown + validation (server is authoritative).
-  const servicesTotal = appt.services && appt.services.length > 1
-    ? appt.services.reduce((sum, s) => sum + s.price, 0)
-    : appt.service.price
-  const extrasTotal    = extras.reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
-  const subtotal       = servicesTotal + extrasTotal
-  const discValorNum   = Number(discValor) || 0
-  const discountAmount = computeDiscountAmount(subtotal, discTipo, discValorNum)
-  const finalPrice     = subtotal - discountAmount
-  const hasDiscount    = discValorNum > 0
-  const discountTooBig = hasDiscount && discTipo === 'VALOR_FIJO' && discValorNum > subtotal
+  // Live money breakdown, mirroring the API (per-line OR order discount + extras).
+  const svcRows = appt.services ?? []
+  const calcLines = svcRows.length > 0
+    ? svcRows.map((sv) => {
+        const l = lines[sv.id]
+        const lineDisc = discountScope === 'line' && !!l && Number(l.descValor) > 0
+        return {
+          price:          sv.price,
+          descuentoTipo:  lineDisc ? l!.descTipo : null,
+          descuentoValor: lineDisc ? Number(l!.descValor) : null,
+          extras:         (l?.extras ?? []).filter((e) => e.description.trim() && Number(e.amount) > 0).map((e) => Number(e.amount)),
+        }
+      })
+    : [{ price: appt.service.price, descuentoTipo: null, descuentoValor: null, extras: [] as number[] }]
+  const generalExtraAmts = extras.filter((e) => e.description.trim() && Number(e.amount) > 0).map((e) => Number(e.amount))
+  const orderDiscount = discountScope === 'order' ? { tipo: discTipo, valor: Number(discValor) || 0 } : undefined
+  const breakdown = computeAppointmentTotal(calcLines, generalExtraAmts, orderDiscount)
+  const orderBase = breakdown.servicesSubtotal + breakdown.extrasTotal
+  const orderDiscountTooBig = discountScope === 'order' && discTipo === 'VALOR_FIJO' && (Number(discValor) || 0) > orderBase
 
   // Quick WhatsApp link to the client, with a preloaded, appointment-specific
   // message. Only built when the stored phone normalizes to a valid number.
@@ -445,66 +499,115 @@ export default function CitaDetailPage() {
           </div>
         </div>
 
-        {/* Adicionales — shared collapsible editor */}
+        {/* Descuento: sin / por servicio / al total (excluyentes) */}
+        <div className="mt-4">
+          <span className="form-label !mb-1 block">Descuento</span>
+          <div className="flex gap-2">
+            {([['none', 'Sin descuento'], ['line', 'Por servicio'], ['order', 'Al total']] as const).map(([v, label]) => (
+              <button key={v} type="button" onClick={() => changeScope(v)}
+                className={`flex-1 px-2 py-1.5 rounded-lg text-xs border transition-colors ${
+                  discountScope === v ? 'bg-gold text-white border-gold' : 'border-beige-dark text-ink-muted hover:border-gold/50'
+                }`}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Cada servicio: precio + descuento por línea (si aplica) + adicionales */}
+        <div className="mt-3 space-y-2">
+          {svcRows.map((sv) => {
+            const l = lines[sv.id] ?? emptyLine()
+            return (
+              <div key={sv.id} className="border border-beige-dark rounded-lg p-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-ink font-medium">{sv.service.name}</span>
+                  <span className="text-ink-muted">{formatPrice(sv.price)}</span>
+                </div>
+                {discountScope === 'line' && (
+                  <div className="flex flex-wrap items-center gap-2 mt-2">
+                    <div className="flex rounded-lg border border-beige-dark overflow-hidden shrink-0">
+                      {(['PORCENTAJE', 'VALOR_FIJO'] as const).map((t) => (
+                        <button key={t} type="button" onClick={() => setLine(sv.id, { descTipo: t })}
+                          className={`px-2.5 py-1.5 text-xs ${l.descTipo === t ? 'bg-gold text-white' : 'bg-white text-ink-muted'}`}>
+                          {t === 'PORCENTAJE' ? '%' : '$'}
+                        </button>
+                      ))}
+                    </div>
+                    <input type="number" min={0} value={l.descValor}
+                      onChange={(e) => setLine(sv.id, { descValor: e.target.value })}
+                      placeholder="Descuento" className="input-field w-[110px] text-sm" />
+                    <input value={l.descMotivo} onChange={(e) => setLine(sv.id, { descMotivo: e.target.value })}
+                      placeholder="Motivo" className="input-field flex-1 min-w-[120px] text-sm" />
+                  </div>
+                )}
+                {l.extras.map((ex, i) => (
+                  <div key={i} className="flex gap-2 mt-2">
+                    <input value={ex.description} onChange={(e) => setLineExtra(sv.id, i, { description: e.target.value })}
+                      placeholder="Adicional…" className="input-field flex-1 text-sm" />
+                    <input type="number" min={0} value={ex.amount} onChange={(e) => setLineExtra(sv.id, i, { amount: e.target.value })}
+                      placeholder="$ valor" className="input-field w-[110px] text-sm" />
+                    <button type="button" onClick={() => removeLineExtra(sv.id, i)} aria-label="Eliminar adicional"
+                      className="text-ink-muted hover:text-red-500 px-1.5 text-lg leading-none">×</button>
+                  </div>
+                ))}
+                <button type="button" onClick={() => addLineExtra(sv.id)} className="text-xs text-gold hover:underline mt-2">+ Adicional a este servicio</button>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Descuento al total (scope 'order') */}
+        {discountScope === 'order' && (
+          <div className="mt-3">
+            <span className="form-label !mb-1 block">Descuento al total</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex rounded-lg border border-beige-dark overflow-hidden shrink-0">
+                {(['PORCENTAJE', 'VALOR_FIJO'] as const).map((t) => (
+                  <button key={t} type="button" onClick={() => setDiscTipo(t)}
+                    className={`px-3 py-2 text-sm ${discTipo === t ? 'bg-gold text-white' : 'bg-white text-ink-muted'}`}>
+                    {t === 'PORCENTAJE' ? '%' : '$'}
+                  </button>
+                ))}
+              </div>
+              <input type="number" min={0} value={discValor} onChange={(e) => setDiscValor(e.target.value)}
+                placeholder={discTipo === 'PORCENTAJE' ? '0–100' : '0'}
+                className={`input-field w-[120px] ${orderDiscountTooBig ? 'border-red-400' : ''}`} />
+              <input value={discMotivo} onChange={(e) => setDiscMotivo(e.target.value)}
+                placeholder="Motivo (opcional)" className="input-field flex-1 min-w-[120px]" />
+            </div>
+            {orderDiscountTooBig && <p className="text-xs text-red-500 mt-1">El descuento no puede superar el subtotal.</p>}
+          </div>
+        )}
+
+        {/* Adicional de la cita (general) */}
         <div className="mt-4">
           <AdicionalesEditor items={extras} onChange={setExtras}
             open={extrasOpen} onAdd={showExtras} onRemove={hideExtras} />
         </div>
 
-        {/* Discount — shared collapsible editor */}
-        <div className="mt-4">
-          <DescuentoEditor
-            open={discountOpen}
-            tipo={discTipo}
-            valor={discValor}
-            motivo={discMotivo}
-            error={discountTooBig ? 'El descuento no puede superar el subtotal.' : null}
-            onAdd={() => setDiscountOpen(true)}
-            onRemove={removeDiscount}
-            onChange={(patch) => {
-              if (patch.tipo   !== undefined) setDiscTipo(patch.tipo)
-              if (patch.valor  !== undefined) setDiscValor(patch.valor)
-              if (patch.motivo !== undefined) setDiscMotivo(patch.motivo)
-            }}
-          />
+        {/* Breakdown */}
+        <div className="bg-beige-pale rounded-lg px-4 py-3 text-sm space-y-1 mt-4">
+          <div className="flex justify-between text-ink-muted">
+            <span>Servicio{svcRows.length > 1 ? 's' : ''}</span>
+            <span>{formatPrice(breakdown.servicesSubtotal)}</span>
+          </div>
+          {breakdown.extrasTotal > 0 && (
+            <div className="flex justify-between text-ink-muted">
+              <span>Adicionales</span><span>{formatPrice(breakdown.extrasTotal)}</span>
+            </div>
+          )}
+          {breakdown.discount > 0 && (
+            <div className="flex justify-between text-gold-dark">
+              <span>Descuento</span><span>−{formatPrice(breakdown.discount)}</span>
+            </div>
+          )}
+          <div className="flex justify-between text-ink font-medium border-t border-beige-dark pt-1 mt-1">
+            <span>Total a cobrar</span><span>{formatPrice(breakdown.total)}</span>
+          </div>
         </div>
 
-        {/* Breakdown */}
-        {(hasDiscount || extrasTotal > 0) && (
-          <div className="bg-beige-pale rounded-lg px-4 py-3 text-sm space-y-1 mt-4">
-            <div className="flex justify-between text-ink-muted">
-              <span>Servicio{appt.services && appt.services.length > 1 ? 's' : ''}</span>
-              <span>{formatPrice(servicesTotal)}</span>
-            </div>
-            {extras
-              .filter((e) => e.description.trim() && Number(e.amount) > 0)
-              .map((e, i) => (
-                <div key={i} className="flex justify-between text-ink-muted">
-                  <span>Adicional ({e.description.trim()})</span>
-                  <span>{formatPrice(Number(e.amount))}</span>
-                </div>
-              ))}
-            {hasDiscount && !discountTooBig && (
-              <>
-                <div className="flex justify-between text-ink-muted border-t border-beige-dark pt-1 mt-1">
-                  <span>Subtotal</span><span>{formatPrice(subtotal)}</span>
-                </div>
-                <div className="flex justify-between text-gold-dark">
-                  <span>Descuento{discTipo === 'PORCENTAJE' ? ` (${discValorNum}%)` : ''}</span>
-                  <span>−{formatPrice(discountAmount)}</span>
-                </div>
-              </>
-            )}
-            <div className="flex justify-between text-ink font-medium border-t border-beige-dark pt-1 mt-1">
-              <span>Total a cobrar</span><span>{formatPrice(hasDiscount && !discountTooBig ? finalPrice : subtotal)}</span>
-            </div>
-            {hasDiscount && discMotivo.trim() && (
-              <p className="text-xs text-ink-muted/70 pt-1">Motivo: {discMotivo.trim()}</p>
-            )}
-          </div>
-        )}
-
-        <button type="submit" disabled={savingPay || discountTooBig}
+        <button type="submit" disabled={savingPay || orderDiscountTooBig}
           className="btn-primary text-xs px-5 py-2.5 sm:py-2 mt-4 disabled:opacity-50">
           {savingPay ? 'Guardando...' : 'Guardar pago'}
         </button>

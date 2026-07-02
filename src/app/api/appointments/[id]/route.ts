@@ -14,7 +14,7 @@ import { timeToMinutes, minutesToTime } from '@/lib/availability'
 import { audit, getClientIp, getUserAgent } from '@/lib/audit'
 import { sendRescheduledEmail } from '@/lib/email'
 import { isWithinCancelWindow } from '@/lib/cancellation'
-import { computeFinalPrice } from '@/lib/discount'
+import { computeAppointmentTotal } from '@/lib/discount'
 import { formatPrice } from '@/lib/utils'
 import type { AppointmentWithService } from '@/types'
 
@@ -98,7 +98,7 @@ export async function PATCH(
       service: {
         select: { id: true, name: true, price: true, durationMinutes: true },
       },
-      services: { select: { price: true } },
+      services: { select: { id: true, price: true, descuentoTipo: true, descuentoValor: true } },
       extras: true,
     },
   })
@@ -129,7 +129,7 @@ export async function PATCH(
   }
 
   const { status, notes, date, startTime, paymentStatus, paymentMethod, amountPaid,
-          descuentoTipo, descuentoValor, descuentoMotivo, extras } = parsed.data
+          descuentoTipo, descuentoValor, descuentoMotivo, extras, services: serviceLines } = parsed.data
 
   // Granular permission by intent: paying vs cancelling vs a generic edit.
   const touchesPayment = paymentStatus !== undefined || amountPaid !== undefined || paymentMethod !== undefined
@@ -141,20 +141,40 @@ export async function PATCH(
 
   const updateData: Record<string, unknown> = {}
 
-  // Adicionales: when provided, replace the appointment's full set.
-  const extraTotal = (extras ?? appointment.extras ?? []).reduce((sum, e) => sum + e.amount, 0)
-  if (extras !== undefined) {
-    updateData.extras = {
-      deleteMany: {},
-      create: extras.map((e) => ({ description: e.description.trim(), amount: e.amount })),
-    }
+  // ── Money: per-service discounts + per-line/general extras, OR an order-level
+  // discount (mutually exclusive, enforced by the schema). We recompute the final
+  // total for the precioFinal snapshot; amountPaid stays admin-controlled. ──
+  const perLineDiscount  = (serviceLines ?? []).some((l) => l.descuentoTipo != null && (l.descuentoValor ?? 0) > 0)
+  const orderDiscountSet = descuentoTipo != null && descuentoValor != null && descuentoValor > 0
+  const orderDiscountCleared = descuentoTipo === null || descuentoValor === null
+
+  const existingExtras = appointment.extras ?? []
+  const linePatch = new Map((serviceLines ?? []).map((l) => [l.appointmentServiceId, l]))
+  const svcRows = appointment.services ?? []
+  const finalLines = svcRows.length > 0
+    ? svcRows.map((sv) => {
+        const p = linePatch.get(sv.id)
+        return {
+          price:          sv.price,
+          descuentoTipo:  perLineDiscount ? (p ? (p.descuentoTipo ?? null) : sv.descuentoTipo) : null,
+          descuentoValor: perLineDiscount ? (p ? (p.descuentoValor ?? null) : sv.descuentoValor) : null,
+          extras:         p?.extras
+            ? p.extras.map((e) => e.amount)
+            : existingExtras.filter((e) => e.appointmentServiceId === sv.id).map((e) => e.amount),
+        }
+      })
+    // Legacy single-service appointment without AppointmentService rows.
+    : [{ price: appointment.service.price, descuentoTipo: null, descuentoValor: null, extras: [] as number[] }]
+  const finalGeneralExtras = (extras !== undefined ? extras : existingExtras.filter((e) => !e.appointmentServiceId)).map((e) => e.amount)
+  const breakdown = computeAppointmentTotal(
+    finalLines, finalGeneralExtras,
+    orderDiscountSet ? { tipo: descuentoTipo, valor: descuentoValor } : undefined,
+  )
+  if (orderDiscountSet && descuentoTipo === 'VALOR_FIJO' && descuentoValor > breakdown.servicesSubtotal + breakdown.extrasTotal) {
+    return NextResponse.json({ success: false, error: 'El descuento no puede superar el subtotal.' }, { status: 400 })
   }
 
-  // Capture the previous date/time before mutating, to detect a reschedule
-  // and to know what to show as "antes" in the notification email.
-  // Compared as Date instants (not formatted strings) to stay consistent
-  // with how `date` is parsed/stored everywhere else (new Date(`${date}T00:00:00`)),
-  // independent of the server's local timezone.
+  // Capture the previous date/time before mutating, to detect a reschedule.
   const oldStartTime = appointment.startTime
   const isReschedule =
     (date !== undefined && new Date(`${date}T00:00:00`).getTime() !== appointment.date.getTime()) ||
@@ -168,33 +188,22 @@ export async function PATCH(
   if (paymentMethod !== undefined) updateData.paymentMethod = paymentMethod
   if (amountPaid    !== undefined) updateData.amountPaid    = amountPaid
 
-  // Manual discount applied/cleared from the detail. Subtotal = service(s) + extra.
+  // Order-level discount snapshot on the appointment (per-line discounts live on
+  // the lines; per-line mode clears the order snapshot).
   let discountAudit: { descuentoTipo: 'PORCENTAJE' | 'VALOR_FIJO'; descuentoValor: number; precioFinal: number } | null = null
   let discountCleared = false
-  if (descuentoTipo === null || descuentoValor === null) {
-    // Explicit clear: remove the saved discount, price reverts to the subtotal.
-    discountCleared = true
-    updateData.descuentoTipo   = null
-    updateData.descuentoValor  = null
-    updateData.descuentoMotivo = null
-    updateData.precioFinal     = null
-  } else if (descuentoTipo !== undefined && descuentoValor !== undefined) {
-    const svcSubtotal = appointment.services && appointment.services.length > 1
-      ? appointment.services.reduce((sum, s) => sum + s.price, 0)
-      : appointment.service.price
-    const subtotal = svcSubtotal + extraTotal
-    if (descuentoTipo === 'VALOR_FIJO' && descuentoValor > subtotal) {
-      return NextResponse.json(
-        { success: false, error: 'El descuento no puede superar el subtotal.' },
-        { status: 400 }
-      )
-    }
-    const precioFinal = computeFinalPrice(subtotal, descuentoTipo, descuentoValor)
-    discountAudit = { descuentoTipo, descuentoValor, precioFinal }
+  if (orderDiscountSet) {
+    discountAudit = { descuentoTipo: descuentoTipo!, descuentoValor: descuentoValor!, precioFinal: breakdown.total }
     updateData.descuentoTipo   = descuentoTipo
     updateData.descuentoValor  = descuentoValor
     updateData.descuentoMotivo = descuentoMotivo?.trim() || null
-    updateData.precioFinal     = precioFinal
+    updateData.precioFinal     = breakdown.total
+  } else if (orderDiscountCleared || perLineDiscount) {
+    discountCleared = orderDiscountCleared
+    updateData.descuentoTipo   = null
+    updateData.descuentoValor  = null
+    updateData.descuentoMotivo = null
+    updateData.precioFinal     = perLineDiscount ? breakdown.total : null
   }
 
   // Saving a full payment IS completing the appointment: a paid (or courtesy)
@@ -217,23 +226,58 @@ export async function PATCH(
     )
   }
 
-  const updated = await prisma.appointment.update({
-    where: { id },
-    data: updateData,
-    include: {
-      service: {
-        select: { id: true, name: true, price: true, durationMinutes: true },
-      },
-      services: {
-        include: {
-          service: {
-            select: { id: true, name: true, price: true, durationMinutes: true },
-          },
-        },
-      },
-      extras: { orderBy: { createdAt: 'asc' } },
-    },
-  })
+  const includeFull = {
+    service:  { select: { id: true, name: true, price: true, durationMinutes: true } },
+    services: { include: { service: { select: { id: true, name: true, price: true, durationMinutes: true } } } },
+    extras:   { orderBy: { createdAt: 'asc' as const } },
+  }
+
+  const hasPerLine = !!(serviceLines && serviceLines.length > 0)
+
+  // Without per-line changes, general extras are replaced inline (single atomic
+  // update — keeps the common path simple). The per-line path uses a transaction.
+  if (extras !== undefined && !hasPerLine) {
+    updateData.extras = {
+      deleteMany: {},
+      create: extras.map((e) => ({ description: e.description.trim(), amount: e.amount })),
+    }
+  }
+
+  const updated = hasPerLine
+    ? await prisma.$transaction(async (tx) => {
+        for (const l of serviceLines!) {
+          await tx.appointmentService.update({
+            where: { id: l.appointmentServiceId },
+            data: {
+              descuentoTipo:   perLineDiscount ? (l.descuentoTipo ?? null) : null,
+              descuentoValor:  perLineDiscount ? (l.descuentoValor ?? null) : null,
+              descuentoMotivo: perLineDiscount ? (l.descuentoMotivo?.trim() || null) : null,
+            },
+          })
+          // Replace this line's extras when the payload includes them.
+          if (l.extras) {
+            await tx.appointmentExtra.deleteMany({ where: { appointmentServiceId: l.appointmentServiceId } })
+            if (l.extras.length > 0) {
+              await tx.appointmentExtra.createMany({
+                data: l.extras.map((e) => ({ appointmentId: id, appointmentServiceId: l.appointmentServiceId, description: e.description.trim(), amount: e.amount })),
+              })
+            }
+          }
+        }
+        // Exclusivity: an order-level discount clears any per-line discounts.
+        if (orderDiscountSet) {
+          await tx.appointmentService.updateMany({ where: { appointmentId: id }, data: { descuentoTipo: null, descuentoValor: null, descuentoMotivo: null } })
+        }
+        // General extras (not tied to a line) replaced when provided.
+        if (extras !== undefined) {
+          await tx.appointmentExtra.deleteMany({ where: { appointmentId: id, appointmentServiceId: null } })
+          if (extras.length > 0) {
+            await tx.appointmentExtra.createMany({ data: extras.map((e) => ({ appointmentId: id, description: e.description.trim(), amount: e.amount })) })
+          }
+        }
+        return tx.appointment.update({ where: { id }, data: updateData, include: includeFull })
+      })
+    : await prisma.appointment.update({ where: { id }, data: updateData, include: includeFull })
 
   if (status === 'CONFIRMED') {
     console.log(`✅ Cita ${id} confirmada. El cron enviará recordatorio 24h antes.`)
