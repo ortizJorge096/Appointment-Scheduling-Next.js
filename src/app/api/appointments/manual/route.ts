@@ -10,7 +10,7 @@ import { getCurrentAdmin } from '@/lib/authz'
 import { hasPermission } from '@/lib/permissions'
 import { STUDIO } from '@/lib/config'
 import { createManualAppointmentSchema } from '@/lib/validations'
-import { timeToMinutes, minutesToTime } from '@/lib/availability'
+import { timeToMinutes, minutesToTime, getAvailableSlotsByDuration } from '@/lib/availability'
 import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
 import { audit, getClientIp, getUserAgent } from '@/lib/audit'
 import { sendConfirmationEmail } from '@/lib/email'
@@ -131,28 +131,26 @@ export async function POST(
     precioFinal = computeFinalPrice(subtotal, descuentoTipo, descuentoValor)
   }
 
-  // Check actual appointment conflict (only if admin didn't force the time).
-  // We use a direct query instead of isSlotAvailable to avoid false positives
-  // when no Schedule exists for that day (e.g. past dates or days without configured hours).
-  // Past appointments already happened: they don't compete for a slot, so we
-  // never block a backfill on an "occupied" overlapping time.
+  // Upcoming manual bookings must fall within the studio's schedule for that day
+  // (open day, business hours, outside the lunch break, not a blocked date) AND
+  // land on a free slot — unless the admin explicitly forces it. Past bookings
+  // already happened, so they are never schedule-checked.
   if (!skipAvailabilityCheck && mode !== 'PAST') {
-    let conflict
+    let slots
     try {
-      conflict = await prisma.appointment.findFirst({
-        where: {
-          date:      new Date(`${date}T00:00:00`),
-          status:    { notIn: ['CANCELLED', 'NO_SHOW'] },
-          startTime: { lt: endTime },
-          endTime:   { gt: startTime },
-        },
-        select: { id: true },
-      })
+      ;({ slots } = await getAvailableSlotsByDuration(date, totalDuration))
     } catch (err) {
       if (isDbUnavailable(err)) return dbUnavailableResponse()
       return NextResponse.json({ success: false, error: 'Error interno' }, { status: 500 })
     }
-    if (conflict) {
+    const slot = slots.find((s) => s.startTime === startTime)
+    if (!slot) {
+      return NextResponse.json(
+        { success: false, error: 'La hora está fuera del horario de atención de ese día. Usa "Forzar" si quieres registrarla igual.' },
+        { status: 400 }
+      )
+    }
+    if (!slot.available) {
       return NextResponse.json(
         { success: false, error: 'Este horario ya está ocupado.' },
         { status: 409 }

@@ -14,6 +14,7 @@ vi.mock('@/lib/prisma', () => ({
 vi.mock('@/lib/email', () => ({ sendConfirmationEmail: vi.fn().mockResolvedValue(undefined) }))
 vi.mock('@/lib/availability', () => ({
   isSlotAvailable: vi.fn(),
+  getAvailableSlotsByDuration: vi.fn(),
   timeToMinutes:   vi.fn((t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m }),
   minutesToTime:   vi.fn((min: number) => { const h = Math.floor(min / 60); const m = min % 60; return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}` }),
 }))
@@ -24,11 +25,18 @@ vi.mock('@/lib/db-error', () => ({
 
 const { getServerSession }    = await import('next-auth')
 const { prisma }              = await import('@/lib/prisma')
-const { isSlotAvailable }     = await import('@/lib/availability')
+const { isSlotAvailable, getAvailableSlotsByDuration } = await import('@/lib/availability')
 const { sendConfirmationEmail } = await import('@/lib/email')
 const { POST }                = await import('./route')
 
-beforeEach(() => { vi.clearAllMocks() })
+beforeEach(() => {
+  vi.clearAllMocks()
+  // Default: the requested 10:00 slot is within hours and free (overridden per test).
+  vi.mocked(getAvailableSlotsByDuration).mockResolvedValue({
+    slots: [{ startTime: '10:00', endTime: '10:45', available: true }],
+    durationMinutes: 45,
+  } as never)
+})
 
 const MOCK_SESSION = { user: { id: 'admin-1', email: 'admin@test.com', role: 'SUPER_ADMIN' } }
 const MOCK_SERVICE = { id: 's1', name: 'Manicura', price: 35000, durationMinutes: 45 }
@@ -104,10 +112,39 @@ describe('POST /api/appointments/manual', () => {
   it('returns 409 when slot is unavailable (without skip)', async () => {
     vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
     vi.mocked(prisma.service.findMany).mockResolvedValue([MOCK_SERVICE] as never)
-    vi.mocked(prisma.appointment.findFirst).mockResolvedValue({ id: 'conflict-1' } as never)
+    vi.mocked(getAvailableSlotsByDuration).mockResolvedValue({
+      slots: [{ startTime: '10:00', endTime: '10:45', available: false }], durationMinutes: 45,
+    } as never)
 
     const res = await POST(makeRequest(VALID_BODY))
     expect(res.status).toBe(409)
+  })
+
+  it('rejects an UPCOMING appointment outside business hours', async () => {
+    vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
+    vi.mocked(prisma.service.findMany).mockResolvedValue([MOCK_SERVICE] as never)
+    // The studio only offers 09:00 that day; 22:00 isn't a valid slot.
+    vi.mocked(getAvailableSlotsByDuration).mockResolvedValue({
+      slots: [{ startTime: '09:00', endTime: '09:45', available: true }], durationMinutes: 45,
+    } as never)
+
+    const res = await POST(makeRequest({ ...VALID_BODY, startTime: '22:00' }))
+    expect(res.status).toBe(400)
+    expect((await res.json()).error).toMatch(/fuera del horario/)
+  })
+
+  it('allows forcing an out-of-hours time with skipAvailabilityCheck', async () => {
+    vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
+    vi.mocked(prisma.service.findMany).mockResolvedValue([MOCK_SERVICE] as never)
+    vi.mocked(getAvailableSlotsByDuration).mockResolvedValue({ slots: [], durationMinutes: 45 } as never)
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn) => fn({
+      appointment: { findFirst: vi.fn().mockResolvedValue(null), create: vi.fn().mockResolvedValue(MOCK_APPOINTMENT) },
+      client:      { upsert: vi.fn().mockResolvedValue(MOCK_CLIENT) },
+    }) as never)
+
+    const res = await POST(makeRequest({ ...VALID_BODY, startTime: '22:00', skipAvailabilityCheck: true }))
+    expect(res.status).toBe(201)
+    expect(getAvailableSlotsByDuration).not.toHaveBeenCalled()
   })
 
   it('creates appointment and upserts client', async () => {

@@ -620,13 +620,15 @@ export default function ManualAppointmentModal() {
                   rows={2} className="input-field w-full resize-none" />
               </div>
 
-              {/* Forzar horario */}
-              <label className="flex items-start gap-2 text-sm text-ink-muted cursor-pointer">
-                <input type="checkbox" checked={form.skipAvailabilityCheck}
-                  onChange={e => setForm(f => ({ ...f, skipAvailabilityCheck: e.target.checked }))}
-                  className="mt-0.5 rounded border-beige-dark text-gold focus:ring-gold/40" />
-                <span>Forzar aunque el horario esté ocupado</span>
-              </label>
+              {/* Forzar horario — solo aplica a "Cita próxima" (una pasada no valida horario) */}
+              {form.mode === 'UPCOMING' && (
+                <label className="flex items-start gap-2 text-sm text-ink-muted cursor-pointer">
+                  <input type="checkbox" checked={form.skipAvailabilityCheck}
+                    onChange={e => setForm(f => ({ ...f, skipAvailabilityCheck: e.target.checked }))}
+                    className="mt-0.5 rounded border-beige-dark text-gold focus:ring-gold/40" />
+                  <span>Forzar (ignorar horario y disponibilidad)</span>
+                </label>
+              )}
 
               {apiError && (
                 <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-3 py-2 rounded-lg">
