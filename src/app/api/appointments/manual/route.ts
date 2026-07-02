@@ -15,7 +15,7 @@ import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
 import { audit, getClientIp, getUserAgent } from '@/lib/audit'
 import { sendConfirmationEmail } from '@/lib/email'
 import { resolveOrCreateClient } from '@/lib/clients'
-import { computeFinalPrice } from '@/lib/discount'
+import { computeAppointmentTotal } from '@/lib/discount'
 import { formatPrice } from '@/lib/utils'
 import type { ApiResponse, AppointmentWithService } from '@/types'
 import { toZonedTime } from 'date-fns-tz'
@@ -52,11 +52,9 @@ export async function POST(
     clientName, clientEmail, clientPhone, clientId: pickedClientId,
     serviceId, serviceIds, date, startTime, source, notes,
     skipAvailabilityCheck, notifyClient,
-    mode, totalCharged, extras,
+    mode, extras, services: serviceLines,
     descuentoTipo, descuentoValor, descuentoMotivo,
   } = parsed.data
-
-  const extraTotal = (extras ?? []).reduce((sum, e) => sum + e.amount, 0)
 
   // Date/time window depends on the mode (business timezone is authoritative).
   const todayBogota = toZonedTime(new Date(), STUDIO.timezone)
@@ -116,20 +114,39 @@ export async function POST(
   const startMinutes  = timeToMinutes(startTime)
   const endTime       = minutesToTime(startMinutes + totalDuration)
 
-  // Manual discount — only on a past appointment's charge. Validate against the
-  // subtotal (service + extra) and compute the final price snapshot here.
-  let precioFinal: number | null = null
-  const hasDiscount = mode === 'PAST' && !!descuentoTipo && descuentoValor != null
-  if (hasDiscount) {
-    const subtotal = totalCharged! + extraTotal
-    if (descuentoTipo === 'VALOR_FIJO' && descuentoValor! > subtotal) {
-      return NextResponse.json(
-        { success: false, error: 'El descuento no puede superar el subtotal.' },
-        { status: 400 }
-      )
+  // Money breakdown for the past charge. Per-service discounts live on each line;
+  // an order-level discount (descuento*) applies to the whole — the schema
+  // enforces they're mutually exclusive. Extras always add.
+  const lineByService = new Map((serviceLines ?? []).map((l) => [l.serviceId, l]))
+  const calcLines = servicesList.map((s) => {
+    const line = lineByService.get(s.id)
+    return {
+      price:          s.price,
+      descuentoTipo:  line?.descuentoTipo ?? null,
+      descuentoValor: line?.descuentoValor ?? null,
+      extras:         (line?.extras ?? []).map((e) => e.amount),
     }
-    precioFinal = computeFinalPrice(subtotal, descuentoTipo, descuentoValor)
+  })
+  const generalExtras = extras ?? []
+  const breakdown = computeAppointmentTotal(
+    calcLines,
+    generalExtras.map((e) => e.amount),
+    { tipo: descuentoTipo, valor: descuentoValor },
+  )
+
+  // Order-level fixed discount can't exceed the subtotal (clearer than clamping).
+  if (
+    descuentoTipo === 'VALOR_FIJO' && descuentoValor != null &&
+    descuentoValor > breakdown.servicesSubtotal + breakdown.extrasTotal
+  ) {
+    return NextResponse.json(
+      { success: false, error: 'El descuento no puede superar el subtotal.' },
+      { status: 400 }
+    )
   }
+
+  const hasOrderDiscount = descuentoTipo != null && descuentoValor != null && descuentoValor > 0
+  const precioFinal: number | null = mode === 'PAST' && hasOrderDiscount ? breakdown.total : null
 
   // Upcoming manual bookings must fall within the studio's schedule for that day
   // (open day, business hours, outside the lunch break, not a blocked date) AND
@@ -197,13 +214,14 @@ export async function POST(
       }
 
       const isPast = mode === 'PAST'
-      // Per-service snapshot: catalog price. For a SINGLE-service past charge the
-      // whole amount sits on that one service (preserves prior behavior); with
-      // multiple services the real total lives in amountPaid.
-      const priceFor = (s: { price: number }) =>
-        isPast && servicesList.length === 1 ? totalCharged! : s.price
 
-      return tx.appointment.create({
+      const include = {
+        service:  { select: { id: true, name: true, price: true, durationMinutes: true } },
+        services: { include: { service: { select: { id: true, name: true, price: true, durationMinutes: true } } } },
+        extras:   { orderBy: { createdAt: 'asc' as const } },
+      }
+
+      const created = await tx.appointment.create({
         data: {
           clientName:  clientName.trim(),
           clientEmail: emailNorm,
@@ -219,9 +237,9 @@ export async function POST(
           origin:      isPast ? 'PAST' : 'MANUAL',
           notes:       notes?.trim() ?? null,
           ...(isPast ? {
-            paymentStatus:    'PAID',
-            amountPaid:       precioFinal ?? (totalCharged! + extraTotal),
-            ...(precioFinal != null ? {
+            paymentStatus: 'PAID',
+            amountPaid:    breakdown.total,
+            ...(hasOrderDiscount ? {
               descuentoTipo,
               descuentoValor,
               descuentoMotivo: descuentoMotivo?.trim() || null,
@@ -229,28 +247,52 @@ export async function POST(
             } : {}),
           } : {}),
           services: {
-            create: servicesList.map((s) => ({
-              serviceId:   s.id,
-              serviceName: s.name, // snapshot — preserves history
-              price:       priceFor(s),
-            })),
+            create: servicesList.map((s) => {
+              const line = lineByService.get(s.id)
+              return {
+                serviceId:   s.id,
+                serviceName: s.name, // snapshot — preserves history
+                price:       s.price,
+                // Per-line discount only matters for a past charge.
+                ...(isPast && line?.descuentoTipo && line.descuentoValor != null ? {
+                  descuentoTipo:   line.descuentoTipo,
+                  descuentoValor:  line.descuentoValor,
+                  descuentoMotivo: line.descuentoMotivo?.trim() || null,
+                } : {}),
+              }
+            }),
           },
-          ...(isPast && extras && extras.length > 0 ? {
+          // General extras (not tied to a service line) are nested here.
+          ...(isPast && generalExtras.length > 0 ? {
             extras: {
-              create: extras.map((e) => ({ description: e.description.trim(), amount: e.amount })),
+              create: generalExtras.map((e) => ({ description: e.description.trim(), amount: e.amount })),
             },
           } : {}),
         },
-        include: {
-          service: { select: { id: true, name: true, price: true, durationMinutes: true } },
-          services: {
-            include: {
-              service: { select: { id: true, name: true, price: true, durationMinutes: true } },
-            },
-          },
-          extras: { orderBy: { createdAt: 'asc' } },
-        },
-      }) as unknown as AppointmentWithService
+        include,
+      })
+
+      // Per-line extras need the created AppointmentService ids, so they're
+      // written in a second step and the appointment is re-read with them.
+      const perLineExtraRows = isPast
+        ? (serviceLines ?? []).flatMap((line) => {
+            const row = created.services.find((sv) => sv.serviceId === line.serviceId)
+            if (!row) return []
+            return (line.extras ?? []).map((e) => ({
+              appointmentId:        created.id,
+              appointmentServiceId: row.id,
+              description:          e.description.trim(),
+              amount:              e.amount,
+            }))
+          })
+        : []
+
+      if (perLineExtraRows.length > 0) {
+        await tx.appointmentExtra.createMany({ data: perLineExtraRows })
+        const full = await tx.appointment.findUnique({ where: { id: created.id }, include })
+        return full as unknown as AppointmentWithService
+      }
+      return created as unknown as AppointmentWithService
     }, { isolationLevel: 'Serializable' })
   } catch (err) {
     if (err instanceof SlotTakenError) {
@@ -300,10 +342,13 @@ export async function POST(
       mode,
       notifyClient: mode !== 'PAST' ? notifyClient : undefined,
       ...(mode === 'PAST' ? {
-        totalCharged,
-        extras: extras && extras.length > 0 ? extras : undefined,
-        amountPaid: appointment.amountPaid,
-        ...(precioFinal != null ? { descuentoTipo, descuentoValor, descuentoMotivo: descuentoMotivo?.trim() || undefined, precioFinal } : {}),
+        amountPaid:          appointment.amountPaid,
+        servicesSubtotal:    breakdown.servicesSubtotal,
+        extrasTotal:         breakdown.extrasTotal,
+        discountTotal:       breakdown.discount,
+        extras:              generalExtras.length > 0 ? generalExtras : undefined,
+        perServiceDiscounts: (serviceLines ?? []).filter((l) => l.descuentoValor != null && l.descuentoValor > 0).length || undefined,
+        ...(hasOrderDiscount ? { descuentoTipo, descuentoValor, descuentoMotivo: descuentoMotivo?.trim() || undefined, precioFinal } : {}),
       } : {}),
     },
   })

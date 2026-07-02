@@ -441,7 +441,6 @@ export const createManualAppointmentSchema = z.object({
   // "Cita pasada": registers an already-rendered appointment directly as
   // completed and paid. Defaults to the existing ("Cita próxima") behavior.
   mode:             z.enum(['UPCOMING', 'PAST']).optional().default('UPCOMING'),
-  totalCharged:     z.number().int().min(0).optional(),
 
   // General adicionales (not tied to a service line).
   extras:           extrasSchema,
@@ -449,13 +448,10 @@ export const createManualAppointmentSchema = z.object({
   // Order-level (total) discount on a past appointment's charge.
   ...discountFields,
 
-  // Per-service discount + extras. Keyed by serviceId (consumed by the route in
-  // the follow-up slice; accepted now so the contract is fixed).
+  // Per-service discount + extras (keyed by serviceId). The past charge is
+  // computed from service prices − discounts + extras (no free-typed total).
   services:         z.array(manualServiceLineSchema).max(5).optional(),
-}).refine(
-  (data) => data.mode !== 'PAST' || data.totalCharged !== undefined,
-  { message: 'El total cobrado es requerido para registrar una cita pasada', path: ['totalCharged'] }
-).superRefine(checkDiscount).superRefine(checkDiscountExclusivity)
+}).superRefine(checkDiscount).superRefine(checkDiscountExclusivity)
 
 // ─────────────────────────────────────────
 // CLIENTS (admin)

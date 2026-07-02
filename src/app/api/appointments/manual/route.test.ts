@@ -189,10 +189,18 @@ describe('POST /api/appointments/manual', () => {
       return d.toISOString().slice(0, 10)
     }
 
-    it('rejects a PAST appointment without totalCharged', async () => {
+    it('registers a PAST appointment without a typed total (computed from services)', async () => {
       vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
+      vi.mocked(prisma.service.findMany).mockResolvedValue([MOCK_SERVICE] as never)
+      const create = vi.fn().mockResolvedValue({ ...MOCK_APPOINTMENT, status: 'COMPLETED', paymentStatus: 'PAID' })
+      vi.mocked(prisma.$transaction).mockImplementation(async (fn) => fn({
+        appointment: { findFirst: vi.fn().mockResolvedValue(null), create },
+        client:      { upsert: vi.fn().mockResolvedValue(MOCK_CLIENT) },
+      }) as never)
+
       const res = await POST(makeRequest({ ...VALID_BODY, date: recentPastDate(2), mode: 'PAST' }))
-      expect(res.status).toBe(400)
+      expect(res.status).toBe(201)
+      expect(create.mock.calls[0][0].data.amountPaid).toBe(35000) // catalog price, no typed total
     })
 
     it('rejects a PAST appointment dated in the future', async () => {
@@ -267,6 +275,80 @@ describe('POST /api/appointments/manual', () => {
       expect(createArgs.data.extras.create[0].description).toBe('Tinte extra')
       expect(createArgs.data.extras.create[0].amount).toBe(10000)
       expect(createArgs.data.services.create[0].price).toBe(35000)
+    })
+
+    it('applies a per-service discount to the past charge', async () => {
+      vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
+      vi.mocked(prisma.service.findMany).mockResolvedValue([{ id: VALID_BODY.serviceId, name: 'Manicura', price: 35000, durationMinutes: 45 }] as never)
+      const create = vi.fn().mockResolvedValue({ ...MOCK_APPOINTMENT, status: 'COMPLETED', paymentStatus: 'PAID' })
+      vi.mocked(prisma.$transaction).mockImplementation(async (fn) => fn({
+        appointment: { findFirst: vi.fn().mockResolvedValue(null), create },
+        client:      { upsert: vi.fn().mockResolvedValue(MOCK_CLIENT) },
+      }) as never)
+
+      const res = await POST(makeRequest({
+        ...VALID_BODY, date: recentPastDate(2), mode: 'PAST',
+        services: [{ serviceId: VALID_BODY.serviceId, descuentoTipo: 'PORCENTAJE', descuentoValor: 10 }],
+      }))
+      expect(res.status).toBe(201)
+      const data = create.mock.calls[0][0].data
+      expect(data.amountPaid).toBe(31500) // 35000 − 10%
+      expect(data.services.create[0].descuentoTipo).toBe('PORCENTAJE')
+      expect(data.services.create[0].descuentoValor).toBe(10)
+    })
+
+    it('applies an order-level total discount to the past charge', async () => {
+      vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
+      vi.mocked(prisma.service.findMany).mockResolvedValue([{ id: VALID_BODY.serviceId, name: 'Manicura', price: 35000, durationMinutes: 45 }] as never)
+      const create = vi.fn().mockResolvedValue({ ...MOCK_APPOINTMENT, status: 'COMPLETED', paymentStatus: 'PAID' })
+      vi.mocked(prisma.$transaction).mockImplementation(async (fn) => fn({
+        appointment: { findFirst: vi.fn().mockResolvedValue(null), create },
+        client:      { upsert: vi.fn().mockResolvedValue(MOCK_CLIENT) },
+      }) as never)
+
+      const res = await POST(makeRequest({
+        ...VALID_BODY, date: recentPastDate(2), mode: 'PAST',
+        descuentoTipo: 'VALOR_FIJO', descuentoValor: 5000,
+      }))
+      expect(res.status).toBe(201)
+      const data = create.mock.calls[0][0].data
+      expect(data.amountPaid).toBe(30000) // 35000 − 5000
+      expect(data.descuentoTipo).toBe('VALOR_FIJO')
+      expect(data.precioFinal).toBe(30000)
+    })
+
+    it('rejects mixing per-service and order-level discount', async () => {
+      vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
+      const res = await POST(makeRequest({
+        ...VALID_BODY, date: recentPastDate(2), mode: 'PAST',
+        descuentoTipo: 'PORCENTAJE', descuentoValor: 10,
+        services: [{ serviceId: VALID_BODY.serviceId, descuentoTipo: 'PORCENTAJE', descuentoValor: 5 }],
+      }))
+      expect(res.status).toBe(400)
+      expect((await res.json()).error).toMatch(/no ambos/)
+    })
+
+    it('creates per-service extras linked to their service line', async () => {
+      vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
+      vi.mocked(prisma.service.findMany).mockResolvedValue([{ id: VALID_BODY.serviceId, name: 'Manicura', price: 35000, durationMinutes: 45 }] as never)
+      const createMany = vi.fn().mockResolvedValue({ count: 1 })
+      const createdAppt = { ...MOCK_APPOINTMENT, id: 'appt-1', services: [{ id: 'as-1', serviceId: VALID_BODY.serviceId }] }
+      const findUnique = vi.fn().mockResolvedValue(createdAppt)
+      vi.mocked(prisma.$transaction).mockImplementation(async (fn) => fn({
+        appointment: { findFirst: vi.fn().mockResolvedValue(null), create: vi.fn().mockResolvedValue(createdAppt), findUnique },
+        appointmentExtra: { createMany },
+        client: { upsert: vi.fn().mockResolvedValue(MOCK_CLIENT) },
+      }) as never)
+
+      const res = await POST(makeRequest({
+        ...VALID_BODY, date: recentPastDate(2), mode: 'PAST',
+        services: [{ serviceId: VALID_BODY.serviceId, extras: [{ description: 'Tinte', amount: 8000 }] }],
+      }))
+      expect(res.status).toBe(201)
+      expect(createMany).toHaveBeenCalled()
+      const rows = createMany.mock.calls[0][0].data
+      expect(rows[0].appointmentServiceId).toBe('as-1')
+      expect(rows[0].amount).toBe(8000)
     })
 
     it('does not change the UPCOMING (default) creation path', async () => {
