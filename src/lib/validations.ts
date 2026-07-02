@@ -2,6 +2,7 @@
 // Zod validation schemas — valentinajimenez
 
 import { z } from 'zod'
+import { Role } from '@prisma/client'
 import { ICON_KEYS } from '@/lib/config'
 
 const iconEnum = z.enum(ICON_KEYS as unknown as [string, ...string[]])
@@ -510,13 +511,14 @@ export const createUserSchema = z.object({
   name:     z.string().min(2, 'El nombre debe tener al menos 2 caracteres').max(80),
   email:    z.string().email('Email inválido'),
   password: strongPassword,
-  role:     z.enum(['ADMIN', 'SUPER_ADMIN']).default('ADMIN'),
+  // Derived from the Prisma enum so new roles are accepted automatically.
+  role:     z.nativeEnum(Role).default(Role.ADMIN),
 })
 
 export const updateUserSchema = z.object({
   name:        z.string().min(2, 'El nombre debe tener al menos 2 caracteres').max(80).optional(),
   email:       z.string().email('Email inválido').optional(),
-  role:        z.enum(['ADMIN', 'SUPER_ADMIN']).optional(),
+  role:        z.nativeEnum(Role).optional(),
   isActive:    z.boolean().optional(),
   // Optional admin-driven password reset (sets a new password for the target).
   newPassword: strongPassword.optional(),
