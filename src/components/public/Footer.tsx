@@ -1,7 +1,8 @@
 import Link from 'next/link'
-import { STUDIO, WHATSAPP_URL, MAILTO_URL, INSTAGRAM_URL, TIKTOK_URL } from '@/lib/config'
+import { STUDIO, MAILTO_URL, INSTAGRAM_URL, TIKTOK_URL } from '@/lib/config'
 import FooterServiceLinks from './FooterServiceLinks'
 import FooterTagline from './FooterTagline'
+import WhatsAppLink from './WhatsAppLink'
 
 export default function Footer() {
   return (
@@ -47,10 +48,9 @@ export default function Footer() {
           <ul className="space-y-2.5 text-sm text-white/40">
             <li>{STUDIO.address}</li>
             <li>
-              <a href={WHATSAPP_URL} target="_blank" rel="noreferrer"
-                className="hover:text-gold transition-colors">
+              <WhatsAppLink className="hover:text-gold transition-colors">
                 {STUDIO.phone}
-              </a>
+              </WhatsAppLink>
             </li>
             <li>
               <a href={MAILTO_URL}
