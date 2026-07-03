@@ -16,7 +16,7 @@ import { audit, getClientIp, getUserAgent } from '@/lib/audit'
 import { sendConfirmationEmail } from '@/lib/email'
 import { resolveOrCreateClient } from '@/lib/clients'
 import { computeAppointmentTotal } from '@/lib/discount'
-import { formatPrice } from '@/lib/utils'
+import { formatPrice, normalizePhone } from '@/lib/utils'
 import type { ApiResponse, AppointmentWithService } from '@/types'
 import { toZonedTime } from 'date-fns-tz'
 import { format, subDays } from 'date-fns'
@@ -204,7 +204,11 @@ export async function POST(
       if (picked) {
         await tx.client.update({
           where: { id: picked.id },
-          data:  { name: clientName.trim(), phone: clientPhone.trim() },
+          data:  {
+            name:            clientName.trim(),
+            phone:           clientPhone.trim(),
+            phoneNormalized: normalizePhone(clientPhone),
+          },
         })
         clientId = picked.id
       } else {
@@ -298,6 +302,12 @@ export async function POST(
     if (err instanceof SlotTakenError) {
       return NextResponse.json(
         { success: false, error: 'Este horario ya está reservado. Elige otro.' },
+        { status: 409 }
+      )
+    }
+    if ((err as { code?: string }).code === 'P2002') {
+      return NextResponse.json(
+        { success: false, error: 'Ese teléfono ya pertenece a otro cliente.' },
         { status: 409 }
       )
     }

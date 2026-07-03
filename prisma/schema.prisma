@@ -52,6 +52,10 @@ model Client {
   // clients without email never collide, while real emails stay unique.
   email        String?       @unique
   phone        String?
+  // Canonical phone (normalizePhone → 57XXXXXXXXXX): the client's identity key.
+  // @unique so one phone = one client; nullable so admin-created clients without
+  // a phone don't collide (Postgres allows multiple NULLs under a unique index).
+  phoneNormalized String?    @unique
   notes        String?       // allergies, preferences, internal notes
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt

@@ -92,18 +92,25 @@ export function isValidPhone(raw: string | null | undefined): boolean {
 }
 
 /**
- * Normalizes a free-form phone into a wa.me-ready number (digits only, with
- * country code), or null if it's too short/long to be valid. Colombian
- * 10-digit numbers get the 57 country code; longer ones are assumed to already
- * include it. Strips spaces, dashes, parentheses and the leading "+".
+ * Normalizes a free-form phone into a canonical digits-only number with the
+ * country code (Colombian 10-digit numbers get 57; longer ones are assumed to
+ * already include it), or null if it's too short/long to be valid. Strips
+ * spaces, dashes, parentheses and the leading "+".
+ *
+ * This canonical form is BOTH the wa.me number and the client identity key
+ * (Client.phoneNormalized), so the same number typed with different formatting
+ * always resolves to the same client.
  */
-export function toWhatsAppNumber(raw: string | null | undefined): string | null {
+export function normalizePhone(raw: string | null | undefined): string | null {
   if (!raw) return null
   const digits = raw.replace(/\D/g, '')
   if (digits.length === 10) return `57${digits}`        // Colombian number, no country code
   if (digits.length > 10 && digits.length <= 15) return digits // already includes country code
   return null                                            // too short/long → invalid
 }
+
+/** The WhatsApp link uses the exact same canonical number. */
+export const toWhatsAppNumber = normalizePhone
 
 /** Builds a URL-safe slug from a name (lowercase, accents stripped, dashes). */
 export function slugify(input: string): string {
