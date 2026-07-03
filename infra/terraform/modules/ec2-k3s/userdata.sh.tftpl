@@ -179,17 +179,7 @@ echo "0 */6 * * * root for s in letsencrypt-staging-account letsencrypt-prod-acc
 echo "30 */6 * * * root kubectl -n ${app_namespace} get secret appointment-scheduling-tls -o json 2>/dev/null | jq 'del(.metadata.ownerReferences,.metadata.resourceVersion,.metadata.uid,.metadata.creationTimestamp,.metadata.managedFields,.status)' 2>/dev/null | aws s3 cp - \"s3://${s3_bucket_name}/cert-manager/${app_namespace}-tls.json\" --region \"${aws_region}\" 2>/dev/null" >> /etc/cron.d/cm-backup
 %{ endif ~}
 
-# ── (6) SSM secrets ──
-echo "── [6] Reading secrets from SSM ──"
-DATABASE_URL=$(aws ssm get-parameter --region "${aws_region}" \
-  --name "${database_url_ssm_parameter}" --with-decryption --query 'Parameter.Value' --output text)
-NEXTAUTH_SECRET=$(aws ssm get-parameter --region "${aws_region}" \
-  --name "${nextauth_secret_ssm_parameter}" --with-decryption --query 'Parameter.Value' --output text)
-if [ -z "$${DATABASE_URL}" ] || [ -z "$${NEXTAUTH_SECRET}" ]; then
-  echo "ERROR: missing SSM secrets"; exit 1
-fi
-
-# ── (7) Clone repo + apply overlay ──
+# ── (6) Clone repo (needed for the overlay AND the shared secret script) ──
 mkdir -p /opt/app && cd /opt/app
 git clone --depth 1 --branch "${git_branch}" \
   https://github.com/${github_owner}/${github_repo}.git repo
@@ -220,14 +210,13 @@ kustomize edit set image appointment-scheduling=${image_ref}
 cd /opt/app/repo
 kustomize build "$${OVERLAY_DIR}" | kubectl --kubeconfig $${KUBECONFIG} apply -f -
 
-kubectl --kubeconfig $${KUBECONFIG} -n "${app_namespace}" \
-  create secret generic appointment-scheduling-secret \
-    --from-literal=DATABASE_URL="$${DATABASE_URL}" \
-    --from-literal=NEXTAUTH_SECRET="$${NEXTAUTH_SECRET}" \
-    --from-literal=SES_FROM_EMAIL="${ses_from_email}" \
-    --from-literal=ENABLE_EMAILS="${enable_emails}" \
-    --dry-run=client -o yaml \
-  | kubectl --kubeconfig $${KUBECONFIG} apply -f -
+# ── (7) Render the real Secret from SSM AFTER the overlay (whose base ships a
+#        PLACEHOLDER stub that would otherwise overwrite it), then restart so the
+#        Deployment picks it up. This is the SAME script the CI/CD deploy calls →
+#        the two provisioning paths can never drift on which keys the Secret holds.
+KUBECONFIG="$${KUBECONFIG}" bash scripts/render-app-secret.sh "${app_namespace}" \
+  "${database_url_ssm_parameter}" "${nextauth_secret_ssm_parameter}" \
+  "${google_calendar_key_ssm_parameter}" "${aws_region}"
 
 kubectl --kubeconfig $${KUBECONFIG} -n "${app_namespace}" \
   rollout restart deployment/appointment-scheduling

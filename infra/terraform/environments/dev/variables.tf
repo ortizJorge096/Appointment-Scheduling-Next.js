@@ -117,6 +117,13 @@ variable "ses_from_email" {
   default     = ""
 }
 
+variable "google_private_key" {
+  description = "Google Calendar service-account private key (the private_key field of the JSON). Provide via TF_VAR_google_private_key or a gitignored tfvars — NEVER commit it. Empty keeps whatever value is already in SSM (ignore_changes)."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 variable "app_host" {
   description = "Public hostname for this environment (A record → Elastic IP). Single source of truth: feeds the module's resolved host (outputs + first-boot user-data) and the SSM param the CI reads for the ingress host, NEXTAUTH_URL and NEXT_PUBLIC_APP_URL. Empty = falls back to <name_prefix>.<ip>.nip.io."
   type        = string
@@ -150,7 +157,7 @@ variable "rds_stop_schedule" {
 
 variable "rds_start_schedule" {
   type    = string
-  default = ""   # "" = sin encendido automático (manual)
+  default = "" # "" = sin encendido automático (manual)
 }
 
 variable "rds_schedule_timezone" {
