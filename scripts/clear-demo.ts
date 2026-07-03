@@ -1,7 +1,7 @@
 // scripts/clear-demo.ts
 // Deletes (physically) all appointments marked as demo by fill-day.ts.
 //
-// Uso:
+// Usage:
 //   npm run clear-demo                  # deletes ALL appointments with notes = "[demo]"
 //   npm run clear-demo -- --date=2026-06-15   # only those on that date
 

@@ -21,13 +21,16 @@ const envSchema = z.object({
       message: 'SES_FROM_EMAIL es requerida cuando ENABLE_EMAILS=true',
     })
   }
-  // Google Calendar is all-or-nothing: if any var is set, the trio must be.
+  // Google Calendar is OPTIONAL and all-or-nothing. A partial config disables
+  // the integration with a warning instead of failing the whole boot — the app
+  // already guards every calendar call at runtime (see lib/calendar.ts). This
+  // keeps an infra drift (e.g. a Secret missing GOOGLE_PRIVATE_KEY after an
+  // instance replacement) from taking the entire app down.
   const g = [e.GOOGLE_CLIENT_EMAIL, e.GOOGLE_PRIVATE_KEY, e.GOOGLE_CALENDAR_ID]
   if (g.some(Boolean) && !g.every(Boolean)) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom, path: ['GOOGLE_CALENDAR_ID'],
-      message: 'La integración de Google Calendar requiere GOOGLE_CLIENT_EMAIL, GOOGLE_PRIVATE_KEY y GOOGLE_CALENDAR_ID juntas',
-    })
+    console.warn(
+      '⚠️  Google Calendar parcialmente configurado (falta GOOGLE_CLIENT_EMAIL, GOOGLE_PRIVATE_KEY o GOOGLE_CALENDAR_ID) — integración deshabilitada.',
+    )
   }
 })
 

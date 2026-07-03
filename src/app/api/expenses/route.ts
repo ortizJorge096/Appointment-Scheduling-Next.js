@@ -24,7 +24,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const page     = Math.max(1, parseInt(searchParams.get('page')  ?? '1'))
   const limit    = Math.min(100, parseInt(searchParams.get('limit') ?? '50'))
 
-  const where: Record<string, unknown> = {}
+  const where: Record<string, unknown> = { deletedAt: null }
   if (category) where.category = category
   if (dateFrom || dateTo) {
     where.date = {

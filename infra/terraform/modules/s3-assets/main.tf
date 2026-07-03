@@ -100,9 +100,9 @@ data "aws_iam_policy_document" "app_access" {
     ]
   }
   statement {
-    sid    = "BucketListPrefixed"
-    effect = "Allow"
-    actions = ["s3:ListBucket"]
+    sid       = "BucketListPrefixed"
+    effect    = "Allow"
+    actions   = ["s3:ListBucket"]
     resources = [aws_s3_bucket.assets.arn]
     condition {
       test     = "StringLike"

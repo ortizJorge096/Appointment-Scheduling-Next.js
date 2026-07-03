@@ -12,7 +12,7 @@ datasource db {
 }
 
 // ─────────────────────────────────────────
-// USUARIOS (admin)
+// USERS (admin)
 // ─────────────────────────────────────────
 
 model User {
@@ -42,7 +42,7 @@ enum Role {
 }
 
 // ─────────────────────────────────────────
-// CLIENTES
+// CLIENTS
 // ─────────────────────────────────────────
 
 model Client {
@@ -52,7 +52,7 @@ model Client {
   // clients without email never collide, while real emails stay unique.
   email        String?       @unique
   phone        String?
-  notes        String?       // alergias, preferencias, observaciones internas
+  notes        String?       // allergies, preferences, internal notes
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   appointments Appointment[]
@@ -61,12 +61,12 @@ model Client {
 }
 
 // ─────────────────────────────────────────
-// CATEGORÍAS DE SERVICIO
-// Antes eran un enum hardcodeado; ahora viven en DB para poder
-// crearlas/editarlas/eliminarlas desde el panel admin sin tocar código.
-// `slug` es la clave estable usada en URLs (?categoria=...) y agrupación.
-// `icon` guarda la clave de un set de íconos predefinidos (ver ICON_KEYS).
-// Soft delete: nunca se borran físicamente para no romper el historial.
+// SERVICE CATEGORIES
+// These used to be a hardcoded enum; now they live in the DB so they can be
+// created/edited/deleted from the admin panel without touching code.
+// `slug` is the stable key used in URLs (?categoria=...) and for grouping.
+// `icon` stores the key of a predefined icon set (see ICON_KEYS).
+// Soft delete: rows are never physically removed, to preserve history.
 // ─────────────────────────────────────────
 
 model Category {
@@ -88,7 +88,7 @@ model Category {
 }
 
 // ─────────────────────────────────────────
-// SERVICIOS
+// SERVICES
 // ─────────────────────────────────────────
 
 model Service {
@@ -101,8 +101,8 @@ model Service {
   durationMinutes Int
   isActive        Boolean             @default(true)
   order           Int                 @default(0)
-  // Soft delete: el servicio desaparece del catálogo pero la fila persiste,
-  // de modo que las citas históricas mantienen su referencia y nombre.
+  // Soft delete: the service disappears from the catalog but the row persists,
+  // so historical appointments keep their reference and name.
   deletedAt       DateTime?
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
@@ -114,11 +114,10 @@ model Service {
 }
 
 // ─────────────────────────────────────────
-// DESCUENTO VIP (multi-servicio)
-// Regla parametrizable: a partir de N servicios seleccionados
-// en una misma cita (de cualquier categoría), se aplica un
-// porcentaje de descuento por tramos. Editable desde el panel
-// admin, sin tocar código.
+// VIP DISCOUNT (multi-service)
+// Configurable rule: from N services selected in a single appointment
+// (across any category), a tiered discount percentage is applied.
+// Editable from the admin panel, without touching code.
 // ─────────────────────────────────────────
 
 model VipDiscountConfig {
@@ -130,16 +129,16 @@ model VipDiscountConfig {
 
 model VipDiscountTier {
   id          String @id @default(cuid())
-  minServices Int    @unique // a partir de cuántos servicios aplica este tramo
-  discountPct Int    // porcentaje de descuento (0-100)
+  minServices Int    @unique // how many services this tier starts applying at
+  discountPct Int    // discount percentage (0-100)
   @@map("vip_discount_tiers")
 }
 
 // ─────────────────────────────────────────
-// PROFESIONALES
-// Cada profesional puede atender una cita a la vez; la capacidad
-// total del estudio en un horario = número de profesionales activos
-// sin una cita que se superponga en ese rango.
+// PROFESSIONALS
+// Each professional can serve one appointment at a time; the studio's total
+// capacity in a time slot = number of active professionals without an
+// appointment overlapping that range.
 // ─────────────────────────────────────────
 
 model Professional {
@@ -176,68 +175,68 @@ model BookingSettings {
 }
 
 // ─────────────────────────────────────────
-// MÉTRICAS DEL LANDING (singleton)
-// Indicadores numéricos del Home/Nosotros, editables desde el panel admin
-// para no tocar código. `servicesCount` NO se guarda aquí: se deriva en vivo
-// del catálogo (servicios activos) para que nunca se desincronice.
+// LANDING METRICS (singleton)
+// Numeric indicators for the Home/About sections, editable from the admin
+// panel so code stays untouched. `servicesCount` is NOT stored here: it's
+// derived live from the catalog (active services) so it never drifts.
 // ─────────────────────────────────────────
 model LandingStats {
   id                String   @id @default(cuid())
-  appointmentsCount Int      @default(300) // "+300 Citas realizadas"
-  clientsCount      Int      @default(180) // "+180 Clientas satisfechas"
-  yearsExperience   Int      @default(3)   // "+3 Años de experiencia"
-  rating            Float    @default(4.8) // "4.8★ Calificación"
+  appointmentsCount Int      @default(300) // renders as "+300 Citas realizadas"
+  clientsCount      Int      @default(180) // renders as "+180 Clientas satisfechas"
+  yearsExperience   Int      @default(3)   // renders as "+3 Años de experiencia"
+  rating            Float    @default(4.8) // renders as "4.8★ Calificación"
   updatedAt         DateTime @updatedAt
   @@map("landing_stats")
 }
 
 // ─────────────────────────────────────────
-// CITAS
+// APPOINTMENTS
 // ─────────────────────────────────────────
 
 model Appointment {
   id                 String            @id @default(cuid())
-  // Datos del cliente (desnormalizados para no perder info si el cliente cambia)
+  // Client data (denormalized so info isn't lost if the client record changes)
   clientName         String
   clientEmail        String?
   clientPhone        String
-  // Referencia al perfil de cliente (opcional: se une automáticamente si existe)
+  // Reference to the client profile (optional: auto-linked if one exists)
   clientId           String?
   client             Client?           @relation(fields: [clientId], references: [id], onDelete: SetNull)
   serviceId          String            // primary service (always set for backward compat)
   service            Service           @relation(fields: [serviceId], references: [id])
   services           AppointmentService[] // all services (for multi-service VIP bookings)
   totalDurationMinutes Int             // sum of all service durations
-  discountPercent    Int               @default(0) // % de descuento VIP aplicado (snapshot al confirmar)
-  // Profesional asignado. Null = se eligió "Primera disponible" pero no se
-  // pudo determinar (no debería ocurrir en flujo normal; el servidor asigna
-  // el primer profesional libre en el momento de crear la cita).
+  discountPercent    Int               @default(0) // applied VIP discount % (snapshot at confirmation)
+  // Assigned professional. Null = "First available" was chosen but couldn't be
+  // resolved (shouldn't happen in the normal flow; the server assigns the first
+  // free professional at the time the appointment is created).
   professionalId     String?
   professional       Professional?     @relation(fields: [professionalId], references: [id], onDelete: SetNull)
   date               DateTime
   startTime          String
   endTime            String
   status             AppointmentStatus @default(PENDING)
-  // Origen de la cita
+  // Appointment source
   source             AppointmentSource @default(ONLINE)
   // Provenance, set explicitly at creation (no field-combination heuristics):
   // PUBLIC = client self-booked, MANUAL = admin "Cita próxima", VIP = multi-
   // service package, PAST = retroactive "Cita pasada". Legacy rows backfilled
   // in the migration (source != ONLINE → MANUAL, else PUBLIC).
   origin             AppointmentOrigin @default(PUBLIC)
-  // Pago
+  // Payment
   paymentStatus      PaymentStatus     @default(PENDING)
   paymentMethod      PaymentMethod?
-  amountPaid         Int?              // en pesos colombianos
-  // Adicionales: cargos extra sobre el precio del servicio (productos,
-  // servicios extra). Múltiples por cita, editables desde el detalle.
+  amountPaid         Int?              // in Colombian pesos
+  // Extras: additional charges on top of the service price (products, extra
+  // services). Multiple per appointment, editable from the detail view.
   extras             AppointmentExtra[]
-  // Descuento manual aplicado por el admin (citas manuales). Independiente del
-  // discountPercent VIP del flujo público. precioFinal = subtotal − descuento.
-  descuentoTipo      DiscountType?     // null = sin descuento
-  descuentoValor     Int?              // % (0–100) o COP fijo, según descuentoTipo
-  descuentoMotivo    String?           // interno, opcional (ej. "Cliente frecuente")
-  precioFinal        Int?              // total a cobrar tras descuento (snapshot, COP)
+  // Manual discount applied by the admin (manual appointments). Independent of
+  // the public flow's VIP discountPercent. precioFinal = subtotal − discount.
+  descuentoTipo      DiscountType?     // null = no discount
+  descuentoValor     Int?              // % (0–100) or fixed COP, per descuentoTipo
+  descuentoMotivo    String?           // internal, optional (e.g. "Cliente frecuente")
+  precioFinal        Int?              // total to charge after discount (snapshot, COP)
   notes              String?
   cancelToken        String            @unique @default(cuid())
   calendarEventId    String?
@@ -265,14 +264,14 @@ model AppointmentService {
   appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
   serviceId     String
   service       Service     @relation(fields: [serviceId], references: [id])
-  serviceName   String?     // snapshot del nombre al reservar (preserva el historial si el servicio se renombra/elimina)
+  serviceName   String?     // name snapshot at booking time (preserves history if the service is renamed/deleted)
   price         Int         // price at time of booking (snapshot)
-  // Descuento por línea (opcional). Excluyente con el descuento total de la cita:
-  // la UI/API permiten descuentos por servicio O uno total, nunca ambos.
+  // Per-line discount (optional). Mutually exclusive with the appointment's
+  // total discount: the UI/API allow per-service discounts OR a total, never both.
   descuentoTipo   DiscountType?
-  descuentoValor  Int?          // % (0–100) o COP fijo, según descuentoTipo
-  descuentoMotivo String?       // interno, opcional
-  // Adicionales atados a esta línea de servicio.
+  descuentoValor  Int?          // % (0–100) or fixed COP, per descuentoTipo
+  descuentoMotivo String?       // internal, optional
+  // Extras tied to this service line.
   extras        AppointmentExtra[]
   @@unique([appointmentId, serviceId])
   // Trigram GIN index → fast ILIKE '%term%' for the admin list's service search.
@@ -280,18 +279,18 @@ model AppointmentService {
   @@map("appointment_services")
 }
 
-// Adicional: producto o servicio extra agregado a una cita (manual o pública),
-// con su propia descripción y valor. Una cita puede tener varios.
+// Extra: a product or extra service added to an appointment (manual or public),
+// with its own description and amount. An appointment can have several.
 model AppointmentExtra {
   id            String      @id @default(cuid())
   appointmentId String
   appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
-  // Vínculo opcional a una línea de servicio: adicional "de ese servicio".
-  // Null = adicional general de la cita (comportamiento previo).
+  // Optional link to a service line: an extra "belonging to that service".
+  // Null = general appointment-level extra (previous behavior).
   appointmentServiceId String?
   appointmentService   AppointmentService? @relation(fields: [appointmentServiceId], references: [id], onDelete: Cascade)
   description   String
-  amount        Int         // en pesos colombianos
+  amount        Int         // in Colombian pesos
   createdAt     DateTime    @default(now())
   @@index([appointmentId])
   @@index([appointmentServiceId])
@@ -321,10 +320,10 @@ enum AppointmentOrigin {
 }
 
 enum PaymentStatus {
-  PENDING   // sin registrar pago
-  PAID      // pagado completo
-  PARTIAL   // pago parcial / abono
-  WAIVED    // cortesía / sin cobro
+  PENDING   // no payment recorded
+  PAID      // paid in full
+  PARTIAL   // partial payment / deposit
+  WAIVED    // courtesy / no charge
 }
 
 enum PaymentMethod {
@@ -341,7 +340,7 @@ enum DiscountType {
 }
 
 // ─────────────────────────────────────────
-// HORARIOS Y FECHAS BLOQUEADAS
+// SCHEDULES AND BLOCKED DATES
 // ─────────────────────────────────────────
 
 model Schedule {
@@ -379,34 +378,38 @@ model BlockedDate {
 }
 
 // ─────────────────────────────────────────
-// GASTOS
+// EXPENSES
 // ─────────────────────────────────────────
 
 model Expense {
   id          String          @id @default(cuid())
   description String
-  amount      Int             // en pesos colombianos
+  amount      Int             // in Colombian pesos
   date        DateTime
   category    ExpenseCategory @default(OTROS)
   notes       String?
+  // Soft delete: the expense disappears from lists and accounting but the row
+  // persists, so financial history is never lost.
+  deletedAt   DateTime?
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
   @@index([date])
   @@index([category])
+  @@index([deletedAt])
   @@map("expenses")
 }
 
 enum ExpenseCategory {
-  INSUMOS     // esmaltes, geles, adhesivos, etc.
-  EQUIPOS     // herramientas, lámparas, etc.
-  SERVICIOS   // luz, internet, plataformas
+  INSUMOS     // nail polish, gels, adhesives, etc.
+  EQUIPOS     // tools, lamps, etc.
+  SERVICIOS   // electricity, internet, platforms
   ARRIENDO
   MARKETING
   OTROS
 }
 
 // ─────────────────────────────────────────
-// GALERÍA
+// GALLERY
 // ─────────────────────────────────────────
 
 model GalleryImage {
@@ -431,29 +434,29 @@ model GalleryImage {
 }
 
 // ─────────────────────────────────────────
-// TESTIMONIOS
-// Reseñas mostradas en la landing. Creadas por el admin (source ADMIN) o,
-// a futuro, enviadas por clientas (source CLIENT) → quedan en PENDING para
-// moderación. isActive = mostrar/ocultar; deletedAt = soft delete.
+// TESTIMONIALS
+// Reviews shown on the landing page. Created by the admin (source ADMIN) or,
+// in the future, submitted by clients (source CLIENT) → left in PENDING for
+// moderation. isActive = show/hide; deletedAt = soft delete.
 // ─────────────────────────────────────────
 
 model Testimonial {
   id              String            @id @default(cuid())
   clientName      String
-  initials        String            // auto-generadas del nombre ("Carmen Morales" → "C.M.")
-  type            String            // "Clienta frecuente", "Clienta VIP", o texto libre
+  initials        String            // auto-generated from the name ("Carmen Morales" → "C.M.")
+  type            String            // "Clienta frecuente", "Clienta VIP", or free text
   text            String
   stars           Int               @default(5)
-  imageUrl        String?           // URL pública (S3) de la foto del trabajo
-  imageKey        String?           // key S3, para poder borrar/reemplazar el objeto
+  imageUrl        String?           // public (S3) URL of the work photo
+  imageKey        String?           // S3 key, to be able to delete/replace the object
   isActive        Boolean           @default(true)
   order           Int               @default(0)
-  // Moderación
+  // Moderation
   source          TestimonialSource @default(ADMIN)
   status          TestimonialStatus @default(APPROVED)
-  appointmentId   String?           // relación opcional con una cita real
-  clientEmail     String?           // para contacto si hace falta
-  rejectionReason String?           // nota interna si se rechaza
+  appointmentId   String?           // optional relation to a real appointment
+  clientEmail     String?           // for contact if needed
+  rejectionReason String?           // internal note if rejected
   // Soft delete
   deletedAt       DateTime?
   createdAt       DateTime          @default(now())
@@ -478,7 +481,7 @@ enum TestimonialStatus {
 }
 
 // ─────────────────────────────────────────
-// AUDITORÍA
+// AUDIT
 // ─────────────────────────────────────────
 
 model AuditLog {
@@ -486,14 +489,14 @@ model AuditLog {
   action      AuditAction
   entity      AuditEntity
   entityId    String
-  actorType   AuditActor?  // ADMIN | CLIENT | SYSTEM (null = registros legacy)
-  userEmail   String?      // admin que ejecutó (o email intentado en login fallido)
+  actorType   AuditActor?  // ADMIN | CLIENT | SYSTEM (null = legacy rows)
+  userEmail   String?      // admin who performed it (or the email attempted on a failed login)
   ip          String?
-  userAgent   String?      // dispositivo/navegador
-  before      Json?        // estado previo (ediciones, cambios de estado, cancelaciones)
-  after       Json?        // estado nuevo
-  description String?      // texto legible: "Admin marcó la cita de Juan Pérez como pagada"
-  metadata    Json?        // contexto extra
+  userAgent   String?      // device/browser
+  before      Json?        // previous state (edits, status changes, cancellations)
+  after       Json?        // new state
+  description String?      // human-readable text: "Admin marcó la cita de Juan Pérez como pagada"
+  metadata    Json?        // extra context
   createdAt   DateTime     @default(now())
 
   @@index([entity, entityId])

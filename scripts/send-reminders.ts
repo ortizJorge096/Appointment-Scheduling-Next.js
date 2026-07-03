@@ -1,11 +1,11 @@
 // scripts/send-reminders.ts
 // Cron job — sends reminders 24h before each confirmed appointment
 //
-// Configurar en EC2 con crontab:
+// Configure in EC2 with crontab:
 //   0 8 * * * cd /app && npx ts-node scripts/send-reminders.ts >> /var/log/vj-reminders.log 2>&1
 //
 // Runs every morning and sends reminders for the next day's appointments
-// (día siguiente calculado en zona horaria America/Bogota).
+// (next day computed in the America/Bogota timezone).
 
 import * as dotenv from 'dotenv'
 dotenv.config({ path: '.env.local' })

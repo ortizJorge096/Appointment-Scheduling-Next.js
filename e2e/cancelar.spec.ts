@@ -1,5 +1,5 @@
 // e2e/cancelar.spec.ts
-// Cancelación pública con token. Crea la cita vía API (día ≥3 ahead → cancelable).
+// Public token-based cancellation. Creates the appointment via API (day ≥3 ahead → cancelable).
 import { test, expect } from '@playwright/test'
 import { createFutureAppointment } from './helpers'
 

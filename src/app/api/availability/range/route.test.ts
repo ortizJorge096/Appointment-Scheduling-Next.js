@@ -24,7 +24,7 @@ function makeRequest(params: Record<string, string> = {}): NextRequest {
 
 function defaultMocks() {
   vi.mocked(prisma.service.findUnique).mockResolvedValue(MOCK_SERVICE)
-  // Todos los días habilitados
+  // All days enabled
   vi.mocked(prisma.schedule.findMany).mockResolvedValue([
     { dayOfWeek: 'MONDAY',    startTime: '09:00', endTime: '18:00', isActive: true },
     { dayOfWeek: 'TUESDAY',   startTime: '09:00', endTime: '18:00', isActive: true },

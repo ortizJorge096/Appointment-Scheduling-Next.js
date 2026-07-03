@@ -19,8 +19,8 @@ async function main() {
   console.log('✅ Admin (SUPER_ADMIN) — admin@vjbeautystudio.com / Admin123!')
 
   // ─────────────────────────────────────────────────────────────
-  // CATEGORÍAS — ahora viven en DB. Upsert por slug (estable) para que
-  // el seed sea idempotente y conviva con la migración inicial.
+  // CATEGORIES — now they live in the DB. Upsert by slug (stable) so the seed
+  // is idempotent and coexists with the initial migration.
   // ─────────────────────────────────────────────────────────────
   const categorySeed: Array<{ slug: CategorySlug; name: string; description: string; icon: string; order: number }> = [
     { slug: 'UNAS',     name: 'Uñas',             description: 'Manicura, pedicura, gel, acrílico y nail art', icon: 'manicura', order: 1 },
@@ -41,8 +41,8 @@ async function main() {
   console.log(`✅ ${categorySeed.length} categorías creadas/actualizadas`)
 
   // ─────────────────────────────────────────────────────────────
-  // CATÁLOGO REAL (lista de precios Valentina Jimenez Beauty Studio)
-  // Las duraciones y precios son estimaciones — ajústalas desde el panel admin.
+  // REAL CATALOG (Valentina Jimenez Beauty Studio price list)
+  // Durations and prices are estimates — adjust them from the admin panel.
   // ─────────────────────────────────────────────────────────────
   const services: Array<{
     name: string
@@ -52,7 +52,7 @@ async function main() {
     durationMinutes: number
     order: number
   }> = [
-    // ── UÑAS ──
+    // ── NAILS ──
     { name: 'Manicura tradicional',              category: 'UNAS', price: 25000, durationMinutes: 45,  order: 1,  description: 'Limpieza, corte, limado y esmalte tradicional.' },
     { name: 'Pedicura tradicional',               category: 'UNAS', price: 25000, durationMinutes: 45,  order: 2,  description: 'Cuidado completo de pies con esmalte tradicional.' },
     { name: 'Manicura semipermanente',            category: 'UNAS', price: 40000, durationMinutes: 60,  order: 3,  description: 'Esmalte de larga duración con brillo intenso.' },
@@ -66,7 +66,7 @@ async function main() {
     { name: 'Polygel esculpido',                  category: 'UNAS', price: 80000, durationMinutes: 120, order: 11, description: 'Extensiones esculpidas en polygel.' },
     { name: 'Acrílico esculpido',                 category: 'UNAS', price: 85000, durationMinutes: 120, order: 12, description: 'Extensiones esculpidas en acrílico.' },
 
-    // ── PESTAÑAS ──
+    // ── LASHES ──
     { name: 'Lifting de pestañas',          category: 'PESTANAS', price: 70000,  durationMinutes: 60,  order: 20, description: 'Realza y curva tus pestañas naturales.' },
     { name: 'Pestañas clásicas',            category: 'PESTANAS', price: 70000,  durationMinutes: 90,  order: 21, description: 'Extensión pelo a pelo, efecto natural.' },
     { name: 'Efecto húmedo / pestañina',    category: 'PESTANAS', price: 75000,  durationMinutes: 90,  order: 22, description: 'Acabado definido tipo máscara.' },
@@ -75,7 +75,7 @@ async function main() {
     { name: 'Efecto anime',                 category: 'PESTANAS', price: 110000, durationMinutes: 120, order: 25, description: 'Diseño en mechones marcados estilo anime.' },
     { name: 'Pestañas híbridas',            category: 'PESTANAS', price: 110000, durationMinutes: 120, order: 26, description: 'Mezcla de clásicas y volumen.' },
 
-    // ── CEJAS ──
+    // ── BROWS ──
     { name: 'Depilación con cuchilla',      category: 'CEJAS', price: 10000, durationMinutes: 15, order: 30, description: 'Perfilado con cuchilla.' },
     { name: 'Epilación con cera',           category: 'CEJAS', price: 12000, durationMinutes: 20, order: 31, description: 'Depilación de cejas con cera.' },
     { name: 'Epilación con hilo hindú',     category: 'CEJAS', price: 15000, durationMinutes: 20, order: 32, description: 'Técnica de hilo para mayor precisión.' },
@@ -83,18 +83,18 @@ async function main() {
     { name: 'Cejas personalizadas',         category: 'CEJAS', price: 25000, durationMinutes: 30, order: 34, description: 'Diseño según tu rostro.' },
     { name: 'Cejas laminadas',              category: 'CEJAS', price: 50000, durationMinutes: 60, order: 35, description: 'Laminado para cejas alineadas y definidas.' },
 
-    // ── CORTE DE CABELLO ──
+    // ── HAIRCUT ──
     { name: 'Corte express / solo puntas',                      category: 'CORTE', price: 25000, durationMinutes: 30, order: 40, description: 'Despunte y mantenimiento rápido.' },
     { name: 'Corte personalizado (mariposa, bob, texturizado)', category: 'CORTE', price: 35000, durationMinutes: 60, order: 41, description: 'Corte a medida según tu estilo.' },
     { name: 'Diseño de flequillo',                              category: 'CORTE', price: 15000, durationMinutes: 20, order: 42, description: 'Corte y forma de flequillo.' },
 
-    // ── PROMOS (combos de precio fijo, menor que la suma individual) ──
+    // ── PROMOS (fixed-price combos, cheaper than the individual sum) ──
     { name: 'Combo manicura y pedicura tradicional',     category: 'PROMOS', price: 42000, durationMinutes: 90,  order: 50, description: 'Manicura tradicional + Pedicura tradicional, precio combo.' },
     { name: 'Combo manicura y pedicura semipermanente',  category: 'PROMOS', price: 70000, durationMinutes: 120, order: 51, description: 'Manicura semipermanente + Pedicura semipermanente, precio combo.' },
   ]
 
-  // Nombres anteriores que cambiaron de redacción — para actualizar el registro
-  // existente en vez de duplicarlo cuando el nombre nuevo no coincide exactamente.
+  // Previous names whose wording changed — used to update the existing record
+  // instead of duplicating it when the new name doesn't match exactly.
   const RENAMES: Record<string, string> = {
     'Manicura semipermanente + rubber':   'Semipermanente + rubber',
     'Volumen 3D':                         'Volumen 3D/4D/5D/6D',
@@ -111,9 +111,9 @@ async function main() {
     const target = await prisma.service.findUnique({ where: { name: newName } })
     if (target) {
       // Another old name already claimed `newName` in a previous iteration
-      // (e.g. "Volumen 3D" y "Volumen 4D" colapsan ambos a "Volumen 3D/4D/5D/6D").
-      // Es un duplicado del catálogo viejo: desactivarlo en vez de renombrarlo
-      // (no se borra — puede haber citas históricas con este serviceId).
+      // (e.g. "Volumen 3D" and "Volumen 4D" both collapse into "Volumen 3D/4D/5D/6D").
+      // It's a duplicate from the old catalog: deactivate it instead of renaming
+      // (not deleted — there may be historical appointments with this serviceId).
       await prisma.service.update({ where: { id: existing.id }, data: { isActive: false } })
       console.log(`  ⏸ Desactivado duplicado "${oldName}" (fusionado en "${newName}")`)
     } else {
@@ -130,8 +130,8 @@ async function main() {
   console.log(`✅ ${services.length} servicios creados/actualizados`)
 
   // ─────────────────────────────────────────────────────────────
-  // DESCUENTO VIP (multi-servicio) — parametrizable desde el admin
-  // 2 servicios → 10% · 3 servicios → 20% · 4+ servicios → 30%
+  // VIP DISCOUNT (multi-service) — configurable from the admin
+  // 2 services → 10% · 3 services → 20% · 4+ services → 30%
   // ─────────────────────────────────────────────────────────────
   const tiers = [
     { minServices: 2, discountPct: 10 },
@@ -152,10 +152,10 @@ async function main() {
   console.log('✅ Configuración de descuento VIP lista')
 
   // ─────────────────────────────────────────────────────────────
-  // PROFESIONALES — cada uno puede atender una cita a la vez.
+  // PROFESSIONALS — each one can serve one appointment at a time.
   // ─────────────────────────────────────────────────────────────
-  // reviewCount = nº de citas atendidas por cada profesional. Coherente con el
-  // total del estudio (+300 citas en el Home): la suma se mantiene por debajo.
+  // reviewCount = number of appointments each professional has served. Kept
+  // consistent with the studio total (+300 appointments on the Home): the sum stays below.
   const professionals = [
     { name: 'Valentina J.', specialty: 'Especialista master',   rating: 4.9, reviewCount: 130, order: 1 },
     { name: 'Sofía L.',     specialty: 'Uñas & nail art',       rating: 4.8, reviewCount: 90,  order: 2 },

@@ -2,6 +2,7 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { getCurrentAdmin } from '@/lib/authz'
+import { ROLE_LABELS } from '@/lib/permissions'
 import PerfilForm from './PerfilForm'
 
 export const metadata: Metadata = { title: 'Mi perfil' }
@@ -21,7 +22,7 @@ export default async function PerfilPage() {
       <div className="bg-white rounded-xl border border-beige-dark p-5 mb-5 space-y-1 text-sm">
         <p className="text-ink"><span className="text-ink-muted">Nombre:</span> {admin.name}</p>
         <p className="text-ink"><span className="text-ink-muted">Email:</span> {admin.email}</p>
-        <p className="text-ink"><span className="text-ink-muted">Rol:</span> {admin.role === 'SUPER_ADMIN' ? 'Super admin' : 'Admin'}</p>
+        <p className="text-ink"><span className="text-ink-muted">Rol:</span> {ROLE_LABELS[admin.role]}</p>
       </div>
 
       <PerfilForm />

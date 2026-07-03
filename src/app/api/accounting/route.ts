@@ -48,6 +48,7 @@ export async function GET(
       }),
       prisma.expense.findMany({
         where: {
+          deletedAt: null,
           date: Object.keys(dateFilter).length ? dateFilter : undefined,
         },
         select: { amount: true },

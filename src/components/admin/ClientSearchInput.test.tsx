@@ -103,7 +103,7 @@ describe('ClientSearchInput', () => {
 
     await screen.findByText('Ana López')
 
-    // Empieza en el primer resultado; bajar una vez selecciona el segundo
+    // Starts on the first result; pressing down once selects the second
     fireEvent.keyDown(input, { key: 'ArrowDown' })
     fireEvent.keyDown(input, { key: 'Enter' })
 
