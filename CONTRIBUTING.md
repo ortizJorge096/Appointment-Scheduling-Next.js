@@ -471,11 +471,6 @@ test(discount): cover computeAppointmentTotal
 Estos archivos violan una regla de arriba hoy — no son el estándar a seguir,
 son candidatos a corregir en un PR aparte:
 
-- **Enums Zod hardcodeados** en `src/lib/validations.ts` (líneas 47, 87, 94,
-  201-211, 304, 395, 432, 477): `descuentoTipo`, `status`, `paymentStatus`,
-  `paymentMethod`, `dayOfWeek`, testimonial `status`, `source`, expense
-  `category` — todos tienen su enum equivalente en `prisma/schema.prisma` y
-  deberían usar `z.nativeEnum()`.
 - **Hard delete en `src/app/api/expenses/[id]/route.ts`**: `Expense` es un
   registro contable y hoy se borra físicamente con `prisma.expense.delete()`.
   Debería migrar a soft delete (`deletedAt`) como `Category`/`Service`.
