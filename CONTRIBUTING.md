@@ -437,10 +437,12 @@ test(discount): cover computeAppointmentTotal
 
 ### Idioma en el código
 
-- **Inglés**: mensajes de commit y **comentarios de código** (`.ts` / `.tsx`).
-  El repo ya migró sus comentarios a inglés — no introduzcas comentarios nuevos
-  en español. `schema.prisma` conserva algún comentario viejo en español, pero
-  los nuevos van en inglés igual.
+- **Inglés**: mensajes de commit y **comentarios de código** (`.ts` / `.tsx` /
+  `.prisma`). La migración de comentarios a inglés ya se completó — todo el
+  código está en inglés. No introduzcas comentarios nuevos en español. Los
+  únicos literales en español que sobreviven dentro de comentarios son citas de
+  strings de UI reales (ej. `"Cita próxima"`, `"+300 Citas realizadas"`) y
+  ejemplos de descripciones de auditoría — se preservan a propósito.
 - **Español**: todo lo que ve el usuario final — strings de UI, textos de email,
   mensajes de error de las respuestas API (`{ error: '...' }`) y las
   descripciones de auditoría (`audit({ description })`).
