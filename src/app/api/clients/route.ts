@@ -9,6 +9,7 @@ import { hasPermission } from '@/lib/permissions'
 import { createClientSchema } from '@/lib/validations'
 import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
 import { audit, getClientIp } from '@/lib/audit'
+import { normalizePhone } from '@/lib/utils'
 import type { ApiResponse, ClientSummary } from '@/types'
 
 export const dynamic = 'force-dynamic'
@@ -78,18 +79,21 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
   try {
     client = await prisma.client.create({
       data: {
-        name:  parsed.data.name.trim(),
-        email: parsed.data.email?.toLowerCase().trim() || null,
-        phone: parsed.data.phone?.trim() ?? null,
-        notes: parsed.data.notes?.trim() ?? null,
+        name:            parsed.data.name.trim(),
+        email:           parsed.data.email?.toLowerCase().trim() || null,
+        phone:           parsed.data.phone?.trim() ?? null,
+        phoneNormalized: normalizePhone(parsed.data.phone),
+        notes:           parsed.data.notes?.trim() ?? null,
       },
       include: { _count: { select: { appointments: true } } },
     })
   } catch (err) {
     if (isDbUnavailable(err)) return dbUnavailableResponse()
-    // P2002 = unique constraint (duplicate email)
+    // P2002 = unique constraint (duplicate email or phone)
     if ((err as { code?: string }).code === 'P2002') {
-      return NextResponse.json({ success: false, error: 'Ya existe un cliente con ese email' }, { status: 409 })
+      const target = String((err as { meta?: { target?: unknown } }).meta?.target ?? '')
+      const field  = target.includes('phone') ? 'teléfono' : 'email'
+      return NextResponse.json({ success: false, error: `Ya existe un cliente con ese ${field}` }, { status: 409 })
     }
     console.error('Error creando cliente:', err)
     return NextResponse.json({ success: false, error: 'Error interno' }, { status: 500 })

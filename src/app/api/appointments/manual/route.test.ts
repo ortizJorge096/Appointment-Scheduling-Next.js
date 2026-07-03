@@ -12,6 +12,9 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 vi.mock('@/lib/email', () => ({ sendConfirmationEmail: vi.fn().mockResolvedValue(undefined) }))
+// Client resolution is tested in src/lib/clients.test.ts — here we only care that
+// the route wires a clientId into the appointment, so mock it to a fixed id.
+vi.mock('@/lib/clients', () => ({ resolveOrCreateClient: vi.fn().mockResolvedValue('c1') }))
 vi.mock('@/lib/availability', () => ({
   isSlotAvailable: vi.fn(),
   getAvailableSlotsByDuration: vi.fn(),
