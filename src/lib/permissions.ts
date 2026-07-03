@@ -5,47 +5,47 @@
 // effect immediately (no forced re-login).
 
 export const PERMISSIONS = {
-  // Citas
+  // Appointments
   'citas:ver':      'Ver listado y detalle de citas',
   'citas:crear':    'Crear citas manuales',
   'citas:editar':   'Editar citas existentes',
   'citas:cancelar': 'Cancelar citas',
   'citas:pago':     'Registrar y editar pagos',
 
-  // Clientes
+  // Clients
   'clientes:ver':    'Ver listado de clientes',
   'clientes:editar': 'Editar datos de clientes',
 
-  // Servicios y categorías (incluye profesionales del catálogo)
+  // Services and categories (includes catalog professionals)
   'servicios:ver':    'Ver servicios y categorías',
   'servicios:editar': 'Crear, editar y eliminar servicios',
 
-  // Horarios
+  // Schedules
   'horarios:ver':    'Ver configuración de horarios',
   'horarios:editar': 'Editar horarios y fechas bloqueadas',
 
-  // Galería
+  // Gallery
   'galeria:ver':    'Ver galería',
   'galeria:editar': 'Subir y eliminar imágenes',
 
-  // Testimonios
+  // Testimonials
   'testimonios:ver':     'Ver testimonios',
   'testimonios:editar':  'Crear y editar testimonios',
   'testimonios:moderar': 'Aprobar y rechazar testimonios',
 
-  // Métricas y contabilidad
+  // Metrics and accounting
   'metricas:ver':        'Ver dashboard y métricas',
   'contabilidad:ver':    'Ver reportes de ingresos',
   'contabilidad:editar': 'Registrar y editar gastos',
 
-  // Auditoría
+  // Audit
   'auditoria:ver': 'Ver y exportar el log de auditoría',
 
-  // Configuración general (VIP, landing, ajustes de reserva)
+  // General settings (VIP, landing, booking settings)
   'configuracion:ver':    'Ver configuración general',
   'configuracion:editar': 'Editar configuración general',
 
-  // Admins (solo Super Admin)
+  // Admins (Super Admin only)
   'admins:gestionar': 'Crear, editar y desactivar admins',
 } as const
 

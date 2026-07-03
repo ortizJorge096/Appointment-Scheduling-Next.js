@@ -59,8 +59,8 @@ const discountFields = {
   descuentoMotivo: z.string().max(200).nullable().optional(),
 }
 
-// Adicionales (servicio o producto extra agregado a la cita). Lista completa:
-// al guardar se reemplaza el set de adicionales de la cita por este array.
+// Extras (an extra service or product added to the appointment). Full list:
+// on save, the appointment's set of extras is replaced with this array.
 const extrasSchema = z.array(z.object({
   description: z.string().min(1, 'La descripción del adicional es requerida').max(200),
   amount:      z.number().int().min(0, 'El monto no puede ser negativo'),
@@ -161,7 +161,7 @@ export const createAppointmentSchema = z.object({
     .max(480, 'Duración máxima 8 horas')
     .optional(),
 
-  // Omitido o null = "Primera disponible" (el servidor asigna el primer profesional libre)
+  // Omitted or null means "First available" (the server automatically assigns the first available professional)  
   professionalId: z
     .string()
     .cuid('ID de profesional inválido')

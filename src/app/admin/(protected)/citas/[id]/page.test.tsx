@@ -48,7 +48,7 @@ describe('CitaDetailPage — pago', () => {
 
     render(<CitaDetailPage />)
 
-    // Espera a que cargue la cita (el nombre está en el breadcrumb y en el h1; uso el heading)
+    // Wait for the appointment to load (the name is in the breadcrumb and the h1; use the heading)
     await screen.findByRole('heading', { name: 'Ana López' })
 
     fireEvent.click(screen.getByRole('button', { name: /marcar pagado/i }))

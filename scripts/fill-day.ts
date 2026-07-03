@@ -1,10 +1,10 @@
 // scripts/fill-day.ts
-// Llena la agenda de un día con citas demo, una a una con un delay
-// configurable, to see how the calendar reacts live.
+// Fills a day's agenda with demo appointments, one by one with a configurable
+// delay, to see how the calendar reacts live.
 //
-// Uso:
-//   npm run fill-day                                     # mañana, primer servicio 45-60 min, delay 2.5s
-//   npm run fill-day -- --date=2026-06-15                # día específico
+// Usage:
+//   npm run fill-day                                     # tomorrow, first 45-60 min service, delay 2.5s
+//   npm run fill-day -- --date=2026-06-15                # specific day
 //   npm run fill-day -- --service=lifting                # filter by name (contains match)
 //   npm run fill-day -- --delay=1000                     # speed (ms between inserts)
 //   npm run fill-day -- --date=2026-06-15 --service=manicura --delay=500

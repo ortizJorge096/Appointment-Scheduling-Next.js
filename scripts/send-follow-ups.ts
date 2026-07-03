@@ -1,7 +1,7 @@
 // scripts/send-follow-ups.ts
 // Cron job — sends a "¿cómo te fue?" follow-up the day after a completed appointment
 //
-// Configurar en EC2 con crontab (una vez al día, en la tarde):
+// Configure in EC2 with crontab (once a day, in the afternoon):
 //   0 18 * * * cd /app && npx ts-node scripts/send-follow-ups.ts >> /var/log/vj-follow-ups.log 2>&1
 //
 // Looks at completed appointments dated 1-2 days ago (a small trailing

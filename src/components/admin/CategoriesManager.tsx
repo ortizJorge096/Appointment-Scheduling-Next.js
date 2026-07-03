@@ -1,6 +1,6 @@
 'use client'
 // src/components/admin/CategoriesManager.tsx
-// Categories CRUD for /admin/servicios → pestaña "Categorías".
+// Categories CRUD for /admin/servicios → "Categorías" tab.
 // Create / edit / activate-deactivate / soft-delete. Deletion is blocked
 // server-side when the category still has services.
 

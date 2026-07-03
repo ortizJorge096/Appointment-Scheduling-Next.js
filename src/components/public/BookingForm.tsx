@@ -386,7 +386,7 @@ export default function BookingForm() {
     setSubmitError(null)
 
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 12_000) // 12s máximo
+    const timeout = setTimeout(() => controller.abort(), 12_000) // 12s max
 
     try {
       const body: Record<string, unknown> = {
