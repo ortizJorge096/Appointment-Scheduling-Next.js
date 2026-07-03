@@ -178,6 +178,7 @@ jobs:
           build-args: |
             NEXT_PUBLIC_WHATSAPP_NUMBER=${{ vars.NEXT_PUBLIC_WHATSAPP_NUMBER || '573001790511' }}
             NEXT_PUBLIC_WHATSAPP_MESSAGE=${{ vars.NEXT_PUBLIC_WHATSAPP_MESSAGE || '¡Hola! Vengo de su sitio web y me gustaría más información.' }}
+            NEXT_PUBLIC_GA_MEASUREMENT_ID=${{ vars.NEXT_PUBLIC_GA_MEASUREMENT_ID || '' }}
           tags: |
             ${{ steps.tags.outputs.sha_tag }}
             ${{ steps.tags.outputs.branch_tag }}
