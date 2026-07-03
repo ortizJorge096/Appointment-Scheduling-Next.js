@@ -24,8 +24,8 @@ data "aws_iam_policy_document" "scheduler_assume" {
 
 data "aws_iam_policy_document" "rds_control" {
   statement {
-    sid       = "RdsControl"
-    effect    = "Allow"
+    sid    = "RdsControl"
+    effect = "Allow"
     # Grant Start only when an auto-start schedule is configured.
     actions   = var.start_schedule != "" ? ["rds:StopDBInstance", "rds:StartDBInstance"] : ["rds:StopDBInstance"]
     resources = [var.db_instance_arn]

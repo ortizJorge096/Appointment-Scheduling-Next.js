@@ -24,15 +24,16 @@ resource "aws_ssm_parameter" "nextauth_secret" {
 }
 
 # Google Calendar Service Account private key.
-# Terraform creates the parameter with a placeholder; update the real value
-# once via AWS Console or CLI after the first terraform apply:
-#   aws ssm put-parameter --name /${var.name_prefix}/google/calendar-private-key \
-#     --type SecureString --value "$(cat key.json | jq -r .private_key)" --overwrite
+# Provisioned "by code": set TF_VAR_google_private_key (or a gitignored tfvars)
+# and `terraform apply` writes the real value on first create. `ignore_changes`
+# then keeps it stable, so an already-set value (from a prior apply or an
+# out-of-band update) is never clobbered by an empty var. Rotate by updating the
+# SSM value directly, or by temporarily removing ignore_changes.
 resource "aws_ssm_parameter" "google_calendar_key" {
   name        = "/${var.name_prefix}/google/calendar-private-key"
   description = "Google Calendar Service Account private key for ${var.name_prefix}"
   type        = "SecureString"
-  value       = "PLACEHOLDER — replace with the private_key from the Service Account JSON"
+  value       = var.google_private_key != "" ? var.google_private_key : "PLACEHOLDER — set TF_VAR_google_private_key or update the SSM value out-of-band"
   tags = {
     Component = "secrets"
   }
@@ -51,7 +52,7 @@ resource "aws_ssm_parameter" "app_host" {
   type        = "String"
   # SSM rejects empty String values. Fall back to the placeholder when app_host
   # is unset (the deploy would then run on the placeholder host, not crash apply).
-  value       = var.app_host != "" ? var.app_host : "appointment-scheduling.example.com"
+  value = var.app_host != "" ? var.app_host : "appointment-scheduling.example.com"
   tags = {
     Component = "app"
   }
@@ -112,8 +113,8 @@ module "ses" {
 }
 
 module "s3_assets" {
-  source      = "../../modules/s3-assets"
-  bucket_name = "${var.name_prefix}-assets"
+  source          = "../../modules/s3-assets"
+  bucket_name     = "${var.name_prefix}-assets"
   allowed_origins = local.app_cors_origins
   tags            = { Component = "storage" }
 }
@@ -139,7 +140,7 @@ module "rds" {
   skip_final_snapshot   = true
   multi_az              = false
   publicly_accessible   = false
-  backup_retention_days = 0  # Disabled in dev (saves cost; no automated backups)
+  backup_retention_days = 0 # Disabled in dev (saves cost; no automated backups)
 
   tags = { Component = "database" }
 }
@@ -170,27 +171,28 @@ module "k3s" {
   instance_type       = var.instance_type
   spot_instance_types = var.spot_instance_types
 
-  github_owner   = var.github_owner
-  github_repo    = var.github_repo
-  github_token   = var.github_token
-  runner_labels  = var.runner_labels
-  git_branch     = var.git_branch
+  github_owner      = var.github_owner
+  github_repo       = var.github_repo
+  github_token      = var.github_token
+  runner_labels     = var.runner_labels
+  git_branch        = var.git_branch
   kustomize_overlay = var.kustomize_overlay
 
-  image_ref     = var.image_ref != "" ? var.image_ref : "${module.ecr.repository_url}:latest"
-  aws_region    = var.region
+  image_ref  = var.image_ref != "" ? var.image_ref : "${module.ecr.repository_url}:latest"
+  aws_region = var.region
   # app_host (e.g. dev.vjbeautystudio.com) becomes the resolved host for the
   # outputs, the first-boot user-data, AND the SSM param the CI reads. Empty
   # falls back to <name_prefix>.<ip>.nip.io inside the module.
-  public_host          = var.app_host
-  public_host_prefix   = var.name_prefix
-  app_namespace = "appointment-scheduling-dev"
+  public_host        = var.app_host
+  public_host_prefix = var.name_prefix
+  app_namespace      = "appointment-scheduling-dev"
 
-  database_url_ssm_parameter    = module.rds.database_url_ssm_parameter
-  nextauth_secret_ssm_parameter = aws_ssm_parameter.nextauth_secret.name
-  s3_bucket_name                = module.s3_assets.bucket_name
-  ses_from_email                = var.ses_from_email
-  enable_emails                 = var.enable_emails
+  database_url_ssm_parameter        = module.rds.database_url_ssm_parameter
+  nextauth_secret_ssm_parameter     = aws_ssm_parameter.nextauth_secret.name
+  google_calendar_key_ssm_parameter = aws_ssm_parameter.google_calendar_key.name
+  s3_bucket_name                    = module.s3_assets.bucket_name
+  ses_from_email                    = var.ses_from_email
+  enable_emails                     = var.enable_emails
 
   # Attach the assets bucket policy to the instance profile.
   # (SES can be added later with AmazonSESFullAccess or a custom policy.)
@@ -202,7 +204,7 @@ module "k3s" {
   ami_id                  = var.ec2_ami
   cloudwatch_agent_config = true
   enable_letsencrypt      = var.enable_letsencrypt
-  letsencrypt_email       = coalesce(
+  letsencrypt_email = coalesce(
     var.letsencrypt_email != "" ? var.letsencrypt_email : null,
     var.alarm_email != "" ? var.alarm_email : null,
     "devops-notify@example.com"

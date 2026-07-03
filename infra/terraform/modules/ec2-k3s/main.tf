@@ -5,9 +5,9 @@
 #   - Instance profile adds permissions to READ SSM (DATABASE_URL and
 #     NEXTAUTH_SECRET) and for the AWS services the app uses (S3 + SES,
 #     via extra_managed_policy_arns).
-#   - User-data injects those values into the Kubernetes Secret BEFORE
-#     applying the overlay, so the prisma migrate init container already has
-#     DATABASE_URL at startup.
+#   - User-data renders the Kubernetes Secret from SSM via the shared
+#     scripts/render-app-secret.sh (the SAME script the CI/CD deploy calls), so
+#     the two provisioning paths can never drift on the Secret's key set.
 # ─────────────────────────────────────────────────────────────────────────
 
 data "aws_partition" "current" {}
@@ -179,27 +179,28 @@ locals {
   effective_public_host = var.public_host != "" ? var.public_host : "${var.public_host_prefix}.${replace(aws_eip.this.public_ip, ".", "-")}.nip.io"
 
   userdata = templatefile("${path.module}/userdata.sh.tftpl", {
-    github_owner               = var.github_owner
-    github_repo                = var.github_repo
-    git_branch                 = var.git_branch
-    kustomize_overlay          = var.kustomize_overlay
-    kustomize_overlay_path     = var.kustomize_overlay_path
-    image_ref                  = var.image_ref
-    aws_region                 = var.aws_region
-    public_host                = local.effective_public_host
-    enable_cloudwatch_agent    = var.cloudwatch_agent_config
-    enable_letsencrypt         = var.enable_letsencrypt
-    letsencrypt_email          = var.letsencrypt_email
-    github_token               = var.github_token
-    runner_labels              = var.runner_labels
-    runner_version             = var.runner_version
-    eip_allocation_id          = aws_eip.this.allocation_id
-    app_namespace              = var.app_namespace
-    database_url_ssm_parameter = var.database_url_ssm_parameter
-    nextauth_secret_ssm_parameter = var.nextauth_secret_ssm_parameter
-    s3_bucket_name             = var.s3_bucket_name
-    ses_from_email             = var.ses_from_email
-    enable_emails              = var.enable_emails
+    github_owner                      = var.github_owner
+    github_repo                       = var.github_repo
+    git_branch                        = var.git_branch
+    kustomize_overlay                 = var.kustomize_overlay
+    kustomize_overlay_path            = var.kustomize_overlay_path
+    image_ref                         = var.image_ref
+    aws_region                        = var.aws_region
+    public_host                       = local.effective_public_host
+    enable_cloudwatch_agent           = var.cloudwatch_agent_config
+    enable_letsencrypt                = var.enable_letsencrypt
+    letsencrypt_email                 = var.letsencrypt_email
+    github_token                      = var.github_token
+    runner_labels                     = var.runner_labels
+    runner_version                    = var.runner_version
+    eip_allocation_id                 = aws_eip.this.allocation_id
+    app_namespace                     = var.app_namespace
+    database_url_ssm_parameter        = var.database_url_ssm_parameter
+    nextauth_secret_ssm_parameter     = var.nextauth_secret_ssm_parameter
+    google_calendar_key_ssm_parameter = var.google_calendar_key_ssm_parameter
+    s3_bucket_name                    = var.s3_bucket_name
+    ses_from_email                    = var.ses_from_email
+    enable_emails                     = var.enable_emails
   })
 }
 

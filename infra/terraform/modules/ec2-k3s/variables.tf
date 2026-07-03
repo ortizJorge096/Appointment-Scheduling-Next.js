@@ -124,6 +124,11 @@ variable "nextauth_secret_ssm_parameter" {
   type        = string
 }
 
+variable "google_calendar_key_ssm_parameter" {
+  description = "Path in SSM (SecureString) with the Google Calendar service-account private key. user-data reads it and writes GOOGLE_PRIVATE_KEY into the K8s Secret — same as the CI/CD deploy — so an instance replacement never leaves a partial Google config."
+  type        = string
+}
+
 variable "s3_bucket_name" {
   description = "Name of the assets bucket — written to ConfigMap as AWS_S3_BUCKET."
   type        = string

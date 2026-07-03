@@ -102,6 +102,13 @@ variable "ses_from_email" {
   default = ""
 }
 
+variable "google_private_key" {
+  description = "Google Calendar service-account private key. Provide via TF_VAR_google_private_key or a gitignored tfvars — NEVER commit it. Empty keeps whatever value is already in SSM (ignore_changes)."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 variable "enable_emails" {
   type    = bool
   default = true
@@ -150,7 +157,7 @@ variable "rds_stop_schedule" {
 
 variable "rds_start_schedule" {
   type    = string
-  default = "cron(0 6 * * ? *)"   # "" = sin encendido automático (manual)
+  default = "cron(0 6 * * ? *)" # "" = sin encendido automático (manual)
 }
 
 variable "rds_schedule_timezone" {

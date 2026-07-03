@@ -39,7 +39,7 @@ variable "monthly_retention_days" {
 variable "backup_window_utc" {
   description = "Backup start time in cron UTC format (without 'cron()')."
   type        = string
-  default     = "0 8 * * ? *"  # 03:00 Bogotá UTC-5 / 08:00 UTC
+  default     = "0 8 * * ? *" # 03:00 Bogotá UTC-5 / 08:00 UTC
 }
 
 # ── Vault ────────────────────────────────────────────────────────────────

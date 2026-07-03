@@ -13,7 +13,7 @@
 # ─── Backup Vault ─────────────────────────────────────────────────────────
 resource "aws_backup_vault" "this" {
   name        = "${var.name_prefix}-db-vault"
-  kms_key_arn = var.vault_kms_key_arn  # null = aws/backup managed key
+  kms_key_arn = var.vault_kms_key_arn # null = aws/backup managed key
 
   tags = merge(var.tags, {
     Name      = "${var.name_prefix}-db-vault"

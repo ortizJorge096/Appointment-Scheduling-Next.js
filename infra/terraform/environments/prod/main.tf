@@ -24,11 +24,15 @@ resource "aws_ssm_parameter" "nextauth_secret" {
   }
 }
 
+# Provisioned "by code": set TF_VAR_google_private_key (or a gitignored tfvars)
+# and `terraform apply` writes the real value on first create. `ignore_changes`
+# keeps it stable afterward, so an already-set value is never clobbered by an
+# empty var. Rotate by updating the SSM value out-of-band.
 resource "aws_ssm_parameter" "google_calendar_key" {
   name        = "/${var.name_prefix}/google/calendar-private-key"
   description = "Google Calendar Service Account private key for ${var.name_prefix}"
   type        = "SecureString"
-  value       = "PLACEHOLDER — replace with the private_key from the Service Account JSON"
+  value       = var.google_private_key != "" ? var.google_private_key : "PLACEHOLDER — set TF_VAR_google_private_key or update the SSM value out-of-band"
   tags = {
     Component = "secrets"
   }
@@ -46,8 +50,8 @@ resource "aws_ssm_parameter" "app_host" {
   type        = "String"
   # SSM rejects empty String values. Fall back to the placeholder when app_host
   # is unset (the deploy would then run on the placeholder host, not crash apply).
-  value       = var.app_host != "" ? var.app_host : "appointment-scheduling.example.com"
-  tags        = { Component = "app" }
+  value = var.app_host != "" ? var.app_host : "appointment-scheduling.example.com"
+  tags  = { Component = "app" }
 }
 
 locals {
@@ -103,7 +107,7 @@ module "ses" {
 }
 
 module "s3_assets" {
-  source      = "../../modules/s3-assets"
+  source          = "../../modules/s3-assets"
   bucket_name     = "${var.name_prefix}-assets"
   allowed_origins = local.app_cors_origins
   tags            = { Component = "storage" }
@@ -121,15 +125,15 @@ module "rds" {
 
   instance_class           = "db.t3.micro"
   allocated_storage_gb     = 20
-  max_allocated_storage_gb = 100  # autoscaling hasta 100 GB
+  max_allocated_storage_gb = 100 # autoscaling hasta 100 GB
   storage_type             = "gp3"
 
-  db_name               = "appointment_scheduling"
-  db_username           = "appsched"
-  deletion_protection   = var.db_deletion_protection
-  skip_final_snapshot   = var.db_skip_final_snapshot
-  multi_az              = false  # change to true when leaving Free Tier
-  publicly_accessible   = false
+  db_name             = "appointment_scheduling"
+  db_username         = "appsched"
+  deletion_protection = var.db_deletion_protection
+  skip_final_snapshot = var.db_skip_final_snapshot
+  multi_az            = false # change to true when leaving Free Tier
+  publicly_accessible = false
   # Minimal safety net only: 7 days of FREE point-in-time recovery (RDS automated
   # backups up to the DB size cost nothing). The long-retention AWS Backup vault
   # below is disabled by default (var.enable_aws_backup) to save its storage cost.
@@ -182,25 +186,26 @@ module "k3s" {
   instance_type       = var.instance_type
   spot_instance_types = var.spot_instance_types
 
-  github_owner   = var.github_owner
-  github_repo    = var.github_repo
-  github_token   = var.github_token
-  runner_labels  = var.runner_labels
-  git_branch     = var.git_branch
+  github_owner      = var.github_owner
+  github_repo       = var.github_repo
+  github_token      = var.github_token
+  runner_labels     = var.runner_labels
+  git_branch        = var.git_branch
   kustomize_overlay = var.kustomize_overlay
 
-  image_ref     = var.image_ref != "" ? var.image_ref : "${module.ecr.repository_url}:latest"
-  aws_region    = var.region
+  image_ref  = var.image_ref != "" ? var.image_ref : "${module.ecr.repository_url}:latest"
+  aws_region = var.region
   # app_host (vjbeautystudio.com) becomes the resolved host for outputs, the
   # first-boot user-data AND the SSM param the CI reads. Empty → nip.io fallback.
   public_host   = var.app_host
   app_namespace = "appointment-scheduling"
 
-  database_url_ssm_parameter    = module.rds.database_url_ssm_parameter
-  nextauth_secret_ssm_parameter = aws_ssm_parameter.nextauth_secret.name
-  s3_bucket_name                = module.s3_assets.bucket_name
-  ses_from_email                = var.ses_from_email
-  enable_emails                 = var.enable_emails
+  database_url_ssm_parameter        = module.rds.database_url_ssm_parameter
+  nextauth_secret_ssm_parameter     = aws_ssm_parameter.nextauth_secret.name
+  google_calendar_key_ssm_parameter = aws_ssm_parameter.google_calendar_key.name
+  s3_bucket_name                    = module.s3_assets.bucket_name
+  ses_from_email                    = var.ses_from_email
+  enable_emails                     = var.enable_emails
 
   extra_managed_policy_arns = [
     module.s3_assets.app_access_policy_arn,
@@ -209,7 +214,7 @@ module "k3s" {
 
   cloudwatch_agent_config = true
   enable_letsencrypt      = var.enable_letsencrypt
-  letsencrypt_email       = coalesce(
+  letsencrypt_email = coalesce(
     var.letsencrypt_email != "" ? var.letsencrypt_email : null,
     var.alarm_email != "" ? var.alarm_email : null,
     "devops-notify@example.com"
