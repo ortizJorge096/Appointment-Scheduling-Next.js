@@ -79,7 +79,9 @@ export async function DELETE(_req: NextRequest, { params }: Ctx): Promise<NextRe
   const target = await prisma.expense.findUnique({ where: { id }, select: { description: true } })
 
   try {
-    await prisma.expense.delete({ where: { id } })
+    // Soft delete: keep the row (accounting history) but hide it from the
+    // list and the accounting summary.
+    await prisma.expense.update({ where: { id }, data: { deletedAt: new Date() } })
   } catch (err) {
     if (isDbUnavailable(err)) return dbUnavailableResponse()
     if ((err as { code?: string }).code === 'P2025') {
@@ -95,6 +97,7 @@ export async function DELETE(_req: NextRequest, { params }: Ctx): Promise<NextRe
     userEmail:   admin.email,
     ip:          getClientIp(_req),
     description: `Gasto "${target?.description ?? 'desconocido'}" eliminado`,
+    metadata:    { softDelete: true },
   })
 
   return NextResponse.json({ success: true, data: { id } })

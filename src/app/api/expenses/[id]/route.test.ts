@@ -8,7 +8,6 @@ vi.mock('@/lib/prisma', () => ({
     expense: {
       findUnique: vi.fn(),
       update:     vi.fn(),
-      delete:     vi.fn(),
     },
   },
 }))
@@ -67,9 +66,9 @@ describe('DELETE /api/expenses/:id', () => {
     expect(res.status).toBe(401)
   })
 
-  it('deletes expense and returns id', async () => {
+  it('soft-deletes expense and returns id', async () => {
     vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
-    vi.mocked(prisma.expense.delete).mockResolvedValue(MOCK_EXPENSE as never)
+    vi.mocked(prisma.expense.update).mockResolvedValue(MOCK_EXPENSE as never)
 
     const res = await DELETE({} as NextRequest, ctx)
     const json = await res.json()
@@ -81,7 +80,7 @@ describe('DELETE /api/expenses/:id', () => {
 
   it('returns 404 when expense not found (P2025)', async () => {
     vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
-    vi.mocked(prisma.expense.delete).mockRejectedValue({ code: 'P2025' })
+    vi.mocked(prisma.expense.update).mockRejectedValue({ code: 'P2025' })
 
     const res = await DELETE({} as NextRequest, ctx)
     expect(res.status).toBe(404)

@@ -389,10 +389,14 @@ model Expense {
   date        DateTime
   category    ExpenseCategory @default(OTROS)
   notes       String?
+  // Soft delete: the expense disappears from lists and accounting but the row
+  // persists, so financial history is never lost.
+  deletedAt   DateTime?
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
   @@index([date])
   @@index([category])
+  @@index([deletedAt])
   @@map("expenses")
 }
 
