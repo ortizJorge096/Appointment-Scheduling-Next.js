@@ -34,8 +34,8 @@ const EMPTY = {
   serviceIds: [] as string[], date: '', startTime: '',
   source: 'PRESENCIAL', notes: '',
   skipAvailabilityCheck: false,
-  // Premarcado según el origen: un cliente presencial ya sabe que su cita
-  // quedó agendada; los demás orígenes se benefician de recibirlo por mail.
+  // Pre-checked based on the source: a walk-in client already knows their
+  // appointment is booked; other sources benefit from getting it by email.
   notifyClient: false,
   mode: 'UPCOMING' as 'UPCOMING' | 'PAST',
   // Order-level (total) discount (optional): empty descuentoValor = no discount.

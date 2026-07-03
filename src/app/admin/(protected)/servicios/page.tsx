@@ -1,8 +1,8 @@
 'use client'
 // src/app/admin/servicios/page.tsx
-// Catálogo: pestañas "Servicios" y "Categorías".
-// Servicios: crear, editar, activar/desactivar, eliminar (soft delete).
-// Categorías: gestionadas en CategoriesManager.
+// Catalog: "Servicios" and "Categorías" tabs.
+// Services tab: create, edit, activate/deactivate, delete (soft delete).
+// Categories tab: managed in CategoriesManager.
 
 import { useState, useEffect } from 'react'
 import { Pagination } from '@/components/admin/Pagination'

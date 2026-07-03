@@ -22,7 +22,7 @@ interface MockAppointment {
   startTime: string
 }
 
-// Fecha futura con más de 12h de margen
+// Future date more than 12h out
 function futureDate(hoursFromNow: number): Date {
   return new Date(Date.now() + hoursFromNow * 60 * 60 * 1000)
 }

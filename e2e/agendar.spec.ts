@@ -1,6 +1,6 @@
 // e2e/agendar.spec.ts
-// Flujos públicos de agendamiento. Servicio/profesional/horario son role="radio";
-// en VIP los servicios son botones de selección múltiple.
+// Public booking flows. Service/professional/time are role="radio";
+// in VIP, services are multi-select buttons.
 import { test, expect } from '@playwright/test'
 
 async function pickProfessionalAndSlot(page: import('@playwright/test').Page) {
@@ -36,7 +36,7 @@ test.describe('Agendamiento público', () => {
   test('VIP: paquete con 2+ servicios', async ({ page }) => {
     await page.goto('/agendar?modo=vip')
 
-    // VIP = selección múltiple → los servicios son role="checkbox". 2+ requeridos.
+    // VIP = multi-select → services are role="checkbox". 2+ required.
     await page.getByRole('checkbox', { name: /Manicura tradicional/i }).first().click()
     await page.getByRole('checkbox', { name: /Pedicura tradicional/i }).first().click()
     await page.getByRole('button', { name: /Continuar/i }).click()

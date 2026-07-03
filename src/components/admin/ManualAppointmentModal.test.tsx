@@ -179,11 +179,11 @@ describe('ManualAppointmentModal', () => {
     fireEvent.click(screen.getByRole('button', { name: /cita manual/i }))
     await waitFor(() => screen.getByText(/Manicura/))
 
-    // El premarcado solo aplica con email en el campo (sin email el checkbox se bloquea)
+    // The pre-check only applies with an email in the field (no email → the checkbox is locked)
     fireEvent.change(screen.getByPlaceholderText('ana@ejemplo.com'), { target: { value: 'ana@test.com' } })
 
     const checkbox = screen.getByRole('checkbox', { name: /notificar al cliente por email/i })
-    // Origen por defecto es Presencial → desmarcado
+    // Default source is Presencial → unchecked
     expect(checkbox).not.toBeChecked()
 
     fireEvent.click(screen.getByRole('button', { name: 'WhatsApp' }))
@@ -202,7 +202,7 @@ describe('ManualAppointmentModal', () => {
     fireEvent.click(screen.getByRole('button', { name: /cita manual/i }))
     await waitFor(() => screen.getByText(/Manicura/))
 
-    // Sin email, el checkbox de notificación está deshabilitado
+    // Without an email, the notification checkbox is disabled
     const checkbox = screen.getByRole('checkbox', { name: /notificar al cliente por email/i })
     expect(checkbox).toBeDisabled()
 
