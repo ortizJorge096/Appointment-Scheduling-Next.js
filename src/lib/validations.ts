@@ -2,7 +2,17 @@
 // Zod validation schemas — valentinajimenez
 
 import { z } from 'zod'
-import { Role } from '@prisma/client'
+import {
+  Role,
+  DiscountType,
+  AppointmentStatus,
+  AppointmentSource,
+  PaymentStatus,
+  PaymentMethod,
+  DayOfWeek,
+  TestimonialStatus,
+  ExpenseCategory,
+} from '@prisma/client'
 import { ICON_KEYS } from '@/lib/config'
 
 const iconEnum = z.enum(ICON_KEYS as unknown as [string, ...string[]])
@@ -44,7 +54,7 @@ const phoneSchema = z
 // (VALOR_FIJO ≤ subtotal) is enforced in the route, where the subtotal is known.
 // Nullable so the admin can CLEAR a saved discount (send the fields as null).
 const discountFields = {
-  descuentoTipo:   z.enum(['PORCENTAJE', 'VALOR_FIJO']).nullable().optional(),
+  descuentoTipo:   z.nativeEnum(DiscountType).nullable().optional(),
   descuentoValor:  z.number().int().min(0, 'El descuento no puede ser negativo').nullable().optional(),
   descuentoMotivo: z.string().max(200).nullable().optional(),
 }
@@ -84,14 +94,14 @@ const lineExtrasSchema = z.array(z.object({
 // update keys them by the existing AppointmentService id.
 const manualServiceLineSchema = z.object({
   serviceId:       z.string().cuid('ID de servicio inválido'),
-  descuentoTipo:   z.enum(['PORCENTAJE', 'VALOR_FIJO']).nullable().optional(),
+  descuentoTipo:   z.nativeEnum(DiscountType).nullable().optional(),
   descuentoValor:  z.number().int().min(0).nullable().optional(),
   descuentoMotivo: z.string().max(200).nullable().optional(),
   extras:          lineExtrasSchema,
 })
 const updateServiceLineSchema = z.object({
   appointmentServiceId: z.string().cuid('ID de línea inválido'),
-  descuentoTipo:   z.enum(['PORCENTAJE', 'VALOR_FIJO']).nullable().optional(),
+  descuentoTipo:   z.nativeEnum(DiscountType).nullable().optional(),
   descuentoValor:  z.number().int().min(0).nullable().optional(),
   descuentoMotivo: z.string().max(200).nullable().optional(),
   extras:          lineExtrasSchema,
@@ -197,18 +207,11 @@ export const availabilityQuerySchema = z.object({
 // ─────────────────────────────────────────
 
 export const updateAppointmentSchema = z.object({
-  status: z
-    .enum(['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'NO_SHOW'])
-    .optional(),
+  status: z.nativeEnum(AppointmentStatus).optional(),
 
-  paymentStatus: z
-    .enum(['PENDING', 'PAID', 'PARTIAL', 'WAIVED'])
-    .optional(),
+  paymentStatus: z.nativeEnum(PaymentStatus).optional(),
 
-  paymentMethod: z
-    .enum(['EFECTIVO', 'TRANSFERENCIA', 'TARJETA', 'NEQUI', 'DAVIPLATA'])
-    .nullable()
-    .optional(),
+  paymentMethod: z.nativeEnum(PaymentMethod).nullable().optional(),
 
   amountPaid: z.number().int().min(0).nullable().optional(),
 
@@ -301,10 +304,7 @@ const optionalTime = z.preprocess(
 )
 
 export const scheduleSchema = z.object({
-  dayOfWeek: z.enum([
-    'MONDAY', 'TUESDAY', 'WEDNESDAY',
-    'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY',
-  ]),
+  dayOfWeek: z.nativeEnum(DayOfWeek),
   startTime: timeString,
   endTime: timeString,
   breakStart: optionalTime,
@@ -392,7 +392,7 @@ export const createTestimonialSchema = z.object({
 
 export const updateTestimonialSchema = createTestimonialSchema.partial().extend({
   isActive:        z.boolean().optional(),
-  status:          z.enum(['DRAFT', 'PENDING', 'APPROVED', 'REJECTED']).optional(),
+  status:          z.nativeEnum(TestimonialStatus).optional(),
   rejectionReason: z.string().max(300).nullable().optional(),
 })
 
@@ -429,7 +429,7 @@ export const createManualAppointmentSchema = z.object({
   serviceIds:  z.array(z.string().cuid('ID de servicio inválido')).min(1).max(5).optional(),
   date:        dateString,
   startTime:   timeString,
-  source:      z.enum(['ONLINE','WHATSAPP','TELEFONO','PRESENCIAL']).default('PRESENCIAL'),
+  source:      z.nativeEnum(AppointmentSource).default(AppointmentSource.PRESENCIAL),
   notes:       z.string().max(500).optional(),
   skipAvailabilityCheck: z.boolean().optional().default(false),
 
@@ -474,7 +474,7 @@ export const createExpenseSchema = z.object({
   description: z.string().min(2).max(200),
   amount:      z.number().int().positive('El monto debe ser mayor a 0'),
   date:        dateString,
-  category:    z.enum(['INSUMOS','EQUIPOS','SERVICIOS','ARRIENDO','MARKETING','OTROS']).optional(),
+  category:    z.nativeEnum(ExpenseCategory).optional(),
   notes:       z.string().max(500).optional(),
 })
 
