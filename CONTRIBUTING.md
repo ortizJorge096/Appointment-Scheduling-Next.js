@@ -354,11 +354,15 @@ function handleBlur(key: keyof typeof EMPTY) {
 
 - **Secrets solo en variables de entorno** (`.env.local`, nunca commiteado;
   ver `.env.example` para la lista real de variables).
-- **Rate limiting** en endpoints públicos sensibles — ejemplo real en
-  `src/app/api/appointments/route.ts` (creación pública de citas, 429).
-- **CSP**: no está configurado todavía en este proyecto. Si vas a tocar
-  headers de seguridad, es terreno nuevo, no un estándar existente que
-  replicar.
+- **Rate limiting** en autenticación (`src/lib/auth.ts`: 10 intentos/15 min por
+  IP en el login) y en endpoints públicos sensibles (`appointments/route.ts`,
+  creación de citas, 429).
+- **CSP y headers de seguridad** en `next.config.ts` (`headers()`):
+  `Content-Security-Policy` con `script-src` estricto (`unsafe-eval` solo en
+  dev), `default-src 'self'`, `object-src 'none'`, `frame-ancestors 'none'`,
+  más HSTS, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`,
+  `Referrer-Policy` y `Permissions-Policy`. Si agregas un origen externo (CDN,
+  script de terceros, endpoint nuevo), actualiza la directiva correspondiente ahí.
 
 ---
 
@@ -431,6 +435,17 @@ test(discount): cover computeAppointmentTotal
   caracteres en la primera línea.
 - Agrupa cambios relacionados en un commit — no uno por archivo.
 
+### Idioma en el código
+
+- **Inglés**: mensajes de commit y **comentarios de código** (`.ts` / `.tsx`).
+  El repo ya migró sus comentarios a inglés — no introduzcas comentarios nuevos
+  en español. `schema.prisma` conserva algún comentario viejo en español, pero
+  los nuevos van en inglés igual.
+- **Español**: todo lo que ve el usuario final — strings de UI, textos de email,
+  mensajes de error de las respuestas API (`{ error: '...' }`) y las
+  descripciones de auditoría (`audit({ description })`).
+- Nunca agregues el trailer `Co-Authored-By` a los commits.
+
 ---
 
 ## 13. Reglas de pruebas
@@ -471,13 +486,14 @@ test(discount): cover computeAppointmentTotal
 Estos archivos violan una regla de arriba hoy — no son el estándar a seguir,
 son candidatos a corregir en un PR aparte:
 
-- **Hard delete en `src/app/api/expenses/[id]/route.ts`**: `Expense` es un
-  registro contable y hoy se borra físicamente con `prisma.expense.delete()`.
-  Debería migrar a soft delete (`deletedAt`) como `Category`/`Service`.
 - **`src/types/index.ts`** define interfaces de dominio a mano en vez de
   usar `Prisma.XxxGetPayload<>` para los tipos que son 1:1 con un modelo.
-- **`Appointment.startTime` / `Appointment.endTime`** no tienen `@@index`
-  aunque se consultan en cada cálculo de disponibilidad.
+- **401/403 colapsados en rutas `requireSuperAdmin`** (`users/route.ts`,
+  `users/[id]/route.ts`): devuelven 403 tanto sin sesión como sin permiso,
+  mientras el resto de rutas usa 401-luego-403 (ver `services/route.ts`). El
+  fix correcto vive en el helper `requirePermission()`/`requireSuperAdmin()`
+  (distinguir ambos casos una sola vez), no ruta por ruta — hacerlo cuando se
+  toque la capa de authz.
 
 ---
 
@@ -495,6 +511,7 @@ son candidatos a corregir en un PR aparte:
 - [ ] Sin `console.log` de depuración ni código comentado
 - [ ] Tests actualizados si cambié lógica existente; enums importados de Prisma, no hardcodeados
 - [ ] Commits en Conventional Commits: `type(scope-español): description in English`
+- [ ] Comentarios de código en inglés; textos de usuario (UI / errores / auditoría) en español
 
 ---
 
