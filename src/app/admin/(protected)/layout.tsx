@@ -6,6 +6,7 @@ import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import AdminSidebar from '@/components/admin/Sidebar'
 import AdminSessionProvider from '@/components/admin/SessionProvider'
+import ForcePasswordChangeGuard from '@/components/admin/ForcePasswordChangeGuard'
 import { ConfirmDialogProvider } from '@/components/ui/ConfirmDialog'
 import { ToastProvider } from '@/components/ui/Toast'
 
@@ -25,6 +26,7 @@ export default async function ProtectedAdminLayout({
 
   return (
     <AdminSessionProvider>
+      <ForcePasswordChangeGuard />
       <ConfirmDialogProvider>
         <ToastProvider>
           <div className="min-h-screen bg-beige/30 flex">

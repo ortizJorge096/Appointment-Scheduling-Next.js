@@ -5,12 +5,15 @@
 // devices' tokens are invalidated by the new passwordChangedAt.
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 
 const EMPTY = { currentPassword: '', newPassword: '', confirmPassword: '' }
 
 export default function PerfilForm() {
-  const { update } = useSession()
+  const { data: session, update } = useSession()
+  const router = useRouter()
+  const mustChange = !!(session?.user as { mustChangePassword?: boolean } | undefined)?.mustChangePassword
   const [form, setForm]       = useState(EMPTY)
   const [saving, setSaving]   = useState(false)
   const [error, setError]     = useState('')
@@ -32,7 +35,8 @@ export default function PerfilForm() {
       })
       const j = await res.json()
       if (!j.success) { setError(j.error ?? 'No se pudo cambiar la contraseña'); return }
-      await update() // keep the current session valid after passwordChangedAt bump
+      await update() // refresh the token: keeps this session valid + clears mustChangePassword
+      if (mustChange) { router.replace('/admin'); return } // forced change done → into the panel
       setSuccess('Contraseña actualizada. Se cerró la sesión en otros dispositivos.')
       setForm(EMPTY)
     } catch {
@@ -45,6 +49,12 @@ export default function PerfilForm() {
   return (
     <form onSubmit={submit} noValidate className="bg-white rounded-xl border border-beige-dark p-5 space-y-4">
       <h2 className="font-serif text-lg text-ink">Cambiar contraseña</h2>
+
+      {mustChange && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-800 text-sm px-3 py-2 rounded-lg">
+          Por seguridad, debes cambiar tu contraseña antes de continuar.
+        </div>
+      )}
 
       <div>
         <label className="form-label">Contraseña actual</label>
