@@ -126,7 +126,8 @@ export default function UsuariosClient({
         <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-3 py-2 rounded-lg mb-4">{error}</div>
       )}
 
-      <div className="bg-white rounded-xl border border-beige-dark overflow-x-auto">
+      {/* Desktop: table (hidden on mobile — the action table is unusable at <640px) */}
+      <div className="bg-white rounded-xl border border-beige-dark overflow-x-auto hidden sm:block">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-beige-dark bg-beige text-xs text-ink-muted uppercase tracking-widest">
@@ -175,13 +176,51 @@ export default function UsuariosClient({
         </table>
       </div>
 
+      {/* Mobile: cards with comfortable (≥44px) action buttons */}
+      <div className="sm:hidden space-y-3">
+        {users.map((u) => (
+          <div key={u.id} className="bg-white rounded-xl border border-beige-dark p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-ink font-medium">
+                  {u.name}{u.id === currentAdminId && <span className="text-[10px] text-ink-muted ml-1">(tú)</span>}
+                </p>
+                <p className="text-xs text-ink-muted truncate">{u.email}</p>
+              </div>
+              <span className={`shrink-0 text-[10px] tracking-wide uppercase px-2 py-0.5 rounded-full border ${
+                u.role === 'SUPER_ADMIN' ? 'bg-gold-pale text-gold-dark border-gold/30' : 'bg-beige text-ink-muted border-beige-dark'
+              }`}>{ROLE_LABEL[u.role]}</span>
+            </div>
+            <div className="flex items-center justify-between gap-2 mt-3">
+              <span className={`text-sm ${u.isActive ? 'text-green-600' : 'text-ink-muted'}`}>
+                {u.isActive ? 'Activo' : 'Inactivo'}
+              </span>
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <button onClick={() => openEdit(u)}
+                  className="min-h-11 px-3 rounded-lg border border-beige-dark text-sm text-gold-dark">Editar</button>
+                {u.id !== currentAdminId && (
+                  <>
+                    <button onClick={() => toggleActive(u)}
+                      className="min-h-11 px-3 rounded-lg border border-beige-dark text-sm text-ink-muted">
+                      {u.isActive ? 'Desactivar' : 'Activar'}
+                    </button>
+                    <button onClick={() => remove(u)}
+                      className="min-h-11 px-3 rounded-lg border border-red-200 text-sm text-red-500">Eliminar</button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
       {/* Create / edit modal */}
       {modal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/40 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 bg-ink/40 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90dvh] overflow-y-auto">
             <div className="flex items-center justify-between px-6 py-4 border-b border-beige-dark">
               <h2 className="font-serif text-xl text-ink">{modal.mode === 'create' ? 'Nuevo admin' : 'Editar admin'}</h2>
-              <button onClick={() => setModal(null)} className="text-ink-muted hover:text-ink text-xl leading-none">×</button>
+              <button onClick={() => setModal(null)} className="text-ink-muted hover:text-ink text-xl leading-none p-2 -m-2">×</button>
             </div>
             <form onSubmit={submitModal} noValidate className="px-6 py-5 space-y-4">
               <div>
