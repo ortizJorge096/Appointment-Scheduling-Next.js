@@ -31,10 +31,11 @@ interface StatCardProps {
   label:     string
   value:     string | number
   accent?:   boolean
+  hint?:     React.ReactNode   // optional trend / sub-label under the value
   className?: string
 }
 
-export function StatCard({ label, value, accent = false, className }: StatCardProps) {
+export function StatCard({ label, value, accent = false, hint, className }: StatCardProps) {
   return (
     <div className={cn(
       'bg-white border rounded-xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow duration-200',
@@ -45,6 +46,7 @@ export function StatCard({ label, value, accent = false, className }: StatCardPr
       <p className={cn('font-serif text-3xl font-light leading-none', accent ? 'text-gold' : 'text-ink')}>
         {value}
       </p>
+      {hint && <div className="text-[11px] mt-2">{hint}</div>}
     </div>
   )
 }
