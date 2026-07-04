@@ -111,6 +111,9 @@ export default function BookingForm() {
   const [stepError,   setStepError]   = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [attempted,   setAttempted]   = useState(false)
+  // Phone-first client recognition (consent-based autofill on the confirm step)
+  const [lookup,          setLookup]          = useState<{ name: string } | null>(null)
+  const [lookupDismissed, setLookupDismissed] = useState(false)
 
   const [form, setForm] = useState<FormData>({
     category:       '',
@@ -253,6 +256,29 @@ export default function BookingForm() {
     }, 50)
   }, [step])
 
+  // Phone-first recognition: when a valid, known phone is typed on the confirm
+  // step, offer to autofill the returning client's name (with consent). The
+  // lookup endpoint discloses only the name — never email/history — so numbers
+  // can't be used to harvest data. Debounced + aborts stale requests.
+  useEffect(() => {
+    if (step !== 'confirm') return
+    if (!isValidPhone(form.clientPhone)) { setLookup(null); return }
+    const controller = new AbortController()
+    const t = setTimeout(async () => {
+      try {
+        const res  = await fetch(`/api/clients/lookup?phone=${encodeURIComponent(form.clientPhone)}`, { signal: controller.signal })
+        const json = await res.json()
+        if (json.success && json.data.found && json.data.name) {
+          setLookup({ name: json.data.name })
+          setLookupDismissed(false)
+        } else {
+          setLookup(null)
+        }
+      } catch { /* aborted or offline — silently ignore */ }
+    }, 500)
+    return () => { clearTimeout(t); controller.abort() }
+  }, [step, form.clientPhone])
+
   // The professional step only appears when the admin enabled it AND there is at
   // least one active professional to choose from.
   const effectiveShowProfessionalStep = showProfessionalStep && professionals.length > 0
@@ -296,6 +322,20 @@ export default function BookingForm() {
       setFieldErrors((prev) => ({ ...prev, [field]: undefined }))
     }
     setStepError(null)
+  }
+
+  // Consent-based: only runs when the visitor taps "Autocompletar". Fills the
+  // name from the server; the email stays device-private (localStorage) and is
+  // never fetched, so we don't disclose it to whoever holds the phone.
+  function applyAutofill() {
+    if (!lookup) return
+    setForm((prev) => ({
+      ...prev,
+      clientName:  lookup.name,
+      clientEmail: prev.clientEmail || savedClientData.clientEmail,
+    }))
+    setFieldErrors({})
+    setLookupDismissed(true)
   }
 
   function toggleService(id: string) {
@@ -888,23 +928,59 @@ export default function BookingForm() {
           )}
 
           <div className="space-y-5">
+            {/* Phone first: the phone IS the client's identity, so we ask it up
+                front and offer to recognize returning clients (with consent). */}
             <div>
-              <label className="form-label">Nombre completo <span className="text-red-500">*</span></label>
+              <label className="form-label">Teléfono / WhatsApp <span className="text-red-500">*</span></label>
               <input
-                type="text"
-                list="dl-name"
-                className={inputClass(fieldErrors.clientName)}
-                placeholder="Tu nombre y apellido"
-                value={form.clientName}
-                onChange={(e) => updateForm('clientName', e.target.value)}
-                autoComplete="name"
+                type="tel"
+                list="dl-phone"
+                className={inputClass(fieldErrors.clientPhone)}
+                placeholder="300 000 0000"
+                value={form.clientPhone}
+                onChange={(e) => updateForm('clientPhone', e.target.value)}
+                autoComplete="tel"
               />
-              {fieldErrors.clientName && (
-                <p className="flex items-center gap-1.5 text-red-500 text-xs mt-1.5"><span>⚠</span> {fieldErrors.clientName}</p>
+              {fieldErrors.clientPhone && (
+                <p className="flex items-center gap-1.5 text-red-500 text-xs mt-1.5"><span>⚠</span> {fieldErrors.clientPhone}</p>
+              )}
+
+              {/* Returning-client recognition — consent-based, never auto-applied */}
+              {lookup && !lookupDismissed && form.clientName.trim() !== lookup.name && (
+                <div className="flex items-center justify-between gap-3 bg-gold-pale border border-gold/30 rounded-xl px-4 py-2.5 mt-2 animate-fade-in">
+                  <p className="text-sm text-ink">
+                    ¿Eres <strong className="text-gold-dark">{lookup.name}</strong>? Ya tienes datos con nosotros.
+                  </p>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button type="button" onClick={applyAutofill}
+                      className="text-xs font-semibold text-gold-dark border border-gold/40 rounded-full px-3 py-1.5 hover:bg-gold/10 transition-colors">
+                      Autocompletar
+                    </button>
+                    <button type="button" onClick={() => setLookupDismissed(true)}
+                      className="text-xs text-ink-muted hover:text-ink transition-colors" aria-label="Descartar sugerencia">
+                      No
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="form-label">Nombre completo <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  list="dl-name"
+                  className={inputClass(fieldErrors.clientName)}
+                  placeholder="Tu nombre y apellido"
+                  value={form.clientName}
+                  onChange={(e) => updateForm('clientName', e.target.value)}
+                  autoComplete="name"
+                />
+                {fieldErrors.clientName && (
+                  <p className="flex items-center gap-1.5 text-red-500 text-xs mt-1.5"><span>⚠</span> {fieldErrors.clientName}</p>
+                )}
+              </div>
               <div>
                 <label className="form-label">
                   Email <span className="text-ink-muted/60 normal-case font-normal tracking-normal">(opcional)</span>
@@ -924,21 +1000,6 @@ export default function BookingForm() {
                   <p className="text-xs text-ink-muted/60 mt-1.5">
                     Si lo proporcionas, recibirás confirmación y recordatorios automáticos de tu cita.
                   </p>
-                )}
-              </div>
-              <div>
-                <label className="form-label">Teléfono / WhatsApp <span className="text-red-500">*</span></label>
-                <input
-                  type="tel"
-                  list="dl-phone"
-                  className={inputClass(fieldErrors.clientPhone)}
-                  placeholder="300 000 0000"
-                  value={form.clientPhone}
-                  onChange={(e) => updateForm('clientPhone', e.target.value)}
-                  autoComplete="tel"
-                />
-                {fieldErrors.clientPhone && (
-                  <p className="flex items-center gap-1.5 text-red-500 text-xs mt-1.5"><span>⚠</span> {fieldErrors.clientPhone}</p>
                 )}
               </div>
             </div>

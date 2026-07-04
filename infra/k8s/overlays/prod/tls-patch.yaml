@@ -13,4 +13,5 @@ spec:
   tls:
     - hosts:
         - appointment-scheduling.example.com
+        - www.appointment-scheduling.example.com
       secretName: appointment-scheduling-tls
