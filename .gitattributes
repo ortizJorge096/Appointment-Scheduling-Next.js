@@ -1,0 +1,5 @@
+# Files read by Terraform or executed on Linux MUST be LF. CRLF breaks
+# templatefile ("%{ ~}" strip markers -> "inconsistent result") and bash ("\r").
+*.tftpl text eol=lf
+*.sh    text eol=lf
+*.tf    text eol=lf

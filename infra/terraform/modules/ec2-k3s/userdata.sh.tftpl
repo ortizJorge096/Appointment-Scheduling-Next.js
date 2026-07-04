@@ -4,7 +4,7 @@ set -euxo pipefail
 exec > /var/log/userdata.log 2>&1
 
 dnf -y update
-dnf -y install --allowerasing curl tar git jq
+dnf -y install --allowerasing curl tar git jq openssl
 
 # ── (0) Re-associate persistent EIP ──
 echo "── [0] Re-attaching EIP ──"
@@ -170,13 +170,37 @@ echo "── cert-manager secrets backed up ──"
 # before persisting the issued TLS secret, so it restores cleanly on a new node.
 command -v jq >/dev/null 2>&1 || { dnf install -y jq >/dev/null 2>&1 || yum install -y jq >/dev/null 2>&1 || true; }
 
-# Cron: re-backup every 6h.
+# Helper: back up the issued TLS cert Secret to S3, but ONLY when it holds a
+# valid, non-expired certificate — so a not-yet-issued/empty Secret can never
+# poison the backup that new instances restore from (the root cause of the
+# repeated LE re-issues that exhausted the rate limit). Exits 0 only when a
+# valid cert is actually saved, so callers can poll it.
+cat > /usr/local/sbin/tls-cert-sync.sh <<'TLSSYNC_EOF'
+#!/bin/bash
+set -uo pipefail
+export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+NS="${app_namespace}"
+KEY="s3://${s3_bucket_name}/cert-manager/${app_namespace}-tls.json"
+REGION="${aws_region}"
+
+json=$(kubectl -n "$NS" get secret appointment-scheduling-tls -o json 2>/dev/null) || exit 1
+crt=$(echo "$json" | jq -r '.data["tls.crt"] // empty')
+[ -n "$crt" ] || { echo "tls-sync: no tls.crt yet — skip (backup untouched)"; exit 1; }
+echo "$crt" | base64 -d 2>/dev/null | openssl x509 -noout -checkend 0 >/dev/null 2>&1 \
+  || { echo "tls-sync: cert missing/expired — skip (won't overwrite good backup)"; exit 1; }
+
+echo "$json" \
+  | jq 'del(.metadata.ownerReferences,.metadata.resourceVersion,.metadata.uid,.metadata.creationTimestamp,.metadata.managedFields,.status)' \
+  | aws s3 cp - "$KEY" --region "$REGION" \
+  && echo "tls-sync: backed up valid cert to $KEY"
+TLSSYNC_EOF
+chmod 0755 /usr/local/sbin/tls-cert-sync.sh
+
+# Cron: re-backup every 6h (ACME account secrets + the validated TLS cert).
 mkdir -p /etc/cron.d
 echo 'SHELL=/bin/bash' > /etc/cron.d/cm-backup
 echo "0 */6 * * * root for s in letsencrypt-staging-account letsencrypt-prod-account; do kubectl -n cert-manager get secret \"\$s\" -o json 2>/dev/null | aws s3 cp - \"s3://${s3_bucket_name}/cert-manager/\$s.json\" --region \"${aws_region}\" 2>/dev/null; done" >> /etc/cron.d/cm-backup
-# Also back up the issued TLS cert secret so spot replacements reuse it instead
-# of re-issuing (which hits the LE rate limit: 5 certs/week per domain).
-echo "30 */6 * * * root kubectl -n ${app_namespace} get secret appointment-scheduling-tls -o json 2>/dev/null | jq 'del(.metadata.ownerReferences,.metadata.resourceVersion,.metadata.uid,.metadata.creationTimestamp,.metadata.managedFields,.status)' 2>/dev/null | aws s3 cp - \"s3://${s3_bucket_name}/cert-manager/${app_namespace}-tls.json\" --region \"${aws_region}\" 2>/dev/null" >> /etc/cron.d/cm-backup
+echo "30 */6 * * * root /usr/local/sbin/tls-cert-sync.sh >/dev/null 2>&1" >> /etc/cron.d/cm-backup
 %{ endif ~}
 
 # ── (6) SSM secrets ──
@@ -199,15 +223,19 @@ kubectl --kubeconfig $${KUBECONFIG} create namespace "${app_namespace}" \
   --dry-run=client -o yaml | kubectl --kubeconfig $${KUBECONFIG} apply -f -
 
 %{ if enable_letsencrypt ~}
-# Restore the previously issued TLS cert BEFORE applying the Ingress. If the
-# stored cert is still valid, cert-manager reuses it and does NOT order a new
-# one — avoiding the Let's Encrypt rate limit (5 certs/week per exact domain)
-# that otherwise triggers on every spot replacement.
+# Restore the previously issued TLS cert BEFORE applying the Ingress — but ONLY
+# if the S3 backup holds a valid, non-expired cert. A poisoned/empty backup must
+# not overwrite a good in-cluster Secret nor feed cert-manager garbage (which is
+# what triggered the repeated LE re-issues that exhausted the rate limit). When a
+# valid cert is restored, cert-manager adopts it and does NOT order a new one.
 tls_uri="s3://${s3_bucket_name}/cert-manager/${app_namespace}-tls.json"
-if aws s3 ls "$${tls_uri}" --region "${aws_region}" >/dev/null 2>&1; then
-  aws s3 cp "$${tls_uri}" - --region "${aws_region}" \
-    | kubectl --kubeconfig $${KUBECONFIG} -n "${app_namespace}" apply -f - 2>/dev/null \
-    && echo "Restored TLS cert secret for ${app_namespace} (skips LE re-issue)"
+tls_json=$(aws s3 cp "$${tls_uri}" - --region "${aws_region}" 2>/dev/null || true)
+if [ -n "$${tls_json}" ] \
+   && echo "$${tls_json}" | jq -r '.data["tls.crt"] // empty' | base64 -d 2>/dev/null | openssl x509 -noout -checkend 0 >/dev/null 2>&1; then
+  echo "$${tls_json}" | kubectl --kubeconfig $${KUBECONFIG} -n "${app_namespace}" apply -f - \
+    && echo "Restored valid TLS cert for ${app_namespace} (cert-manager adopts it, no re-issue)"
+else
+  echo "No valid TLS backup in S3 — cert-manager will issue a fresh cert (first boot or after expiry)"
 fi
 %{ endif ~}
 
@@ -236,14 +264,15 @@ kubectl --kubeconfig $${KUBECONFIG} -n "${app_namespace}" \
 kubectl --kubeconfig $${KUBECONFIG} -n "${app_namespace}" get pods,svc,ingress
 
 %{ if enable_letsencrypt ~}
-# Best-effort: once the cert is issued, persist it to S3 right away (the 6h cron
-# keeps it fresh thereafter). Backgrounded so it doesn't block boot.
+# Persist the cert to S3 as soon as it's issued. Poll (up to ~10 min) for a
+# VALID cert via tls-cert-sync.sh instead of a fixed sleep, so a slow first
+# issuance still gets backed up — and an empty/invalid Secret is never uploaded.
+# Backgrounded so it doesn't block boot.
 (
-  sleep 120
-  kubectl --kubeconfig $${KUBECONFIG} -n "${app_namespace}" get secret appointment-scheduling-tls -o json 2>/dev/null \
-    | jq 'del(.metadata.ownerReferences,.metadata.resourceVersion,.metadata.uid,.metadata.creationTimestamp,.metadata.managedFields,.status)' 2>/dev/null \
-    | aws s3 cp - "s3://${s3_bucket_name}/cert-manager/${app_namespace}-tls.json" --region "${aws_region}" 2>/dev/null \
-    && echo "Backed up TLS cert secret for ${app_namespace}"
+  for _ in $(seq 1 40); do
+    /usr/local/sbin/tls-cert-sync.sh && break
+    sleep 15
+  done
 ) &
 %{ endif ~}
 
