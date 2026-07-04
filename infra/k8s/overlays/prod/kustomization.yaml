@@ -17,6 +17,19 @@ patches:
       - op: replace
         path: /spec/rules/0/host
         value: appointment-scheduling.example.com   # rewritten by user-data / deploy
+      - op: add
+        path: /spec/rules/-
+        value:
+          host: www.appointment-scheduling.example.com   # www alias, rewritten by deploy
+          http:
+            paths:
+              - path: /
+                pathType: Prefix
+                backend:
+                  service:
+                    name: appointment-scheduling
+                    port:
+                      number: 80
 
   - path: tls-patch.yaml
     target:
