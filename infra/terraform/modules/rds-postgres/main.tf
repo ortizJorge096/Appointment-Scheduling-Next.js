@@ -96,8 +96,8 @@ resource "aws_db_parameter_group" "this" {
   description = "Postgres con SSL forzado"
 
   parameter {
-    name  = "rds.force_ssl"
-    value = "1"
+    name         = "rds.force_ssl"
+    value        = "1"
     apply_method = "pending-reboot"
   }
 
@@ -106,14 +106,14 @@ resource "aws_db_parameter_group" "this" {
 
 # ─── Instancia ────────────────────────────────────────────────────────────
 resource "aws_db_instance" "this" {
-  identifier        = "${var.name}-pg"
-  engine            = "postgres"
-  engine_version    = var.engine_version
-  instance_class    = var.instance_class
-  allocated_storage = var.allocated_storage_gb
+  identifier            = "${var.name}-pg"
+  engine                = "postgres"
+  engine_version        = var.engine_version
+  instance_class        = var.instance_class
+  allocated_storage     = var.allocated_storage_gb
   max_allocated_storage = var.max_allocated_storage_gb > 0 ? var.max_allocated_storage_gb : null
-  storage_type      = var.storage_type
-  storage_encrypted = true
+  storage_type          = var.storage_type
+  storage_encrypted     = true
 
   db_name  = var.db_name
   username = var.db_username
@@ -130,12 +130,12 @@ resource "aws_db_instance" "this" {
   backup_window           = var.backup_retention_days > 0 ? var.backup_window : null
   maintenance_window      = "sun:07:30-sun:08:30"
 
-  copy_tags_to_snapshot = true
-  deletion_protection   = var.deletion_protection
-  skip_final_snapshot   = var.skip_final_snapshot
+  copy_tags_to_snapshot     = true
+  deletion_protection       = var.deletion_protection
+  skip_final_snapshot       = var.skip_final_snapshot
   final_snapshot_identifier = var.skip_final_snapshot ? null : "${var.name}-pg-final-${formatdate("YYYYMMDDhhmmss", timestamp())}"
 
-  performance_insights_enabled = false  # Not Free Tier; enable in prod if needed
+  performance_insights_enabled = false # Not Free Tier; enable in prod if needed
 
   apply_immediately = false
 

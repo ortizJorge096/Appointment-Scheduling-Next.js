@@ -273,16 +273,13 @@ jobs:
           cd "$GITHUB_WORKSPACE"
 
           kustomize build infra/k8s/overlays/dev | kubectl apply -f -
-          # kustomize overwrites the secret with a placeholder — restore real values
-          DATABASE_URL=$(aws ssm get-parameter --region us-east-1 --name /appointment-scheduling-dev/db/url --with-decryption --query Parameter.Value --output text)
-          NEXTAUTH_SECRET=$(aws ssm get-parameter --region us-east-1 --name /appointment-scheduling-dev/nextauth/secret --with-decryption --query Parameter.Value --output text)
-          GOOGLE_PRIVATE_KEY=$(aws ssm get-parameter --region us-east-1 --name /appointment-scheduling-dev/google/calendar-private-key --with-decryption --query Parameter.Value --output text)
-          # Only SENSITIVE values in the Secret — the rest goes in the ConfigMap (kustomize overlay)
-          kubectl -n appointment-scheduling-dev create secret generic appointment-scheduling-secret \
-            --from-literal=DATABASE_URL="$DATABASE_URL" \
-            --from-literal=NEXTAUTH_SECRET="$NEXTAUTH_SECRET" \
-            --from-literal=GOOGLE_PRIVATE_KEY="$GOOGLE_PRIVATE_KEY" \
-            --dry-run=client -o yaml | kubectl apply -f -
+          # kustomize applies the base Secret stub — render the real values from
+          # SSM. Same script the EC2 user-data uses, so the two paths never drift.
+          bash scripts/render-app-secret.sh appointment-scheduling-dev \
+            /appointment-scheduling-dev/db/url \
+            /appointment-scheduling-dev/nextauth/secret \
+            /appointment-scheduling-dev/google/calendar-private-key \
+            us-east-1
           kubectl -n appointment-scheduling-dev rollout restart deployment/appointment-scheduling
           kubectl -n appointment-scheduling-dev rollout status deployment/appointment-scheduling --timeout=600s
 
@@ -339,21 +336,13 @@ jobs:
 
           kustomize build infra/k8s/overlays/prod | kubectl apply -f -
 
-          # Refresh Secret with current SSM values (in case they rotated)
-          DATABASE_URL=$(aws ssm get-parameter --region us-east-1 \
-            --name /appointment-scheduling-prod/db/url \
-            --with-decryption --query Parameter.Value --output text)
-          NEXTAUTH_SECRET=$(aws ssm get-parameter --region us-east-1 \
-            --name /appointment-scheduling-prod/nextauth/secret \
-            --with-decryption --query Parameter.Value --output text)
-          GOOGLE_PRIVATE_KEY=$(aws ssm get-parameter --region us-east-1 \
-            --name /appointment-scheduling-prod/google/calendar-private-key \
-            --with-decryption --query Parameter.Value --output text)
-          kubectl -n appointment-scheduling create secret generic appointment-scheduling-secret \
-            --from-literal=DATABASE_URL="$DATABASE_URL" \
-            --from-literal=NEXTAUTH_SECRET="$NEXTAUTH_SECRET" \
-            --from-literal=GOOGLE_PRIVATE_KEY="$GOOGLE_PRIVATE_KEY" \
-            --dry-run=client -o yaml | kubectl apply -f -
+          # Render the Secret from current SSM values (same script the EC2
+          # user-data calls → the two paths never drift on which keys it holds).
+          bash scripts/render-app-secret.sh appointment-scheduling \
+            /appointment-scheduling-prod/db/url \
+            /appointment-scheduling-prod/nextauth/secret \
+            /appointment-scheduling-prod/google/calendar-private-key \
+            us-east-1
 
           kubectl -n appointment-scheduling rollout restart deployment/appointment-scheduling
           kubectl -n appointment-scheduling rollout status deployment/appointment-scheduling --timeout=600s
