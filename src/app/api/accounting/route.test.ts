@@ -68,6 +68,9 @@ describe('GET /api/accounting', () => {
     expect(json.data.paidCount).toBe(1)
     expect(json.data.pendingCount).toBe(1)
     expect(json.data.appointmentCount).toBe(4)
+    // Receivable: PARTIAL owes 60000-30000=30000, PENDING owes 60000 → 90000 (2 citas)
+    expect(json.data.receivable).toBe(90000)
+    expect(json.data.receivableCount).toBe(2)
   })
 
   it('falls back to service price when amountPaid is null for PAID', async () => {
@@ -98,6 +101,26 @@ describe('GET /api/accounting', () => {
 
     expect(json.data.totalExpenses).toBe(100000)
     expect(json.data.netProfit).toBe(100000)
+    // margin = netProfit / income = 100000 / 200000 = 50%
+    expect(json.data.marginPct).toBe(50)
+  })
+
+  it('groups expenses by category, largest first', async () => {
+    vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
+    vi.mocked(prisma.appointment.findMany).mockResolvedValue([])
+    vi.mocked(prisma.expense.findMany).mockResolvedValue([
+      { amount: 100000, category: 'INSUMOS' },
+      { amount: 50000,  category: 'ARRIENDO' },
+      { amount: 30000,  category: 'INSUMOS' },
+    ] as never)
+
+    const res = await GET(makeGetRequest())
+    const json = await res.json()
+
+    expect(json.data.expensesByCategory).toEqual([
+      { category: 'INSUMOS', amount: 130000 },
+      { category: 'ARRIENDO', amount: 50000 },
+    ])
   })
 
   it('accepts dateFrom/dateTo filter params', async () => {

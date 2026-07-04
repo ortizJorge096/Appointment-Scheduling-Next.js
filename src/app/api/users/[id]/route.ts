@@ -79,7 +79,8 @@ export async function PATCH(
     if (isActive  !== undefined) data.isActive = isActive
     if (newPassword) {
       data.password = await bcrypt.hash(newPassword, 12)
-      data.passwordChangedAt = new Date() // invalidates the target's sessions
+      data.passwordChangedAt = new Date()  // invalidates the target's sessions
+      data.mustChangePassword = true        // an admin reset → force them to set their own
     }
 
     const updated = await prisma.user.update({ where: { id }, data, select: SAFE_SELECT })

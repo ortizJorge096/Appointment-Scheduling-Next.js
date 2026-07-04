@@ -9,6 +9,7 @@ import { prisma } from '@/lib/prisma'
 import { updateClientSchema } from '@/lib/validations'
 import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
 import { audit, getClientIp, getUserAgent } from '@/lib/audit'
+import { normalizePhone } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -79,7 +80,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx): Promise<Next
       data: {
         ...(parsed.data.name  ? { name:  parsed.data.name.trim()  } : {}),
         ...(parsed.data.email ? { email: parsed.data.email.toLowerCase().trim() } : {}),
-        ...(parsed.data.phone !== undefined ? { phone: parsed.data.phone?.trim() ?? null } : {}),
+        ...(parsed.data.phone !== undefined ? { phone: parsed.data.phone?.trim() ?? null, phoneNormalized: normalizePhone(parsed.data.phone) } : {}),
         ...(parsed.data.notes !== undefined ? { notes: parsed.data.notes?.trim() ?? null } : {}),
       },
       include: { _count: { select: { appointments: true } } },
@@ -90,7 +91,9 @@ export async function PATCH(request: NextRequest, { params }: Ctx): Promise<Next
       return NextResponse.json({ success: false, error: 'Cliente no encontrado' }, { status: 404 })
     }
     if ((err as { code?: string }).code === 'P2002') {
-      return NextResponse.json({ success: false, error: 'Ya existe un cliente con ese email' }, { status: 409 })
+      const target = String((err as { meta?: { target?: unknown } }).meta?.target ?? '')
+      const field  = target.includes('phone') ? 'teléfono' : 'email'
+      return NextResponse.json({ success: false, error: `Ya existe un cliente con ese ${field}` }, { status: 409 })
     }
     return NextResponse.json({ success: false, error: 'Error interno' }, { status: 500 })
   }

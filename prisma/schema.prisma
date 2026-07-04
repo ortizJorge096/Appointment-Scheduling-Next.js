@@ -29,6 +29,10 @@ model User {
   // Bumped on every password change; embedded in the JWT so tokens issued
   // before the change are rejected → forces re-login on other devices.
   passwordChangedAt DateTime?
+  // Forces a password change before using the panel — set when an admin creates
+  // the user or resets its password; cleared when the user changes it. Enforced
+  // by the protected layout guard.
+  mustChangePassword Boolean @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@map("users")
@@ -52,6 +56,10 @@ model Client {
   // clients without email never collide, while real emails stay unique.
   email        String?       @unique
   phone        String?
+  // Canonical phone (normalizePhone → 57XXXXXXXXXX): the client's identity key.
+  // @unique so one phone = one client; nullable so admin-created clients without
+  // a phone don't collide (Postgres allows multiple NULLs under a unique index).
+  phoneNormalized String?    @unique
   notes        String?       // allergies, preferences, internal notes
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt

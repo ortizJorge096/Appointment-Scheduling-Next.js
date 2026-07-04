@@ -1,6 +1,7 @@
 'use client'
 // src/app/admin/(protected)/contabilidad/page.tsx
-// Financial view: appointment revenue + expenses + net profit
+// Financial view: appointment revenue + expenses + net profit, enriched with
+// period-over-period deltas, outstanding receivables and an expense breakdown.
 
 import { useState, useEffect, useCallback } from 'react'
 import type { ExpenseSummary, AccountingSummary } from '@/types'
@@ -28,7 +29,49 @@ function currentMonthRange() {
   return { from: fmt(from), to: fmt(to) }
 }
 
+// Previous window of the SAME length, immediately before `from` — the baseline
+// for period-over-period deltas. Robust for any range (week, month, custom).
+function previousRange(from: string, to: string) {
+  const dayMs    = 86_400_000
+  const f        = new Date(`${from}T00:00:00`)
+  const t        = new Date(`${to}T00:00:00`)
+  const len      = Math.round((t.getTime() - f.getTime()) / dayMs) + 1 // inclusive
+  const prevTo   = new Date(f.getTime() - dayMs)
+  const prevFrom = new Date(prevTo.getTime() - (len - 1) * dayMs)
+  const fmt = (d: Date) => d.toISOString().slice(0, 10)
+  return { from: fmt(prevFrom), to: fmt(prevTo) }
+}
+
+// Percent change vs a baseline; null when there's no baseline to compare against.
+function pctDelta(current: number, previous: number): { pct: number; dir: 'up' | 'down' | 'flat' } | null {
+  if (previous <= 0) return null
+  const pct = Math.round(((current - previous) / previous) * 100)
+  return { pct, dir: pct > 0 ? 'up' : pct < 0 ? 'down' : 'flat' }
+}
+
+// Quote a CSV cell only when it contains a comma, quote or newline.
+function csvCell(value: string) {
+  const s = String(value ?? '')
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+}
+
 const EMPTY_FORM = { description: '', amount: '', date: new Date().toISOString().slice(0, 10), category: 'OTROS', notes: '' }
+
+// Small period-over-period indicator. For expenses a rise is bad → `invert`
+// flips the color semantics so "up" reads red instead of green.
+function DeltaBadge({ current, previous, invert = false }: { current: number; previous: number; invert?: boolean }) {
+  const d = pctDelta(current, previous)
+  if (!d) return <span className="text-[11px] text-ink-muted mt-1 block">— sin período anterior</span>
+  const good  = d.dir === 'flat' ? null : invert ? d.dir === 'down' : d.dir === 'up'
+  const color = good === null ? 'text-ink-muted' : good ? 'text-green-600' : 'text-red-500'
+  const arrow = d.dir === 'up' ? '↑' : d.dir === 'down' ? '↓' : '→'
+  return (
+    <span className={`text-[11px] mt-1 inline-flex items-center gap-1 ${color}`}>
+      <span>{arrow} {Math.abs(d.pct)}%</span>
+      <span className="text-ink-muted">vs. anterior</span>
+    </span>
+  )
+}
 
 export default function ContabilidadPage() {
   usePermissionGuard('contabilidad:ver')
@@ -38,7 +81,8 @@ export default function ContabilidadPage() {
   const [dateFrom, setDateFrom]   = useState(initFrom)
   const [dateTo, setDateTo]       = useState(initTo)
 
-  const [summary, setSummary]     = useState<AccountingSummary | null>(null)
+  const [summary, setSummary]         = useState<AccountingSummary | null>(null)
+  const [prevSummary, setPrevSummary] = useState<AccountingSummary | null>(null)
   const [expenses, setExpenses]   = useState<ExpenseSummary[]>([])
   const [loadingSum, setLoadingSum] = useState(true)
   const [loadingExp, setLoadingExp] = useState(true)
@@ -59,10 +103,16 @@ export default function ContabilidadPage() {
 
   const loadSummary = useCallback(async () => {
     setLoadingSum(true)
-    const p = new URLSearchParams({ dateFrom, dateTo })
-    const res = await fetch(`/api/accounting?${p}`)
-    const j = await res.json()
-    if (j.success) setSummary(j.data)
+    // Fetch the current period and the equal-length previous window in parallel
+    // so the cards can show period-over-period deltas.
+    const prev = previousRange(dateFrom, dateTo)
+    const [curRes, prevRes] = await Promise.all([
+      fetch(`/api/accounting?${new URLSearchParams({ dateFrom, dateTo })}`),
+      fetch(`/api/accounting?${new URLSearchParams({ dateFrom: prev.from, dateTo: prev.to })}`),
+    ])
+    const [curJ, prevJ] = await Promise.all([curRes.json(), prevRes.json()])
+    if (curJ.success) setSummary(curJ.data)
+    setPrevSummary(prevJ.success ? prevJ.data : null)
     setLoadingSum(false)
   }, [dateFrom, dateTo])
 
@@ -107,16 +157,52 @@ export default function ContabilidadPage() {
     loadSummary()
   }
 
+  // Export the period's expenses to CSV, client-side, from the loaded list.
+  function exportCsv() {
+    const header = ['Fecha', 'Descripción', 'Categoría', 'Monto', 'Notas']
+    const rows = expenses.map(e => [
+      e.date.slice(0, 10),
+      e.description,
+      CAT_LABEL[e.category] ?? e.category,
+      String(e.amount),
+      e.notes ?? '',
+    ])
+    const csv = [header, ...rows].map(r => r.map(csvCell).join(',')).join('\r\n')
+    // BOM so Excel opens the accented UTF-8 correctly.
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `gastos-${dateFrom}_${dateTo}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const netColor = (summary?.netProfit ?? 0) >= 0 ? 'text-green-700' : 'text-red-600'
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
-      <div className="mb-6">
-        <p className="text-xs text-ink-muted tracking-widest uppercase mb-1">Finanzas</p>
-        <h1 className="font-serif text-2xl sm:text-3xl text-ink font-light">Contabilidad</h1>
-        <p className="text-sm text-ink-muted mt-0.5">Ingresos, gastos y utilidad neta del período</p>
+      {/* Header */}
+      <div className="mb-6 flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs text-ink-muted tracking-widest uppercase mb-1">Finanzas</p>
+          <h1 className="font-serif text-2xl sm:text-3xl text-ink font-light">Contabilidad</h1>
+          <p className="text-sm text-ink-muted mt-0.5">Ingresos, gastos y utilidad neta del período</p>
+        </div>
+        {expenses.length > 0 && (
+          <button onClick={exportCsv}
+            className="shrink-0 min-h-11 inline-flex items-center gap-1.5 px-4 rounded-full border border-beige-dark text-sm text-ink hover:bg-beige/40 transition-colors">
+            <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+              <path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <span className="hidden sm:inline">Exportar CSV</span>
+            <span className="sm:hidden">CSV</span>
+          </button>
+        )}
       </div>
 
       {/* Date filter */}
-      <div className="flex flex-wrap gap-3 mb-6 items-end">
+      <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-3 mb-6 items-end">
         <div>
           <label className="form-label text-[10px]">Desde</label>
           <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
@@ -129,27 +215,77 @@ export default function ContabilidadPage() {
         </div>
       </div>
 
-      {/* Financial summary */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        {[
-          { label: 'Ingresos', value: summary?.totalIncome ?? 0, color: 'text-green-600' },
-          { label: 'Gastos',   value: summary?.totalExpenses ?? 0, color: 'text-red-500' },
-          { label: 'Utilidad neta', value: summary?.netProfit ?? 0,
-            color: (summary?.netProfit ?? 0) >= 0 ? 'text-green-700' : 'text-red-600' },
-          { label: 'Citas cobradas', value: summary?.paidCount ?? 0, isCta: true },
-        ].map(({ label, value, color, isCta }) => (
-          <div key={label} className="bg-white rounded-xl border border-beige-dark p-4">
-            <p className="text-xs text-ink-muted mb-1">{label}</p>
-            <p className={`text-xl font-serif font-light ${color ?? 'text-ink'} ${loadingSum ? 'opacity-40' : ''}`}>
-              {isCta ? value : COP(value as number)}
-            </p>
-          </div>
-        ))}
+      {/* Financial summary — KPIs with period-over-period context */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+        {/* Ingresos */}
+        <div className="bg-white rounded-xl border border-beige-dark p-4">
+          <p className="text-xs text-ink-muted mb-1">Ingresos</p>
+          <p className={`text-lg sm:text-xl font-serif font-light text-green-700 break-words ${loadingSum ? 'opacity-40' : ''}`}>
+            {COP(summary?.totalIncome ?? 0)}
+          </p>
+          {summary && prevSummary && <DeltaBadge current={summary.totalIncome} previous={prevSummary.totalIncome} />}
+        </div>
+
+        {/* Gastos */}
+        <div className="bg-white rounded-xl border border-beige-dark p-4">
+          <p className="text-xs text-ink-muted mb-1">Gastos</p>
+          <p className={`text-lg sm:text-xl font-serif font-light text-red-500 break-words ${loadingSum ? 'opacity-40' : ''}`}>
+            {COP(summary?.totalExpenses ?? 0)}
+          </p>
+          {summary && prevSummary && <DeltaBadge current={summary.totalExpenses} previous={prevSummary.totalExpenses} invert />}
+        </div>
+
+        {/* Utilidad neta + margen */}
+        <div className="bg-white rounded-xl border border-beige-dark p-4">
+          <p className="text-xs text-ink-muted mb-1">Utilidad neta</p>
+          <p className={`text-lg sm:text-xl font-serif font-light break-words ${netColor} ${loadingSum ? 'opacity-40' : ''}`}>
+            {COP(summary?.netProfit ?? 0)}
+          </p>
+          <span className="text-[11px] text-ink-muted mt-1 block">margen {summary?.marginPct ?? 0}%</span>
+        </div>
+
+        {/* Por cobrar */}
+        <div className="bg-white rounded-xl border border-gold/40 p-4">
+          <p className="text-xs text-ink-muted mb-1">Por cobrar</p>
+          <p className={`text-lg sm:text-xl font-serif font-light text-gold-dark break-words ${loadingSum ? 'opacity-40' : ''}`}>
+            {COP(summary?.receivable ?? 0)}
+          </p>
+          <span className="text-[11px] text-ink-muted mt-1 block">
+            {summary?.receivableCount ?? 0} {(summary?.receivableCount ?? 0) === 1 ? 'cita con saldo' : 'citas con saldo'}
+          </span>
+        </div>
       </div>
+
       {summary && (
-        <p className="text-xs text-ink-muted -mt-4 mb-6">
+        <p className="text-xs text-ink-muted mb-6">
           {summary.paidCount} pagadas · {summary.pendingCount} sin pago · {summary.appointmentCount} total en el período
         </p>
+      )}
+
+      {/* Expense breakdown by category */}
+      {summary && summary.expensesByCategory.length > 0 && (
+        <div className="bg-white rounded-xl border border-beige-dark p-5 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-serif text-ink">Gastos por categoría</h2>
+            <span className="text-xs text-ink-muted">Total {COP(summary.totalExpenses)}</span>
+          </div>
+          <div className="space-y-3">
+            {summary.expensesByCategory.map(c => {
+              const pct = summary.totalExpenses > 0 ? Math.round((c.amount / summary.totalExpenses) * 100) : 0
+              return (
+                <div key={c.category} className="flex items-center gap-3">
+                  <span className="w-16 sm:w-24 text-xs sm:text-sm text-ink-muted shrink-0">{CAT_LABEL[c.category] ?? c.category}</span>
+                  <div className="flex-1 h-2.5 rounded-full bg-beige overflow-hidden">
+                    <div className="h-full rounded-full bg-gradient-to-r from-gold-light to-gold" style={{ width: `${pct}%` }} />
+                  </div>
+                  <span className="w-24 sm:w-36 text-right text-xs sm:text-sm text-ink shrink-0">
+                    <b className="font-medium">{COP(c.amount)}</b> <span className="text-ink-muted">· {pct}%</span>
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
       )}
 
       <div className="grid md:grid-cols-2 gap-8">

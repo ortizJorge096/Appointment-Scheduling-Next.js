@@ -100,6 +100,10 @@ describe('POST /api/clients', () => {
     expect(res.status).toBe(201)
     expect(json.success).toBe(true)
     expect(json.data.email).toBe('ana@test.com')
+
+    // The canonical phone identity is persisted.
+    const createArg = vi.mocked(prisma.client.create).mock.calls[0][0] as { data: { phoneNormalized: string | null } }
+    expect(createArg.data.phoneNormalized).toBe('573001234567')
   })
 
   it('returns 409 on duplicate email (P2002)', async () => {

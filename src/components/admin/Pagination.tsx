@@ -14,9 +14,9 @@ type PaginationProps = { page: number; totalPages: number } & (
   | { hrefFor: (p: number) => string; onPage?: undefined }
 )
 
-const BTN_CLASS  = 'px-3 py-1.5 rounded-lg border border-beige-dark disabled:opacity-30 hover:bg-beige/40 transition-colors'
-const LINK_CLASS = 'px-3 py-1.5 rounded-lg border border-beige-dark hover:bg-beige/40 transition-colors'
-const LINK_DISABLED_CLASS = 'px-3 py-1.5 rounded-lg border border-beige-dark opacity-30 pointer-events-none'
+const BTN_CLASS  = 'px-4 min-h-11 inline-flex items-center rounded-lg border border-beige-dark disabled:opacity-30 hover:bg-beige/40 transition-colors'
+const LINK_CLASS = 'px-4 min-h-11 inline-flex items-center rounded-lg border border-beige-dark hover:bg-beige/40 transition-colors'
+const LINK_DISABLED_CLASS = 'px-4 min-h-11 inline-flex items-center rounded-lg border border-beige-dark opacity-30 pointer-events-none'
 
 export function Pagination({ page, totalPages, onPage, hrefFor }: PaginationProps) {
   if (totalPages <= 1) return null
