@@ -7,7 +7,7 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentAdmin } from '@/lib/authz'
 import { hasPermission } from '@/lib/permissions'
 import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
-import type { ApiResponse, AccountingSummary } from '@/types'
+import type { ApiResponse, AccountingSummary, CategoryBreakdown, ExpenseCategory } from '@/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -51,7 +51,7 @@ export async function GET(
           deletedAt: null,
           date: Object.keys(dateFilter).length ? dateFilter : undefined,
         },
-        select: { amount: true },
+        select: { amount: true, category: true },
       }),
     ])
 
@@ -62,7 +62,7 @@ export async function GET(
       service: { price: number }
       services: Array<{ price: number }>
     }
-    type ExpRow = { amount: number }
+    type ExpRow = { amount: number; category: ExpenseCategory }
 
     // Helper to get total price from appointment (supports multi-service)
     function getTotalPrice(apt: AptRow): number {
@@ -82,19 +82,47 @@ export async function GET(
     }, 0)
 
     const totalExpenses = (expenses as ExpRow[]).reduce((sum: number, e: ExpRow) => sum + e.amount, 0)
+    const netProfit     = totalIncome - totalExpenses
 
     const paidCount    = (appointments as AptRow[]).filter((a: AptRow) => a.paymentStatus === 'PAID').length
     const pendingCount = (appointments as AptRow[]).filter((a: AptRow) => a.paymentStatus === 'PENDING').length
+
+    // Outstanding balance still owed: PENDING owes the full expected value,
+    // PARTIAL owes the remainder after the recorded payment. PAID/WAIVED owe nothing.
+    let receivable = 0
+    let receivableCount = 0
+    for (const apt of appointments as AptRow[]) {
+      if (apt.paymentStatus === 'PAID' || apt.paymentStatus === 'WAIVED') continue
+      const expected = apt.precioFinal ?? getTotalPrice(apt)
+      const balance  = apt.paymentStatus === 'PARTIAL' ? expected - (apt.amountPaid ?? 0) : expected
+      if (balance > 0) {
+        receivable += balance
+        receivableCount += 1
+      }
+    }
+
+    // Expense breakdown by category, largest first — answers "where is the money going?"
+    const catMap = new Map<ExpenseCategory, number>()
+    for (const e of expenses as ExpRow[]) {
+      const cat = (e.category ?? 'OTROS') as ExpenseCategory
+      catMap.set(cat, (catMap.get(cat) ?? 0) + e.amount)
+    }
+    const expensesByCategory: CategoryBreakdown[] = Array.from(catMap, ([category, amount]) => ({ category, amount }))
+      .sort((a, b) => b.amount - a.amount)
 
     return NextResponse.json({
       success: true,
       data: {
         totalIncome,
         totalExpenses,
-        netProfit: totalIncome - totalExpenses,
+        netProfit,
+        marginPct: totalIncome > 0 ? Math.round((netProfit / totalIncome) * 100) : 0,
         appointmentCount: appointments.length,
         paidCount,
         pendingCount,
+        receivable,
+        receivableCount,
+        expensesByCategory,
       },
     })
   } catch (err) {

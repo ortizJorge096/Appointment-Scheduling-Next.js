@@ -217,13 +217,22 @@ export interface CreateExpenseInput {
 // ACCOUNTING
 // ─────────────────────────────────────────
 
+export interface CategoryBreakdown {
+  category: ExpenseCategory
+  amount: number
+}
+
 export interface AccountingSummary {
   totalIncome: number
   totalExpenses: number
   netProfit: number
+  marginPct: number           // net profit as % of income (0 when no income)
   appointmentCount: number
   paidCount: number
   pendingCount: number
+  receivable: number          // outstanding amount still owed (PENDING + PARTIAL balance)
+  receivableCount: number     // appointments with an outstanding balance
+  expensesByCategory: CategoryBreakdown[]
 }
 
 // ─────────────────────────────────────────
