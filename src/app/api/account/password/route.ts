@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     const hash = await bcrypt.hash(newPassword, 12)
     await prisma.user.update({
       where: { id: admin.id },
-      data:  { password: hash, passwordChangedAt: new Date() },
+      data:  { password: hash, passwordChangedAt: new Date(), mustChangePassword: false },
     })
   } catch (err) {
     if (isDbUnavailable(err)) return dbUnavailableResponse()

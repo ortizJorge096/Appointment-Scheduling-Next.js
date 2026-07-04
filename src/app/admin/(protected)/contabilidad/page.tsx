@@ -116,7 +116,7 @@ export default function ContabilidadPage() {
       </div>
 
       {/* Date filter */}
-      <div className="flex flex-wrap gap-3 mb-6 items-end">
+      <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-3 mb-6 items-end">
         <div>
           <label className="form-label text-[10px]">Desde</label>
           <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
@@ -140,7 +140,7 @@ export default function ContabilidadPage() {
         ].map(({ label, value, color, isCta }) => (
           <div key={label} className="bg-white rounded-xl border border-beige-dark p-4">
             <p className="text-xs text-ink-muted mb-1">{label}</p>
-            <p className={`text-xl font-serif font-light ${color ?? 'text-ink'} ${loadingSum ? 'opacity-40' : ''}`}>
+            <p className={`text-lg sm:text-xl font-serif font-light break-words ${color ?? 'text-ink'} ${loadingSum ? 'opacity-40' : ''}`}>
               {isCta ? value : COP(value as number)}
             </p>
           </div>

@@ -76,7 +76,7 @@ function KeyVals({ data }: { data: Record<string, unknown> | null }) {
   return (
     <div className="space-y-0.5">
       {Object.entries(data).map(([k, v]) => (
-        <p key={k} className="text-[11px] text-ink-muted">
+        <p key={k} className="text-[11px] text-ink-muted break-words">
           <span className="font-medium">{k}:</span> {String(v)}
         </p>
       ))}
@@ -89,7 +89,7 @@ function DetailPanel({ log }: { log: AuditLog }) {
   return (
     <div className="space-y-2">
       {hasDiff && (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <p className="text-[10px] uppercase tracking-widest text-ink-muted/70 mb-1">Antes</p>
             <KeyVals data={log.before} />
@@ -204,7 +204,7 @@ export default function AuditoriaPageClient() {
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <a href={`/api/audit/export?${exportParams.toString()}`}
-            className="btn-secondary text-xs px-3 py-2">Exportar CSV</a>
+            className="btn-secondary text-xs px-3 py-2.5 min-h-11 inline-flex items-center">Exportar CSV</a>
           <span className="text-xs text-ink-muted bg-beige px-3 py-1.5 rounded-lg border border-beige-dark">
             {pagination.total}
           </span>
@@ -221,7 +221,7 @@ export default function AuditoriaPageClient() {
       />
 
       {/* Filters */}
-      <div className="bg-white rounded-xl border border-beige-dark p-3 sm:p-4 flex flex-wrap gap-3 items-end">
+      <div className="bg-white rounded-xl border border-beige-dark p-3 sm:p-4 grid grid-cols-2 sm:flex sm:flex-wrap gap-3 items-end">
         <div>
           <label className="block text-xs text-ink-muted mb-1">Entidad</label>
           <select value={entity} onChange={e => setFilter('entity', e.target.value)} className="input-field bg-white">
@@ -252,7 +252,7 @@ export default function AuditoriaPageClient() {
           <input type="date" value={dateTo} onChange={e => setFilter('dateTo', e.target.value)} className="input-field" />
         </div>
         <button onClick={resetFilters}
-          className="text-xs text-ink-muted hover:text-ink underline-offset-2 hover:underline transition-colors">
+          className="text-xs text-ink-muted hover:text-ink underline-offset-2 hover:underline transition-colors min-h-11 inline-flex items-center">
           Limpiar filtros
         </button>
       </div>
@@ -264,7 +264,7 @@ export default function AuditoriaPageClient() {
         ) : logs.length === 0 ? (
           <div className="py-16 text-center text-sm text-ink-muted">Sin registros para los filtros seleccionados.</div>
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[720px] text-sm">
             <thead>
               <tr className="border-b border-beige-dark bg-beige/40">
                 <th className="text-left px-4 py-3 text-xs font-medium text-ink-muted uppercase tracking-widest">Fecha</th>

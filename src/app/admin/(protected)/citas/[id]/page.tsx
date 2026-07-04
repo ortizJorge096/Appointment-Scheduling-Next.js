@@ -3,7 +3,7 @@
 // Appointment detail with actions: confirm, complete, cancel
 
 import { useState, useEffect } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -11,6 +11,7 @@ import { formatPrice, shortCode, toWhatsAppNumber } from '@/lib/utils'
 import { computeAppointmentTotal } from '@/lib/discount'
 import { STUDIO } from '@/lib/config'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
+import { useToast } from '@/components/ui/Toast'
 import { usePermissionGuard, useCan } from '@/components/admin/usePermissionGuard'
 import { STATUS_LABEL, STATUS_CLASS } from '@/lib/appointmentStatus'
 import AdicionalesEditor, { type Adicional } from '@/components/admin/AdicionalesEditor'
@@ -57,6 +58,8 @@ export default function CitaDetailPage() {
   usePermissionGuard('citas:ver')
   const { id }    = useParams<{ id: string }>()
   const confirm   = useConfirm()
+  const toast     = useToast()
+  const router    = useRouter()
   const can       = useCan()
 
   const [appt, setAppt]         = useState<AppointmentWithService | null>(null)
@@ -145,9 +148,12 @@ export default function CitaDetailPage() {
       body: JSON.stringify({ status }),
     })
     const json = await res.json()
-    if (json.success) setAppt(json.data)
-    else setError(json.error)
     setUpdating(false)
+    if (!json.success) { toast.error(json.error ?? 'No se pudo actualizar la cita'); return }
+    setAppt(json.data)
+    toast.success(`Cita marcada como ${STATUS_LABEL[status]}`)
+    // Terminal states → back to the list (nothing else to do here).
+    if (status === 'CANCELLED' || status === 'NO_SHOW') router.push('/admin/citas')
   }
 
   async function saveNotes() {
@@ -158,14 +164,15 @@ export default function CitaDetailPage() {
       body: JSON.stringify({ notes }),
     })
     const json = await res.json()
-    if (json.success) { setAppt(json.data); setEditNotes(false) }
-    else setError(json.error)
     setUpdating(false)
+    if (!json.success) { toast.error(json.error ?? 'No se pudieron guardar las notas'); return }
+    setAppt(json.data); setEditNotes(false)
+    toast.success('Notas guardadas')
   }
 
   async function savePayment(e: React.FormEvent) {
     e.preventDefault()
-    if (orderDiscountTooBig) { setError('El descuento al total no puede superar el subtotal.'); return }
+    if (orderDiscountTooBig) { toast.error('El descuento al total no puede superar el subtotal.'); return }
     setSavingPay(true)
     const svcRows = appt?.services ?? []
     const payload: Record<string, unknown> = {
@@ -199,9 +206,15 @@ export default function CitaDetailPage() {
       body: JSON.stringify(payload),
     })
     const json = await res.json()
-    if (json.success) setAppt(json.data)
-    else setError(json.error)
     setSavingPay(false)
+    if (!json.success) { toast.error(json.error ?? 'No se pudo guardar el pago'); return }
+    setAppt(json.data)
+    if (json.data.status === 'COMPLETED') {
+      toast.success('Pago registrado — cita completada')
+      router.push('/admin/citas')
+    } else {
+      toast.success('Pago guardado')
+    }
   }
 
   // ── Per-service discount/extras helpers ──

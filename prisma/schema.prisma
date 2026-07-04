@@ -29,6 +29,10 @@ model User {
   // Bumped on every password change; embedded in the JWT so tokens issued
   // before the change are rejected → forces re-login on other devices.
   passwordChangedAt DateTime?
+  // Forces a password change before using the panel — set when an admin creates
+  // the user or resets its password; cleared when the user changes it. Enforced
+  // by the protected layout guard.
+  mustChangePassword Boolean @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@map("users")

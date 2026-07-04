@@ -132,6 +132,7 @@ export const authOptions: NextAuthOptions = {
           role: user.role,
           // Embedded in the JWT so a later password change invalidates old tokens.
           pwdAt: user.passwordChangedAt?.getTime() ?? 0,
+          mustChangePassword: user.mustChangePassword,
         }
       },
     }),
@@ -145,18 +146,20 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user, trigger }) {
       if (user) {
-        const t = token as JWT & { id: string; role: string; pwdAt: number }
+        const t = token as JWT & { id: string; role: string; pwdAt: number; mustChangePassword?: boolean }
         t.id    = user.id
         t.role  = (user as User & { role: string }).role
         t.pwdAt = (user as User & { pwdAt?: number }).pwdAt ?? 0
+        t.mustChangePassword = (user as User & { mustChangePassword?: boolean }).mustChangePassword ?? false
       } else if (trigger === 'update') {
         // The current device just changed its own password and called update():
-        // refresh pwdAt so THIS session stays valid while other devices' older
-        // tokens get invalidated by the session callback.
-        const t = token as JWT & { id?: string; pwdAt?: number }
+        // refresh pwdAt (so THIS session stays valid) and mustChangePassword (so
+        // the forced-change guard releases immediately after the change).
+        const t = token as JWT & { id?: string; pwdAt?: number; mustChangePassword?: boolean }
         if (t.id) {
-          const u = await prisma.user.findUnique({ where: { id: t.id }, select: { passwordChangedAt: true } })
+          const u = await prisma.user.findUnique({ where: { id: t.id }, select: { passwordChangedAt: true, mustChangePassword: true } })
           t.pwdAt = u?.passwordChangedAt?.getTime() ?? t.pwdAt ?? 0
+          t.mustChangePassword = u?.mustChangePassword ?? false
         }
       }
       return token
@@ -167,26 +170,28 @@ export const authOptions: NextAuthOptions = {
     // request — fine at this scale, and the only way to invalidate stateless JWTs
     // without a session store.
     async session({ session, token }) {
-      const t = token as JWT & { id?: string; role?: string; pwdAt?: number }
+      const t = token as JWT & { id?: string; role?: string; pwdAt?: number; mustChangePassword?: boolean }
       if (!session.user || !t.id) return session
       try {
         const u = await prisma.user.findUnique({
           where:  { id: t.id },
-          select: { isActive: true, role: true, passwordChangedAt: true },
+          select: { isActive: true, role: true, passwordChangedAt: true, mustChangePassword: true },
         })
         const dbPwdAt = u?.passwordChangedAt?.getTime() ?? 0
         if (!u || !u.isActive || dbPwdAt > (t.pwdAt ?? 0)) {
           ;(session as { user?: unknown }).user = undefined
           return session
         }
-        const s = session as unknown as { user: { id: string; role: string } }
+        const s = session as unknown as { user: { id: string; role: string; mustChangePassword: boolean } }
         s.user.id   = t.id
         s.user.role = u.role
+        s.user.mustChangePassword = u.mustChangePassword
       } catch {
         // DB blip → trust the token rather than logging everyone out.
-        const s = session as unknown as { user: { id: string; role: string } }
+        const s = session as unknown as { user: { id: string; role: string; mustChangePassword: boolean } }
         s.user.id   = t.id
         s.user.role = t.role ?? 'ADMIN'
+        s.user.mustChangePassword = t.mustChangePassword ?? false
       }
       return session
     },
