@@ -57,3 +57,9 @@ enable_rds_scheduler  = false
 rds_stop_schedule     = "cron(0 23 * * ? *)"   # apaga 23:00
 rds_start_schedule    = "cron(0 6 * * ? *)"    # enciende 06:00 ("" = sin auto-encendido)
 rds_schedule_timezone = "America/Bogota"
+
+# Compute Scheduler — scale ASG to 0 at night / 1 in the morning (EC2 cost saving).
+enable_compute_scheduler  = false
+compute_stop_schedule     = "cron(10 22 * * ? *)"   # apaga 22:00 Bogota
+compute_start_schedule    = "cron(15 8 * * ? *)"    # enciende 08:00 Bogota
+compute_schedule_timezone = "America/Bogota"

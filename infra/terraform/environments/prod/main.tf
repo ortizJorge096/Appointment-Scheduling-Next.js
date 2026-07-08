@@ -242,6 +242,23 @@ module "monitoring" {
   tags = { Component = "observability" }
 }
 
+# ── ASG Scheduler — scale compute to 0/1 on a schedule to save cost ─────
+# Disabled by default. Enable with enable_compute_scheduler = true.
+module "asg_scheduler" {
+  count  = (var.enable_ec2_k3s && var.enable_compute_scheduler) ? 1 : 0
+  source = "../../modules/asg-scheduler"
+
+  name_prefix = var.name_prefix
+  asg_name    = module.k3s[0].asg_name
+  asg_arn     = module.k3s[0].asg_arn
+
+  stop_schedule     = var.compute_stop_schedule
+  start_schedule    = var.compute_start_schedule
+  schedule_timezone = var.compute_schedule_timezone
+
+  tags = { Component = "cost-optimization" }
+}
+
 # ── RDS Scheduler — apaga/enciende la BD por horario (ahorro de costo) ───
 # Off por defecto. Activar con enable_rds_scheduler = true.
 # TODO: parametrizar los horarios de apagado/encendido (hoy fijos en el módulo).

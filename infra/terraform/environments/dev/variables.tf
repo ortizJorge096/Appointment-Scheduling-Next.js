@@ -164,3 +164,27 @@ variable "rds_schedule_timezone" {
   type    = string
   default = "UTC"
 }
+
+variable "enable_compute_scheduler" {
+  description = "Scale the EC2 ASG to 0/1 on a schedule to save compute costs outside working hours."
+  type        = bool
+  default     = false
+}
+
+variable "compute_stop_schedule" {
+  description = "Cron expression to scale ASG to 0. Default: stop every hour for testing (like RDS in dev)."
+  type        = string
+  default     = "cron(0 * * * ? *)"
+}
+
+variable "compute_start_schedule" {
+  description = "Cron expression to scale ASG to 1. Empty = manual start only (recommended for dev)."
+  type        = string
+  default     = "" # sin encendido automático
+}
+
+variable "compute_schedule_timezone" {
+  description = "Timezone for compute scheduler schedules."
+  type        = string
+  default     = "America/Bogota"
+}

@@ -132,6 +132,30 @@ variable "enable_aws_backup" {
   default = false
 }
 
+variable "enable_compute_scheduler" {
+  description = "Scale the EC2 ASG to 0 on a schedule to save compute costs outside working hours (e.g. overnight)."
+  type        = bool
+  default     = false
+}
+
+variable "compute_stop_schedule" {
+  description = "Cron expression to scale ASG to 0. Default: 22:00 Bogota."
+  type        = string
+  default     = "cron(0 22 * * ? *)"
+}
+
+variable "compute_start_schedule" {
+  description = "Cron expression to scale ASG to 1. Default: 08:00 Bogota. Empty = manual start only."
+  type        = string
+  default     = "cron(0 8 * * ? *)"
+}
+
+variable "compute_schedule_timezone" {
+  description = "Timezone for compute scheduler schedules."
+  type        = string
+  default     = "America/Bogota"
+}
+
 # Public hostname for prod (A record → Elastic IP). Single source of truth:
 # feeds the module's resolved host (outputs + first-boot user-data) and the SSM
 # param the CI reads for the ingress host, NEXTAUTH_URL and NEXT_PUBLIC_APP_URL.
