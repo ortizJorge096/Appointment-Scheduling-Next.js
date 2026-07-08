@@ -442,6 +442,9 @@ export const createManualAppointmentSchema = z.object({
   // completed and paid. Defaults to the existing ("Cita próxima") behavior.
   mode:             z.enum(['UPCOMING', 'PAST']).optional().default('UPCOMING'),
 
+  // Payment method for a past (already-paid) appointment — cash or digital.
+  paymentMethod:    z.nativeEnum(PaymentMethod).optional(),
+
   // General adicionales (not tied to a service line).
   extras:           extrasSchema,
 
