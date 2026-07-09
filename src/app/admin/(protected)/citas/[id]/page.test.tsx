@@ -68,3 +68,28 @@ describe('CitaDetailPage — pago', () => {
     })
   })
 })
+
+describe('CitaDetailPage — reprogramar', () => {
+  beforeEach(() => { vi.clearAllMocks() })
+
+  it('reprograma la cita (envía date + startTime en el PATCH)', async () => {
+    const fetchMock = makeFetchMock()
+    global.fetch = fetchMock as unknown as typeof fetch
+
+    render(<CitaDetailPage />)
+    await screen.findByRole('heading', { name: 'Ana López' })
+
+    fireEvent.click(screen.getByRole('button', { name: /reprogramar/i }))
+    fireEvent.change(screen.getByLabelText('Nueva fecha'), { target: { value: '2026-12-20' } })
+    fireEvent.change(screen.getByLabelText('Nueva hora'),  { target: { value: '14:30' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+
+    await waitFor(() => {
+      const patch = fetchMock.mock.calls.find((c) => (c[1] as { method?: string })?.method === 'PATCH')
+      expect(patch).toBeTruthy()
+      const body = JSON.parse((patch![1] as unknown as { body: string }).body)
+      expect(body.date).toBe('2026-12-20')
+      expect(body.startTime).toBe('14:30')
+    })
+  })
+})

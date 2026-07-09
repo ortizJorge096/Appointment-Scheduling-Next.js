@@ -19,7 +19,7 @@ const PAYMENT_COLOR: Record<string, string> = {
 }
 
 interface ClientData {
-  id: string; name: string; email: string; phone: string | null; notes: string | null
+  id: string; name: string; email: string | null; phone: string | null; notes: string | null
   createdAt: string; appointments: AppointmentWithService[]
   _count: { appointments: number }
 }
@@ -52,21 +52,26 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
 
   async function saveNotes() {
     setSaving(true); setSaveMsg('')
-    const res = await fetch(`/api/clients/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ notes }),
-    })
-    const j = await res.json()
-    setSaving(false)
-    setSaveMsg(j.success ? 'Guardado ✓' : 'Error al guardar')
-    if (j.success) setClient(prev => prev ? { ...prev, notes } : prev)
+    try {
+      const res = await fetch(`/api/clients/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes }),
+      })
+      const j = await res.json()
+      setSaveMsg(j.success ? 'Guardado ✓' : 'Error al guardar')
+      if (j.success) setClient(prev => prev ? { ...prev, notes } : prev)
+    } catch {
+      setSaveMsg('Error al guardar')
+    } finally {
+      setSaving(false)
+    }
     setTimeout(() => setSaveMsg(''), 3000)
   }
 
   function openEditInfo() {
     if (!client) return
-    setInfoForm({ name: client.name, email: client.email, phone: client.phone ?? '' })
+    setInfoForm({ name: client.name, email: client.email ?? '', phone: client.phone ?? '' })
     setInfoErr('')
     setEditInfo(true)
   }
@@ -74,22 +79,27 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
   async function saveInfo(e: React.FormEvent) {
     e.preventDefault()
     setSavingInfo(true); setInfoErr('')
-    const res = await fetch(`/api/clients/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name:  infoForm.name.trim(),
-        email: infoForm.email.trim(),
-        phone: infoForm.phone.trim() || undefined,
-      }),
-    })
-    const j = await res.json()
-    setSavingInfo(false)
-    if (!j.success) { setInfoErr(j.error ?? 'No se pudo guardar'); return }
-    setClient(prev => prev
-      ? { ...prev, name: infoForm.name.trim(), email: infoForm.email.trim(), phone: infoForm.phone.trim() || null }
-      : prev)
-    setEditInfo(false)
+    try {
+      const res = await fetch(`/api/clients/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name:  infoForm.name.trim(),
+          email: infoForm.email.trim() || undefined,
+          phone: infoForm.phone.trim() || undefined,
+        }),
+      })
+      const j = await res.json()
+      if (!j.success) { setInfoErr(j.error ?? 'No se pudo guardar'); return }
+      setClient(prev => prev
+        ? { ...prev, name: infoForm.name.trim(), email: infoForm.email.trim() || null, phone: infoForm.phone.trim() || null }
+        : prev)
+      setEditInfo(false)
+    } catch {
+      setInfoErr('Error de conexión. Intenta de nuevo.')
+    } finally {
+      setSavingInfo(false)
+    }
   }
 
   if (loading) return <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto text-ink-muted">Cargando…</div>
@@ -148,7 +158,7 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
                     <button onClick={openEditInfo} className="btn-row-action text-xs text-gold hover:underline">Editar datos</button>
                   )}
                 </div>
-                <p className="text-sm text-ink-muted mt-1">{client.email}</p>
+                {client.email && <p className="text-sm text-ink-muted mt-1">{client.email}</p>}
                 {client.phone && <p className="text-sm text-ink-muted">{client.phone}</p>}
                 <p className="text-xs text-ink-muted/60 mt-2">
                   Cliente desde {new Date(client.createdAt).toLocaleDateString('es-CO', {

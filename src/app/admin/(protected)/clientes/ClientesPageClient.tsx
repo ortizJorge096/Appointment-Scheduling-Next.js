@@ -7,8 +7,10 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import type { ClientSummary } from '@/types'
 import { Pagination } from '@/components/admin/Pagination'
+import { isValidPhone } from '@/lib/utils'
 
 const EMPTY_FORM = { name: '', email: '', phone: '', notes: '' }
+type FieldErrors = Partial<Record<'name' | 'email' | 'phone', string>>
 
 export default function ClientesPageClient() {
   const router       = useRouter()
@@ -30,6 +32,7 @@ export default function ClientesPageClient() {
   const [form, setForm]             = useState(EMPTY_FORM)
   const [saving, setSaving]         = useState(false)
   const [formError, setFormError]   = useState('')
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
   const setParams = useCallback((updates: Record<string, string | null>) => {
     const params = new URLSearchParams(searchParams.toString())
@@ -72,8 +75,29 @@ export default function ClientesPageClient() {
 
   const totalPages = Math.ceil(total / 20)
 
+  // Client-side validation mirrors the server (name must include letters, phone
+  // must be 10–15 digits) so the admin gets an inline, focused error in Spanish
+  // instead of a raw Zod message dumped into a banner.
+  function validate(): FieldErrors {
+    const errs: FieldErrors = {}
+    if (!form.name.trim()) errs.name = 'El nombre es requerido'
+    else if (!/\p{L}/u.test(form.name)) errs.name = 'El nombre debe incluir letras'
+    if (!form.phone.trim()) errs.phone = 'El teléfono es requerido'
+    else if (!isValidPhone(form.phone)) errs.phone = 'El teléfono debe tener entre 10 y 15 dígitos'
+    if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) errs.email = 'Email inválido'
+    return errs
+  }
+
   async function createClient(e: React.FormEvent) {
     e.preventDefault()
+    const errs = validate()
+    setFieldErrors(errs)
+    if (Object.keys(errs).length > 0) {
+      const first = (['name', 'email', 'phone'] as const).find((k) => errs[k])
+      if (first) document.getElementById(`new-client-${first}`)?.focus()
+      return
+    }
+
     setSaving(true); setFormError('')
     try {
       const res = await fetch('/api/clients', {
@@ -82,7 +106,7 @@ export default function ClientesPageClient() {
         body: JSON.stringify({
           name:  form.name.trim(),
           email: form.email.trim(),
-          phone: form.phone.trim() || undefined,
+          phone: form.phone.trim(),
           notes: form.notes.trim() || undefined,
         }),
       })
@@ -90,6 +114,7 @@ export default function ClientesPageClient() {
       if (!json.success) { setFormError(json.error ?? 'No se pudo crear el cliente'); return }
       setShowCreate(false)
       setForm(EMPTY_FORM)
+      setFieldErrors({})
       setParams({ page: null })
       await load()
     } catch {
@@ -108,7 +133,7 @@ export default function ClientesPageClient() {
           <h1 className="font-serif text-2xl sm:text-3xl text-ink font-light">Clientes</h1>
           <p className="text-sm text-ink-muted mt-0.5">{total} cliente{total !== 1 ? 's' : ''} registrados</p>
         </div>
-        <button onClick={() => { setForm(EMPTY_FORM); setFormError(''); setShowCreate(true) }}
+        <button onClick={() => { setForm(EMPTY_FORM); setFormError(''); setFieldErrors({}); setShowCreate(true) }}
           className="btn-primary text-sm">
           + Nuevo
         </button>
@@ -136,7 +161,7 @@ export default function ClientesPageClient() {
               {query ? 'Sin resultados para esa búsqueda.' : 'Aún no hay clientes registrados.'}
             </p>
             {!query && (
-              <button onClick={() => { setForm(EMPTY_FORM); setFormError(''); setShowCreate(true) }}
+              <button onClick={() => { setForm(EMPTY_FORM); setFormError(''); setFieldErrors({}); setShowCreate(true) }}
                 className="btn-primary text-sm mt-4">
                 + Crear el primero
               </button>
@@ -215,18 +240,27 @@ export default function ClientesPageClient() {
             <form onSubmit={createClient} noValidate className="px-6 py-5 space-y-4">
               <div>
                 <label className="form-label">Nombre completo <span className="text-red-500">*</span></label>
-                <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                  placeholder="Ana García" required className="input-field w-full" />
+                <input id="new-client-name" value={form.name}
+                  onChange={e => { setForm(f => ({ ...f, name: e.target.value })); if (fieldErrors.name) setFieldErrors(x => ({ ...x, name: undefined })) }}
+                  placeholder="Ana García"
+                  className={`input-field w-full ${fieldErrors.name ? 'border-red-400 focus:ring-red-300' : ''}`} />
+                {fieldErrors.name && <p className="text-xs text-red-500 mt-0.5">{fieldErrors.name}</p>}
               </div>
               <div>
                 <label className="form-label">Email <span className="text-ink-muted/60 normal-case font-normal tracking-normal">(opcional)</span></label>
-                <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                  placeholder="ana@ejemplo.com" className="input-field w-full" />
+                <input id="new-client-email" type="email" value={form.email}
+                  onChange={e => { setForm(f => ({ ...f, email: e.target.value })); if (fieldErrors.email) setFieldErrors(x => ({ ...x, email: undefined })) }}
+                  placeholder="ana@ejemplo.com"
+                  className={`input-field w-full ${fieldErrors.email ? 'border-red-400 focus:ring-red-300' : ''}`} />
+                {fieldErrors.email && <p className="text-xs text-red-500 mt-0.5">{fieldErrors.email}</p>}
               </div>
               <div>
-                <label className="form-label">Teléfono</label>
-                <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-                  placeholder="3001234567" className="input-field w-full" />
+                <label className="form-label">Teléfono <span className="text-red-500">*</span></label>
+                <input id="new-client-phone" value={form.phone}
+                  onChange={e => { setForm(f => ({ ...f, phone: e.target.value })); if (fieldErrors.phone) setFieldErrors(x => ({ ...x, phone: undefined })) }}
+                  placeholder="3001234567"
+                  className={`input-field w-full ${fieldErrors.phone ? 'border-red-400 focus:ring-red-300' : ''}`} />
+                {fieldErrors.phone && <p className="text-xs text-red-500 mt-0.5">{fieldErrors.phone}</p>}
               </div>
               <div>
                 <label className="form-label">Notas internas</label>

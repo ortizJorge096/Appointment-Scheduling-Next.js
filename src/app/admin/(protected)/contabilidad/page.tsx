@@ -19,6 +19,10 @@ const CAT_LABEL: Record<string, string> = {
   INSUMOS: 'Insumos', EQUIPOS: 'Equipos', SERVICIOS: 'Servicios',
   ARRIENDO: 'Arriendo', MARKETING: 'Marketing', OTROS: 'Otros',
 }
+const METHOD_LABEL: Record<string, string> = {
+  EFECTIVO: 'Efectivo', TRANSFERENCIA: 'Transferencia', TARJETA: 'Tarjeta',
+  NEQUI: 'Nequi', DAVIPLATA: 'Daviplata', SIN_REGISTRAR: 'Sin registrar',
+}
 
 // Get first and last day of current month
 function currentMonthRange() {
@@ -179,6 +183,7 @@ export default function ContabilidadPage() {
   }
 
   const netColor = (summary?.netProfit ?? 0) >= 0 ? 'text-green-700' : 'text-red-600'
+  const receivedTotal = (summary?.incomeByPaymentMethod ?? []).reduce((s, m) => s + m.amount, 0)
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
@@ -260,6 +265,32 @@ export default function ContabilidadPage() {
         <p className="text-xs text-ink-muted mb-6">
           {summary.paidCount} pagadas · {summary.pendingCount} sin pago · {summary.appointmentCount} total en el período
         </p>
+      )}
+
+      {/* Income breakdown by payment method */}
+      {summary && summary.incomeByPaymentMethod.length > 0 && (
+        <div className="bg-white rounded-xl border border-beige-dark p-5 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-serif text-ink">Ingresos por método de pago</h2>
+            <span className="text-xs text-ink-muted">Recibido {COP(receivedTotal)}</span>
+          </div>
+          <div className="space-y-3">
+            {summary.incomeByPaymentMethod.map(m => {
+              const pct = receivedTotal > 0 ? Math.round((m.amount / receivedTotal) * 100) : 0
+              return (
+                <div key={m.method} className="flex items-center gap-3">
+                  <span className="w-16 sm:w-28 text-xs sm:text-sm text-ink-muted shrink-0">{METHOD_LABEL[m.method] ?? m.method}</span>
+                  <div className="flex-1 h-2.5 rounded-full bg-beige overflow-hidden">
+                    <div className="h-full rounded-full bg-gradient-to-r from-green-400 to-green-600" style={{ width: `${pct}%` }} />
+                  </div>
+                  <span className="w-24 sm:w-36 text-right text-xs sm:text-sm text-ink shrink-0">
+                    <b className="font-medium">{COP(m.amount)}</b> <span className="text-ink-muted">· {pct}%</span>
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
       )}
 
       {/* Expense breakdown by category */}

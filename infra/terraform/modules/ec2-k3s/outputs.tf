@@ -48,6 +48,11 @@ output "asg_name" {
   value       = aws_autoscaling_group.this.name
 }
 
+output "asg_arn" {
+  description = "ARN of the ASG."
+  value       = aws_autoscaling_group.this.arn
+}
+
 output "ssm_session_command" {
   description = "Command to open a shell via SSM Session Manager."
   value       = "aws ssm start-session --region ${var.aws_region} --target $(aws ec2 describe-instances --region ${var.aws_region} --filters 'Name=tag:aws:autoscaling:groupName,Values=${aws_autoscaling_group.this.name}' 'Name=instance-state-name,Values=running' --query 'Reservations[0].Instances[0].InstanceId' --output text)"

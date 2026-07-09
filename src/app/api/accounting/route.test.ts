@@ -123,6 +123,29 @@ describe('GET /api/accounting', () => {
     ])
   })
 
+  it('groups income by payment method (amountPaid per method, largest first)', async () => {
+    vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
+    vi.mocked(prisma.appointment.findMany).mockResolvedValue([
+      { paymentStatus: 'PAID',    amountPaid: 50000, paymentMethod: 'EFECTIVO', service: { price: 50000 } },
+      { paymentStatus: 'PAID',    amountPaid: 30000, paymentMethod: 'NEQUI',    service: { price: 30000 } },
+      { paymentStatus: 'PARTIAL', amountPaid: 20000, paymentMethod: 'EFECTIVO', service: { price: 60000 } },
+      { paymentStatus: 'PAID',    amountPaid: 15000, paymentMethod: null,       service: { price: 15000 } }, // recibido sin método
+      { paymentStatus: 'WAIVED',  amountPaid: null,  paymentMethod: null,       service: { price: 40000 } }, // cortesía → no cuenta
+      { paymentStatus: 'PENDING', amountPaid: null,  paymentMethod: null,       service: { price: 40000 } }, // sin pago → no cuenta
+    ] as never)
+    vi.mocked(prisma.expense.findMany).mockResolvedValue([])
+
+    const res = await GET(makeGetRequest())
+    const json = await res.json()
+
+    // EFECTIVO 50000+20000=70000, NEQUI 30000, SIN_REGISTRAR 15000 — ordenado desc.
+    expect(json.data.incomeByPaymentMethod).toEqual([
+      { method: 'EFECTIVO', amount: 70000 },
+      { method: 'NEQUI', amount: 30000 },
+      { method: 'SIN_REGISTRAR', amount: 15000 },
+    ])
+  })
+
   it('accepts dateFrom/dateTo filter params', async () => {
     vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
     vi.mocked(prisma.appointment.findMany).mockResolvedValue([])

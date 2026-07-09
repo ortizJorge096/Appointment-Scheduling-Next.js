@@ -243,6 +243,7 @@ export async function POST(
           ...(isPast ? {
             paymentStatus: 'PAID',
             amountPaid:    breakdown.total,
+            ...(parsed.data.paymentMethod ? { paymentMethod: parsed.data.paymentMethod } : {}),
             ...(hasOrderDiscount ? {
               descuentoTipo,
               descuentoValor,

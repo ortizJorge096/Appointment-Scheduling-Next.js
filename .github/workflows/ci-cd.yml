@@ -153,8 +153,10 @@ jobs:
           REG="${{ steps.ecr.outputs.registry }}"
           if [ "${{ github.ref_name }}" = "main" ]; then
             REPO="appointment-scheduling-prod-nextjs"
+            APP_URL="https://vjbeautystudio.com"
           else
             REPO="appointment-scheduling-dev-nextjs"
+            APP_URL="https://dev.vjbeautystudio.com"
           fi
           SHA="sha-$(git rev-parse --short HEAD)"
           BRANCH="$(echo '${{ github.ref_name }}' | tr '/' '-')"
@@ -164,6 +166,7 @@ jobs:
             echo "sha_tag=$IMAGE:$SHA"
             echo "branch_tag=$IMAGE:$BRANCH"
             echo "latest_tag=$IMAGE:latest"
+            echo "app_url=$APP_URL"
           } >> "$GITHUB_OUTPUT"
       - name: Build & push
         id: build
@@ -179,6 +182,7 @@ jobs:
             NEXT_PUBLIC_WHATSAPP_NUMBER=${{ vars.NEXT_PUBLIC_WHATSAPP_NUMBER || '573001790511' }}
             NEXT_PUBLIC_WHATSAPP_MESSAGE=${{ vars.NEXT_PUBLIC_WHATSAPP_MESSAGE || '¡Hola! Vengo de su sitio web y me gustaría más información.' }}
             NEXT_PUBLIC_GA_MEASUREMENT_ID=${{ vars.NEXT_PUBLIC_GA_MEASUREMENT_ID || '' }}
+            NEXT_PUBLIC_APP_URL=${{ vars.NEXT_PUBLIC_APP_URL || steps.tags.outputs.app_url }}
           tags: |
             ${{ steps.tags.outputs.sha_tag }}
             ${{ steps.tags.outputs.branch_tag }}
@@ -279,6 +283,7 @@ jobs:
             /appointment-scheduling-dev/db/url \
             /appointment-scheduling-dev/nextauth/secret \
             /appointment-scheduling-dev/google/calendar-private-key \
+            /appointment-scheduling-dev/resend/api-key \
             us-east-1
           kubectl -n appointment-scheduling-dev rollout restart deployment/appointment-scheduling
           kubectl -n appointment-scheduling-dev rollout status deployment/appointment-scheduling --timeout=600s
@@ -342,6 +347,7 @@ jobs:
             /appointment-scheduling-prod/db/url \
             /appointment-scheduling-prod/nextauth/secret \
             /appointment-scheduling-prod/google/calendar-private-key \
+            /appointment-scheduling-prod/resend/api-key \
             us-east-1
 
           kubectl -n appointment-scheduling rollout restart deployment/appointment-scheduling

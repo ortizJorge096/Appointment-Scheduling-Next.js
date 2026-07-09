@@ -3,8 +3,8 @@
 #
 # Adapted for Next.js + Prisma:
 #   - Instance profile adds permissions to READ SSM (DATABASE_URL and
-#     NEXTAUTH_SECRET) and for the AWS services the app uses (S3 + SES,
-#     via extra_managed_policy_arns).
+#     NEXTAUTH_SECRET) and for the AWS services the app uses (S3, via
+#     extra_managed_policy_arns). Email goes through Resend's HTTP API.
 #   - User-data renders the Kubernetes Secret from SSM via the shared
 #     scripts/render-app-secret.sh (the SAME script the CI/CD deploy calls), so
 #     the two provisioning paths can never drift on the Secret's key set.
@@ -55,7 +55,7 @@ resource "aws_security_group" "this" {
   }
 
   egress {
-    description = "All outbound (ECR, SSM, RDS, S3, SES, CloudWatch, GitHub, dnf)"
+    description = "All outbound (ECR, SSM, RDS, S3, Resend, CloudWatch, GitHub, dnf)"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
@@ -99,7 +99,7 @@ resource "aws_iam_role_policy_attachment" "cw_agent" {
   policy_arn = "arn:${data.aws_partition.current.partition}:iam::aws:policy/CloudWatchAgentServerPolicy"
 }
 
-# Extra permissions (S3 gallery + SES) come from the environment.
+# Extra permissions (S3 gallery) come from the environment.
 resource "aws_iam_role_policy_attachment" "extra" {
   count      = length(var.extra_managed_policy_arns)
   role       = aws_iam_role.node.name
@@ -198,6 +198,7 @@ locals {
     database_url_ssm_parameter        = var.database_url_ssm_parameter
     nextauth_secret_ssm_parameter     = var.nextauth_secret_ssm_parameter
     google_calendar_key_ssm_parameter = var.google_calendar_key_ssm_parameter
+    resend_api_key_ssm_parameter      = var.resend_api_key_ssm_parameter
     s3_bucket_name                    = var.s3_bucket_name
     ses_from_email                    = var.ses_from_email
     enable_emails                     = var.enable_emails
@@ -321,6 +322,6 @@ resource "aws_autoscaling_group" "this" {
   }
 
   lifecycle {
-    ignore_changes = [desired_capacity]
+    ignore_changes = [desired_capacity, min_size, max_size]
   }
 }

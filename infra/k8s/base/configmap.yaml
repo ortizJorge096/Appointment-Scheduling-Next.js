@@ -17,7 +17,7 @@ data:
   AWS_REGION: "us-east-1"
   AWS_S3_BUCKET: "appointment-scheduling-assets"
 
-  # SES
+  # Email (Resend) — SES_FROM_EMAIL key name kept for backward compatibility.
   SES_FROM_EMAIL: "noreply@example.com"
   ENABLE_EMAILS: "false"
 

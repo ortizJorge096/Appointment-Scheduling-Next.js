@@ -244,7 +244,7 @@ kustomize build "$${OVERLAY_DIR}" | kubectl --kubeconfig $${KUBECONFIG} apply -f
 #        the two provisioning paths can never drift on which keys the Secret holds.
 KUBECONFIG="$${KUBECONFIG}" bash scripts/render-app-secret.sh "${app_namespace}" \
   "${database_url_ssm_parameter}" "${nextauth_secret_ssm_parameter}" \
-  "${google_calendar_key_ssm_parameter}" "${aws_region}"
+  "${google_calendar_key_ssm_parameter}" "${resend_api_key_ssm_parameter}" "${aws_region}"
 
 kubectl --kubeconfig $${KUBECONFIG} -n "${app_namespace}" \
   rollout restart deployment/appointment-scheduling

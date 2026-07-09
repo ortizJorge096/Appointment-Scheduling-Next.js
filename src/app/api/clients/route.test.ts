@@ -126,4 +126,25 @@ describe('POST /api/clients', () => {
     const createArg = vi.mocked(prisma.client.create).mock.calls[0][0] as { data: { email: string | null } }
     expect(createArg.data.email).toBeNull()
   })
+
+  it('400 cuando el nombre es solo números (no incluye letras)', async () => {
+    vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
+    const res = await POST(makePostRequest({ name: '12345', phone: '3001234567' }))
+    expect(res.status).toBe(400)
+    expect(prisma.client.create).not.toHaveBeenCalled()
+  })
+
+  it('400 cuando el teléfono no es válido (menos de 10 dígitos)', async () => {
+    vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
+    const res = await POST(makePostRequest({ name: 'Ana López', phone: '123' }))
+    expect(res.status).toBe(400)
+    expect(prisma.client.create).not.toHaveBeenCalled()
+  })
+
+  it('400 cuando falta el teléfono (ahora requerido)', async () => {
+    vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
+    const res = await POST(makePostRequest({ name: 'Ana López' }))
+    expect(res.status).toBe(400)
+    expect(prisma.client.create).not.toHaveBeenCalled()
+  })
 })

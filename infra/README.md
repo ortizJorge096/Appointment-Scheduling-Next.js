@@ -27,7 +27,7 @@ infra/
 │       ├── local/                 # minikube / docker-desktop
 │       ├── dev/                   # appointment-scheduling-dev namespace
 │       └── prod/                  # + TLS patch (Let's Encrypt)
-└── docs/decisions/                # 9 ADRs documentando cada elección
+└── docs/decisions/                # 10 ADRs documentando cada elección
 ```
 
 ## Arquitectura
@@ -89,6 +89,9 @@ Anota el output `state_bucket_name`.
 cd infra/terraform/environments/dev
 cp terraform.tfvars.example terraform.tfvars
 # Edita: github_owner, github_repo, alarm_email, github_token, ses_from_email
+#        (ses_from_email = remitente de Resend; el nombre es histórico).
+# Secretos por TF_VAR (NO en el .tfvars): TF_VAR_resend_api_key (envío de emails
+#        vía Resend) y TF_VAR_google_private_key (Google Calendar).
 terraform init
 terraform plan
 terraform apply
@@ -106,6 +109,7 @@ Outputs importantes:
 cd ../prod
 cp terraform.tfvars.example terraform.tfvars
 # Igual: github_owner, github_repo, alarm_email, github_token, ses_from_email
+# + secretos TF_VAR_resend_api_key / TF_VAR_google_private_key
 # IMPORTANTE: create_oidc_provider = false (lo creó dev)
 terraform init
 terraform plan
@@ -207,3 +211,4 @@ Las decisiones de arquitectura están en `infra/docs/decisions/`:
 | 007 | TLS con Let's Encrypt + nip.io |
 | 008 | Spot recovery con ASG |
 | 009 | SSM Parameter Store para runtime secrets |
+| 010 | Resend para email transaccional (reemplaza SES) |

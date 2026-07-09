@@ -98,12 +98,20 @@ variable "letsencrypt_email" {
 }
 
 variable "ses_from_email" {
-  type    = string
-  default = ""
+  description = "Sender email for outgoing mail (Resend). Feeds SES_FROM_EMAIL in the ConfigMap."
+  type        = string
+  default     = ""
 }
 
 variable "google_private_key" {
   description = "Google Calendar service-account private key. Provide via TF_VAR_google_private_key or a gitignored tfvars — NEVER commit it. Empty keeps whatever value is already in SSM (ignore_changes)."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "resend_api_key" {
+  description = "Resend API key for email delivery. Provide via TF_VAR_resend_api_key or a gitignored tfvars — NEVER commit it. Empty keeps whatever value is already in SSM (ignore_changes)."
   type        = string
   default     = ""
   sensitive   = true
@@ -130,6 +138,30 @@ variable "db_skip_final_snapshot" {
 variable "enable_aws_backup" {
   type    = bool
   default = false
+}
+
+variable "enable_compute_scheduler" {
+  description = "Scale the EC2 ASG to 0 on a schedule to save compute costs outside working hours (e.g. overnight)."
+  type        = bool
+  default     = false
+}
+
+variable "compute_stop_schedule" {
+  description = "Cron expression to scale ASG to 0. Default: 22:00 Bogota."
+  type        = string
+  default     = "cron(0 22 * * ? *)"
+}
+
+variable "compute_start_schedule" {
+  description = "Cron expression to scale ASG to 1. Default: 08:00 Bogota. Empty = manual start only."
+  type        = string
+  default     = "cron(0 8 * * ? *)"
+}
+
+variable "compute_schedule_timezone" {
+  description = "Timezone for compute scheduler schedules."
+  type        = string
+  default     = "America/Bogota"
 }
 
 # Public hostname for prod (A record → Elastic IP). Single source of truth:

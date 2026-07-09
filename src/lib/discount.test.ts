@@ -52,7 +52,7 @@ describe('computeAppointmentTotal', () => {
     expect(r.total).toBe(31500)
   })
 
-  it('sums per-line discounts across lines; extras still add', () => {
+  it('per-line discount covers that line\'s own extras', () => {
     const r = computeAppointmentTotal(
       [
         { price: 30000, descuentoTipo: 'PORCENTAJE', descuentoValor: 10, extras: [4000] },
@@ -62,8 +62,9 @@ describe('computeAppointmentTotal', () => {
     )
     expect(r.servicesSubtotal).toBe(50000)
     expect(r.extrasTotal).toBe(5000)  // 4000 (line) + 1000 (general)
-    expect(r.discount).toBe(8000)     // 3000 + 5000
-    expect(r.total).toBe(47000)       // 50000 − 8000 + 5000
+    // line 1: 10% of (30000 + 4000) = 3400 ; line 2: fixed 5000
+    expect(r.discount).toBe(8400)
+    expect(r.total).toBe(46600)       // 50000 + 5000 − 8400
   })
 
   it('applies an order-level percentage discount over services + extras', () => {

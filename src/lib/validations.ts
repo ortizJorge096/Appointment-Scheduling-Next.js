@@ -50,6 +50,15 @@ const phoneSchema = z
     return digits.length >= 10 && digits.length <= 15
   }, 'El teléfono debe tener al menos 10 dígitos (incluye el código de país si aplica)')
 
+// Person name: 2–100 chars and must contain at least one letter, so a purely
+// numeric or symbol-only value (e.g. "123") is rejected. Spanish messages.
+const personName = z
+  .string()
+  .trim()
+  .min(2, 'El nombre es requerido')
+  .max(100, 'El nombre es demasiado largo')
+  .regex(/\p{L}/u, 'El nombre debe incluir letras')
+
 // Manual discount (admin only). Shape is validated here; the subtotal-bound rule
 // (VALOR_FIJO ≤ subtotal) is enforced in the route, where the subtotal is known.
 // Nullable so the admin can CLEAR a saved discount (send the fields as null).
@@ -143,6 +152,12 @@ export const createAppointmentSchema = z.object({
   clientEmail: optionalEmail,
 
   clientPhone: phoneSchema,
+
+  // Anti-bot (public form): honeypot must stay EMPTY (bots fill every field), and
+  // elapsedMs is the time since the form mounted (real users take seconds; bots
+  // post instantly). Both optional so the schema stays backward-compatible.
+  website:   z.string().max(0, 'Solicitud inválida').optional(),
+  elapsedMs: z.number().int().nonnegative().optional(),
 
   serviceId: z
     .string()
@@ -442,6 +457,9 @@ export const createManualAppointmentSchema = z.object({
   // completed and paid. Defaults to the existing ("Cita próxima") behavior.
   mode:             z.enum(['UPCOMING', 'PAST']).optional().default('UPCOMING'),
 
+  // Payment method for a past (already-paid) appointment — cash or digital.
+  paymentMethod:    z.nativeEnum(PaymentMethod).optional(),
+
   // General adicionales (not tied to a service line).
   extras:           extrasSchema,
 
@@ -458,9 +476,9 @@ export const createManualAppointmentSchema = z.object({
 // ─────────────────────────────────────────
 
 export const createClientSchema = z.object({
-  name:  z.string().min(2).max(100),
+  name:  personName,
   email: optionalEmail,
-  phone: z.string().min(7).max(15).regex(/^[0-9+\s-]+$/, 'Teléfono inválido').optional(),
+  phone: phoneSchema, // required: 10–15 digits — this is the client identity (phoneNormalized)
   notes: z.string().max(1000).optional(),
 })
 
