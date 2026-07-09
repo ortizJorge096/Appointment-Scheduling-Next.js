@@ -38,7 +38,8 @@ export function useConfirm(): ConfirmFn {
 
 export function ConfirmDialogProvider({ children }: { children: React.ReactNode }) {
   const [options, setOptions] = useState<ConfirmOptions | null>(null)
-  const resolveRef = useRef<(value: boolean) => void>()
+  // React 19 requires an initial value; keep the previous "starts empty" type.
+  const resolveRef = useRef<((value: boolean) => void) | undefined>(undefined)
 
   const confirm = useCallback<ConfirmFn>((opts) => {
     setOptions(opts)
