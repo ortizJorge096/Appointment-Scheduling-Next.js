@@ -2,7 +2,6 @@
 // src/components/admin/ManualAppointmentModal.tsx
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useRouter } from 'next/navigation'
 import { formatPrice, isValidPhone } from '@/lib/utils'
 import { computeAppointmentTotal } from '@/lib/discount'
 import ClientSearchInput, { type ClientHit } from './ClientSearchInput'
@@ -68,8 +67,9 @@ function nowHHMM() {
 }
 
 export default function ManualAppointmentModal() {
-  const router = useRouter()
   const can = useCan()
+  const formRef = useRef<HTMLFormElement>(null)
+  const [payMethod, setPayMethod] = useState('')  // payment method for a "Cita pasada"
   const [open, setOpen]         = useState(false)
   const [services, setServices] = useState<Service[]>([])
   const [form, setForm]         = useState(EMPTY)
@@ -190,7 +190,16 @@ export default function ManualAppointmentModal() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
-    if (!validate()) return
+    if (!validate()) {
+      // The modal body scrolls, so an off-screen error would look like the
+      // button did nothing — bring the first invalid field into view + focus it.
+      setTimeout(() => {
+        const el = formRef.current?.querySelector<HTMLElement>('.border-red-400')
+        el?.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
+        el?.focus?.()
+      }, 50)
+      return
+    }
     if (form.mode === 'PAST' && orderDiscountTooBig) {
       setApiError('El descuento al total no puede superar el subtotal.')
       return
@@ -232,6 +241,7 @@ export default function ManualAppointmentModal() {
           descuentoValor:  Number(form.descuentoValor),
           descuentoMotivo: form.descuentoMotivo.trim() || undefined,
         } : {}),
+        ...(payMethod ? { paymentMethod: payMethod } : {}),
       } : {}),
     }
 
@@ -247,6 +257,7 @@ export default function ManualAppointmentModal() {
 
     setSuccess(isPast ? 'Cita registrada correctamente ✓' : 'Cita creada correctamente ✓')
     setForm(EMPTY)
+    setPayMethod('')
     setExtras([])
     setExtrasOpen(false)
     setServiceQuery('')
@@ -258,8 +269,10 @@ export default function ManualAppointmentModal() {
       // A past appointment is dated before today, so the default "Próximas"
       // window would hide it. Send the admin to the "Pasadas" scope, which
       // lists past appointments most-recent-first (see lib/appointmentList.ts).
-      if (isPast) router.push('/admin/citas?scope=past')
-      else router.refresh()
+      // Notify the sibling list to refetch with its current filters so the new
+      // appointment appears without a full reload; a past one also switches the
+      // list to the "Pasadas" scope (dated before today, hidden by "Próximas").
+      window.dispatchEvent(new CustomEvent('cita-creada', { detail: { scope: isPast ? 'past' : null } }))
     }, 1200)
   }
 
@@ -383,7 +396,7 @@ export default function ManualAppointmentModal() {
                 className="text-ink-muted hover:text-ink text-xl leading-none">×</button>
             </div>
 
-            <form onSubmit={submit} noValidate className="px-6 py-5 space-y-5">
+            <form ref={formRef} onSubmit={submit} noValidate className="px-6 py-5 space-y-5">
 
               {/* Modo de creación */}
               <fieldset>
@@ -404,6 +417,21 @@ export default function ManualAppointmentModal() {
                   <p className="text-xs text-ink bg-gold-pale border border-gold/30 rounded-lg px-3 py-2 mt-2">
                     Esta cita se marcará como completada y pagada al guardar
                   </p>
+                )}
+                {form.mode === 'PAST' && (
+                  <div className="mt-3">
+                    <label className="form-label text-[10px] !mb-1 block">Método de pago</label>
+                    <div className="flex gap-2 flex-wrap">
+                      {([['EFECTIVO', 'Efectivo'], ['NEQUI', 'Nequi'], ['TARJETA', 'Tarjeta'], ['TRANSFERENCIA', 'Transferencia']] as const).map(([v, l]) => (
+                        <button key={v} type="button" onClick={() => setPayMethod(v)}
+                          className={`px-3 py-2 rounded-lg text-sm border transition-colors ${
+                            payMethod === v ? 'bg-gold text-white border-gold' : 'border-beige-dark text-ink-muted hover:border-gold/50'
+                          }`}>
+                          {l}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </fieldset>
 

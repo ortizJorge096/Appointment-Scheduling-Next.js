@@ -13,6 +13,16 @@ const MOCK_SERVICES = [
   { id: 's2', name: 'Lifting', price: 80000, durationMinutes: 90 },
 ]
 
+// A valid "past" date for backfill. The modal only accepts up to PAST_LIMIT_DAYS
+// (15) days ago, so a far date like 2020-01-01 is rejected by validation and the
+// submit is blocked. Compute a date safely inside the window (and relative to
+// "today" so the test never goes stale).
+function daysAgo(n: number) {
+  const d = new Date()
+  d.setDate(d.getDate() - n)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 describe('ManualAppointmentModal', () => {
   beforeEach(() => {
     vi.resetAllMocks()
@@ -209,5 +219,58 @@ describe('ManualAppointmentModal', () => {
     // Al escribir un email, se habilita
     fireEvent.change(screen.getByPlaceholderText('ana@ejemplo.com'), { target: { value: 'ana@test.com' } })
     expect(checkbox).not.toBeDisabled()
+  })
+
+  it('bloquea el envío (no llama al API) cuando faltan datos requeridos', async () => {
+    vi.mocked(global.fetch).mockResolvedValueOnce({
+      json: () => Promise.resolve({ success: true, data: MOCK_SERVICES }),
+    } as Response)
+
+    render(<ManualAppointmentModal />)
+    fireEvent.click(screen.getByRole('button', { name: /cita manual/i }))
+    await waitFor(() => screen.getByText(/Manicura/))
+
+    // Submit with an empty form → validation must block the POST to the API.
+    fireEvent.click(screen.getByRole('button', { name: 'Crear cita' }))
+
+    await waitFor(() => {
+      const posted = vi.mocked(global.fetch).mock.calls
+        .some((c) => String(c[0]).includes('/api/appointments/manual'))
+      expect(posted).toBe(false)
+    })
+    // Modal stays open (submission was blocked, not silently swallowed).
+    expect(screen.getByText('Nueva cita manual')).toBeInTheDocument()
+  })
+
+  it('en "Cita pasada" captura el método de pago y lo manda en el payload', async () => {
+    vi.mocked(global.fetch)
+      .mockResolvedValueOnce({ json: () => Promise.resolve({ success: true, data: MOCK_SERVICES }) } as Response)
+      .mockResolvedValueOnce({ json: () => Promise.resolve({ success: true, data: { id: 'apt-1' } }) } as Response)
+
+    render(<ManualAppointmentModal />)
+    fireEvent.click(screen.getByRole('button', { name: /cita manual/i }))
+    await waitFor(() => screen.getByText(/Manicura/))
+
+    // Switch to "Cita pasada" → the payment-method selector must appear.
+    fireEvent.click(screen.getByRole('button', { name: 'Cita pasada' }))
+    expect(screen.getByRole('button', { name: 'Nequi' })).toBeInTheDocument()
+
+    fireEvent.change(screen.getByPlaceholderText('Ana García'), { target: { value: 'Ana López' } })
+    fireEvent.change(screen.getByPlaceholderText('3001234567'), { target: { value: '3001234567' } })
+    fireEvent.click(screen.getByRole('checkbox', { name: /Manicura/i }))
+    fireEvent.change(screen.getByLabelText('Fecha'), { target: { value: daysAgo(2) } }) // within the 15-day backfill window
+    fireEvent.change(screen.getByLabelText('Hora'),  { target: { value: '10:00' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Nequi' }))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar cita pasada' }))
+
+    await waitFor(() => {
+      const post = vi.mocked(global.fetch).mock.calls
+        .find((c) => String(c[0]).includes('/api/appointments/manual'))
+      expect(post).toBeDefined()
+      const body = JSON.parse((post![1] as RequestInit).body as string)
+      expect(body.mode).toBe('PAST')
+      expect(body.paymentMethod).toBe('NEQUI')
+    })
   })
 })

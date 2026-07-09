@@ -15,6 +15,7 @@ import { audit, getClientIp, getUserAgent } from '@/lib/audit'
 import { createCalendarEvent } from '@/lib/calendar'
 import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
 import { buildAppointmentListQuery } from '@/lib/appointmentList'
+import { normalizePhone } from '@/lib/utils'
 import { formatInTimeZone } from 'date-fns-tz'
 import type { ApiResponse, AppointmentWithService } from '@/types'
 
@@ -27,6 +28,10 @@ import type { ApiResponse, AppointmentWithService } from '@/types'
 // Migrate to Redis/DB if horizontal scaling is needed.
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
 let lastRateLimitSweep = Date.now()
+
+// Anti-bot + anti-spam guards for the public booking endpoint.
+const MIN_FILL_MS = 3000            // reject form posts faster than this (likely a bot)
+const MAX_UPCOMING_PER_PHONE = 3    // cap active/future bookings per phone (the identity)
 
 // Internal error to abort the transaction when the slot is already taken
 class SlotTakenError extends Error {}
@@ -183,6 +188,44 @@ export async function POST(
 
   const { clientName, clientEmail, clientPhone, serviceId, serviceIds, totalDurationMinutes, professionalId, date, startTime, notes } =
     parsed.data
+
+  // ── Anti-bot: reject instant submissions (a real person takes seconds to fill
+  // the form). The honeypot `website` field is rejected by the schema when filled.
+  if (typeof parsed.data.elapsedMs === 'number' && parsed.data.elapsedMs < MIN_FILL_MS) {
+    return NextResponse.json({ success: false, error: 'No se pudo procesar la solicitud.' }, { status: 400 })
+  }
+
+  // ── Anti-spam: cap active/future bookings per phone (the client identity), so a
+  // single number — or a stranger using someone else's — can't flood the calendar.
+  const phoneNorm = normalizePhone(clientPhone)
+  if (phoneNorm) {
+    try {
+      const existingClient = await prisma.client.findUnique({
+        where:  { phoneNormalized: phoneNorm },
+        select: { id: true },
+      })
+      if (existingClient) {
+        const todayStr = formatInTimeZone(new Date(), 'America/Bogota', 'yyyy-MM-dd')
+        const upcoming = await prisma.appointment.count({
+          where: {
+            clientId: existingClient.id,
+            status:   { in: ['PENDING', 'CONFIRMED'] },
+            date:     { gte: new Date(`${todayStr}T00:00:00`) },
+          },
+        })
+        if (upcoming >= MAX_UPCOMING_PER_PHONE) {
+          return NextResponse.json(
+            { success: false, error: `Ya tienes ${MAX_UPCOMING_PER_PHONE} citas próximas. Escríbenos por WhatsApp para gestionar más.` },
+            { status: 429 },
+          )
+        }
+      }
+    } catch (err) {
+      if (isDbUnavailable(err)) return dbUnavailableResponse()
+      // Fail-open: the cap is a guard, not a gate — never block a legit booking on it.
+      console.error('Error verificando el tope de citas por teléfono:', err)
+    }
+  }
 
   // If a specific professional was requested, make sure it exists and is active
   if (professionalId) {

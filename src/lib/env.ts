@@ -6,7 +6,9 @@ const envSchema = z.object({
   NEXTAUTH_URL: z.string().url().optional(),
   AWS_S3_BUCKET: z.string().optional(),
   AWS_REGION: z.string().default('us-east-1'),
-  SES_FROM_EMAIL: z.string().email().optional(),
+  RESEND_API_KEY: z.string().optional(),
+  EMAIL_FROM: z.string().email().optional(),
+  SES_FROM_EMAIL: z.string().email().optional(),  // legacy fallback for the "from" address
   ENABLE_EMAILS: z.string().optional(),
   NEXT_PUBLIC_APP_URL: z.string().optional(),
   GOOGLE_CLIENT_EMAIL: z.string().email().optional(),
@@ -15,10 +17,10 @@ const envSchema = z.object({
 }).superRefine((e, ctx) => {
   // Conditional requirements — a variable can be optional in isolation but
   // required once a feature that depends on it is turned on.
-  if (e.ENABLE_EMAILS === 'true' && !e.SES_FROM_EMAIL) {
+  if (e.ENABLE_EMAILS === 'true' && !e.RESEND_API_KEY) {
     ctx.addIssue({
-      code: z.ZodIssueCode.custom, path: ['SES_FROM_EMAIL'],
-      message: 'SES_FROM_EMAIL es requerida cuando ENABLE_EMAILS=true',
+      code: z.ZodIssueCode.custom, path: ['RESEND_API_KEY'],
+      message: 'RESEND_API_KEY es requerida cuando ENABLE_EMAILS=true',
     })
   }
   // Google Calendar is OPTIONAL and all-or-nothing. A partial config disables

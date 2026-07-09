@@ -129,26 +129,31 @@ variable "google_calendar_key_ssm_parameter" {
   type        = string
 }
 
+variable "resend_api_key_ssm_parameter" {
+  description = "Path in SSM (SecureString) with the Resend API key. user-data reads it and writes RESEND_API_KEY into the K8s Secret — same as the CI/CD deploy."
+  type        = string
+}
+
 variable "s3_bucket_name" {
   description = "Name of the assets bucket — written to ConfigMap as AWS_S3_BUCKET."
   type        = string
 }
 
 variable "ses_from_email" {
-  description = "Verified sender email in SES. Written to ConfigMap as SES_FROM_EMAIL."
+  description = "Sender email for outgoing mail (Resend); use a verified Resend domain. Written to ConfigMap as SES_FROM_EMAIL (key name kept for backward compatibility)."
   type        = string
   default     = ""
 }
 
 variable "enable_emails" {
-  description = "ENABLE_EMAILS for the app (false in dev without SES configured)."
+  description = "ENABLE_EMAILS for the app (false in dev when Resend isn't configured)."
   type        = bool
   default     = false
 }
 
 # ─── Extra permissions ───────────────────────────────────────────────────
 variable "extra_managed_policy_arns" {
-  description = "Additional ARNs to attach to the instance profile (e.g.: policy from s3-assets module, and SES policy)."
+  description = "Additional ARNs to attach to the instance profile (e.g.: the policy from the s3-assets module)."
   type        = list(string)
   default     = []
 }

@@ -7,7 +7,7 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentAdmin } from '@/lib/authz'
 import { hasPermission } from '@/lib/permissions'
 import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
-import type { ApiResponse, AccountingSummary, CategoryBreakdown, ExpenseCategory } from '@/types'
+import type { ApiResponse, AccountingSummary, CategoryBreakdown, PaymentMethodBreakdown, ExpenseCategory } from '@/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -40,6 +40,7 @@ export async function GET(
         },
         select: {
           paymentStatus: true,
+          paymentMethod: true,
           amountPaid: true,
           precioFinal: true,
           service: { select: { price: true } },
@@ -57,6 +58,7 @@ export async function GET(
 
     type AptRow = {
       paymentStatus: string
+      paymentMethod: string | null
       amountPaid: number | null
       precioFinal: number | null
       service: { price: number }
@@ -110,6 +112,19 @@ export async function GET(
     const expensesByCategory: CategoryBreakdown[] = Array.from(catMap, ([category, amount]) => ({ category, amount }))
       .sort((a, b) => b.amount - a.amount)
 
+    // Income broken down by how it was received: sum amountPaid per paymentMethod.
+    // Money recorded without a method lands in "SIN_REGISTRAR" so the totals reconcile.
+    const methodMap = new Map<string, number>()
+    for (const apt of appointments as AptRow[]) {
+      if (apt.amountPaid && apt.amountPaid > 0) {
+        const m = apt.paymentMethod ?? 'SIN_REGISTRAR'
+        methodMap.set(m, (methodMap.get(m) ?? 0) + apt.amountPaid)
+      }
+    }
+    const incomeByPaymentMethod: PaymentMethodBreakdown[] = Array
+      .from(methodMap, ([method, amount]) => ({ method: method as PaymentMethodBreakdown['method'], amount }))
+      .sort((a, b) => b.amount - a.amount)
+
     return NextResponse.json({
       success: true,
       data: {
@@ -123,6 +138,7 @@ export async function GET(
         receivable,
         receivableCount,
         expensesByCategory,
+        incomeByPaymentMethod,
       },
     })
   } catch (err) {

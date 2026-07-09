@@ -144,6 +144,19 @@ export default function CitasList({
     return () => clearTimeout(t)
   }, [filters, page, runFetch])
 
+  // A manual appointment created in the sibling modal fires this event so the
+  // list refetches with the current filters (no full reload). A past appointment
+  // also switches the list to the "Pasadas" scope so it's actually visible.
+  useEffect(() => {
+    const onCreated = (e: Event) => {
+      const scope = (e as CustomEvent<{ scope: string | null }>).detail?.scope
+      if (scope) { setFilters((f) => ({ ...f, scope })); setPage(1) }
+      else runFetch(filters, page)
+    }
+    window.addEventListener('cita-creada', onCreated)
+    return () => window.removeEventListener('cita-creada', onCreated)
+  }, [filters, page, runFetch])
+
   function patch(p: Partial<CitasFilters>) { setFilters((f) => ({ ...f, ...p })); setPage(1) }
   function clearAll() { setFilters(EMPTY_FILTERS); setPage(1); setShowMore(false) }
 
@@ -183,7 +196,10 @@ export default function CitasList({
             <label className="form-label text-[10px]">Estado</label>
             <div className="flex gap-1.5 flex-wrap">
               {STATUS_FILTER.map((s) => (
-                <button key={s || 'ALL'} type="button" onClick={() => patch({ status: s })}
+                <button key={s || 'ALL'} type="button"
+                  // A COMPLETED appointment is always past/today, so "Próximas"
+                  // would show nothing — switch to "Todas" so the filter is useful.
+                  onClick={() => patch(s === 'COMPLETED' && filters.scope === 'upcoming' ? { status: s, scope: 'all' } : { status: s })}
                   className={`px-3 py-2.5 sm:py-1.5 text-xs border rounded-lg transition-colors
                     ${filters.status === s
                       ? 'bg-ink border-ink text-white'

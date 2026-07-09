@@ -57,14 +57,17 @@ export function computeAppointmentTotal(
     return { servicesSubtotal, extrasTotal, discount, total: Math.max(0, base - discount) }
   }
 
-  // Per-line discounts (or none).
-  const lineDiscount = lines.reduce(
-    (s, l) => s + computeDiscountAmount(l.price, l.descuentoTipo, l.descuentoValor), 0,
-  )
+  // Per-line discounts (or none). The discount covers the WHOLE line — the
+  // service price plus that line's own extras — so a discounted service with an
+  // add-on discounts the add-on too (consistent with the order-level branch).
+  const lineDiscount = lines.reduce((s, l) => {
+    const lineBase = l.price + (l.extras ?? []).reduce((a, b) => a + b, 0)
+    return s + computeDiscountAmount(lineBase, l.descuentoTipo, l.descuentoValor)
+  }, 0)
   return {
     servicesSubtotal,
     extrasTotal,
     discount: lineDiscount,
-    total: Math.max(0, servicesSubtotal - lineDiscount + extrasTotal),
+    total: Math.max(0, servicesSubtotal + extrasTotal - lineDiscount),
   }
 }

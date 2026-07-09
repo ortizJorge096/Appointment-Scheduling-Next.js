@@ -88,6 +88,8 @@ export default function BookingForm() {
   const continueRef  = useRef<HTMLButtonElement>(null)
   const formTopRef   = useRef<HTMLDivElement>(null)
   const beganRef     = useRef(false) // GA begin_checkout fires once per visit
+  const mountedAtRef = useRef(Date.now())            // anti-bot: time-to-submit guard
+  const hpRef        = useRef<HTMLInputElement>(null) // anti-bot: honeypot field
 
   // mounted prevents SSR vs client hydration mismatch
   const [mounted, setMounted]                 = useState(false)
@@ -436,6 +438,9 @@ export default function BookingForm() {
         clientEmail: form.clientEmail.toLowerCase().trim(),
         clientPhone: form.clientPhone.trim(),
         notes:       form.notes.trim() || undefined,
+        // Anti-bot: honeypot stays empty for real users; elapsedMs is time-to-submit.
+        website:     hpRef.current?.value ?? '',
+        elapsedMs:   Date.now() - mountedAtRef.current,
       }
 
       if (form.professionalId) body.professionalId = form.professionalId
@@ -502,6 +507,18 @@ export default function BookingForm() {
 
   return (
     <div ref={formTopRef} className="max-w-2xl mx-auto">
+
+      {/* Honeypot: off-screen and out of the tab order. Real users never see or
+          fill it; bots that fill every field trip it and the server rejects. */}
+      <input
+        ref={hpRef}
+        type="text"
+        name="website"
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden="true"
+        style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, opacity: 0 }}
+      />
 
       {/* Step indicator */}
       <div className="flex items-center mb-6">

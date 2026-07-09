@@ -222,6 +222,11 @@ export interface CategoryBreakdown {
   amount: number
 }
 
+export interface PaymentMethodBreakdown {
+  method: PaymentMethod | 'SIN_REGISTRAR'
+  amount: number
+}
+
 export interface AccountingSummary {
   totalIncome: number
   totalExpenses: number
@@ -233,6 +238,7 @@ export interface AccountingSummary {
   receivable: number          // outstanding amount still owed (PENDING + PARTIAL balance)
   receivableCount: number     // appointments with an outstanding balance
   expensesByCategory: CategoryBreakdown[]
+  incomeByPaymentMethod: PaymentMethodBreakdown[]
 }
 
 // ─────────────────────────────────────────

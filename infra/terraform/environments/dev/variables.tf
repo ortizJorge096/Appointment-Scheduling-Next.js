@@ -112,13 +112,20 @@ variable "letsencrypt_email" {
 }
 
 variable "ses_from_email" {
-  description = "Verified sender in SES."
+  description = "Sender email for outgoing mail (Resend). Feeds SES_FROM_EMAIL in the ConfigMap."
   type        = string
   default     = ""
 }
 
 variable "google_private_key" {
   description = "Google Calendar service-account private key (the private_key field of the JSON). Provide via TF_VAR_google_private_key or a gitignored tfvars — NEVER commit it. Empty keeps whatever value is already in SSM (ignore_changes)."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "resend_api_key" {
+  description = "Resend API key for email delivery. Provide via TF_VAR_resend_api_key or a gitignored tfvars — NEVER commit it. Empty keeps whatever value is already in SSM (ignore_changes)."
   type        = string
   default     = ""
   sensitive   = true
@@ -163,4 +170,28 @@ variable "rds_start_schedule" {
 variable "rds_schedule_timezone" {
   type    = string
   default = "UTC"
+}
+
+variable "enable_compute_scheduler" {
+  description = "Scale the EC2 ASG to 0/1 on a schedule to save compute costs outside working hours."
+  type        = bool
+  default     = false
+}
+
+variable "compute_stop_schedule" {
+  description = "Cron expression to scale ASG to 0. Default: stop every hour for testing (like RDS in dev)."
+  type        = string
+  default     = "cron(0 * * * ? *)"
+}
+
+variable "compute_start_schedule" {
+  description = "Cron expression to scale ASG to 1. Empty = manual start only (recommended for dev)."
+  type        = string
+  default     = "" # sin encendido automático
+}
+
+variable "compute_schedule_timezone" {
+  description = "Timezone for compute scheduler schedules."
+  type        = string
+  default     = "America/Bogota"
 }

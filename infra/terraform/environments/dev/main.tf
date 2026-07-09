@@ -42,6 +42,20 @@ resource "aws_ssm_parameter" "google_calendar_key" {
   }
 }
 
+# Resend API key (email delivery). Provisioned "by code" like the Google key.
+resource "aws_ssm_parameter" "resend_api_key" {
+  name        = "/${var.name_prefix}/resend/api-key"
+  description = "Resend API key for ${var.name_prefix}"
+  type        = "SecureString"
+  value       = var.resend_api_key != "" ? var.resend_api_key : "PLACEHOLDER — set TF_VAR_resend_api_key or update the SSM value out-of-band"
+  tags = {
+    Component = "secrets"
+  }
+  lifecycle {
+    ignore_changes = [value]
+  }
+}
+
 # ─── Public hostname in SSM (non-secret String) ──────────────────────────
 # Single source of truth for the environment's host. CI reads this at deploy
 # time (same pattern as db/url and the secrets above) to set the ingress host,
@@ -103,13 +117,6 @@ module "github_oidc" {
   role_name            = "${var.name_prefix}-gha-deploy"
 
   tags = { Component = "ci" }
-}
-
-module "ses" {
-  source = "../../modules/ses"
-
-  name_prefix = var.name_prefix
-  tags        = { Component = "email" }
 }
 
 module "s3_assets" {
@@ -190,15 +197,15 @@ module "k3s" {
   database_url_ssm_parameter        = module.rds.database_url_ssm_parameter
   nextauth_secret_ssm_parameter     = aws_ssm_parameter.nextauth_secret.name
   google_calendar_key_ssm_parameter = aws_ssm_parameter.google_calendar_key.name
+  resend_api_key_ssm_parameter      = aws_ssm_parameter.resend_api_key.name
   s3_bucket_name                    = module.s3_assets.bucket_name
   ses_from_email                    = var.ses_from_email
   enable_emails                     = var.enable_emails
 
-  # Attach the assets bucket policy to the instance profile.
-  # (SES can be added later with AmazonSESFullAccess or a custom policy.)
+  # Attach the assets bucket policy to the instance profile. Email goes through
+  # Resend (HTTP API) now, so no SES/IAM send permission is needed.
   extra_managed_policy_arns = [
     module.s3_assets.app_access_policy_arn,
-    module.ses.send_policy_arn,
   ]
 
   ami_id                  = var.ec2_ami
@@ -230,6 +237,23 @@ module "monitoring" {
   enable_memory_disk_alarms = true
 
   tags = { Component = "observability" }
+}
+
+# ── ASG Scheduler — scale compute to 0/1 on a schedule to save cost ─────
+# Enable with: enable_compute_scheduler = true in terraform.tfvars
+module "asg_scheduler" {
+  count  = (var.enable_ec2_k3s && var.enable_compute_scheduler) ? 1 : 0
+  source = "../../modules/asg-scheduler"
+
+  name_prefix = var.name_prefix
+  asg_name    = module.k3s[0].asg_name
+  asg_arn     = module.k3s[0].asg_arn
+
+  stop_schedule     = var.compute_stop_schedule
+  start_schedule    = var.compute_start_schedule
+  schedule_timezone = var.compute_schedule_timezone
+
+  tags = { Component = "cost-optimization" }
 }
 
 # ── RDS Scheduler — apaga la BD por horario para ahorrar (dev) ──────────

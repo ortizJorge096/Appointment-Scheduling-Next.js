@@ -51,6 +51,7 @@ describe('ClientesPage — crear cliente', () => {
 
     fireEvent.change(screen.getByPlaceholderText('Ana García'),      { target: { value: 'María Ruiz' } })
     fireEvent.change(screen.getByPlaceholderText('ana@ejemplo.com'), { target: { value: 'maria@test.com' } })
+    fireEvent.change(screen.getByPlaceholderText('3001234567'),      { target: { value: '3009998877' } })
 
     fireEvent.click(screen.getByRole('button', { name: /crear cliente/i }))
 
@@ -62,6 +63,26 @@ describe('ClientesPage — crear cliente', () => {
     const body = JSON.parse((postCall![1] as unknown as { body: string }).body)
     expect(body.name).toBe('María Ruiz')
     expect(body.email).toBe('maria@test.com')
+    expect(body.phone).toBe('3009998877')
+  })
+
+  it('valida en el cliente: nombre numérico + sin teléfono NO dispara POST y muestra el error inline', async () => {
+    const fetchMock = makeFetchMock()
+    global.fetch = fetchMock as unknown as typeof fetch
+
+    render(<ClientesPage />)
+    fireEvent.click(await screen.findByRole('button', { name: /\+ nuevo/i }))
+
+    // Nombre solo-números + sin teléfono → el envío se bloquea en el cliente.
+    fireEvent.change(screen.getByPlaceholderText('Ana García'), { target: { value: '12345' } })
+    fireEvent.click(screen.getByRole('button', { name: /crear cliente/i }))
+
+    // No hubo POST al API…
+    const posted = fetchMock.mock.calls.some((c) => (c[1] as { method?: string })?.method === 'POST')
+    expect(posted).toBe(false)
+    // …y se ven los errores inline en español (no el mensaje crudo de Zod).
+    expect(screen.getByText(/incluir letras/i)).toBeInTheDocument()
+    expect(screen.getByText(/teléfono es requerido/i)).toBeInTheDocument()
   })
 })
 

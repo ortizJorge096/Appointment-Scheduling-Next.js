@@ -51,11 +51,17 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      # NEXT_PUBLIC_* are baked at build time. Defaults below make the plain
-      # `docker compose up --build` work; override via shell or .env.local.
+      # NEXT_PUBLIC_* are inlined into the bundle at BUILD time (even for server
+      # code like the email links), so they MUST be build args — the runtime
+      # env_file is too late for anything baked. Values interpolate from your
+      # shell / root .env; the defaults keep a plain `docker compose up --build`
+      # working. GA stays empty in local (never pollute analytics from dev) and
+      # APP_URL defaults to localhost so email links point at your machine.
       args:
+        NEXT_PUBLIC_APP_URL: "${NEXT_PUBLIC_APP_URL:-http://localhost:3000}"
         NEXT_PUBLIC_WHATSAPP_NUMBER: "${NEXT_PUBLIC_WHATSAPP_NUMBER:-573001790511}"
         NEXT_PUBLIC_WHATSAPP_MESSAGE: "${NEXT_PUBLIC_WHATSAPP_MESSAGE:-¡Hola! Vengo de su sitio web y me gustaría más información.}"
+        NEXT_PUBLIC_GA_MEASUREMENT_ID: "${NEXT_PUBLIC_GA_MEASUREMENT_ID:-}"
     container_name: valentinajimenez-app
     restart: unless-stopped
     ports:
