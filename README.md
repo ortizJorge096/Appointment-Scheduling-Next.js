@@ -12,7 +12,7 @@ Tailwind. Ver [`STRUCTURE.md`](./STRUCTURE.md) para el árbol completo y
 
 ```
 Internet → Route53 → k3s/EC2 (Next.js) → RDS PostgreSQL
-                                        → SES (emails)
+                                        → Resend (emails, HTTP API)
                                         → S3 (imágenes)
 ```
 

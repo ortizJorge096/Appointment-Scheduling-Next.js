@@ -10,7 +10,7 @@ Ver también [`CONTRIBUTING.md`](./CONTRIBUTING.md) para las reglas de código
 - **Base de datos**: PostgreSQL (AWS RDS)
 - **ORM**: Prisma 5.14
 - **Auth**: NextAuth 4.24
-- **Email**: AWS SES (`@aws-sdk/client-ses`)
+- **Email**: Resend (`resend`)
 - **Imágenes**: AWS S3 (`@aws-sdk/client-s3`)
 - **Analítica**: Google Analytics 4 (solo páginas públicas)
 - **Zona horaria**: `America/Bogota` (`date-fns-tz`)
@@ -90,7 +90,7 @@ appointment-scheduling-nextjs/
 │   │   ├── availability.ts       # Cálculo de slots disponibles
 │   │   ├── cancellation.ts       # Lógica de cancelación por token
 │   │   ├── calendar.ts / bookingSettings.ts / vip.ts / discount.ts
-│   │   ├── email.ts              # Envío de emails (SES)
+│   │   ├── email.ts              # Envío de emails (Resend)
 │   │   ├── s3.ts                 # Subida/borrado de imágenes
 │   │   ├── db-error.ts           # isDbUnavailable() y manejo de errores Prisma
 │   │   ├── analytics.ts / landingStats.ts / hero.ts / clients.ts
@@ -128,14 +128,15 @@ DATABASE_URL="postgresql://usuario:contraseña@tu-endpoint.rds.amazonaws.com:543
 NEXTAUTH_SECRET="genera-con: openssl rand -base64 32"
 NEXTAUTH_URL="http://localhost:3000"   # en prod: https://tudominio.com
 
-# AWS SES (emails)
-AWS_REGION="us-east-1"
-AWS_ACCESS_KEY_ID="..."
-AWS_SECRET_ACCESS_KEY="..."
-SES_FROM_EMAIL="noreply@tudominio.com"
+# Emails (Resend)
+RESEND_API_KEY="re_..."                 # requerida si ENABLE_EMAILS=true
+EMAIL_FROM="no-reply@tudominio.com"     # remitente; dominio verificado en Resend
 ENABLE_EMAILS=false                     # apagar envíos en desarrollo
 
 # AWS S3 (galería) — en EC2/k8s con Instance Profile no hace falta access key
+AWS_REGION="us-east-1"
+AWS_ACCESS_KEY_ID="..."
+AWS_SECRET_ACCESS_KEY="..."
 AWS_S3_BUCKET="appointment-scheduling-assets"
 AWS_S3_PUBLIC_BASE_URL=""               # opcional, CDN
 

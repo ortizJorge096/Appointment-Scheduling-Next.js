@@ -98,12 +98,20 @@ variable "letsencrypt_email" {
 }
 
 variable "ses_from_email" {
-  type    = string
-  default = ""
+  description = "Sender email for outgoing mail (Resend). Feeds SES_FROM_EMAIL in the ConfigMap."
+  type        = string
+  default     = ""
 }
 
 variable "google_private_key" {
   description = "Google Calendar service-account private key. Provide via TF_VAR_google_private_key or a gitignored tfvars — NEVER commit it. Empty keeps whatever value is already in SSM (ignore_changes)."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "resend_api_key" {
+  description = "Resend API key for email delivery. Provide via TF_VAR_resend_api_key or a gitignored tfvars — NEVER commit it. Empty keeps whatever value is already in SSM (ignore_changes)."
   type        = string
   default     = ""
   sensitive   = true

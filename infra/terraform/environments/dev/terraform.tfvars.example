@@ -46,7 +46,7 @@ letsencrypt_email  = ""
 # para fijar el host del ingress, NEXTAUTH_URL y NEXT_PUBLIC_APP_URL.
 app_host = "dev.vjbeautystudio.com"
 
-# Emails de la app (SES). Vacíos hasta que verifiques un remitente.
+# Emails de la app (Resend). Remitente; déjalo vacío hasta verificar un dominio en Resend.
 ses_from_email = ""
 enable_emails  = false
 

@@ -1,8 +1,8 @@
 // src/lib/email.ts
-// Email delivery with AWS SES
+// Email delivery with Resend (https://resend.com).
 // To toggle off/on: ENABLE_EMAILS=false in .env.local
 
-import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses'
+import { Resend } from 'resend'
 import { STUDIO, WHATSAPP_URL, INSTAGRAM_URL } from './config'
 import { audit } from './audit'
 import type { AppointmentWithService } from '../types'
@@ -14,22 +14,22 @@ import type { AppointmentWithService } from '../types'
 // ENABLE_EMAILS=false → skips sending, only logs to the console.
 // ─────────────────────────────────────────────────────────────
 
-// Memoized SES client — created on the first real send
-let _ses: SESClient | null = null
-function getSes(): SESClient {
-  if (!_ses) {
-    // No explicit `credentials`: the SDK uses the default chain
-    // (Instance Profile on EC2, environment variables locally).
-    _ses = new SESClient({
-      region: process.env.AWS_REGION ?? 'us-east-1',
-    })
-  }
-  return _ses
+// Memoized Resend client — created on the first real send.
+let _resend: Resend | null = null
+function getResend(): Resend {
+  if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY)
+  return _resend
 }
 
 const emailsEnabled = () => process.env.ENABLE_EMAILS !== 'false'
-const fromEmail     = () => process.env.SES_FROM_EMAIL ?? STUDIO.email
-const appUrl        = () => process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+// The "from" address must be on a domain verified in Resend. EMAIL_FROM
+// overrides; SES_FROM_EMAIL is kept as a fallback for backward compatibility.
+const fromEmail     = () => process.env.EMAIL_FROM ?? process.env.SES_FROM_EMAIL ?? STUDIO.email
+// Prefer the baked public URL; fall back to NEXTAUTH_URL (a RUNTIME server var,
+// so it survives a build that didn't bake NEXT_PUBLIC_APP_URL), then localhost.
+// Use `||` (not `??`) so an EMPTY baked value also falls through — otherwise
+// email links come out hostless, e.g. "http:///cancelar".
+const appUrl        = () => process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'
 
 // ─── Helpers ──────────────────────────────────────────────────
 // (formatDate/formatPrice produce Spanish, user-facing strings)
@@ -458,7 +458,7 @@ async function sendEmail({
   html: string
 }): Promise<void> {
   // ── NO RECIPIENT ──
-  // Clients without an email on file: skip silently (never throw, never hit SES).
+  // Clients without an email on file: skip silently (never throw, never send).
   if (!to?.trim()) {
     console.log(`📭 [SIN EMAIL] Omitido (cliente sin correo): "${subject}"`)
     return
@@ -471,17 +471,15 @@ async function sendEmail({
   }
 
   // ── EMAILS ON ──
-  const command = new SendEmailCommand({
-    Source:      `${STUDIO.name} <${fromEmail()}>`,
-    Destination: { ToAddresses: [to] },
-    Message: {
-      Subject: { Data: subject,  Charset: 'UTF-8' },
-      Body:    { Html: { Data: html, Charset: 'UTF-8' } },
-    },
-  })
-
   try {
-    await getSes().send(command)
+    // Resend returns { data, error } instead of throwing on API errors.
+    const { error } = await getResend().emails.send({
+      from:    `${STUDIO.name} <${fromEmail()}>`,
+      to:      [to],
+      subject,
+      html,
+    })
+    if (error) throw new Error(error.message)
     console.log(`📧 Email enviado a ${to}: "${subject}"`)
     // Successful sends are high-volume — audited only when explicitly enabled.
     if (process.env.AUDIT_EMAIL_SENT === 'true') {

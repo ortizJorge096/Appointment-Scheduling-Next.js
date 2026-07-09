@@ -43,7 +43,7 @@ runner_labels = "self-hosted,linux,x64,k3s-deploy,k3s-prod"
 enable_letsencrypt = true
 letsencrypt_email  = ""
 
-# SES — verifica el remitente en consola SES antes de activar.
+# Emails (Resend) — usa un remitente de un dominio verificado en Resend.
 ses_from_email = "noreply@tu-dominio.com"
 enable_emails  = true
 

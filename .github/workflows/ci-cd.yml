@@ -283,6 +283,7 @@ jobs:
             /appointment-scheduling-dev/db/url \
             /appointment-scheduling-dev/nextauth/secret \
             /appointment-scheduling-dev/google/calendar-private-key \
+            /appointment-scheduling-dev/resend/api-key \
             us-east-1
           kubectl -n appointment-scheduling-dev rollout restart deployment/appointment-scheduling
           kubectl -n appointment-scheduling-dev rollout status deployment/appointment-scheduling --timeout=600s
@@ -346,6 +347,7 @@ jobs:
             /appointment-scheduling-prod/db/url \
             /appointment-scheduling-prod/nextauth/secret \
             /appointment-scheduling-prod/google/calendar-private-key \
+            /appointment-scheduling-prod/resend/api-key \
             us-east-1
 
           kubectl -n appointment-scheduling rollout restart deployment/appointment-scheduling
