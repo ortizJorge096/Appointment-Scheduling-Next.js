@@ -14,6 +14,7 @@ vi.mock('@/lib/prisma', () => ({
       update:    vi.fn(),
     },
     service: { findUnique: vi.fn(), findMany: vi.fn() },
+    client:  { findUnique: vi.fn() },
     vipDiscountConfig: { findFirst: vi.fn() },
     vipDiscountTier:   { findMany: vi.fn() },
     $transaction: vi.fn(),
@@ -270,6 +271,26 @@ describe('POST /api/appointments', () => {
 
     const res = await POST(makePostRequest(VALID_BODY, '2.2.2.6'))
     expect(res.status).toBe(500)
+  })
+
+  it('rechaza el honeypot lleno (bot rellena todos los campos) con 400', async () => {
+    const res = await POST(makePostRequest({ ...VALID_BODY, website: 'http://spam' }, '2.2.9.1'))
+    expect(res.status).toBe(400)
+    expect(prisma.$transaction).not.toHaveBeenCalled()
+  })
+
+  it('rechaza un envío instantáneo (elapsedMs < 3s → probable bot) con 400', async () => {
+    const res = await POST(makePostRequest({ ...VALID_BODY, elapsedMs: 100 }, '2.2.9.2'))
+    expect(res.status).toBe(400)
+    expect(prisma.$transaction).not.toHaveBeenCalled()
+  })
+
+  it('bloquea con 429 cuando el teléfono ya tiene el máximo de citas próximas', async () => {
+    vi.mocked(prisma.client.findUnique).mockResolvedValue({ id: 'cli-1' } as never)
+    vi.mocked(prisma.appointment.count).mockResolvedValue(3) // = MAX_UPCOMING_PER_PHONE
+    const res = await POST(makePostRequest({ ...VALID_BODY, elapsedMs: 5000 }, '2.2.9.3'))
+    expect(res.status).toBe(429)
+    expect(prisma.$transaction).not.toHaveBeenCalled()
   })
 
   it('returns 429 after exceeding rate limit for same IP', async () => {
