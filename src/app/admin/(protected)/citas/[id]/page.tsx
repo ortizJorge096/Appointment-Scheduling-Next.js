@@ -69,6 +69,11 @@ export default function CitaDetailPage() {
   const [notes, setNotes]       = useState('')
   const [editNotes, setEditNotes] = useState(false)
 
+  // Reschedule (date/time)
+  const [editSched, setEditSched] = useState(false)
+  const [schedDate, setSchedDate] = useState('')
+  const [schedTime, setSchedTime] = useState('')
+
   // Payment form
   const [payStatus, setPayStatus] = useState('PENDING')
   const [payAmount, setPayAmount] = useState('')
@@ -105,6 +110,8 @@ export default function CitaDetailPage() {
     setPayStatus(appt.paymentStatus)
     setPayAmount(appt.amountPaid != null ? String(appt.amountPaid) : '')
     setPayMethod(appt.paymentMethod ?? '')
+    setSchedDate(format(new Date(appt.date), 'yyyy-MM-dd'))
+    setSchedTime(appt.startTime)
     setDiscTipo((appt.descuentoTipo as 'PORCENTAJE' | 'VALOR_FIJO') ?? 'PORCENTAJE')
     setDiscValor(appt.descuentoValor != null ? String(appt.descuentoValor) : '')
     setDiscMotivo(appt.descuentoMotivo ?? '')
@@ -168,6 +175,21 @@ export default function CitaDetailPage() {
     if (!json.success) { toast.error(json.error ?? 'No se pudieron guardar las notas'); return }
     setAppt(json.data); setEditNotes(false)
     toast.success('Notas guardadas')
+  }
+
+  async function saveReschedule() {
+    if (!schedDate || !schedTime) { toast.error('Elige la nueva fecha y hora'); return }
+    setUpdating(true)
+    const res  = await fetch(`/api/appointments/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ date: schedDate, startTime: schedTime }),
+    })
+    const json = await res.json()
+    setUpdating(false)
+    if (!json.success) { toast.error(json.error ?? 'No se pudo reprogramar la cita'); return }
+    setAppt(json.data); setEditSched(false)
+    toast.success(json.data.clientEmail ? 'Cita reprogramada — se notificó al cliente' : 'Cita reprogramada')
   }
 
   async function savePayment(e: React.FormEvent) {
@@ -288,6 +310,9 @@ export default function CitaDetailPage() {
   // Cancelling needs citas:cancelar; every other status change needs citas:editar.
   const visibleActions = actions.filter((a) =>
     a.status === 'CANCELLED' ? can('citas:cancelar') : can('citas:editar'))
+
+  // Rescheduling only makes sense for a live appointment and needs citas:editar.
+  const canReschedule = can('citas:editar') && (appt.status === 'PENDING' || appt.status === 'CONFIRMED')
 
   // Live money breakdown, mirroring the API (per-line OR order discount + extras).
   const svcRows = appt.services ?? []
@@ -418,15 +443,47 @@ export default function CitaDetailPage() {
           </div>
         </div>
 
-        {/* Date and time */}
+        {/* Date and time — reschedulable while the appointment is still live */}
         <div className="bg-white rounded-xl border border-beige-dark p-5">
-          <p className="text-xs text-ink-muted uppercase tracking-widest mb-3">Fecha y hora</p>
-          <p className="font-serif text-xl text-ink first-letter:uppercase">
-            {format(new Date(appt.date), "EEEE d 'de' MMMM", { locale: es })}
-          </p>
-          <p className="text-ink-muted text-sm mt-1">
-            {appt.startTime} – {appt.endTime}
-          </p>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs text-ink-muted uppercase tracking-widest">Fecha y hora</p>
+            {!editSched && canReschedule && (
+              <button onClick={() => setEditSched(true)} className="text-xs text-gold hover:underline">Reprogramar</button>
+            )}
+          </div>
+          {editSched ? (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="form-label text-[10px] !mb-1">Nueva fecha</label>
+                  <input type="date" aria-label="Nueva fecha" value={schedDate} min={format(new Date(), 'yyyy-MM-dd')}
+                    onChange={(e) => setSchedDate(e.target.value)} className="input-field w-full" />
+                </div>
+                <div>
+                  <label className="form-label text-[10px] !mb-1">Nueva hora</label>
+                  <input type="time" aria-label="Nueva hora" value={schedTime}
+                    onChange={(e) => setSchedTime(e.target.value.slice(0, 5))} className="input-field w-full" />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={saveReschedule} disabled={updating} className="btn-primary text-xs px-4 py-2 disabled:opacity-50">
+                  {updating ? 'Guardando…' : 'Guardar'}
+                </button>
+                <button onClick={() => { setEditSched(false); setSchedDate(format(new Date(appt.date), 'yyyy-MM-dd')); setSchedTime(appt.startTime) }}
+                  className="btn-secondary text-xs px-4 py-2">Cancelar</button>
+              </div>
+              <p className="text-[11px] text-ink-muted/70">Se recalcula la hora de fin; si el cliente tiene email, se le notifica el cambio.</p>
+            </div>
+          ) : (
+            <>
+              <p className="font-serif text-xl text-ink first-letter:uppercase">
+                {format(new Date(appt.date), "EEEE d 'de' MMMM", { locale: es })}
+              </p>
+              <p className="text-ink-muted text-sm mt-1">
+                {appt.startTime} – {appt.endTime}
+              </p>
+            </>
+          )}
         </div>
 
         {/* Contact */}
