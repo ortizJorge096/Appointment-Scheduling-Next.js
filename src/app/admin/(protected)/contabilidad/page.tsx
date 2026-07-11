@@ -208,15 +208,15 @@ export default function ContabilidadPage() {
 
       {/* Date filter */}
       <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-3 mb-6 items-end">
-        <div>
+        <div className="min-w-0">
           <label className="form-label text-[10px]">Desde</label>
           <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-            className="input-field" />
+            className="input-field w-full min-w-0" />
         </div>
-        <div>
+        <div className="min-w-0">
           <label className="form-label text-[10px]">Hasta</label>
           <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-            className="input-field" />
+            className="input-field w-full min-w-0" />
         </div>
       </div>
 
@@ -333,18 +333,18 @@ export default function ContabilidadPage() {
                 className="input-field w-full" />
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div>
+              <div className="min-w-0">
                 <label className="form-label text-[10px]">Monto (COP) *</label>
                 <input required type="number" min="1" value={form.amount}
                   onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
                   placeholder="0"
-                  className="input-field w-full" />
+                  className="input-field w-full min-w-0" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <label className="form-label text-[10px]">Fecha *</label>
                 <input required type="date" value={form.date}
                   onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
-                  className="input-field w-full" />
+                  className="input-field w-full min-w-0" />
               </div>
             </div>
             <div>
