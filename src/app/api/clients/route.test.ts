@@ -73,6 +73,28 @@ describe('GET /api/clients', () => {
     const call = vi.mocked(prisma.client.findMany).mock.calls[0][0] as { where: unknown }
     expect(call.where).toHaveProperty('OR')
   })
+
+  it('hides archived clients by default (deletedAt: null)', async () => {
+    vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
+    vi.mocked(prisma.client.findMany).mockResolvedValue([])
+    vi.mocked(prisma.client.count).mockResolvedValue(0)
+
+    await GET(makeGetRequest())
+
+    const call = vi.mocked(prisma.client.findMany).mock.calls[0][0] as { where: { deletedAt: unknown } }
+    expect(call.where.deletedAt).toBeNull()
+  })
+
+  it('lists only archived clients when archived=1 (deletedAt: { not: null })', async () => {
+    vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
+    vi.mocked(prisma.client.findMany).mockResolvedValue([])
+    vi.mocked(prisma.client.count).mockResolvedValue(0)
+
+    await GET(makeGetRequest({ archived: '1' }))
+
+    const call = vi.mocked(prisma.client.findMany).mock.calls[0][0] as { where: { deletedAt: unknown } }
+    expect(call.where.deletedAt).toEqual({ not: null })
+  })
 })
 
 describe('POST /api/clients', () => {

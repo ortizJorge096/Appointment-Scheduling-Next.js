@@ -202,9 +202,21 @@ export async function POST(
     try {
       const existingClient = await prisma.client.findUnique({
         where:  { phoneNormalized: phoneNorm },
-        select: { id: true },
+        select: { id: true, deletedAt: true },
       })
       if (existingClient) {
+        // A deactivated (archived) client can't self-book online. Route them to
+        // WhatsApp so the studio decides whether to serve/reactivate them.
+        if (existingClient.deletedAt) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: 'Tu perfil está inactivo. Escríbenos por WhatsApp para agendar tu cita.',
+              code:  'CLIENT_INACTIVE',
+            },
+            { status: 403 },
+          )
+        }
         const todayStr = formatInTimeZone(new Date(), 'America/Bogota', 'yyyy-MM-dd')
         const upcoming = await prisma.appointment.count({
           where: {
@@ -215,7 +227,7 @@ export async function POST(
         })
         if (upcoming >= MAX_UPCOMING_PER_PHONE) {
           return NextResponse.json(
-            { success: false, error: `Ya tienes ${MAX_UPCOMING_PER_PHONE} citas próximas. Escríbenos por WhatsApp para gestionar más.` },
+            { success: false, error: `Ya tienes ${MAX_UPCOMING_PER_PHONE} citas próximas. Escríbenos por WhatsApp para gestionar más.`, code: 'UPCOMING_CAP' },
             { status: 429 },
           )
         }

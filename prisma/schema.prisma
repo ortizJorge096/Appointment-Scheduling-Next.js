@@ -61,6 +61,9 @@ model Client {
   // a phone don't collide (Postgres allows multiple NULLs under a unique index).
   phoneNormalized String?    @unique
   notes        String?       // allergies, preferences, internal notes
+  // Soft-delete (archive): hidden from the active directory but kept, with its
+  // appointment links intact, so history is never lost. Reversible.
+  deletedAt    DateTime?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   appointments Appointment[]

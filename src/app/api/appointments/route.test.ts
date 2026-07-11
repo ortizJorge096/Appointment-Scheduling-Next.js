@@ -285,11 +285,24 @@ describe('POST /api/appointments', () => {
     expect(prisma.$transaction).not.toHaveBeenCalled()
   })
 
-  it('bloquea con 429 cuando el teléfono ya tiene el máximo de citas próximas', async () => {
-    vi.mocked(prisma.client.findUnique).mockResolvedValue({ id: 'cli-1' } as never)
+  it('bloquea con 429 (UPCOMING_CAP) cuando el teléfono ya tiene el máximo de citas próximas', async () => {
+    vi.mocked(prisma.client.findUnique).mockResolvedValue({ id: 'cli-1', deletedAt: null } as never)
     vi.mocked(prisma.appointment.count).mockResolvedValue(3) // = MAX_UPCOMING_PER_PHONE
-    const res = await POST(makePostRequest({ ...VALID_BODY, elapsedMs: 5000 }, '2.2.9.3'))
+    const res  = await POST(makePostRequest({ ...VALID_BODY, elapsedMs: 5000 }, '2.2.9.3'))
+    const json = await res.json()
     expect(res.status).toBe(429)
+    expect(json.code).toBe('UPCOMING_CAP')
+    expect(prisma.$transaction).not.toHaveBeenCalled()
+  })
+
+  it('bloquea con 403 (CLIENT_INACTIVE) cuando el cliente está archivado/inactivo', async () => {
+    vi.mocked(prisma.client.findUnique).mockResolvedValue({ id: 'cli-1', deletedAt: new Date() } as never)
+    const res  = await POST(makePostRequest({ ...VALID_BODY, elapsedMs: 5000 }, '2.2.9.4'))
+    const json = await res.json()
+    expect(res.status).toBe(403)
+    expect(json.code).toBe('CLIENT_INACTIVE')
+    // No cuenta citas ni abre transacción: se corta antes.
+    expect(prisma.appointment.count).not.toHaveBeenCalled()
     expect(prisma.$transaction).not.toHaveBeenCalled()
   })
 
