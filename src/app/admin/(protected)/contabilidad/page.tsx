@@ -8,6 +8,7 @@ import type { ExpenseSummary, AccountingSummary } from '@/types'
 import { Pagination } from '@/components/admin/Pagination'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
 import { usePermissionGuard, useCan } from '@/components/admin/usePermissionGuard'
+import { PAYMENT_METHOD_LABEL as METHOD_LABEL, EXPENSE_CATEGORY_LABEL as CAT_LABEL } from '@/lib/labels'
 
 const PER_PAGE = 10
 
@@ -15,14 +16,6 @@ const COP = (n: number) =>
   new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n)
 
 const EXPENSE_CATEGORIES = ['INSUMOS', 'EQUIPOS', 'SERVICIOS', 'ARRIENDO', 'MARKETING', 'OTROS'] as const
-const CAT_LABEL: Record<string, string> = {
-  INSUMOS: 'Insumos', EQUIPOS: 'Equipos', SERVICIOS: 'Servicios',
-  ARRIENDO: 'Arriendo', MARKETING: 'Marketing', OTROS: 'Otros',
-}
-const METHOD_LABEL: Record<string, string> = {
-  EFECTIVO: 'Efectivo', TRANSFERENCIA: 'Transferencia', TARJETA: 'Tarjeta',
-  NEQUI: 'Nequi', DAVIPLATA: 'Daviplata', SIN_REGISTRAR: 'Sin registrar',
-}
 
 // Get first and last day of current month
 function currentMonthRange() {

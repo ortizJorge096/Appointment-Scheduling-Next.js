@@ -5,14 +5,12 @@
 import { useState, useEffect, use } from 'react'
 import Link from 'next/link'
 import { STATUS_LABEL, STATUS_CLASS } from '@/lib/appointmentStatus'
+import { PAYMENT_STATUS_LABEL as PAYMENT_LABEL } from '@/lib/labels'
 import type { AppointmentWithService } from '@/types'
 import { usePermissionGuard, useCan } from '@/components/admin/usePermissionGuard'
 
 const COP = (n: number) =>
   new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n)
-const PAYMENT_LABEL: Record<string, string> = {
-  PENDING: 'Sin pago', PAID: 'Pagado', PARTIAL: 'Parcial', WAIVED: 'Cortesía',
-}
 const PAYMENT_COLOR: Record<string, string> = {
   PENDING: 'text-orange-600', PAID: 'text-green-600',
   PARTIAL: 'text-blue-600', WAIVED: 'text-purple-600',
@@ -108,6 +106,18 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
 
   // Archive/reactivate: toggles the client's soft-delete flag (kept in the DB).
   async function toggleArchive(archived: boolean) {
+    // Heads-up when archiving a client who still has upcoming appointments: they
+    // stay scheduled (we never auto-cancel), but the admin should know before hiding them.
+    if (archived && client) {
+      const today = new Date(); today.setHours(0, 0, 0, 0)
+      const upcoming = client.appointments.filter(
+        (a) => (a.status === 'PENDING' || a.status === 'CONFIRMED') && new Date(a.date) >= today,
+      ).length
+      if (upcoming > 0 && !confirm(
+        `Este cliente tiene ${upcoming} cita${upcoming !== 1 ? 's' : ''} próxima${upcoming !== 1 ? 's' : ''} agendada${upcoming !== 1 ? 's' : ''}. ` +
+        'Si lo archivas seguirán agendadas (no se cancelan). ¿Continuar?',
+      )) return
+    }
     setBusy(true); setActionMsg('')
     try {
       const res = await fetch(`/api/clients/${id}`, {

@@ -6,6 +6,10 @@ import { getCurrentAdmin } from '@/lib/authz'
 import { hasPermission } from '@/lib/permissions'
 import { prisma } from '@/lib/prisma'
 import { audit, getClientIp, getUserAgent } from '@/lib/audit'
+import {
+  ACTION_LABELS, ENTITY_LABELS, ACTOR_LABELS, formatDiffText,
+  type AuditAction, type AuditEntity, type AuditActor,
+} from '@/lib/auditFormat'
 
 export const dynamic = 'force-dynamic'
 
@@ -54,15 +58,16 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     take: MAX_ROWS,
   })
 
-  const header = ['Fecha', 'Acción', 'Entidad', 'Actor', 'Usuario', 'IP', 'Descripción', 'ID afectado']
+  const header = ['Fecha', 'Acción', 'Entidad', 'Actor', 'Usuario', 'IP', 'Descripción', 'Cambios', 'ID afectado']
   const rows = logs.map((l) => [
     l.createdAt.toISOString(),
-    l.action,
-    l.entity,
-    l.actorType ?? '',
+    ACTION_LABELS[l.action as AuditAction] ?? l.action,
+    ENTITY_LABELS[l.entity as AuditEntity] ?? l.entity,
+    l.actorType ? (ACTOR_LABELS[l.actorType as AuditActor] ?? l.actorType) : '',
     l.userEmail ?? '',
     l.ip ?? '',
     l.description ?? '',
+    formatDiffText(l.before as unknown as Record<string, unknown> | null, l.after as unknown as Record<string, unknown> | null, l.action),
     l.entityId,
   ].map(csvCell).join(','))
 

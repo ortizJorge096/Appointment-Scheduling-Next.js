@@ -5,14 +5,11 @@
 import { Fragment, useState, useEffect, useCallback } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { Pagination } from '@/components/admin/Pagination'
-
-type AuditAction =
-  | 'CREATE' | 'UPDATE' | 'DELETE' | 'STATUS_CHANGE' | 'CANCEL'
-  | 'LOGIN' | 'LOGIN_FAILED' | 'LOGOUT' | 'EMAIL_SENT' | 'EMAIL_FAILED'
-type AuditEntity =
-  | 'APPOINTMENT' | 'CLIENT' | 'EXPENSE' | 'SERVICE' | 'CATEGORY' | 'GALLERY'
-  | 'SCHEDULE' | 'PROFESSIONAL' | 'TESTIMONIAL' | 'AUTH' | 'EMAIL'
-type AuditActor = 'ADMIN' | 'CLIENT' | 'SYSTEM'
+import {
+  ACTION_LABELS, ENTITY_LABELS, ACTOR_LABELS, ACTION_EMOJI,
+  formatDiff, formatValue, fieldLabel,
+  type AuditAction, type AuditEntity, type AuditActor,
+} from '@/lib/auditFormat'
 
 interface AuditLog {
   id:          string
@@ -36,31 +33,17 @@ interface PaginationInfo {
   totalPages: number
 }
 
-const ACTION_LABELS: Record<AuditAction, string> = {
-  CREATE: 'Creación', UPDATE: 'Edición', DELETE: 'Eliminación', STATUS_CHANGE: 'Cambio estado',
-  CANCEL: 'Cancelación', LOGIN: 'Inicio sesión', LOGIN_FAILED: 'Login fallido',
-  LOGOUT: 'Cierre sesión', EMAIL_SENT: 'Email enviado', EMAIL_FAILED: 'Email fallido',
-}
-
-const ENTITY_LABELS: Record<AuditEntity, string> = {
-  APPOINTMENT: 'Cita', CLIENT: 'Cliente', EXPENSE: 'Gasto', SERVICE: 'Servicio', CATEGORY: 'Categoría',
-  GALLERY: 'Galería', SCHEDULE: 'Horario', PROFESSIONAL: 'Profesional', TESTIMONIAL: 'Testimonio', AUTH: 'Acceso', EMAIL: 'Email',
-}
-
-const ENTITY_ICONS: Record<AuditEntity, string> = {
-  APPOINTMENT: '◷', CLIENT: '◉', EXPENSE: '◈', SERVICE: '✦', CATEGORY: '✧',
-  GALLERY: '◫', SCHEDULE: '◻', PROFESSIONAL: '☆', TESTIMONIAL: '❝', AUTH: '⚿', EMAIL: '✉',
-}
-
+// Action/entity/actor labels + emoji live in src/lib/auditFormat.ts (shared with
+// the CSV export). Only the view-specific colors stay here.
 const ACTION_COLORS: Record<AuditAction, string> = {
   CREATE: 'bg-green-100 text-green-700', UPDATE: 'bg-blue-100 text-blue-700',
   DELETE: 'bg-red-100 text-red-700', STATUS_CHANGE: 'bg-amber-100 text-amber-700',
   CANCEL: 'bg-red-100 text-red-700', LOGIN: 'bg-green-100 text-green-700',
   LOGIN_FAILED: 'bg-red-100 text-red-700', LOGOUT: 'bg-gray-100 text-gray-600',
   EMAIL_SENT: 'bg-blue-100 text-blue-700', EMAIL_FAILED: 'bg-red-100 text-red-700',
+  EXPORT: 'bg-gray-100 text-gray-600',
 }
 
-const ACTOR_LABELS: Record<AuditActor, string> = { ADMIN: 'Admin', CLIENT: 'Cliente', SYSTEM: 'Sistema' }
 const ACTOR_COLORS: Record<AuditActor, string> = {
   ADMIN: 'bg-gold-pale text-gold-dark', CLIENT: 'bg-blue-50 text-blue-700', SYSTEM: 'bg-gray-100 text-gray-600',
 }
@@ -71,36 +54,37 @@ function formatDate(iso: string) {
   })
 }
 
-function KeyVals({ data }: { data: Record<string, unknown> | null }) {
-  if (!data || Object.keys(data).length === 0) return <span className="text-ink-muted/50">—</span>
-  return (
-    <div className="space-y-0.5">
-      {Object.entries(data).map(([k, v]) => (
-        <p key={k} className="text-[11px] text-ink-muted break-words">
-          <span className="font-medium">{k}:</span> {String(v)}
-        </p>
-      ))}
-    </div>
-  )
-}
-
+// Readable, Spanish diff of what changed: "Campo: antes → después", with nulls and
+// unchanged fields omitted. Historical rows (English keys) render the same way.
 function DetailPanel({ log }: { log: AuditLog }) {
-  const hasDiff = log.before || log.after
+  const diff = formatDiff(log.before, log.after, log.action)
+  const meta = log.metadata && Object.keys(log.metadata).length > 0 ? log.metadata : null
   return (
     <div className="space-y-2">
-      {hasDiff && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <p className="text-[10px] uppercase tracking-widest text-ink-muted/70 mb-1">Antes</p>
-            <KeyVals data={log.before} />
-          </div>
-          <div>
-            <p className="text-[10px] uppercase tracking-widest text-ink-muted/70 mb-1">Después</p>
-            <KeyVals data={log.after} />
-          </div>
+      {diff.length > 0 ? (
+        <div className="space-y-1">
+          {diff.map((d, i) => (
+            <p key={i} className="text-[12px] text-ink break-words">
+              <span className="font-medium text-ink-muted">{d.label}:</span>{' '}
+              {d.kind === 'removed' ? (
+                <><span className="line-through text-red-600/80">{d.text}</span><span className="text-ink-muted/60"> (eliminado)</span></>
+              ) : d.text}
+            </p>
+          ))}
+        </div>
+      ) : (
+        <p className="text-[11px] text-ink-muted/50">Sin cambios de datos.</p>
+      )}
+      {meta && (
+        <div className="pt-1 border-t border-beige-dark/50">
+          <p className="text-[10px] uppercase tracking-widest text-ink-muted/70 mb-0.5">Detalle</p>
+          {Object.entries(meta).map(([k, v]) => (
+            <p key={k} className="text-[11px] text-ink-muted break-words">
+              <span className="font-medium">{fieldLabel(k)}:</span> {formatValue(k, v)}
+            </p>
+          ))}
         </div>
       )}
-      {log.metadata && <KeyVals data={log.metadata} />}
       {(log.ip || log.userAgent) && (
         <p className="text-[10px] text-ink-muted/60 break-all">
           {log.ip ?? ''}{log.userAgent ? ` · ${log.userAgent}` : ''}
@@ -284,8 +268,9 @@ export default function AuditoriaPageClient() {
                       <td className="px-4 py-3 whitespace-nowrap text-xs text-ink-muted">{formatDate(log.createdAt)}</td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium ${ACTION_COLORS[log.action]}`}>
-                          <span aria-hidden>{ENTITY_ICONS[log.entity]}</span> {ACTION_LABELS[log.action]}
+                          <span aria-hidden>{ACTION_EMOJI[log.action]}</span> {ACTION_LABELS[log.action]}
                         </span>
+                        <span className="ml-1.5 text-[10px] text-ink-muted/70">{ENTITY_LABELS[log.entity]}</span>
                       </td>
                       <td className="px-4 py-3 hidden sm:table-cell">
                         <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-medium ${ACTOR_COLORS[actor]}`}>
