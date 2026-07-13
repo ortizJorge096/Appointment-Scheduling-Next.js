@@ -169,6 +169,25 @@ describe('POST /api/appointments/manual', () => {
     expect(json.data.source).toBe('PRESENCIAL')
   })
 
+  it('reactivates a picked client that was archived (clears deletedAt) on manual booking', async () => {
+    vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
+    vi.mocked(prisma.service.findMany).mockResolvedValue([MOCK_SERVICE] as never)
+    const pickedId = 'clxxxxxxxxxxxxxxxxxxxxxxx' // valid cuid (same format used for serviceId)
+    const update = vi.fn().mockResolvedValue(MOCK_CLIENT)
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn) => fn({
+      appointment: { findFirst: vi.fn().mockResolvedValue(null), create: vi.fn().mockResolvedValue(MOCK_APPOINTMENT) },
+      client:      { findUnique: vi.fn().mockResolvedValue({ id: pickedId }), update },
+    }) as never)
+
+    const res = await POST(makeRequest({ ...VALID_BODY, clientId: pickedId }))
+    expect(res.status).toBe(201)
+    // The picked client is reactivated (deletedAt cleared) as part of the update.
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: pickedId },
+      data:  expect.objectContaining({ deletedAt: null }),
+    }))
+  })
+
   it('skips availability check when skipAvailabilityCheck=true', async () => {
     vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
     vi.mocked(prisma.service.findMany).mockResolvedValue([MOCK_SERVICE] as never)

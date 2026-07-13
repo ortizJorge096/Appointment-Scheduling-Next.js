@@ -24,15 +24,20 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const page   = Math.max(1, parseInt(searchParams.get('page')  ?? '1'))
   const limit  = Math.min(50, parseInt(searchParams.get('limit') ?? '20'))
 
-  const where = search
-    ? {
-        OR: [
-          { name:  { contains: search, mode: 'insensitive' as const } },
-          { email: { contains: search, mode: 'insensitive' as const } },
-          { phone: { contains: search, mode: 'insensitive' as const } },
-        ],
-      }
-    : {}
+  // Archived (soft-deleted) clients are hidden by default; ?archived=1 lists them.
+  const showArchived = searchParams.get('archived') === '1'
+  const where = {
+    deletedAt: showArchived ? { not: null } : null,
+    ...(search
+      ? {
+          OR: [
+            { name:  { contains: search, mode: 'insensitive' as const } },
+            { email: { contains: search, mode: 'insensitive' as const } },
+            { phone: { contains: search, mode: 'insensitive' as const } },
+          ],
+        }
+      : {}),
+  }
 
   let clients, total
   try {

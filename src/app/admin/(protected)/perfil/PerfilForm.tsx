@@ -7,6 +7,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
+import { PasswordInput } from '@/components/ui/PasswordInput'
 
 const EMPTY = { currentPassword: '', newPassword: '', confirmPassword: '' }
 
@@ -58,18 +59,18 @@ export default function PerfilForm() {
 
       <div>
         <label className="form-label">Contraseña actual</label>
-        <input type="password" value={form.currentPassword} onChange={field('currentPassword')}
+        <PasswordInput value={form.currentPassword} onChange={field('currentPassword')}
           autoComplete="current-password" className="input-field w-full" />
       </div>
       <div>
         <label className="form-label">Nueva contraseña</label>
-        <input type="password" value={form.newPassword} onChange={field('newPassword')}
+        <PasswordInput value={form.newPassword} onChange={field('newPassword')}
           autoComplete="new-password" className="input-field w-full" />
         <p className="text-[11px] text-ink-muted mt-1">Mínimo 8 caracteres, una mayúscula y un número.</p>
       </div>
       <div>
         <label className="form-label">Confirmar nueva contraseña</label>
-        <input type="password" value={form.confirmPassword} onChange={field('confirmPassword')}
+        <PasswordInput value={form.confirmPassword} onChange={field('confirmPassword')}
           autoComplete="new-password" className="input-field w-full" />
       </div>
 

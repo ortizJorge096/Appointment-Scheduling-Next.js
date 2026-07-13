@@ -64,11 +64,16 @@ export async function resolveOrCreateClient(
   if (phoneNorm) {
     const existing = await tx.client.findUnique({
       where:  { phoneNormalized: phoneNorm },
-      select: { id: true, name: true, email: true },
+      select: { id: true, name: true, email: true, deletedAt: true },
     })
 
     if (existing) {
       const data: Prisma.ClientUpdateInput = {}
+      // Reactivate an archived client when a booking resolves to them. The public
+      // self-service route rejects archived clients upstream (403 CLIENT_INACTIVE),
+      // so this only fires for admin/manual bookings — where re-serving a client
+      // means they're active again.
+      if (existing.deletedAt) data.deletedAt = null
       if (isMoreComplete(nameNorm, existing.name)) data.name = nameNorm
       // Fill a missing email only if it isn't already taken by someone else.
       if (emailNorm && !existing.email) {

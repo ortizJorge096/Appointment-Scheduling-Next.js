@@ -208,6 +208,8 @@ export async function POST(
             name:            clientName.trim(),
             phone:           clientPhone.trim(),
             phoneNormalized: normalizePhone(clientPhone),
+            // A manual booking reactivates the client if they were archived.
+            deletedAt:       null,
           },
         })
         clientId = picked.id

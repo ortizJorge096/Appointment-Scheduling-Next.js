@@ -133,3 +133,35 @@ describe('BookingForm — datos persistidos', () => {
     expect(screen.getByPlaceholderText('300 000 0000')).toHaveAttribute('list', 'dl-phone')
   })
 })
+
+describe('BookingForm — bloqueo de reserva', () => {
+  it('muestra el mensaje y el CTA de WhatsApp cuando el cliente está inactivo (403)', async () => {
+    render(<BookingForm />)
+    const user = userEvent.setup()
+    await navigateToConfirmStep(user)
+
+    // From here on, the phone lookup and the booking POST use this mock.
+    globalThis.fetch = vi.fn((url: string, opts?: RequestInit) => {
+      if (url === '/api/appointments' && opts?.method === 'POST') {
+        return Promise.resolve({
+          status: 403,
+          json: () => Promise.resolve({
+            success: false,
+            error:   'Tu perfil está inactivo. Escríbenos por WhatsApp para agendar tu cita.',
+            code:    'CLIENT_INACTIVE',
+          }),
+        })
+      }
+      return Promise.resolve({ json: () => Promise.resolve({ success: false }) })
+    }) as unknown as typeof fetch
+
+    await user.type(screen.getByPlaceholderText('300 000 0000'), '3001234567')
+    await user.type(screen.getByPlaceholderText('Tu nombre y apellido'), 'Ana López')
+    await user.click(screen.getByText('Confirmar cita'))
+
+    // The message is shown and a WhatsApp CTA is offered.
+    expect(await screen.findByText(/perfil está inactivo/i)).toBeInTheDocument()
+    const link = screen.getByText('Escribir por WhatsApp').closest('a')
+    expect(link?.getAttribute('href')).toContain('wa.me')
+  })
+})

@@ -14,6 +14,7 @@ import { useConfirm } from '@/components/ui/ConfirmDialog'
 import { useToast } from '@/components/ui/Toast'
 import { usePermissionGuard, useCan } from '@/components/admin/usePermissionGuard'
 import { STATUS_LABEL, STATUS_CLASS } from '@/lib/appointmentStatus'
+import { PAYMENT_STATUS_LABEL, PAYMENT_METHOD_LABEL } from '@/lib/labels'
 import AdicionalesEditor, { type Adicional } from '@/components/admin/AdicionalesEditor'
 import type { AppointmentWithService, AppointmentStatus } from '@/types'
 
@@ -22,19 +23,12 @@ interface LineExtraInput { description: string; amount: string }
 interface LineInput { descTipo: 'PORCENTAJE' | 'VALOR_FIJO'; descValor: string; descMotivo: string; extras: LineExtraInput[] }
 const emptyLine = (): LineInput => ({ descTipo: 'PORCENTAJE', descValor: '', descMotivo: '', extras: [] })
 
-const PAYMENT_STATUS_OPTS = [
-  { v: 'PENDING', l: 'Sin pago' },
-  { v: 'PAID',    l: 'Pagado' },
-  { v: 'PARTIAL', l: 'Parcial' },
-  { v: 'WAIVED',  l: 'Cortesía' },
-]
-const PAYMENT_METHOD_OPTS = [
-  { v: 'EFECTIVO',      l: 'Efectivo' },
-  { v: 'TRANSFERENCIA', l: 'Transferencia' },
-  { v: 'TARJETA',       l: 'Tarjeta' },
-  { v: 'NEQUI',         l: 'Nequi' },
-  { v: 'DAVIPLATA',     l: 'Daviplata' },
-]
+// Selectable options: the order + set are intentional business choices; the
+// labels come from the shared map (src/lib/labels.ts) so they never drift.
+const PAYMENT_STATUS_OPTS = (['PENDING', 'PAID', 'PARTIAL', 'WAIVED'] as const)
+  .map((v) => ({ v, l: PAYMENT_STATUS_LABEL[v] }))
+const PAYMENT_METHOD_OPTS = (['EFECTIVO', 'TRANSFERENCIA', 'TARJETA', 'NEQUI', 'DAVIPLATA'] as const)
+  .map((v) => ({ v, l: PAYMENT_METHOD_LABEL[v] }))
 
 
 // Available actions based on current status

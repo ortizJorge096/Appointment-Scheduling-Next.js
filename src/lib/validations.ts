@@ -482,7 +482,10 @@ export const createClientSchema = z.object({
   notes: z.string().max(1000).optional(),
 })
 
-export const updateClientSchema = createClientSchema.partial()
+export const updateClientSchema = createClientSchema.partial().extend({
+  // Archive (soft-delete) toggle: true = archive, false = reactivate.
+  archived: z.boolean().optional(),
+})
 
 // ─────────────────────────────────────────
 // EXPENSES (admin)

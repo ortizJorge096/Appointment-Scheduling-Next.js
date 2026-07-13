@@ -50,6 +50,7 @@ export interface ClientSummary {
   phone: string | null
   notes: string | null
   createdAt: string
+  deletedAt: string | null
   _count: { appointments: number }
 }
 
@@ -253,6 +254,8 @@ export interface ApiSuccess<T> {
 export interface ApiError {
   success: false
   error: string
+  /** Optional machine-readable code so the client can branch on a specific error (e.g. 'CLIENT_INACTIVE'). */
+  code?: string
   details?: unknown
 }
 

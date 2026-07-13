@@ -16,51 +16,19 @@ import { createCalendarEvent } from '@/lib/calendar'
 import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
 import { buildAppointmentListQuery } from '@/lib/appointmentList'
 import { normalizePhone } from '@/lib/utils'
+import { rateLimit } from '@/lib/rate-limit'
 import { formatInTimeZone } from 'date-fns-tz'
 import type { ApiResponse, AppointmentWithService } from '@/types'
-
-// ─────────────────────────────────────────
-// Simple in-memory RATE LIMITING
-// (use Redis or Upstash in production)
-// ─────────────────────────────────────────
-
-// In-memory rate limiter (single-pod k3s). Resets on restart — acceptable for small studio.
-// Migrate to Redis/DB if horizontal scaling is needed.
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
-let lastRateLimitSweep = Date.now()
 
 // Anti-bot + anti-spam guards for the public booking endpoint.
 const MIN_FILL_MS = 3000            // reject form posts faster than this (likely a bot)
 const MAX_UPCOMING_PER_PHONE = 3    // cap active/future bookings per phone (the identity)
+const BOOKING_MAX_PER_HOUR = 5      // max public bookings per IP per hour (shared across pods)
 
 // Internal error to abort the transaction when the slot is already taken
 class SlotTakenError extends Error {}
 
 export const dynamic = 'force-dynamic'
-
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now()
-  const windowMs = 60 * 60 * 1000  // 1 hour
-  const maxRequests = 5             // max 5 appointments per IP per hour
-
-  // Evict expired entries so the map can't grow unbounded with one-off IPs.
-  if (now - lastRateLimitSweep > windowMs) {
-    lastRateLimitSweep = now
-    for (const [k, e] of rateLimitMap) if (now > e.resetAt) rateLimitMap.delete(k)
-  }
-
-  const entry = rateLimitMap.get(ip)
-
-  if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(ip, { count: 1, resetAt: now + windowMs })
-    return true
-  }
-
-  if (entry.count >= maxRequests) return false
-
-  entry.count++
-  return true
-}
 
 // ─────────────────────────────────────────
 // GET — list appointments (admin only)
@@ -160,7 +128,8 @@ export async function POST(
     request.headers.get('x-real-ip') ??
     'unknown'
 
-  if (!checkRateLimit(ip)) {
+  const rl = await rateLimit(`booking:${ip}`, BOOKING_MAX_PER_HOUR, 60 * 60 * 1000)
+  if (!rl.ok) {
     return NextResponse.json(
       { success: false, error: 'Demasiados intentos. Inténtalo en 1 hora.' },
       { status: 429 }
@@ -202,9 +171,21 @@ export async function POST(
     try {
       const existingClient = await prisma.client.findUnique({
         where:  { phoneNormalized: phoneNorm },
-        select: { id: true },
+        select: { id: true, deletedAt: true },
       })
       if (existingClient) {
+        // A deactivated (archived) client can't self-book online. Route them to
+        // WhatsApp so the studio decides whether to serve/reactivate them.
+        if (existingClient.deletedAt) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: 'Tu perfil está inactivo. Escríbenos por WhatsApp para agendar tu cita.',
+              code:  'CLIENT_INACTIVE',
+            },
+            { status: 403 },
+          )
+        }
         const todayStr = formatInTimeZone(new Date(), 'America/Bogota', 'yyyy-MM-dd')
         const upcoming = await prisma.appointment.count({
           where: {
@@ -215,7 +196,7 @@ export async function POST(
         })
         if (upcoming >= MAX_UPCOMING_PER_PHONE) {
           return NextResponse.json(
-            { success: false, error: `Ya tienes ${MAX_UPCOMING_PER_PHONE} citas próximas. Escríbenos por WhatsApp para gestionar más.` },
+            { success: false, error: `Ya tienes ${MAX_UPCOMING_PER_PHONE} citas próximas. Escríbenos por WhatsApp para gestionar más.`, code: 'UPCOMING_CAP' },
             { status: 429 },
           )
         }

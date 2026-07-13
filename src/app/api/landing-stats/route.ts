@@ -10,7 +10,10 @@ import { getLandingStats } from '@/lib/landingStats'
 import { landingStatsSchema } from '@/lib/validations'
 import { audit, getClientIp } from '@/lib/audit'
 
-export const dynamic = 'force-dynamic'
+// Public, session-independent read (vanity metrics for the Hero/Nosotros). Safe to
+// cache with ISR — unlike services/gallery/testimonials, whose GET branches on the
+// session and must stay dynamic. Admin edits show within the revalidate window.
+export const revalidate = 300 // 5 min
 
 export async function GET(): Promise<NextResponse> {
   const stats = await getLandingStats()
