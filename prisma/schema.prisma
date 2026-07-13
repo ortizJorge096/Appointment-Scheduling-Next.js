@@ -517,6 +517,20 @@ model AuditLog {
   @@map("audit_logs")
 }
 
+// ─────────────────────────────────────────
+// RATE LIMITING (shared across pods)
+// Fixed-window counters in Postgres so the limit stays consistent under the 2+
+// replicas the app runs with (deployment.yaml replicas: 2 + HPA). Replaces the
+// old per-pod in-memory Maps, which multiplied the effective limit per replica.
+// ─────────────────────────────────────────
+model RateLimit {
+  key     String   @id           // e.g. "booking:1.2.3.4", "login:1.2.3.4"
+  count   Int      @default(0)
+  resetAt DateTime               // end of the current window
+  @@index([resetAt])            // for cleanup of expired rows
+  @@map("rate_limits")
+}
+
 enum AuditAction {
   CREATE
   UPDATE

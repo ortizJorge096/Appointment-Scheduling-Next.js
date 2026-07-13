@@ -42,11 +42,15 @@ vi.mock('@/lib/audit', () => ({
   getClientIp:  vi.fn(() => undefined),
   getUserAgent: vi.fn(() => undefined),
 }))
+vi.mock('@/lib/rate-limit', () => ({
+  rateLimit: vi.fn().mockResolvedValue({ ok: true, remaining: 5 }),
+}))
 
 const { getServerSession } = await import('next-auth')
 const { prisma }           = await import('@/lib/prisma')
 const { isSlotAvailable }  = await import('@/lib/availability')
 const { audit }            = await import('@/lib/audit')
+const { rateLimit }        = await import('@/lib/rate-limit')
 
 const MOCK_SERVICE = { id: 's1', name: 'Manicura', price: 35000, durationMinutes: 45 }
 
@@ -306,15 +310,10 @@ describe('POST /api/appointments', () => {
     expect(prisma.$transaction).not.toHaveBeenCalled()
   })
 
-  it('returns 429 after exceeding rate limit for same IP', async () => {
-    const ip = '9.9.9.9'
-    vi.mocked(prisma.service.findMany).mockResolvedValue([])
-
-    // 5 allowed, 6th should be rate limited
-    for (let i = 0; i < 5; i++) {
-      await POST(makePostRequest(VALID_BODY, ip))
-    }
-    const res = await POST(makePostRequest(VALID_BODY, ip))
+  it('returns 429 when the shared rate limiter blocks the IP', async () => {
+    vi.mocked(rateLimit).mockResolvedValueOnce({ ok: false, remaining: 0 })
+    const res = await POST(makePostRequest(VALID_BODY, '9.9.9.9'))
     expect(res.status).toBe(429)
+    expect(prisma.$transaction).not.toHaveBeenCalled()
   })
 })
