@@ -1,6 +1,7 @@
 // src/app/api/clients/[id]/route.ts
-// GET   /api/clients/:id  → detail + appointment history
-// PATCH /api/clients/:id  → update client data
+// GET    /api/clients/:id → detail + appointment history
+// PATCH  /api/clients/:id → update client data, or archive/reactivate (archived flag)
+// DELETE /api/clients/:id → hard-delete (only when the client has no appointments)
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentAdmin } from '@/lib/authz'
@@ -82,6 +83,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx): Promise<Next
         ...(parsed.data.email ? { email: parsed.data.email.toLowerCase().trim() } : {}),
         ...(parsed.data.phone !== undefined ? { phone: parsed.data.phone?.trim() ?? null, phoneNormalized: normalizePhone(parsed.data.phone) } : {}),
         ...(parsed.data.notes !== undefined ? { notes: parsed.data.notes?.trim() ?? null } : {}),
+        ...(parsed.data.archived !== undefined ? { deletedAt: parsed.data.archived ? new Date() : null } : {}),
       },
       include: { _count: { select: { appointments: true } } },
     })
@@ -98,18 +100,66 @@ export async function PATCH(request: NextRequest, { params }: Ctx): Promise<Next
     return NextResponse.json({ success: false, error: 'Error interno' }, { status: 500 })
   }
 
+  const description =
+    parsed.data.archived === true  ? `Admin archivó a ${client.name}` :
+    parsed.data.archived === false ? `Admin reactivó a ${client.name}` :
+                                     `Admin editó los datos de ${client.name}`
   await audit({
-    action:    'UPDATE',
+    action:    parsed.data.archived !== undefined ? 'STATUS_CHANGE' : 'UPDATE',
     entity:    'CLIENT',
     entityId:  id,
     actorType: 'ADMIN',
     userEmail: admin.email,
     ip:        getClientIp(request),
     userAgent: getUserAgent(request),
-    description: `Admin editó los datos de ${client.name}`,
+    description,
     before:    prev ?? undefined,
     after:     { name: client.name, email: client.email, phone: client.phone, notes: client.notes },
   })
 
   return NextResponse.json({ success: true, data: client })
+}
+
+export async function DELETE(request: NextRequest, { params }: Ctx): Promise<NextResponse> {
+  const admin = await getCurrentAdmin()
+  if (!admin) return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 })
+  if (!hasPermission(admin.role, 'clientes:editar')) return NextResponse.json({ success: false, error: 'Sin permiso' }, { status: 403 })
+
+  const { id } = await params
+
+  try {
+    const target = await prisma.client.findUnique({
+      where: { id },
+      select: { name: true, _count: { select: { appointments: true } } },
+    })
+    if (!target) return NextResponse.json({ success: false, error: 'Cliente no encontrado' }, { status: 404 })
+
+    // Preserve history: a client with appointments can't be hard-deleted (it would
+    // orphan the record their bookings point to). The UI offers archiving instead.
+    if (target._count.appointments > 0) {
+      return NextResponse.json(
+        { success: false, error: 'Este cliente tiene citas registradas. Archívalo en lugar de eliminarlo.' },
+        { status: 409 },
+      )
+    }
+
+    await prisma.client.delete({ where: { id } })
+
+    await audit({
+      action:    'DELETE',
+      entity:    'CLIENT',
+      entityId:  id,
+      actorType: 'ADMIN',
+      userEmail: admin.email,
+      ip:        getClientIp(request),
+      userAgent: getUserAgent(request),
+      description: `Admin eliminó al cliente ${target.name}`,
+    })
+
+    return NextResponse.json({ success: true, data: { id } })
+  } catch (err) {
+    if (isDbUnavailable(err)) return dbUnavailableResponse()
+    console.error('Error eliminando cliente:', err)
+    return NextResponse.json({ success: false, error: 'No se pudo eliminar el cliente' }, { status: 500 })
+  }
 }

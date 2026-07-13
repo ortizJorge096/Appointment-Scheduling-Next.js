@@ -8,6 +8,7 @@ import type { ExpenseSummary, AccountingSummary } from '@/types'
 import { Pagination } from '@/components/admin/Pagination'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
 import { usePermissionGuard, useCan } from '@/components/admin/usePermissionGuard'
+import { PAYMENT_METHOD_LABEL as METHOD_LABEL, EXPENSE_CATEGORY_LABEL as CAT_LABEL } from '@/lib/labels'
 
 const PER_PAGE = 10
 
@@ -15,14 +16,6 @@ const COP = (n: number) =>
   new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n)
 
 const EXPENSE_CATEGORIES = ['INSUMOS', 'EQUIPOS', 'SERVICIOS', 'ARRIENDO', 'MARKETING', 'OTROS'] as const
-const CAT_LABEL: Record<string, string> = {
-  INSUMOS: 'Insumos', EQUIPOS: 'Equipos', SERVICIOS: 'Servicios',
-  ARRIENDO: 'Arriendo', MARKETING: 'Marketing', OTROS: 'Otros',
-}
-const METHOD_LABEL: Record<string, string> = {
-  EFECTIVO: 'Efectivo', TRANSFERENCIA: 'Transferencia', TARJETA: 'Tarjeta',
-  NEQUI: 'Nequi', DAVIPLATA: 'Daviplata', SIN_REGISTRAR: 'Sin registrar',
-}
 
 // Get first and last day of current month
 function currentMonthRange() {
@@ -208,15 +201,15 @@ export default function ContabilidadPage() {
 
       {/* Date filter */}
       <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-3 mb-6 items-end">
-        <div>
+        <div className="min-w-0">
           <label className="form-label text-[10px]">Desde</label>
           <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-            className="input-field" />
+            className="input-field w-full min-w-0" />
         </div>
-        <div>
+        <div className="min-w-0">
           <label className="form-label text-[10px]">Hasta</label>
           <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-            className="input-field" />
+            className="input-field w-full min-w-0" />
         </div>
       </div>
 
@@ -333,18 +326,18 @@ export default function ContabilidadPage() {
                 className="input-field w-full" />
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div>
+              <div className="min-w-0">
                 <label className="form-label text-[10px]">Monto (COP) *</label>
                 <input required type="number" min="1" value={form.amount}
                   onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
                   placeholder="0"
-                  className="input-field w-full" />
+                  className="input-field w-full min-w-0" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <label className="form-label text-[10px]">Fecha *</label>
                 <input required type="date" value={form.date}
                   onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
-                  className="input-field w-full" />
+                  className="input-field w-full min-w-0" />
               </div>
             </div>
             <div>

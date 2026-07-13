@@ -2,7 +2,7 @@
 import type { Prisma } from '@prisma/client'
 import { resolveOrCreateClient } from './clients'
 
-type Row = { id: string; name: string; email: string | null; phone: string | null; phoneNormalized: string | null }
+type Row = { id: string; name: string; email: string | null; phone: string | null; phoneNormalized: string | null; deletedAt?: Date | null }
 type Where = { id?: string; email?: string; phoneNormalized?: string }
 type CreateArgs = { data: { name: string; email?: string | null; phone?: string | null; phoneNormalized?: string | null } }
 type UpdateArgs = { where: { id: string }; data: Partial<Row> }
@@ -30,6 +30,7 @@ function makeTx(seed: Row[] = []) {
       const row: Row = {
         id: `c${++seq}`, name: data.name, email: data.email ?? null,
         phone: data.phone ?? null, phoneNormalized: data.phoneNormalized ?? null,
+        deletedAt: null,
       }
       rows.set(row.id, row)
       return row
@@ -88,5 +89,16 @@ describe('resolveOrCreateClient — phone is the identity', () => {
     const id = await resolveOrCreateClient(tx, { name: 'Ana', email: 'taken@x.com', phone: '3000000000' })
     expect(id).not.toBe('other')
     expect(rows.get(id)!.email).toBeNull()
+  })
+
+  // The public self-service route blocks archived clients upstream (403); this
+  // reactivation therefore applies to admin/manual bookings.
+  it('reactivates an archived client when resolved by a booking (admin/manual flow)', async () => {
+    const { tx, rows } = makeTx([
+      { id: 'arch', name: 'Ana', email: null, phone: '3000000000', phoneNormalized: '573000000000', deletedAt: new Date() },
+    ])
+    const id = await resolveOrCreateClient(tx, { name: 'Ana', phone: '3000000000' })
+    expect(id).toBe('arch')
+    expect(rows.get('arch')!.deletedAt).toBeNull()
   })
 })

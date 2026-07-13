@@ -9,6 +9,7 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { formatPrice, isValidPhone } from '@/lib/utils'
 import { trackBeginBooking, trackBookingConfirmed } from '@/lib/analytics'
+import { getWhatsAppUrl } from '@/lib/config'
 
 interface Service {
   id: string
@@ -110,6 +111,9 @@ export default function BookingForm() {
   const [maxAdvanceDays, setMaxAdvanceDays] = useState(90)
   const [submitting, setSubmitting]   = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  // When set, the submit-error banner also shows a WhatsApp CTA with this
+  // pre-filled message (blocked/inactive client, or the per-phone booking cap).
+  const [whatsappCta, setWhatsappCta] = useState<string | null>(null)
   const [stepError,   setStepError]   = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [attempted,   setAttempted]   = useState(false)
@@ -257,6 +261,15 @@ export default function BookingForm() {
       formTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }, 50)
   }, [step])
+
+  // A submit error renders in a banner at the top of the form; on a long step
+  // (e.g. confirm) the user is at the bottom by the submit button and wouldn't see
+  // it. Bring it into view whenever it appears.
+  useEffect(() => {
+    if (submitError) {
+      formTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [submitError])
 
   // Phone-first recognition: when a valid, known phone is typed on the confirm
   // step, offer to autofill the returning client's name (with consent). The
@@ -426,6 +439,7 @@ export default function BookingForm() {
     if (!validate()) return
     setSubmitting(true)
     setSubmitError(null)
+    setWhatsappCta(null)
 
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 12_000) // 12s max
@@ -472,6 +486,19 @@ export default function BookingForm() {
         }
         if (res.status === 503) {
           setSubmitError('El sistema está en mantenimiento. Por favor intenta en unos minutos.')
+          return
+        }
+        // Archived (inactive) client: they can't self-book — send them to WhatsApp.
+        if (res.status === 403 && json.code === 'CLIENT_INACTIVE') {
+          setWhatsappCta('¡Hola! Intenté agendar en línea pero mi perfil aparece inactivo. ¿Me pueden ayudar?')
+          setSubmitError(json.error ?? 'Tu perfil está inactivo. Escríbenos por WhatsApp para agendar tu cita.')
+          return
+        }
+        // Per-phone booking cap: the message points to WhatsApp, so show the CTA too.
+        // (The IP-based 429 has no code and just asks the user to wait — no CTA.)
+        if (res.status === 429 && json.code === 'UPCOMING_CAP') {
+          setWhatsappCta('¡Hola! Ya tengo citas próximas y quiero agendar otra. ¿Me pueden ayudar?')
+          setSubmitError(json.error ?? 'Alcanzaste el máximo de citas próximas. Escríbenos por WhatsApp.')
           return
         }
         setSubmitError(json.error ?? 'Ocurrió un error. Intenta de nuevo.')
@@ -556,8 +583,24 @@ export default function BookingForm() {
       )}
 
       {submitError && (
-        <div className="flex items-start gap-3 bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 mb-6">
-          <span className="mt-0.5">⚠</span> {submitError}
+        <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 mb-6">
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5">⚠</span>
+            <span>{submitError}</span>
+          </div>
+          {whatsappCta && (
+            <a
+              href={getWhatsAppUrl(whatsappCta)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 mt-3 bg-[#25D366] text-white font-semibold px-4 py-2 rounded-full hover:brightness-95 transition-all"
+            >
+              <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" aria-hidden="true">
+                <path d="M17.5 14.4c-.3-.1-1.7-.8-1.9-.9-.3-.1-.5-.1-.7.1-.2.3-.7.9-.9 1.1-.2.2-.3.2-.6.1-.3-.1-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.4.1-.6.1-.1.3-.3.4-.5.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5-.1-.1-.7-1.6-.9-2.2-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.1.2 2.1 3.2 5 4.5.7.3 1.2.5 1.7.6.7.2 1.3.2 1.8.1.6-.1 1.7-.7 1.9-1.3.2-.7.2-1.2.2-1.3-.1-.2-.3-.2-.6-.4zM12 2a10 10 0 00-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1012 2z" />
+              </svg>
+              Escribir por WhatsApp
+            </a>
+          )}
         </div>
       )}
 

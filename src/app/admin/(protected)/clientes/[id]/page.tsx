@@ -5,14 +5,12 @@
 import { useState, useEffect, use } from 'react'
 import Link from 'next/link'
 import { STATUS_LABEL, STATUS_CLASS } from '@/lib/appointmentStatus'
+import { PAYMENT_STATUS_LABEL as PAYMENT_LABEL } from '@/lib/labels'
 import type { AppointmentWithService } from '@/types'
 import { usePermissionGuard, useCan } from '@/components/admin/usePermissionGuard'
 
 const COP = (n: number) =>
   new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n)
-const PAYMENT_LABEL: Record<string, string> = {
-  PENDING: 'Sin pago', PAID: 'Pagado', PARTIAL: 'Parcial', WAIVED: 'Cortesía',
-}
 const PAYMENT_COLOR: Record<string, string> = {
   PENDING: 'text-orange-600', PAID: 'text-green-600',
   PARTIAL: 'text-blue-600', WAIVED: 'text-purple-600',
@@ -20,7 +18,7 @@ const PAYMENT_COLOR: Record<string, string> = {
 
 interface ClientData {
   id: string; name: string; email: string | null; phone: string | null; notes: string | null
-  createdAt: string; appointments: AppointmentWithService[]
+  createdAt: string; deletedAt?: string | null; appointments: AppointmentWithService[]
   _count: { appointments: number }
 }
 
@@ -40,6 +38,10 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
   const [infoForm, setInfoForm]   = useState({ name: '', email: '', phone: '' })
   const [savingInfo, setSavingInfo] = useState(false)
   const [infoErr, setInfoErr]     = useState('')
+
+  // Archive / delete (admin management)
+  const [busy, setBusy]           = useState(false)
+  const [actionMsg, setActionMsg] = useState('')
 
   useEffect(() => {
     fetch(`/api/clients/${id}`)
@@ -102,6 +104,53 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
     }
   }
 
+  // Archive/reactivate: toggles the client's soft-delete flag (kept in the DB).
+  async function toggleArchive(archived: boolean) {
+    // Heads-up when archiving a client who still has upcoming appointments: they
+    // stay scheduled (we never auto-cancel), but the admin should know before hiding them.
+    if (archived && client) {
+      const today = new Date(); today.setHours(0, 0, 0, 0)
+      const upcoming = client.appointments.filter(
+        (a) => (a.status === 'PENDING' || a.status === 'CONFIRMED') && new Date(a.date) >= today,
+      ).length
+      if (upcoming > 0 && !confirm(
+        `Este cliente tiene ${upcoming} cita${upcoming !== 1 ? 's' : ''} próxima${upcoming !== 1 ? 's' : ''} agendada${upcoming !== 1 ? 's' : ''}. ` +
+        'Si lo archivas seguirán agendadas (no se cancelan). ¿Continuar?',
+      )) return
+    }
+    setBusy(true); setActionMsg('')
+    try {
+      const res = await fetch(`/api/clients/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ archived }),
+      })
+      const j = await res.json()
+      if (!j.success) { setActionMsg(j.error ?? 'No se pudo actualizar'); return }
+      setClient(prev => prev ? { ...prev, deletedAt: archived ? new Date().toISOString() : null } : prev)
+    } catch {
+      setActionMsg('Error de conexión. Intenta de nuevo.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // Hard-delete: only allowed when the client has no appointments (server enforces it too).
+  async function remove() {
+    if (!confirm('¿Eliminar este cliente definitivamente? Esta acción no se puede deshacer.')) return
+    setBusy(true); setActionMsg('')
+    try {
+      const res = await fetch(`/api/clients/${id}`, { method: 'DELETE' })
+      const j = await res.json()
+      if (!j.success) { setActionMsg(j.error ?? 'No se pudo eliminar'); return }
+      window.location.href = '/admin/clientes'
+    } catch {
+      setActionMsg('Error de conexión. Intenta de nuevo.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   if (loading) return <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto text-ink-muted">Cargando…</div>
   if (!client) return <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto text-ink-muted">Cliente no encontrado.</div>
 
@@ -154,6 +203,9 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
               <>
                 <div className="flex items-center gap-3 flex-wrap">
                   <h1 className="text-2xl font-serif text-ink">{client.name}</h1>
+                  {client.deletedAt && (
+                    <span className="inline-block bg-amber-100 text-amber-700 text-xs font-medium px-2 py-0.5 rounded-full">Archivado</span>
+                  )}
                   {can('clientes:editar') && (
                     <button onClick={openEditInfo} className="btn-row-action text-xs text-gold hover:underline">Editar datos</button>
                   )}
@@ -250,6 +302,41 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Admin management: archive / delete */}
+      {can('clientes:editar') && (
+        <div className="mt-8 bg-white rounded-xl border border-beige-dark p-5 sm:p-6">
+          <h2 className="text-lg font-serif text-ink mb-1">Administración</h2>
+          <p className="text-xs text-ink-muted mb-4">
+            Archiva un cliente para ocultarlo del directorio sin perder su historial. Eliminar es permanente.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3">
+            {client.deletedAt ? (
+              <button onClick={() => toggleArchive(false)} disabled={busy}
+                className="btn-secondary text-sm disabled:opacity-50">
+                Reactivar cliente
+              </button>
+            ) : (
+              <button onClick={() => toggleArchive(true)} disabled={busy}
+                className="btn-secondary text-sm disabled:opacity-50">
+                Archivar cliente
+              </button>
+            )}
+            <button onClick={remove}
+              disabled={busy || client._count.appointments > 0}
+              title={client._count.appointments > 0 ? 'Tiene citas registradas; archívalo en su lugar' : undefined}
+              className="text-sm px-4 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed">
+              Eliminar definitivamente
+            </button>
+          </div>
+          {client._count.appointments > 0 && (
+            <p className="text-xs text-ink-muted/70 mt-2">
+              Tiene {client._count.appointments} cita{client._count.appointments !== 1 ? 's' : ''} registrada{client._count.appointments !== 1 ? 's' : ''}; no se puede eliminar. Archívalo para ocultarlo.
+            </p>
+          )}
+          {actionMsg && <p className="text-xs text-red-600 mt-2">{actionMsg}</p>}
         </div>
       )}
     </div>

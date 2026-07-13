@@ -19,8 +19,9 @@ export default function ClientesPageClient() {
 
   // The URL is the source of truth for page/search — survives refresh and
   // back/forward navigation. `replace` (not `push`) avoids spamming history.
-  const page  = Math.max(1, parseInt(searchParams.get('page') ?? '1'))
-  const query = searchParams.get('search') ?? ''
+  const page     = Math.max(1, parseInt(searchParams.get('page') ?? '1'))
+  const query    = searchParams.get('search') ?? ''
+  const archived = searchParams.get('archived') === '1'
 
   const [clients, setClients]   = useState<ClientSummary[]>([])
   const [total, setTotal]       = useState(0)
@@ -60,6 +61,7 @@ export default function ClientesPageClient() {
     try {
       const params = new URLSearchParams({ page: String(page), limit: '20' })
       if (query) params.set('search', query)
+      if (archived) params.set('archived', '1')
       const res = await fetch(`/api/clients?${params}`)
       const json = await res.json()
       if (json.success) {
@@ -69,7 +71,7 @@ export default function ClientesPageClient() {
     } finally {
       setLoading(false)
     }
-  }, [page, query])
+  }, [page, query, archived])
 
   useEffect(() => { load() }, [load])
 
@@ -131,7 +133,9 @@ export default function ClientesPageClient() {
         <div>
           <p className="text-xs text-ink-muted tracking-widest uppercase mb-1">Configuración</p>
           <h1 className="font-serif text-2xl sm:text-3xl text-ink font-light">Clientes</h1>
-          <p className="text-sm text-ink-muted mt-0.5">{total} cliente{total !== 1 ? 's' : ''} registrados</p>
+          <p className="text-sm text-ink-muted mt-0.5">
+            {total} cliente{total !== 1 ? 's' : ''} {archived ? `archivado${total !== 1 ? 's' : ''}` : `registrado${total !== 1 ? 's' : ''}`}
+          </p>
         </div>
         <button onClick={() => { setForm(EMPTY_FORM); setFormError(''); setFieldErrors({}); setShowCreate(true) }}
           className="btn-primary text-sm">
@@ -139,16 +143,31 @@ export default function ClientesPageClient() {
         </button>
       </div>
 
-      {/* Search */}
-      <div className="mb-4">
+      {/* Search + archived toggle */}
+      <div className="mb-4 flex flex-col sm:flex-row sm:items-center gap-3">
         <input
           type="text"
           placeholder="Buscar por nombre, email o teléfono…"
           value={searchInput}
           onChange={e => setSearchInput(e.target.value)}
-          className="input-field w-full max-w-md"
+          className="input-field w-full sm:max-w-md"
         />
+        <button
+          onClick={() => setParams({ archived: archived ? null : '1', page: null })}
+          className={`text-sm px-3 py-2 rounded-lg border whitespace-nowrap transition-colors ${
+            archived
+              ? 'bg-gold/10 border-gold text-gold-dark'
+              : 'border-beige-dark text-ink-muted hover:bg-beige/40'
+          }`}>
+          {archived ? '← Ver activos' : 'Ver archivados'}
+        </button>
       </div>
+
+      {archived && (
+        <div className="mb-4 bg-amber-50 border border-amber-200 text-amber-800 text-xs px-3 py-2 rounded-lg">
+          Estás viendo clientes archivados. Abre uno para reactivarlo o eliminarlo.
+        </div>
+      )}
 
       {/* Table — desktop */}
       <div className="bg-white rounded-xl border border-beige-dark overflow-x-auto">
@@ -158,9 +177,11 @@ export default function ClientesPageClient() {
           <div className="py-16 px-6 text-center">
             <div className="text-3xl opacity-40 mb-2">◉</div>
             <p className="text-ink-muted text-sm">
-              {query ? 'Sin resultados para esa búsqueda.' : 'Aún no hay clientes registrados.'}
+              {query ? 'Sin resultados para esa búsqueda.'
+                : archived ? 'No hay clientes archivados.'
+                : 'Aún no hay clientes registrados.'}
             </p>
-            {!query && (
+            {!query && !archived && (
               <button onClick={() => { setForm(EMPTY_FORM); setFormError(''); setFieldErrors({}); setShowCreate(true) }}
                 className="btn-primary text-sm mt-4">
                 + Crear el primero

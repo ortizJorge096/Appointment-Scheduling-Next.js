@@ -42,11 +42,15 @@ vi.mock('@/lib/audit', () => ({
   getClientIp:  vi.fn(() => undefined),
   getUserAgent: vi.fn(() => undefined),
 }))
+vi.mock('@/lib/rate-limit', () => ({
+  rateLimit: vi.fn().mockResolvedValue({ ok: true, remaining: 5 }),
+}))
 
 const { getServerSession } = await import('next-auth')
 const { prisma }           = await import('@/lib/prisma')
 const { isSlotAvailable }  = await import('@/lib/availability')
 const { audit }            = await import('@/lib/audit')
+const { rateLimit }        = await import('@/lib/rate-limit')
 
 const MOCK_SERVICE = { id: 's1', name: 'Manicura', price: 35000, durationMinutes: 45 }
 
@@ -285,23 +289,31 @@ describe('POST /api/appointments', () => {
     expect(prisma.$transaction).not.toHaveBeenCalled()
   })
 
-  it('bloquea con 429 cuando el teléfono ya tiene el máximo de citas próximas', async () => {
-    vi.mocked(prisma.client.findUnique).mockResolvedValue({ id: 'cli-1' } as never)
+  it('bloquea con 429 (UPCOMING_CAP) cuando el teléfono ya tiene el máximo de citas próximas', async () => {
+    vi.mocked(prisma.client.findUnique).mockResolvedValue({ id: 'cli-1', deletedAt: null } as never)
     vi.mocked(prisma.appointment.count).mockResolvedValue(3) // = MAX_UPCOMING_PER_PHONE
-    const res = await POST(makePostRequest({ ...VALID_BODY, elapsedMs: 5000 }, '2.2.9.3'))
+    const res  = await POST(makePostRequest({ ...VALID_BODY, elapsedMs: 5000 }, '2.2.9.3'))
+    const json = await res.json()
     expect(res.status).toBe(429)
+    expect(json.code).toBe('UPCOMING_CAP')
     expect(prisma.$transaction).not.toHaveBeenCalled()
   })
 
-  it('returns 429 after exceeding rate limit for same IP', async () => {
-    const ip = '9.9.9.9'
-    vi.mocked(prisma.service.findMany).mockResolvedValue([])
+  it('bloquea con 403 (CLIENT_INACTIVE) cuando el cliente está archivado/inactivo', async () => {
+    vi.mocked(prisma.client.findUnique).mockResolvedValue({ id: 'cli-1', deletedAt: new Date() } as never)
+    const res  = await POST(makePostRequest({ ...VALID_BODY, elapsedMs: 5000 }, '2.2.9.4'))
+    const json = await res.json()
+    expect(res.status).toBe(403)
+    expect(json.code).toBe('CLIENT_INACTIVE')
+    // No cuenta citas ni abre transacción: se corta antes.
+    expect(prisma.appointment.count).not.toHaveBeenCalled()
+    expect(prisma.$transaction).not.toHaveBeenCalled()
+  })
 
-    // 5 allowed, 6th should be rate limited
-    for (let i = 0; i < 5; i++) {
-      await POST(makePostRequest(VALID_BODY, ip))
-    }
-    const res = await POST(makePostRequest(VALID_BODY, ip))
+  it('returns 429 when the shared rate limiter blocks the IP', async () => {
+    vi.mocked(rateLimit).mockResolvedValueOnce({ ok: false, remaining: 0 })
+    const res = await POST(makePostRequest(VALID_BODY, '9.9.9.9'))
     expect(res.status).toBe(429)
+    expect(prisma.$transaction).not.toHaveBeenCalled()
   })
 })

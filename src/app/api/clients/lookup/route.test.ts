@@ -8,6 +8,9 @@ vi.mock('@/lib/db-error', () => ({
   isDbUnavailable:      vi.fn().mockReturnValue(false),
   dbUnavailableResponse: vi.fn(),
 }))
+vi.mock('@/lib/rate-limit', () => ({
+  rateLimit: vi.fn().mockResolvedValue({ ok: true, remaining: 20 }),
+}))
 
 const { prisma } = await import('@/lib/prisma')
 const { GET }    = await import('./route')

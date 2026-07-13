@@ -1,0 +1,7 @@
+# Generated reports contain client PII (names, phones) — never commit them.
+output/
+
+# Python virtualenv / caches
+.venv/
+__pycache__/
+*.pyc

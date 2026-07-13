@@ -7,6 +7,7 @@ import type { JWT } from 'next-auth/jwt'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { prisma } from './prisma'
 import { audit } from './audit'
+import { rateLimit, rateLimitReset } from './rate-limit'
 import bcrypt from 'bcryptjs'
 
 // NextAuth's `authorize` receives headers as a plain object, not a Headers instance.
@@ -16,38 +17,15 @@ function ipFromHeaders(headers?: Record<string, unknown>): string | undefined {
 }
 
 // ── Brute-force guard ─────────────────────────────────────────
-// Max login attempts per IP within a window. In-memory (per pod); resets on
-// restart — acceptable for a single-pod studio. Cleared on a successful login.
-const loginAttempts = new Map<string, { count: number; resetAt: number }>()
+// Max login attempts per IP within a window, backed by a shared Postgres counter
+// (see rate-limit.ts) so it stays consistent across the 2+ replicas. Cleared on a
+// successful login.
 const LOGIN_MAX_ATTEMPTS = 10
 const LOGIN_WINDOW_MS = 15 * 60 * 1000 // 15 minutes
-let lastLoginSweep = Date.now()
 
 // A valid bcrypt hash (cost 10). Used only to equalize response time on the
 // "user not found" path so login timing can't reveal which emails exist.
 const DUMMY_HASH = '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy'
-
-// Evict expired entries so the map can't grow unbounded with one-off IPs that
-// never return (in-memory, single pod — this keeps it from leaking over time).
-function sweepLoginAttempts(now: number) {
-  if (now - lastLoginSweep < LOGIN_WINDOW_MS) return
-  lastLoginSweep = now
-  for (const [ip, e] of loginAttempts) if (now > e.resetAt) loginAttempts.delete(ip)
-}
-
-function isLoginRateLimited(ip: string | undefined): boolean {
-  if (!ip) return false
-  const now = Date.now()
-  sweepLoginAttempts(now)
-  const entry = loginAttempts.get(ip)
-  if (!entry || now > entry.resetAt) {
-    loginAttempts.set(ip, { count: 1, resetAt: now + LOGIN_WINDOW_MS })
-    return false
-  }
-  if (entry.count >= LOGIN_MAX_ATTEMPTS) return true
-  entry.count++
-  return false
-}
 function uaFromHeaders(headers?: Record<string, unknown>): string | undefined {
   const ua = headers?.['user-agent']
   return typeof ua === 'string' ? ua : undefined
@@ -68,14 +46,17 @@ export const authOptions: NextAuthOptions = {
 
         if (!credentials?.email || !credentials?.password) return null
 
-        // Throttle brute-force attempts before hitting the DB.
-        if (isLoginRateLimited(ip)) {
-          audit({
-            action: 'LOGIN_FAILED', entity: 'AUTH', entityId: attempted ?? 'unknown',
-            actorType: 'SYSTEM', userEmail: attempted, ip, userAgent,
-            description: `Acceso bloqueado temporalmente por demasiados intentos (${attempted})`,
-          })
-          return null
+        // Throttle brute-force attempts before hitting the DB (shared across pods).
+        if (ip) {
+          const rl = await rateLimit(`login:${ip}`, LOGIN_MAX_ATTEMPTS, LOGIN_WINDOW_MS)
+          if (!rl.ok) {
+            audit({
+              action: 'LOGIN_FAILED', entity: 'AUTH', entityId: attempted ?? 'unknown',
+              actorType: 'SYSTEM', userEmail: attempted, ip, userAgent,
+              description: `Acceso bloqueado temporalmente por demasiados intentos (${attempted})`,
+            })
+            return null
+          }
         }
 
         const user = await prisma.user.findUnique({ where: { email: attempted! } })
@@ -115,7 +96,7 @@ export const authOptions: NextAuthOptions = {
         }
 
         // Successful login → clear this IP's attempt counter + stamp last login.
-        if (ip) loginAttempts.delete(ip)
+        if (ip) await rateLimitReset(`login:${ip}`)
         await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } })
           .catch(() => { /* non-critical */ })
 
