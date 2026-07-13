@@ -10,6 +10,7 @@ import { es } from 'date-fns/locale'
 import { ROLES, ROLE_LABELS, ROLE_DESCRIPTIONS, roleCapabilities, type Role } from '@/lib/permissions'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
 import { useToast } from '@/components/ui/Toast'
+import { PasswordInput } from '@/components/ui/PasswordInput'
 
 interface AdminRow {
   id: string
@@ -256,14 +257,14 @@ export default function UsuariosClient({
               {modal.mode === 'create' ? (
                 <div>
                   <label className="form-label">Contraseña temporal</label>
-                  <input type="text" value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                  <PasswordInput value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
                     autoComplete="new-password" className="input-field w-full" />
                   <p className="text-[11px] text-ink-muted mt-1">Mínimo 8 caracteres, una mayúscula y un número. Compártela con el admin.</p>
                 </div>
               ) : (
                 <div>
                   <label className="form-label">Restablecer contraseña <span className="text-ink-muted/60 normal-case font-normal tracking-normal">(opcional)</span></label>
-                  <input type="text" value={form.newPassword} onChange={(e) => setForm((f) => ({ ...f, newPassword: e.target.value }))}
+                  <PasswordInput value={form.newPassword} onChange={(e) => setForm((f) => ({ ...f, newPassword: e.target.value }))}
                     autoComplete="new-password" placeholder="Dejar en blanco para no cambiarla" className="input-field w-full" />
                   <p className="text-[11px] text-ink-muted mt-1">Si la cambias, se cerrará la sesión de ese admin en todos sus dispositivos.</p>
                 </div>
