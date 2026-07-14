@@ -3,8 +3,10 @@
 // useSearchParams() requires this to be split out and wrapped in <Suspense> by page.tsx
 
 import { Fragment, useState, useEffect, useCallback } from 'react'
-import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { Pagination } from '@/components/admin/Pagination'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { useUrlFilters } from '@/hooks/useUrlFilters'
 import {
   ACTION_LABELS, ENTITY_LABELS, ACTOR_LABELS, ACTION_EMOJI,
   formatDiff, formatValue, fieldLabel,
@@ -95,9 +97,7 @@ function DetailPanel({ log }: { log: AuditLog }) {
 }
 
 export default function AuditoriaPageClient() {
-  const router       = useRouter()
-  const pathname     = usePathname()
-  const searchParams = useSearchParams()
+  const { searchParams, setParams, reset } = useUrlFilters()
 
   const [logs, setLogs]             = useState<AuditLog[]>([])
   const [pagination, setPagination] = useState<PaginationInfo>({ total: 0, page: 1, totalPages: 1 })
@@ -114,15 +114,6 @@ export default function AuditoriaPageClient() {
   const page      = Math.max(1, parseInt(searchParams.get('page') ?? '1'))
 
   const [searchInput, setSearchInput] = useState(search)
-
-  const setParams = useCallback((updates: Record<string, string | null>) => {
-    const params = new URLSearchParams(searchParams.toString())
-    for (const [key, value] of Object.entries(updates)) {
-      if (value) params.set(key, value)
-      else params.delete(key)
-    }
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false })
-  }, [router, pathname, searchParams])
 
   function setFilter(key: string, value: string) {
     setParams({ [key]: value, page: null })
@@ -163,7 +154,7 @@ export default function AuditoriaPageClient() {
 
   function resetFilters() {
     setSearchInput('')
-    router.replace(pathname, { scroll: false })
+    reset()
   }
 
   // CSV export keeps the active filters, drops paging.
@@ -177,23 +168,20 @@ export default function AuditoriaPageClient() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <p className="text-xs text-ink-muted tracking-widest uppercase mb-1">Sistema</p>
-          <h1 className="font-serif text-2xl sm:text-3xl text-ink font-light">Auditoría</h1>
-          <p className="text-sm text-ink-muted mt-0.5 hidden sm:block">
-            Registro de acciones de admin, clientes y sistema.
-          </p>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <a href={`/api/audit/export?${exportParams.toString()}`}
-            className="btn-secondary text-xs px-3 py-2.5 min-h-11 inline-flex items-center">Exportar CSV</a>
-          <span className="text-xs text-ink-muted bg-beige px-3 py-1.5 rounded-lg border border-beige-dark">
-            {pagination.total}
-          </span>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Sistema"
+        title="Auditoría"
+        subtitle={<span className="hidden sm:block">Registro de acciones de admin, clientes y sistema.</span>}
+        actions={
+          <>
+            <a href={`/api/audit/export?${exportParams.toString()}`}
+              className="btn-secondary text-xs px-3 py-2.5 min-h-11 inline-flex items-center">Exportar CSV</a>
+            <span className="text-xs text-ink-muted bg-beige px-3 py-1.5 rounded-lg border border-beige-dark">
+              {pagination.total}
+            </span>
+          </>
+        }
+      />
 
       {/* Search */}
       <input
@@ -246,7 +234,7 @@ export default function AuditoriaPageClient() {
         {loading ? (
           <div className="py-16 text-center text-sm text-ink-muted">Cargando...</div>
         ) : logs.length === 0 ? (
-          <div className="py-16 text-center text-sm text-ink-muted">Sin registros para los filtros seleccionados.</div>
+          <EmptyState title="Sin registros para los filtros seleccionados." />
         ) : (
           <table className="w-full min-w-[720px] text-sm">
             <thead>
