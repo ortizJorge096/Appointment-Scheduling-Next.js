@@ -10,7 +10,8 @@ import Link from 'next/link'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { formatPrice, formatRequestedAt } from '@/lib/utils'
-import { STATUS_LABEL, STATUS_CLASS } from '@/lib/appointmentStatus'
+import { STATUS_LABEL } from '@/lib/appointmentStatus'
+import { StatusBadge } from '@/components/ui/StatusBadge'
 import { SCOPE_OPTIONS, SORT_OPTIONS, ORIGIN_OPTIONS } from '@/lib/appointmentList'
 
 interface ServiceLite  { id: string; name: string }
@@ -371,9 +372,7 @@ export default function CitasList({
                       </span>
                     </td>
                     <td className="px-5 py-3.5">
-                      <span className={STATUS_CLASS[appt.status as keyof typeof STATUS_CLASS]}>
-                        {STATUS_LABEL[appt.status as keyof typeof STATUS_LABEL]}
-                      </span>
+                      <StatusBadge status={appt.status} />
                     </td>
                     <td className="px-5 py-3.5 text-right">
                       <Link href={`/admin/citas/${appt.id}`}
@@ -400,9 +399,7 @@ export default function CitasList({
                         </span>
                       )}
                     </p>
-                    <span className={STATUS_CLASS[appt.status as keyof typeof STATUS_CLASS]}>
-                      {STATUS_LABEL[appt.status as keyof typeof STATUS_LABEL]}
-                    </span>
+                    <StatusBadge status={appt.status} />
                   </div>
                   <div className="flex items-center justify-between text-xs text-ink-muted">
                     <span>{format(new Date(appt.date), 'd MMM', { locale: es })} · {appt.startTime}</span>

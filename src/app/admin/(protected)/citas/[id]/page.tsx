@@ -13,7 +13,8 @@ import { STUDIO } from '@/lib/config'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
 import { useToast } from '@/components/ui/Toast'
 import { usePermissionGuard, useCan } from '@/components/admin/usePermissionGuard'
-import { STATUS_LABEL, STATUS_CLASS } from '@/lib/appointmentStatus'
+import { STATUS_LABEL } from '@/lib/appointmentStatus'
+import { StatusBadge } from '@/components/ui/StatusBadge'
 import { PAYMENT_STATUS_LABEL, PAYMENT_METHOD_LABEL } from '@/lib/labels'
 import AdicionalesEditor, { type Adicional } from '@/components/admin/AdicionalesEditor'
 import type { AppointmentWithService, AppointmentStatus } from '@/types'
@@ -376,9 +377,7 @@ export default function CitaDetailPage() {
             Código: {appt.id.slice(0, 8).toUpperCase()}
           </p>
         </div>
-        <span className={`${STATUS_CLASS[appt.status]} text-sm px-3 py-1.5`}>
-          {STATUS_LABEL[appt.status]}
-        </span>
+        <StatusBadge status={appt.status} className="text-sm px-3 py-1.5" />
       </div>
 
       {error && (

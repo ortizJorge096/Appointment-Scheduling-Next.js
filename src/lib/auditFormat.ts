@@ -10,6 +10,7 @@ import {
   STATUS_LABEL, PAYMENT_STATUS_LABEL, PAYMENT_METHOD_LABEL,
   SOURCE_LABEL, ORIGIN_LABEL, EXPENSE_CATEGORY_LABEL,
 } from './labels'
+import { formatPrice } from './utils'
 
 export type AuditAction =
   | 'CREATE' | 'UPDATE' | 'DELETE' | 'STATUS_CHANGE' | 'CANCEL'
@@ -76,9 +77,6 @@ const VALUE_LABELS: Record<string, Record<string, string>> = {
 const BOOL_FIELDS  = new Set(['isActive', 'enabled'])
 const MONEY_FIELDS = new Set(['amount', 'amountPaid', 'price', 'precioFinal'])
 
-const COP = (n: number) =>
-  new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n)
-
 /** Spanish label for a field key (falls back to the raw key). */
 export function fieldLabel(key: string): string {
   return FIELD_LABELS[key] ?? key
@@ -94,7 +92,7 @@ export function formatValue(key: string, value: unknown): string {
   if (BOOL_FIELDS.has(key) || typeof value === 'boolean') {
     return value === true || value === 'true' ? 'Sí' : 'No'
   }
-  if (MONEY_FIELDS.has(key) && typeof value === 'number') return COP(value)
+  if (MONEY_FIELDS.has(key) && typeof value === 'number') return formatPrice(value)
   const map = VALUE_LABELS[key]
   if (map && typeof value === 'string' && map[value]) return map[value]
   if (typeof value === 'object') {

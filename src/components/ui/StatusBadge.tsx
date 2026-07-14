@@ -7,8 +7,12 @@ import { STATUS_LABEL, STATUS_CLASS } from '@/lib/appointmentStatus'
 import { PAYMENT_STATUS_LABEL, PAYMENT_STATUS_CLASS } from '@/lib/labels'
 
 /** Appointment status as a colored pill (badge-* classes from globals.css). */
-export function StatusBadge({ status }: { status: string }) {
-  return <span className={STATUS_CLASS[status] ?? 'badge-pending'}>{STATUS_LABEL[status] ?? status}</span>
+export function StatusBadge({ status, className = '' }: { status: string; className?: string }) {
+  return (
+    <span className={`${STATUS_CLASS[status] ?? 'badge-pending'} ${className}`.trim()}>
+      {STATUS_LABEL[status] ?? status}
+    </span>
+  )
 }
 
 /** Payment status as colored text (matches the current inline rendering). */

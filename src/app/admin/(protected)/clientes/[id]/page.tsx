@@ -4,17 +4,11 @@
 
 import { useState, useEffect, use } from 'react'
 import Link from 'next/link'
-import { STATUS_LABEL, STATUS_CLASS } from '@/lib/appointmentStatus'
-import { PAYMENT_STATUS_LABEL as PAYMENT_LABEL } from '@/lib/labels'
+import { StatusBadge, PaymentBadge } from '@/components/ui/StatusBadge'
 import type { AppointmentWithService } from '@/types'
 import { usePermissionGuard, useCan } from '@/components/admin/usePermissionGuard'
+import { formatPrice } from '@/lib/utils'
 
-const COP = (n: number) =>
-  new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n)
-const PAYMENT_COLOR: Record<string, string> = {
-  PENDING: 'text-orange-600', PAID: 'text-green-600',
-  PARTIAL: 'text-blue-600', WAIVED: 'text-purple-600',
-}
 
 interface ClientData {
   id: string; name: string; email: string | null; phone: string | null; notes: string | null
@@ -230,7 +224,7 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
               <p className="text-xs text-ink-muted">completadas</p>
             </div>
             <div>
-              <p className="text-2xl font-serif text-gold">{COP(totalSpent)}</p>
+              <p className="text-2xl font-serif text-gold">{formatPrice(totalSpent)}</p>
               <p className="text-xs text-ink-muted">total pagado</p>
             </div>
           </div>
@@ -276,9 +270,7 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
                       ? apt.services.map((s) => s.service.name).join(' + ')
                       : apt.service.name}
                   </p>
-                  <span className={STATUS_CLASS[apt.status]}>
-                    {STATUS_LABEL[apt.status]}
-                  </span>
+                  <StatusBadge status={apt.status} />
                 </div>
                 <p className="text-xs text-ink-muted mt-0.5">
                   {new Date(apt.date).toLocaleDateString('es-CO', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}
@@ -288,11 +280,9 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
               </div>
               <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
                 <div className="text-right">
-                  <p className={`text-sm font-medium ${PAYMENT_COLOR[apt.paymentStatus]}`}>
-                    {PAYMENT_LABEL[apt.paymentStatus]}
-                  </p>
+                  <PaymentBadge status={apt.paymentStatus} className="text-sm" />
                   <p className="text-xs text-ink-muted">
-                    {COP(apt.amountPaid ?? getTotalPrice(apt))}
+                    {formatPrice(apt.amountPaid ?? getTotalPrice(apt))}
                   </p>
                 </div>
                 <Link href={`/admin/citas/${apt.id}`}

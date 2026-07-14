@@ -9,7 +9,8 @@ import { es } from 'date-fns/locale'
 import { StatCard } from '@/components/ui/Card'
 import { DashboardChart } from '@/components/admin/DashboardChart'
 import { formatPrice } from '@/lib/utils'
-import { STATUS_LABEL, STATUS_CLASS } from '@/lib/appointmentStatus'
+import { STATUS_LABEL } from '@/lib/appointmentStatus'
+import { StatusBadge } from '@/components/ui/StatusBadge'
 
 export const metadata: Metadata = { title: 'Dashboard' }
 export const dynamic = 'force-dynamic'
@@ -239,7 +240,7 @@ export default async function DashboardPage() {
                         : appt.service.price
                     )}
                   </p>
-                  <span className={STATUS_CLASS[appt.status]}>{STATUS_LABEL[appt.status]}</span>
+                  <StatusBadge status={appt.status} />
                   <span className="text-gold-light group-hover:text-gold transition-colors text-lg">›</span>
                 </div>
               </Link>
