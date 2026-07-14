@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
 import { usePermissionGuard, useCan } from '@/components/admin/usePermissionGuard'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 const DAYS = [
   { key: 'MONDAY',    label: 'Lunes'     },
@@ -128,10 +129,7 @@ export default function HorariosPage() {
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
 
       {/* Header */}
-      <div className="mb-6 sm:mb-8">
-        <p className="text-xs text-ink-muted tracking-widest uppercase mb-1">Configuración</p>
-        <h1 className="font-serif text-2xl sm:text-3xl text-ink font-light">Horarios</h1>
-      </div>
+      <PageHeader className="mb-6 sm:mb-8" eyebrow="Configuración" title="Horarios" />
 
       {/* Flash message */}
       {message && (

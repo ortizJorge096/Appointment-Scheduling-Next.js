@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from 'react'
 import { usePermissionGuard } from '@/components/admin/usePermissionGuard'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 interface Form {
   appointmentsCount: number
@@ -73,13 +74,8 @@ export default function SitioPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-2xl mx-auto">
-      <div className="mb-6 sm:mb-8">
-        <p className="text-xs text-ink-muted tracking-widest uppercase mb-1">Contenido</p>
-        <h1 className="font-serif text-2xl sm:text-3xl text-ink font-light">Métricas del sitio</h1>
-        <p className="text-sm text-ink-muted mt-2">
-          Indicadores que se muestran en el inicio (Hero y sección Nosotros).
-        </p>
-      </div>
+      <PageHeader className="mb-6 sm:mb-8" eyebrow="Contenido" title="Métricas del sitio"
+        subtitle="Indicadores que se muestran en el inicio (Hero y sección Nosotros)." />
 
       {error   && <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 mb-5">{error}</div>}
       {success && <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 mb-5">✓ {success}</div>}

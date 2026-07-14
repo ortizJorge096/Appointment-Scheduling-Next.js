@@ -10,6 +10,7 @@ import { formatPrice } from '@/lib/utils'
 import VipDiscountConfigCard from '@/components/admin/VipDiscountConfigCard'
 import { Icon } from '@/components/public/ServiceIcons'
 import CategoriesManager, { type AdminCategory } from '@/components/admin/CategoriesManager'
+import { PageHeader } from '@/components/ui/PageHeader'
 import { usePermissionGuard, useCan } from '@/components/admin/usePermissionGuard'
 
 const PER_PAGE = 8
@@ -220,10 +221,7 @@ export default function ServiciosPage() {
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
 
       {/* Header */}
-      <div className="mb-6">
-        <p className="text-xs text-ink-muted tracking-widest uppercase mb-1">Catálogo</p>
-        <h1 className="font-serif text-2xl sm:text-3xl text-ink font-light">Servicios y categorías</h1>
-      </div>
+      <PageHeader className="mb-6" eyebrow="Catálogo" title="Servicios y categorías" />
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-beige-dark mb-6">

@@ -11,6 +11,7 @@ import { DashboardChart } from '@/components/admin/DashboardChart'
 import { formatPrice } from '@/lib/utils'
 import { STATUS_LABEL } from '@/lib/appointmentStatus'
 import { StatusBadge } from '@/components/ui/StatusBadge'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 export const metadata: Metadata = { title: 'Dashboard' }
 export const dynamic = 'force-dynamic'
@@ -147,12 +148,7 @@ export default async function DashboardPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
       {/* Header */}
-      <div className="mb-8">
-        <p className="text-xs text-ink-muted tracking-widest uppercase mb-1">
-          {format(now, "EEEE d 'de' MMMM", { locale: es })}
-        </p>
-        <h1 className="font-serif text-2xl sm:text-3xl text-ink font-light">Dashboard</h1>
-      </div>
+      <PageHeader className="mb-8" eyebrow={format(now, "EEEE d 'de' MMMM", { locale: es })} title="Dashboard" />
 
       {/* Stats — business metrics with period-over-period context */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">

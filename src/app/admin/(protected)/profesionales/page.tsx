@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react'
 import BookingSettingsCard from '@/components/admin/BookingSettingsCard'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
 import { usePermissionGuard, useCan } from '@/components/admin/usePermissionGuard'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 interface Professional {
   id: string
@@ -129,18 +130,15 @@ export default function ProfesionalesPage() {
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
 
       {/* Header */}
-      <div className="mb-6 sm:mb-8 flex items-center justify-between">
-        <div>
-          <p className="text-xs text-ink-muted tracking-widest uppercase mb-1">Equipo</p>
-          <h1 className="font-serif text-2xl sm:text-3xl text-ink font-light">Profesionales</h1>
-          <p className="text-sm text-ink-muted mt-1">
-            Cada profesional activo puede atender una cita a la vez — define la capacidad real de la agenda.
-          </p>
-        </div>
-        {can('servicios:editar') && (
+      <PageHeader
+        className="mb-6 sm:mb-8"
+        eyebrow="Equipo"
+        title="Profesionales"
+        subtitle="Cada profesional activo puede atender una cita a la vez — define la capacidad real de la agenda."
+        actions={can('servicios:editar') && (
           <button onClick={openNew} className="btn-primary text-sm shrink-0">+ Nuevo</button>
         )}
-      </div>
+      />
 
       {/* Messages */}
       {error   && <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 mb-5">{error}</div>}
