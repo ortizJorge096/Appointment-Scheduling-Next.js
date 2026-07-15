@@ -11,6 +11,7 @@ import { ROLES, ROLE_LABELS, ROLE_DESCRIPTIONS, roleCapabilities, type Role } fr
 import { useConfirm } from '@/components/ui/ConfirmDialog'
 import { useToast } from '@/components/ui/Toast'
 import { PasswordInput } from '@/components/ui/PasswordInput'
+import { Modal } from '@/components/ui/Modal'
 
 interface AdminRow {
   id: string
@@ -217,12 +218,8 @@ export default function UsuariosClient({
 
       {/* Create / edit modal */}
       {modal && (
-        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 bg-ink/40 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90dvh] overflow-y-auto">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-beige-dark">
-              <h2 className="font-serif text-xl text-ink">{modal.mode === 'create' ? 'Nuevo admin' : 'Editar admin'}</h2>
-              <button onClick={() => setModal(null)} className="text-ink-muted-deep hover:text-ink text-xl leading-none p-2 -m-2">×</button>
-            </div>
+        <Modal open onClose={() => setModal(null)}
+          title={modal.mode === 'create' ? 'Nuevo admin' : 'Editar admin'}>
             <form onSubmit={submitModal} noValidate className="px-6 py-5 space-y-4">
               <div>
                 <label className="form-label">Nombre</label>
@@ -279,8 +276,7 @@ export default function UsuariosClient({
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+        </Modal>
       )}
     </>
   )

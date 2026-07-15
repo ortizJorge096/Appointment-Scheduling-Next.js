@@ -88,7 +88,7 @@ export function Modal({ open, onClose, title, label, maxWidth = 'max-w-md', chil
           <div className="flex items-center justify-between px-6 py-4 border-b border-beige-dark">
             <h2 id={titleId} className="font-serif text-xl text-ink">{title}</h2>
             <button type="button" onClick={onClose} aria-label="Cerrar"
-              className="text-ink-muted-deep hover:text-ink text-xl leading-none">×</button>
+              className="text-ink-muted-deep hover:text-ink text-xl leading-none p-2 -m-2">×</button>
           </div>
         )}
         {children}
