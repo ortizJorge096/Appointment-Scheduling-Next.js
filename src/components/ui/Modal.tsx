@@ -67,6 +67,8 @@ export function Modal({ open, onClose, title, label, maxWidth = 'max-w-md', chil
   }, [open, onClose])
 
   if (!open) return null
+  // The panel caps its own height and scrolls internally, so a long form keeps
+  // the titled header (and its close button) in view instead of pushing it away.
   return (
     <div
       className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 bg-ink/40 backdrop-blur-sm overflow-y-auto"
@@ -79,7 +81,7 @@ export function Modal({ open, onClose, title, label, maxWidth = 'max-w-md', chil
         aria-labelledby={title ? titleId : undefined}
         aria-label={title ? undefined : label}
         tabIndex={-1}
-        className={`bg-white rounded-xl shadow-xl w-full ${maxWidth} focus:outline-none`}
+        className={`bg-white rounded-xl shadow-xl w-full ${maxWidth} max-h-[90dvh] overflow-y-auto focus:outline-none`}
         onClick={(e) => e.stopPropagation()}
       >
         {title && (
