@@ -240,12 +240,12 @@ export default function ClientesPageClient() {
       <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Nuevo cliente">
             <form onSubmit={createClient} noValidate className="px-6 py-5 space-y-4">
               <div>
-                <label className="form-label">Nombre completo <span className="text-red-500">*</span></label>
+                <label className="form-label">Nombre completo <span className="text-red-700">*</span></label>
                 <input id="new-client-name" value={form.name}
                   onChange={e => { setForm(f => ({ ...f, name: e.target.value })); if (fieldErrors.name) setFieldErrors(x => ({ ...x, name: undefined })) }}
                   placeholder="Ana García"
                   className={`input-field w-full ${fieldErrors.name ? 'border-red-400 focus:ring-red-300' : ''}`} />
-                {fieldErrors.name && <p className="text-xs text-red-500 mt-0.5">{fieldErrors.name}</p>}
+                {fieldErrors.name && <p className="text-xs text-red-700 mt-0.5">{fieldErrors.name}</p>}
               </div>
               <div>
                 <label className="form-label">Email <span className="text-ink-muted/60 normal-case font-normal tracking-normal">(opcional)</span></label>
@@ -253,15 +253,15 @@ export default function ClientesPageClient() {
                   onChange={e => { setForm(f => ({ ...f, email: e.target.value })); if (fieldErrors.email) setFieldErrors(x => ({ ...x, email: undefined })) }}
                   placeholder="ana@ejemplo.com"
                   className={`input-field w-full ${fieldErrors.email ? 'border-red-400 focus:ring-red-300' : ''}`} />
-                {fieldErrors.email && <p className="text-xs text-red-500 mt-0.5">{fieldErrors.email}</p>}
+                {fieldErrors.email && <p className="text-xs text-red-700 mt-0.5">{fieldErrors.email}</p>}
               </div>
               <div>
-                <label className="form-label">Teléfono <span className="text-red-500">*</span></label>
+                <label className="form-label">Teléfono <span className="text-red-700">*</span></label>
                 <input id="new-client-phone" value={form.phone}
                   onChange={e => { setForm(f => ({ ...f, phone: e.target.value })); if (fieldErrors.phone) setFieldErrors(x => ({ ...x, phone: undefined })) }}
                   placeholder="3001234567"
                   className={`input-field w-full ${fieldErrors.phone ? 'border-red-400 focus:ring-red-300' : ''}`} />
-                {fieldErrors.phone && <p className="text-xs text-red-500 mt-0.5">{fieldErrors.phone}</p>}
+                {fieldErrors.phone && <p className="text-xs text-red-700 mt-0.5">{fieldErrors.phone}</p>}
               </div>
               <div>
                 <label className="form-label">Notas internas</label>
@@ -270,7 +270,7 @@ export default function ClientesPageClient() {
               </div>
 
               {formError && (
-                <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-3 py-2 rounded-lg">
+                <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2 rounded-lg">
                   {formError}
                 </div>
               )}

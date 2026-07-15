@@ -65,10 +65,10 @@ function FAQAccordionItem({ item, isOpen, onToggle }: {
         className="w-full flex items-center justify-between py-5 text-left gap-4 group"
         aria-expanded={isOpen}
       >
-        <span className="text-sm font-medium text-ink group-hover:text-gold transition-colors leading-snug">
+        <span className="text-sm font-medium text-ink group-hover:text-gold-deep transition-colors leading-snug">
           {item.question}
         </span>
-        <span className={`shrink-0 w-5 h-5 flex items-center justify-center text-gold transition-transform duration-200 ${isOpen ? 'rotate-45' : ''}`}>
+        <span className={`shrink-0 w-5 h-5 flex items-center justify-center text-gold-deep transition-transform duration-200 ${isOpen ? 'rotate-45' : ''}`}>
           +
         </span>
       </button>
@@ -98,7 +98,7 @@ export default function FAQ() {
         <div className="text-center mb-14">
           <span className="section-tag justify-center mb-4">FAQ</span>
           <h2 className="text-4xl lg:text-5xl font-serif font-light text-ink">
-            Preguntas <em className="text-gold italic">frecuentes</em>
+            Preguntas <em className="text-gold-dark italic">frecuentes</em>
           </h2>
           <p className="text-ink-muted text-base mt-4 max-w-md mx-auto">
             ¿Tienes dudas? Aquí resolvemos las más comunes.

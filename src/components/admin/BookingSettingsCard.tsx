@@ -138,7 +138,7 @@ export default function BookingSettingsCard() {
         </div>
       </div>
 
-      {error   && <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 mt-4">{error}</div>}
+      {error   && <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 mt-4">{error}</div>}
       {success && <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 mt-4">✓ {success}</div>}
     </div>
   )

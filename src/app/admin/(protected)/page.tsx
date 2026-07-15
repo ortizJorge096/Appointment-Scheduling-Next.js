@@ -42,7 +42,7 @@ function Trend({ current, previous, label, invert = false }: { current: number; 
   const pct   = Math.round(((current - previous) / previous) * 100)
   const dir   = pct > 0 ? 'up' : pct < 0 ? 'down' : 'flat'
   const good  = dir === 'flat' ? null : invert ? dir === 'down' : dir === 'up'
-  const color = good === null ? 'text-ink-muted' : good ? 'text-green-600' : 'text-red-500'
+  const color = good === null ? 'text-ink-muted' : good ? 'text-green-600' : 'text-red-700'
   const arrow = dir === 'up' ? '↑' : dir === 'down' ? '↓' : '→'
   return <span className={color}>{arrow} {Math.abs(pct)}% <span className="text-ink-muted">{label}</span></span>
 }

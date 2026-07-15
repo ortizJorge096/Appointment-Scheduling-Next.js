@@ -18,12 +18,12 @@ export default function Footer() {
         </div>
 
         <div>
-          <p className="text-xs text-gold/50 uppercase tracking-widest mb-4">Servicios</p>
+          <p className="text-xs text-gold uppercase tracking-widest mb-4">Servicios</p>
           <FooterServiceLinks />
         </div>
 
         <div>
-          <p className="text-xs text-gold/50 uppercase tracking-widest mb-4">Navegación</p>
+          <p className="text-xs text-gold uppercase tracking-widest mb-4">Navegación</p>
           <ul className="space-y-2.5">
             {[
               { label: 'Servicios',    href: '/#servicios' },
@@ -35,7 +35,7 @@ export default function Footer() {
             ].map((l) => (
               <li key={l.href}>
                 <Link href={l.href}
-                  className="text-sm text-white/40 hover:text-gold transition-colors">
+                  className="text-sm text-white/55 hover:text-gold transition-colors">
                   {l.label}
                 </Link>
               </li>
@@ -44,8 +44,8 @@ export default function Footer() {
         </div>
 
         <div>
-          <p className="text-xs text-gold/50 uppercase tracking-widest mb-4">Contacto</p>
-          <ul className="space-y-2.5 text-sm text-white/40">
+          <p className="text-xs text-gold uppercase tracking-widest mb-4">Contacto</p>
+          <ul className="space-y-2.5 text-sm text-white/55">
             <li>{STUDIO.address}</li>
             <li>
               <WhatsAppLink className="hover:text-gold transition-colors">
@@ -74,7 +74,7 @@ export default function Footer() {
 
       {/* Copyright only, centered — never under the floating WhatsApp button (which sits bottom-right) */}
       <div className="border-t border-white/[0.06] px-6 py-6 text-center">
-        <p className="text-xs text-white/20">
+        <p className="text-xs text-white/50">
           © {new Date().getFullYear()} {STUDIO.name}
         </p>
       </div>

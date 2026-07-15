@@ -210,7 +210,7 @@ export default function ServiciosPage() {
             className={`btn-row-action text-xs ${svc.isActive ? 'text-ink-muted hover:text-amber-600' : 'text-green-600 hover:text-green-700'}`}>
             {svc.isActive ? 'Desactivar' : 'Activar'}
           </button>
-          <button onClick={() => handleDelete(svc)} className="btn-row-action text-xs text-ink-muted hover:text-red-500">Eliminar</button>
+          <button onClick={() => handleDelete(svc)} className="btn-row-action text-xs text-ink-muted hover:text-red-700">Eliminar</button>
           </>)}
         </div>
       </div>
@@ -236,7 +236,7 @@ export default function ServiciosPage() {
       </div>
 
       {/* Messages */}
-      {error   && <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 mb-5">{error}</div>}
+      {error   && <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 mb-5">{error}</div>}
       {success && <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 mb-5">✓ {success}</div>}
 
       {loading ? (

@@ -141,7 +141,7 @@ export default function ProfesionalesPage() {
       />
 
       {/* Messages */}
-      {error   && <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 mb-5">{error}</div>}
+      {error   && <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 mb-5">{error}</div>}
       {success && <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 mb-5">✓ {success}</div>}
 
       {can('configuracion:editar') && <BookingSettingsCard />}
@@ -249,7 +249,7 @@ export default function ProfesionalesPage() {
                       className={`btn-row-action text-xs ${p.isActive ? 'text-ink-muted hover:text-amber-600' : 'text-green-600 hover:text-green-700'}`}>
                       {p.isActive ? 'Desactivar' : 'Activar'}
                     </button>
-                    <button onClick={() => handleDelete(p)} className="btn-row-action text-xs text-ink-muted hover:text-red-500">
+                    <button onClick={() => handleDelete(p)} className="btn-row-action text-xs text-ink-muted hover:text-red-700">
                       Eliminar
                     </button>
                     </>)}
@@ -286,7 +286,7 @@ export default function ProfesionalesPage() {
                       className={`btn-row-action text-xs ${p.isActive ? 'text-ink-muted hover:text-amber-600' : 'text-green-600 hover:text-green-700'}`}>
                       {p.isActive ? 'Desactivar' : 'Activar'}
                     </button>
-                    <button onClick={() => handleDelete(p)} className="btn-row-action text-xs text-ink-muted hover:text-red-500">
+                    <button onClick={() => handleDelete(p)} className="btn-row-action text-xs text-ink-muted hover:text-red-700">
                       Eliminar
                     </button>
                     </>)}

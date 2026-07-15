@@ -77,7 +77,7 @@ export default function SitioPage() {
       <PageHeader className="mb-6 sm:mb-8" eyebrow="Contenido" title="Métricas del sitio"
         subtitle="Indicadores que se muestran en el inicio (Hero y sección Nosotros)." />
 
-      {error   && <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 mb-5">{error}</div>}
+      {error   && <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 mb-5">{error}</div>}
       {success && <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 mb-5">✓ {success}</div>}
 
       {loading || !form ? (

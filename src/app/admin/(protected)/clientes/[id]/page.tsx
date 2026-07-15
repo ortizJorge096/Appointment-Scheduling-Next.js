@@ -183,7 +183,7 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
                   placeholder="Email (opcional)" className="input-field w-full" />
                 <input value={infoForm.phone} onChange={e => setInfoForm(f => ({ ...f, phone: e.target.value }))}
                   placeholder="Teléfono / celular" className="input-field w-full" />
-                {infoErr && <p className="text-xs text-red-600">{infoErr}</p>}
+                {infoErr && <p className="text-xs text-red-700">{infoErr}</p>}
                 <div className="flex gap-2 pt-1">
                   <button type="submit" disabled={savingInfo} className="btn-primary text-xs py-1.5 px-4 disabled:opacity-50">
                     {savingInfo ? 'Guardando…' : 'Guardar'}
@@ -317,7 +317,7 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
             <button onClick={remove}
               disabled={busy || client._count.appointments > 0}
               title={client._count.appointments > 0 ? 'Tiene citas registradas; archívalo en su lugar' : undefined}
-              className="text-sm px-4 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed">
+              className="text-sm px-4 py-2 rounded-lg border border-red-200 text-red-700 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed">
               Eliminar definitivamente
             </button>
           </div>
@@ -326,7 +326,7 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
               Tiene {client._count.appointments} cita{client._count.appointments !== 1 ? 's' : ''} registrada{client._count.appointments !== 1 ? 's' : ''}; no se puede eliminar. Archívalo para ocultarlo.
             </p>
           )}
-          {actionMsg && <p className="text-xs text-red-600 mt-2">{actionMsg}</p>}
+          {actionMsg && <p className="text-xs text-red-700 mt-2">{actionMsg}</p>}
         </div>
       )}
     </div>

@@ -136,7 +136,7 @@ export default function HorariosPage() {
         <div className={`text-sm px-4 py-3 mb-5 border ${
           message.type === 'ok'
             ? 'bg-green-50 border-green-200 text-green-700'
-            : 'bg-red-50 border-red-200 text-red-600'
+            : 'bg-red-50 border-red-200 text-red-700'
         }`}>
           {message.type === 'ok' ? '✓ ' : '✗ '}{message.text}
         </div>
@@ -280,7 +280,7 @@ export default function HorariosPage() {
                     {can('horarios:editar') && (
                     <button
                       onClick={() => removeBlockedDate(b.id)}
-                      className="btn-row-action text-xs text-red-400 hover:text-red-600 shrink-0"
+                      className="btn-row-action text-xs text-red-700 hover:text-red-800 shrink-0"
                     >
                       Desbloquear
                     </button>

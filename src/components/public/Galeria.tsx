@@ -115,7 +115,7 @@ export default function Galeria() {
         <div className="text-center mb-10">
           <span className="section-tag justify-center mb-4">Nuestro trabajo</span>
           <h2 className="text-4xl lg:text-5xl font-serif font-light text-ink">
-            El trabajo habla <em className="text-gold italic">por sí solo</em>
+            El trabajo habla <em className="text-gold-dark italic">por sí solo</em>
           </h2>
         </div>
 
@@ -193,7 +193,7 @@ export default function Galeria() {
                   type="button"
                   onClick={() => setVisible((v) => v + PAGE_SIZE)}
                   className="inline-flex items-center px-6 py-2.5 rounded-full border border-gold text-gold-dark
-                             text-xs tracking-widest uppercase hover:bg-gold hover:text-white transition-colors"
+                             text-xs tracking-widest uppercase hover:bg-gold hover:text-ink transition-colors"
                 >
                   Ver más
                 </button>
@@ -204,9 +204,9 @@ export default function Galeria() {
 
         <p className="text-center text-sm text-ink-muted mt-14 font-sans">
           Síguenos en{' '}
-          <a href={INSTAGRAM_URL} target="_blank" rel="noreferrer" className="text-gold hover:underline underline-offset-2">Instagram</a>
+          <a href={INSTAGRAM_URL} target="_blank" rel="noreferrer" className="text-gold-deep hover:underline underline-offset-2">Instagram</a>
           {' '}y{' '}
-          <a href={TIKTOK_URL} target="_blank" rel="noreferrer" className="text-gold hover:underline underline-offset-2">TikTok</a>
+          <a href={TIKTOK_URL} target="_blank" rel="noreferrer" className="text-gold-deep hover:underline underline-offset-2">TikTok</a>
           {' '}para ver todos nuestros trabajos ✨
         </p>
       </div>
@@ -231,7 +231,7 @@ function FilterChip({ active, onClick, children }: { active: boolean; onClick: (
       onClick={onClick}
       className={`shrink-0 px-4 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors ${
         active
-          ? 'bg-gold text-white border border-gold'
+          ? 'bg-gold text-ink border border-gold'
           : 'border border-beige-dark text-ink hover:border-gold/50'
       }`}
     >

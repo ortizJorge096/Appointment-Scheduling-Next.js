@@ -58,7 +58,7 @@ function DeltaBadge({ current, previous, invert = false }: { current: number; pr
   const d = pctDelta(current, previous)
   if (!d) return <span className="text-[11px] text-ink-muted mt-1 block">— sin período anterior</span>
   const good  = d.dir === 'flat' ? null : invert ? d.dir === 'down' : d.dir === 'up'
-  const color = good === null ? 'text-ink-muted' : good ? 'text-green-600' : 'text-red-500'
+  const color = good === null ? 'text-ink-muted' : good ? 'text-green-600' : 'text-red-700'
   const arrow = d.dir === 'up' ? '↑' : d.dir === 'down' ? '↓' : '→'
   return (
     <span className={`text-[11px] mt-1 inline-flex items-center gap-1 ${color}`}>
@@ -173,7 +173,7 @@ export default function ContabilidadPage() {
     URL.revokeObjectURL(url)
   }
 
-  const netColor = (summary?.netProfit ?? 0) >= 0 ? 'text-green-700' : 'text-red-600'
+  const netColor = (summary?.netProfit ?? 0) >= 0 ? 'text-green-700' : 'text-red-700'
   const receivedTotal = (summary?.incomeByPaymentMethod ?? []).reduce((s, m) => s + m.amount, 0)
 
   return (
@@ -225,7 +225,7 @@ export default function ContabilidadPage() {
         {/* Gastos */}
         <div className="bg-white rounded-xl border border-beige-dark p-4">
           <p className="text-xs text-ink-muted mb-1">Gastos</p>
-          <p className={`text-lg sm:text-xl font-serif font-light text-red-500 break-words ${loadingSum ? 'opacity-40' : ''}`}>
+          <p className={`text-lg sm:text-xl font-serif font-light text-red-700 break-words ${loadingSum ? 'opacity-40' : ''}`}>
             {formatPrice(summary?.totalExpenses ?? 0)}
           </p>
           {summary && prevSummary && <DeltaBadge current={summary.totalExpenses} previous={prevSummary.totalExpenses} invert />}
@@ -354,7 +354,7 @@ export default function ContabilidadPage() {
                 placeholder="Opcional"
                 className="input-field w-full" />
             </div>
-            {saveError && <p className="text-xs text-red-600">{saveError}</p>}
+            {saveError && <p className="text-xs text-red-700">{saveError}</p>}
             <button type="submit" disabled={saving}
               className="btn-primary w-full disabled:opacity-50">
               {saving ? 'Guardando…' : '+ Registrar gasto'}
@@ -387,12 +387,12 @@ export default function ContabilidadPage() {
                     {exp.notes && <p className="text-xs text-ink-muted/70 mt-0.5">{exp.notes}</p>}
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-sm font-medium text-red-500">{formatPrice(exp.amount)}</p>
+                    <p className="text-sm font-medium text-red-700">{formatPrice(exp.amount)}</p>
                     {can('contabilidad:editar') && (
                       <button
                         onClick={() => deleteExpense(exp.id)}
                         disabled={deleting === exp.id}
-                        className="btn-row-action text-xs text-ink-muted/50 hover:text-red-500 mt-0.5">
+                        className="btn-row-action text-xs text-ink-muted/50 hover:text-red-700 mt-0.5">
                         {deleting === exp.id ? '…' : 'Eliminar'}
                       </button>
                     )}

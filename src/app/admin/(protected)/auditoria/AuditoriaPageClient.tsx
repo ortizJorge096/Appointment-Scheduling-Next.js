@@ -69,7 +69,7 @@ function DetailPanel({ log }: { log: AuditLog }) {
             <p key={i} className="text-[12px] text-ink break-words">
               <span className="font-medium text-ink-muted">{d.label}:</span>{' '}
               {d.kind === 'removed' ? (
-                <><span className="line-through text-red-600/80">{d.text}</span><span className="text-ink-muted/60"> (eliminado)</span></>
+                <><span className="line-through text-red-700/80">{d.text}</span><span className="text-ink-muted/60"> (eliminado)</span></>
               ) : d.text}
             </p>
           ))}

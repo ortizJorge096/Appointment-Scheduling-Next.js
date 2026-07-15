@@ -27,7 +27,7 @@ export default function FooterServiceLinks() {
       {categories.map((cat) => (
         <li key={cat.id}>
           <Link href={`/agendar?categoria=${cat.slug}`}
-            className="text-sm text-white/40 hover:text-gold transition-colors">
+            className="text-sm text-white/55 hover:text-gold transition-colors">
             {cat.name}
           </Link>
         </li>

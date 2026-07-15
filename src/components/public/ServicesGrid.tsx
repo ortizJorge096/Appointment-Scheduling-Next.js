@@ -61,9 +61,9 @@ export default function ServicesGrid() {
         <div className="text-center mb-16">
           <span className="eyebrow-center">Servicios</span>
           <h2 className="text-4xl lg:text-5xl font-serif font-light text-ink mt-5">
-            Rituales de belleza a tu <em className="text-gold italic">medida</em>
+            Rituales de belleza a tu <em className="text-gold-dark italic">medida</em>
           </h2>
-          <p className="text-ink-muted text-sm mt-5 max-w-md mx-auto leading-relaxed">
+          <p className="text-ink-muted-deep text-sm mt-5 max-w-md mx-auto leading-relaxed">
             Cada servicio incluye consulta personalizada y productos premium.
           </p>
         </div>
@@ -111,7 +111,7 @@ export default function ServicesGrid() {
                         </p>
                       </div>
                       <Link href={`/agendar?categoria=${cat.slug}`}
-                        className="text-xs tracking-widest uppercase font-semibold transition-colors text-gold-dark hover:text-gold">
+                        className="text-xs tracking-widest uppercase font-semibold transition-colors text-gold-dark hover:text-gold-deep">
                         Reservar →
                       </Link>
                     </div>

@@ -61,7 +61,7 @@ describe('ConfirmDialog', () => {
     fireEvent.click(screen.getByText('Disparar'))
 
     const confirmBtn = await screen.findByText('Sí, eliminar')
-    expect(confirmBtn.className).toContain('text-red-500')
+    expect(confirmBtn.className).toContain('text-red-700')
   })
 
   it('useConfirm() degrada a window.confirm cuando no hay provider', async () => {

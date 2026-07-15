@@ -285,7 +285,7 @@ export default function GaleriaAdminPage() {
         </label>
       </div>
 
-      {error   && <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 mb-5">⚠ {error}</div>}
+      {error   && <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 mb-5">⚠ {error}</div>}
       {success && <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 mb-5">✓ {success}</div>}
 
       {loading ? (
@@ -392,11 +392,11 @@ export default function GaleriaAdminPage() {
                           <button onClick={() => { setEditing(img.id); setEditForm({ title: img.title ?? '', description: img.description ?? '', categoryId: img.categoryId ?? '', focalPoint: img.focalPoint ?? 'center center' }) }}
                             className="btn-row-action text-ink-muted hover:text-gold">✏️</button>
                           <button onClick={() => toggleActive(img)}
-                            className={`btn-row-action ${img.isActive ? 'text-ink-muted hover:text-red-500' : 'text-green-600 hover:text-green-700'}`}>
+                            className={`btn-row-action ${img.isActive ? 'text-ink-muted hover:text-red-700' : 'text-green-600 hover:text-green-700'}`}>
                             {img.isActive ? '👁' : '✓'}
                           </button>
                           <button onClick={() => deleteImage(img)}
-                            className="btn-row-action text-ink-muted hover:text-red-500 border-l border-beige-dark pl-3 ml-1">🗑</button>
+                            className="btn-row-action text-ink-muted hover:text-red-700 border-l border-beige-dark pl-3 ml-1">🗑</button>
                         </div>
                       </div>
                   </>

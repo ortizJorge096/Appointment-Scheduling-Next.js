@@ -202,7 +202,7 @@ export default function CategoriesManager({
                     {cat.isActive ? 'Desactivar' : 'Activar'}
                   </button>
                   <button onClick={() => handleDelete(cat)}
-                    className={`btn-row-action text-xs ${cat._count.services > 0 ? 'text-gray-300 cursor-not-allowed' : 'text-ink-muted hover:text-red-500'}`}
+                    className={`btn-row-action text-xs ${cat._count.services > 0 ? 'text-gray-300 cursor-not-allowed' : 'text-ink-muted hover:text-red-700'}`}
                     title={cat._count.services > 0 ? 'Tiene servicios asociados' : 'Eliminar'}>
                     Eliminar
                   </button>

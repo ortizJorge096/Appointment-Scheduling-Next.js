@@ -81,7 +81,7 @@ export function ConfirmDialogProvider({ children }: { children: React.ReactNode 
                 autoFocus
                 className={
                   options.danger
-                    ? 'flex-1 rounded-full px-6 py-2.5 text-xs tracking-widest uppercase font-medium border border-red-300 text-red-500 hover:bg-red-50 transition-colors'
+                    ? 'flex-1 rounded-full px-6 py-2.5 text-xs tracking-widest uppercase font-medium border border-red-300 text-red-700 hover:bg-red-50 transition-colors'
                     : 'btn-primary flex-1 text-sm'
                 }
               >

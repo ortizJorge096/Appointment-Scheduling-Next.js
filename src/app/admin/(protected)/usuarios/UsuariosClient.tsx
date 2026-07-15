@@ -124,7 +124,7 @@ export default function UsuariosClient({
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-3 py-2 rounded-lg mb-4">{error}</div>
+        <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2 rounded-lg mb-4">{error}</div>
       )}
 
       {/* Desktop: table (hidden on mobile — the action table is unusable at <640px) */}
@@ -167,7 +167,7 @@ export default function UsuariosClient({
                       <button onClick={() => toggleActive(u)} className="text-xs text-ink-muted hover:text-gold transition-colors ml-3">
                         {u.isActive ? 'Desactivar' : 'Activar'}
                       </button>
-                      <button onClick={() => remove(u)} className="text-xs text-ink-muted hover:text-red-500 transition-colors ml-3">Eliminar</button>
+                      <button onClick={() => remove(u)} className="text-xs text-ink-muted hover:text-red-700 transition-colors ml-3">Eliminar</button>
                     </>
                   )}
                 </td>
@@ -206,7 +206,7 @@ export default function UsuariosClient({
                       {u.isActive ? 'Desactivar' : 'Activar'}
                     </button>
                     <button onClick={() => remove(u)}
-                      className="min-h-11 px-3 rounded-lg border border-red-200 text-sm text-red-500">Eliminar</button>
+                      className="min-h-11 px-3 rounded-lg border border-red-200 text-sm text-red-700">Eliminar</button>
                   </>
                 )}
               </div>
@@ -270,7 +270,7 @@ export default function UsuariosClient({
                 </div>
               )}
 
-              {error && <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-3 py-2 rounded-lg">{error}</div>}
+              {error && <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2 rounded-lg">{error}</div>}
 
               <div className="flex gap-3 pt-1">
                 <button type="button" onClick={() => setModal(null)} className="btn-secondary flex-1">Cancelar</button>

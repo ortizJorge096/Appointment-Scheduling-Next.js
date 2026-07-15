@@ -36,13 +36,13 @@ const PAYMENT_METHOD_OPTS = (['EFECTIVO', 'TRANSFERENCIA', 'TARJETA', 'NEQUI', '
 const ACTIONS: Record<string, { label: string; status: AppointmentStatus; style: string }[]> = {
   PENDING: [
     { label: 'Confirmar',  status: 'CONFIRMED', style: 'btn-primary' },
-    { label: 'Cancelar',   status: 'CANCELLED', style: 'border border-red-300 text-red-500 px-6 py-3 sm:py-2.5 text-xs tracking-widest uppercase hover:bg-red-50 transition-colors' },
+    { label: 'Cancelar',   status: 'CANCELLED', style: 'border border-red-300 text-red-700 px-6 py-3 sm:py-2.5 text-xs tracking-widest uppercase hover:bg-red-50 transition-colors' },
   ],
   // No "Completar" here — registering the payment completes the appointment
   // (see the payment form). Completing without charge = pay $0 + "Cortesía".
   CONFIRMED: [
     { label: 'No asistió', status: 'NO_SHOW',   style: 'border border-gray-300 text-gray-500 px-6 py-3 sm:py-2.5 text-xs tracking-widest uppercase hover:bg-gray-50 transition-colors' },
-    { label: 'Cancelar',   status: 'CANCELLED', style: 'border border-red-300 text-red-500 px-6 py-3 sm:py-2.5 text-xs tracking-widest uppercase hover:bg-red-50 transition-colors' },
+    { label: 'Cancelar',   status: 'CANCELLED', style: 'border border-red-300 text-red-700 px-6 py-3 sm:py-2.5 text-xs tracking-widest uppercase hover:bg-red-50 transition-colors' },
   ],
   COMPLETED: [],
   CANCELLED: [],
@@ -296,7 +296,7 @@ export default function CitaDetailPage() {
 
   if (error || !appt) return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto">
-      <p className="text-red-500 mb-4">{error ?? 'Error'}</p>
+      <p className="text-red-700 mb-4">{error ?? 'Error'}</p>
       <Link href="/admin/citas" className="btn-secondary">← Volver</Link>
     </div>
   )
@@ -381,7 +381,7 @@ export default function CitaDetailPage() {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 mb-6">
+        <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 mb-6">
           {error}
         </div>
       )}
@@ -639,7 +639,7 @@ export default function CitaDetailPage() {
                     <input type="number" min={0} value={ex.amount} onChange={(e) => setLineExtra(sv.id, i, { amount: e.target.value })}
                       placeholder="$ valor" className="input-field w-[110px] text-sm" />
                     <button type="button" onClick={() => removeLineExtra(sv.id, i)} aria-label="Eliminar adicional"
-                      className="text-ink-muted hover:text-red-500 px-1.5 text-lg leading-none">×</button>
+                      className="text-ink-muted hover:text-red-700 px-1.5 text-lg leading-none">×</button>
                   </div>
                 ))}
                 <button type="button" onClick={() => addLineExtra(sv.id)} className="text-xs text-gold hover:underline mt-2">+ Adicional a este servicio</button>
@@ -667,7 +667,7 @@ export default function CitaDetailPage() {
               <input value={discMotivo} onChange={(e) => setDiscMotivo(e.target.value)}
                 placeholder="Motivo (opcional)" className="input-field flex-1 min-w-[120px]" />
             </div>
-            {orderDiscountTooBig && <p className="text-xs text-red-500 mt-1">El descuento no puede superar el subtotal.</p>}
+            {orderDiscountTooBig && <p className="text-xs text-red-700 mt-1">El descuento no puede superar el subtotal.</p>}
           </div>
         )}
 
