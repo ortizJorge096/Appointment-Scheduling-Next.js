@@ -192,7 +192,7 @@ export default function Galeria() {
                 <button
                   type="button"
                   onClick={() => setVisible((v) => v + PAGE_SIZE)}
-                  className="inline-flex items-center px-6 py-2.5 rounded-full border border-gold text-gold-dark
+                  className="inline-flex items-center px-6 py-2.5 rounded-full border border-gold-deep text-gold-deep
                              text-xs tracking-widest uppercase hover:bg-gold hover:text-ink transition-colors"
                 >
                   Ver más
