@@ -29,6 +29,7 @@ interface ModalProps {
 export function Modal({ open, onClose, title, label, maxWidth = 'max-w-md', children }: ModalProps) {
   const titleId  = useId()
   const panelRef = useRef<HTMLDivElement>(null)
+  const closeRef = useRef<HTMLButtonElement>(null)
   const restore  = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
@@ -40,8 +41,12 @@ export function Modal({ open, onClose, title, label, maxWidth = 'max-w-md', chil
       Array.from(panelRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? [])
         .filter((el) => el.offsetParent !== null)
 
-    const first = focusables()[0]
-    if (first) first.focus()
+    // Land on the first real control, not the header's close button: × comes
+    // first in the DOM, and opening a form onto "exit" is a poor entry point.
+    // It stays in the tab order — this only picks where focus starts.
+    const list = focusables()
+    const entry = list.find((el) => el !== closeRef.current) ?? list[0]
+    if (entry) entry.focus()
     else panelRef.current?.focus()
 
     const onKey = (e: KeyboardEvent) => {
@@ -87,7 +92,7 @@ export function Modal({ open, onClose, title, label, maxWidth = 'max-w-md', chil
         {title && (
           <div className="flex items-center justify-between px-6 py-4 border-b border-beige-dark">
             <h2 id={titleId} className="font-serif text-xl text-ink">{title}</h2>
-            <button type="button" onClick={onClose} aria-label="Cerrar"
+            <button ref={closeRef} type="button" onClick={onClose} aria-label="Cerrar"
               className="text-ink-muted-deep hover:text-ink text-xl leading-none p-2 -m-2">×</button>
           </div>
         )}
