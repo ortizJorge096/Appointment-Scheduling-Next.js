@@ -13,6 +13,11 @@ export const PAYMENT_STATUS_LABEL: Record<string, string> = {
   PENDING: 'Sin pago', PAID: 'Pagado', PARTIAL: 'Parcial', WAIVED: 'Cortesía',
 }
 
+// Text color per payment status (for the <PaymentBadge> / inline labels).
+export const PAYMENT_STATUS_CLASS: Record<string, string> = {
+  PENDING: 'text-orange-600', PAID: 'text-green-600', PARTIAL: 'text-blue-600', WAIVED: 'text-purple-600',
+}
+
 // Appointment.paymentMethod — the enum values are already Spanish; this only
 // prettifies the casing and covers the synthetic 'SIN_REGISTRAR' bucket used by
 // the accounting breakdown.

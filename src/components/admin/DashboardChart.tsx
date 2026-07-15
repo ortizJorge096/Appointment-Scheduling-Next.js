@@ -48,7 +48,7 @@ export function DashboardChart({ days, periodDays, prevCount, prevRevenue }: Pro
           <p className="text-xs mt-0.5">
             <b className="font-serif text-gold-dark text-base">{totalLabel}</b>
             {pct !== null && (
-              <span className={`ml-2 ${pct >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+              <span className={`ml-2 ${pct >= 0 ? 'text-green-600' : 'text-red-700'}`}>
                 {pct >= 0 ? '↑' : '↓'} {Math.abs(pct)}% <span className="text-ink-muted">vs. período anterior</span>
               </span>
             )}

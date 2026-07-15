@@ -9,7 +9,9 @@ import { es } from 'date-fns/locale'
 import { StatCard } from '@/components/ui/Card'
 import { DashboardChart } from '@/components/admin/DashboardChart'
 import { formatPrice } from '@/lib/utils'
-import { STATUS_LABEL, STATUS_CLASS } from '@/lib/appointmentStatus'
+import { STATUS_LABEL } from '@/lib/appointmentStatus'
+import { StatusBadge } from '@/components/ui/StatusBadge'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 export const metadata: Metadata = { title: 'Dashboard' }
 export const dynamic = 'force-dynamic'
@@ -40,7 +42,7 @@ function Trend({ current, previous, label, invert = false }: { current: number; 
   const pct   = Math.round(((current - previous) / previous) * 100)
   const dir   = pct > 0 ? 'up' : pct < 0 ? 'down' : 'flat'
   const good  = dir === 'flat' ? null : invert ? dir === 'down' : dir === 'up'
-  const color = good === null ? 'text-ink-muted' : good ? 'text-green-600' : 'text-red-500'
+  const color = good === null ? 'text-ink-muted' : good ? 'text-green-600' : 'text-red-700'
   const arrow = dir === 'up' ? '↑' : dir === 'down' ? '↓' : '→'
   return <span className={color}>{arrow} {Math.abs(pct)}% <span className="text-ink-muted">{label}</span></span>
 }
@@ -146,12 +148,7 @@ export default async function DashboardPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
       {/* Header */}
-      <div className="mb-8">
-        <p className="text-xs text-ink-muted tracking-widest uppercase mb-1">
-          {format(now, "EEEE d 'de' MMMM", { locale: es })}
-        </p>
-        <h1 className="font-serif text-2xl sm:text-3xl text-ink font-light">Dashboard</h1>
-      </div>
+      <PageHeader className="mb-8" eyebrow={format(now, "EEEE d 'de' MMMM", { locale: es })} title="Dashboard" />
 
       {/* Stats — business metrics with period-over-period context */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
@@ -239,7 +236,7 @@ export default async function DashboardPage() {
                         : appt.service.price
                     )}
                   </p>
-                  <span className={STATUS_CLASS[appt.status]}>{STATUS_LABEL[appt.status]}</span>
+                  <StatusBadge status={appt.status} />
                   <span className="text-gold-light group-hover:text-gold transition-colors text-lg">›</span>
                 </div>
               </Link>

@@ -58,14 +58,14 @@ function BeneficiosSection() {
         <div className="text-center mb-14">
           <span className="eyebrow-center">Por qué elegirnos</span>
           <h2 className="text-4xl lg:text-5xl font-serif font-light text-ink mt-5">
-            Lujo accesible, sin <em className="text-gold italic">compromisos</em>
+            Lujo accesible, sin <em className="text-gold-dark italic">compromisos</em>
           </h2>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {items.map((b) => (
             <div key={b.title} className="card-premium p-7 text-center">
               <div className="flex justify-center mb-4">
-                <span className="svc-icon-ring w-14 h-14 text-2xl">{b.icon}</span>
+                <span aria-hidden="true" className="svc-icon-ring w-14 h-14 text-2xl">{b.icon}</span>
               </div>
               <h3 className="font-serif text-xl text-ink mb-2">{b.title}</h3>
               <p className="text-sm text-ink-muted leading-relaxed">{b.text}</p>
@@ -85,7 +85,7 @@ function NosotrosSection() {
           <div>
             <span className="section-tag mb-6">Quiénes somos</span>
             <h2 className="text-4xl lg:text-5xl font-serif font-light text-ink mb-6">
-              Pasión por<br />realzar tu <em className="text-gold italic">belleza</em>
+              Pasión por<br />realzar tu <em className="text-gold-dark italic">belleza</em>
             </h2>
             <p className="text-ink-muted text-base leading-relaxed mb-4">
               {STUDIO.name} es un espacio pensado para ti, nació de un sueño sencillo pero
@@ -120,9 +120,9 @@ function ContactoSection() {
         <div className="text-center mb-14">
           <span className="section-tag justify-center mb-6">Contáctanos</span>
           <h2 className="text-4xl lg:text-5xl font-serif font-light text-ink mb-4">
-            ¿Tienes <em className="text-gold italic">preguntas</em>?
+            ¿Tienes <em className="text-gold-dark italic">preguntas</em>?
           </h2>
-          <p className="text-ink-muted text-base leading-relaxed max-w-md mx-auto">
+          <p className="text-ink-muted-deep text-base leading-relaxed max-w-md mx-auto">
             Escríbenos por WhatsApp o al correo. Con gusto te asesoramos.
           </p>
         </div>
@@ -134,21 +134,21 @@ function ContactoSection() {
               target="_blank" rel="noreferrer"
               className="group flex gap-4 py-4 border-b border-beige-deeper items-start"
             >
-              <PinIcon className="text-gold w-5 h-5 shrink-0 mt-1" />
+              <PinIcon className="text-gold-deep w-5 h-5 shrink-0 mt-1" />
               <div className="min-w-0">
-                <p className="text-xs text-gold tracking-widest uppercase mb-1">Dirección</p>
-                <p className="text-[15px] text-ink group-hover:text-gold transition-colors">{STUDIO.address}</p>
+                <p className="text-xs text-gold-deep tracking-widest uppercase mb-1">Dirección</p>
+                <p className="text-[15px] text-ink group-hover:text-gold-deep transition-colors">{STUDIO.address}</p>
               </div>
             </a>
 
             <div className="flex gap-4 py-4 border-b border-beige-deeper items-start">
-              <ClockIcon className="text-gold w-5 h-5 shrink-0 mt-1" />
+              <ClockIcon className="text-gold-deep w-5 h-5 shrink-0 mt-1" />
               <div className="min-w-0">
-                <p className="text-xs text-gold tracking-widest uppercase mb-1">Horario</p>
+                <p className="text-xs text-gold-deep tracking-widest uppercase mb-1">Horario</p>
                 <p className="text-[15px] text-ink">{STUDIO.hours}</p>
                 <p className="text-sm text-ink-muted mt-0.5">
                   {STUDIO.hoursWeekend}:{' '}
-                  <a href={WHATSAPP_URL} target="_blank" rel="noreferrer" className="text-gold hover:underline">
+                  <a href={WHATSAPP_URL} target="_blank" rel="noreferrer" className="text-gold-deep hover:underline">
                     por WhatsApp
                   </a>
                 </p>
@@ -157,19 +157,19 @@ function ContactoSection() {
 
             <a href={WHATSAPP_URL} target="_blank" rel="noreferrer"
               className="group flex gap-4 py-4 border-b border-beige-deeper items-start">
-              <PhoneIcon className="text-gold w-5 h-5 shrink-0 mt-1" />
+              <PhoneIcon className="text-gold-deep w-5 h-5 shrink-0 mt-1" />
               <div className="min-w-0">
-                <p className="text-xs text-gold tracking-widest uppercase mb-1">WhatsApp</p>
-                <p className="text-[15px] text-ink group-hover:text-gold transition-colors">{STUDIO.phone}</p>
+                <p className="text-xs text-gold-deep tracking-widest uppercase mb-1">WhatsApp</p>
+                <p className="text-[15px] text-ink group-hover:text-gold-deep transition-colors">{STUDIO.phone}</p>
               </div>
             </a>
 
             <a href={MAILTO_URL} target="_blank" rel="noreferrer"
               className="group flex gap-4 py-4 border-b border-beige-deeper items-start">
-              <MailIcon className="text-gold w-5 h-5 shrink-0 mt-1" />
+              <MailIcon className="text-gold-deep w-5 h-5 shrink-0 mt-1" />
               <div className="min-w-0">
-                <p className="text-xs text-gold tracking-widest uppercase mb-1">Email</p>
-                <p className="text-[15px] text-ink break-all group-hover:text-gold transition-colors">{STUDIO.email}</p>
+                <p className="text-xs text-gold-deep tracking-widest uppercase mb-1">Email</p>
+                <p className="text-[15px] text-ink break-all group-hover:text-gold-deep transition-colors">{STUDIO.email}</p>
               </div>
             </a>
           </div>
@@ -186,7 +186,7 @@ function ContactoSection() {
               />
             </div>
             <div className="flex justify-center mt-4">
-              <a href={mapsUrl} target="_blank" rel="noreferrer" className="btn-outline-gold">
+              <a href={mapsUrl} target="_blank" rel="noreferrer" className="btn-outline-gold-on-light">
                 Cómo llegar
               </a>
             </div>

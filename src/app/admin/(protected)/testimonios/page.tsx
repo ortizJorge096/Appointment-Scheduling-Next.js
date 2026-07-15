@@ -240,7 +240,7 @@ export default function TestimoniosPage() {
         ))}
       </div>
 
-      {error   && <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 mb-5">{error}</div>}
+      {error   && <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 mb-5">{error}</div>}
       {success && <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 mb-5">✓ {success}</div>}
 
       {/* Form */}
@@ -297,7 +297,7 @@ export default function TestimoniosPage() {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={form.imageUrl} alt="" className="w-16 h-16 object-cover rounded-lg border border-beige-dark" />
                   <button type="button" onClick={() => setForm({ ...form, imageUrl: null, imageKey: null })}
-                    className="text-xs text-ink-muted hover:text-red-500">Quitar imagen</button>
+                    className="text-xs text-ink-muted hover:text-red-700">Quitar imagen</button>
                 </div>
               ) : (
                 <label className={`btn-secondary text-sm cursor-pointer inline-block ${uploading ? 'opacity-60 pointer-events-none' : ''}`}>
@@ -357,7 +357,7 @@ export default function TestimoniosPage() {
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
                       <button onClick={() => approve(t)} className="btn-row-action text-xs text-green-600 hover:text-green-700">Aprobar</button>
-                      <button onClick={() => reject(t)} className="btn-row-action text-xs text-ink-muted hover:text-red-500">Rechazar</button>
+                      <button onClick={() => reject(t)} className="btn-row-action text-xs text-ink-muted hover:text-red-700">Rechazar</button>
                       <button onClick={() => openEdit(t)} className="btn-row-action text-xs text-ink-muted hover:text-gold">Editar</button>
                     </div>
                   </div>
@@ -399,7 +399,7 @@ export default function TestimoniosPage() {
                     className={`btn-row-action text-xs ${t.isActive ? 'text-ink-muted hover:text-amber-600' : 'text-green-600 hover:text-green-700'}`}>
                     {t.isActive ? 'Desactivar' : 'Activar'}
                   </button>
-                  <button onClick={() => handleDelete(t)} className="btn-row-action text-xs text-ink-muted hover:text-red-500">Eliminar</button>
+                  <button onClick={() => handleDelete(t)} className="btn-row-action text-xs text-ink-muted hover:text-red-700">Eliminar</button>
                 </div>
               </div>
             ))}

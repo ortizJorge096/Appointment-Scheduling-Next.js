@@ -89,7 +89,7 @@ export default function VipDiscountConfigCard() {
         </label>
       </div>
 
-      {error   && <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 mb-4">{error}</div>}
+      {error   && <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 mb-4">{error}</div>}
       {success && <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 mb-4">✓ {success}</div>}
 
       <div className="space-y-2 mb-4">
@@ -116,7 +116,7 @@ export default function VipDiscountConfigCard() {
               <span className="hidden sm:inline">% de descuento</span>
             </span>
             <button onClick={() => removeTier(i)}
-              className="btn-row-action ml-auto text-xs text-ink-muted hover:text-red-500">
+              className="btn-row-action ml-auto text-xs text-ink-muted hover:text-red-700">
               Eliminar
             </button>
           </div>

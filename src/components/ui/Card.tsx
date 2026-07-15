@@ -11,7 +11,7 @@ const paddings = { sm: 'p-4', md: 'p-6', lg: 'p-8 lg:p-10' }
 
 export function Card({ children, className, padding = 'md' }: CardProps) {
   return (
-    <div className={cn('bg-white border border-beige-dark rounded-2xl shadow-sm', paddings[padding], className)}>
+    <div className={cn('bg-white border border-beige-dark rounded-xl shadow-sm', paddings[padding], className)}>
       {children}
     </div>
   )
@@ -20,7 +20,7 @@ export function Card({ children, className, padding = 'md' }: CardProps) {
 // Dark card for sections on dark background
 export function DarkCard({ children, className }: Omit<CardProps, 'padding'>) {
   return (
-    <div className={cn('bg-white/[0.04] border border-white/10 rounded-2xl p-6', className)}>
+    <div className={cn('bg-white/[0.04] border border-white/10 rounded-xl p-6', className)}>
       {children}
     </div>
   )

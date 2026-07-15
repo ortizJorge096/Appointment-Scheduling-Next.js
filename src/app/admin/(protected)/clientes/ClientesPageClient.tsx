@@ -3,22 +3,23 @@
 // useSearchParams() requires this to be split out and wrapped in <Suspense> by page.tsx
 
 import { useState, useEffect, useCallback } from 'react'
-import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import type { ClientSummary } from '@/types'
 import { Pagination } from '@/components/admin/Pagination'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { Modal } from '@/components/ui/Modal'
+import { useUrlFilters } from '@/hooks/useUrlFilters'
 import { isValidPhone } from '@/lib/utils'
 
 const EMPTY_FORM = { name: '', email: '', phone: '', notes: '' }
 type FieldErrors = Partial<Record<'name' | 'email' | 'phone', string>>
 
 export default function ClientesPageClient() {
-  const router       = useRouter()
-  const pathname     = usePathname()
-  const searchParams = useSearchParams()
+  const { searchParams, setParams } = useUrlFilters()
 
   // The URL is the source of truth for page/search — survives refresh and
-  // back/forward navigation. `replace` (not `push`) avoids spamming history.
+  // back/forward navigation.
   const page     = Math.max(1, parseInt(searchParams.get('page') ?? '1'))
   const query    = searchParams.get('search') ?? ''
   const archived = searchParams.get('archived') === '1'
@@ -34,16 +35,6 @@ export default function ClientesPageClient() {
   const [saving, setSaving]         = useState(false)
   const [formError, setFormError]   = useState('')
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
-
-  const setParams = useCallback((updates: Record<string, string | null>) => {
-    const params = new URLSearchParams(searchParams.toString())
-    for (const [key, value] of Object.entries(updates)) {
-      if (value) params.set(key, value)
-      else params.delete(key)
-    }
-    const qs = params.toString()
-    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
-  }, [router, pathname, searchParams])
 
   // Keep the input in sync if the URL changes externally (e.g. back button)
   useEffect(() => { setSearchInput(query) }, [query])
@@ -128,20 +119,18 @@ export default function ClientesPageClient() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4 mb-6">
-        <div>
-          <p className="text-xs text-ink-muted tracking-widest uppercase mb-1">Configuración</p>
-          <h1 className="font-serif text-2xl sm:text-3xl text-ink font-light">Clientes</h1>
-          <p className="text-sm text-ink-muted mt-0.5">
-            {total} cliente{total !== 1 ? 's' : ''} {archived ? `archivado${total !== 1 ? 's' : ''}` : `registrado${total !== 1 ? 's' : ''}`}
-          </p>
-        </div>
-        <button onClick={() => { setForm(EMPTY_FORM); setFormError(''); setFieldErrors({}); setShowCreate(true) }}
-          className="btn-primary text-sm">
-          + Nuevo
-        </button>
-      </div>
+      <PageHeader
+        className="mb-6"
+        eyebrow="Configuración"
+        title="Clientes"
+        subtitle={`${total} cliente${total !== 1 ? 's' : ''} ${archived ? `archivado${total !== 1 ? 's' : ''}` : `registrado${total !== 1 ? 's' : ''}`}`}
+        actions={
+          <button onClick={() => { setForm(EMPTY_FORM); setFormError(''); setFieldErrors({}); setShowCreate(true) }}
+            className="btn-primary text-sm">
+            + Nuevo
+          </button>
+        }
+      />
 
       {/* Search + archived toggle */}
       <div className="mb-4 flex flex-col sm:flex-row sm:items-center gap-3">
@@ -174,20 +163,18 @@ export default function ClientesPageClient() {
         {loading ? (
           <div className="py-16 text-center text-ink-muted text-sm">Cargando…</div>
         ) : clients.length === 0 ? (
-          <div className="py-16 px-6 text-center">
-            <div className="text-3xl opacity-40 mb-2">◉</div>
-            <p className="text-ink-muted text-sm">
-              {query ? 'Sin resultados para esa búsqueda.'
-                : archived ? 'No hay clientes archivados.'
-                : 'Aún no hay clientes registrados.'}
-            </p>
-            {!query && !archived && (
+          <EmptyState
+            icon="◉"
+            title={query ? 'Sin resultados para esa búsqueda.'
+              : archived ? 'No hay clientes archivados.'
+              : 'Aún no hay clientes registrados.'}
+            action={!query && !archived ? (
               <button onClick={() => { setForm(EMPTY_FORM); setFormError(''); setFieldErrors({}); setShowCreate(true) }}
-                className="btn-primary text-sm mt-4">
+                className="btn-primary text-sm">
                 + Crear el primero
               </button>
-            )}
-          </div>
+            ) : undefined}
+          />
         ) : (
           <>
             <table className="w-full text-sm hidden md:table">
@@ -250,22 +237,15 @@ export default function ClientesPageClient() {
       <Pagination page={page} totalPages={totalPages} onPage={(p) => setParams({ page: String(p) })} />
 
       {/* Create-client modal */}
-      {showCreate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/40 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-beige-dark">
-              <h2 className="font-serif text-xl text-ink">Nuevo cliente</h2>
-              <button onClick={() => setShowCreate(false)}
-                className="text-ink-muted hover:text-ink text-xl leading-none">×</button>
-            </div>
+      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Nuevo cliente">
             <form onSubmit={createClient} noValidate className="px-6 py-5 space-y-4">
               <div>
-                <label className="form-label">Nombre completo <span className="text-red-500">*</span></label>
+                <label className="form-label">Nombre completo <span className="text-red-700">*</span></label>
                 <input id="new-client-name" value={form.name}
                   onChange={e => { setForm(f => ({ ...f, name: e.target.value })); if (fieldErrors.name) setFieldErrors(x => ({ ...x, name: undefined })) }}
                   placeholder="Ana García"
                   className={`input-field w-full ${fieldErrors.name ? 'border-red-400 focus:ring-red-300' : ''}`} />
-                {fieldErrors.name && <p className="text-xs text-red-500 mt-0.5">{fieldErrors.name}</p>}
+                {fieldErrors.name && <p className="text-xs text-red-700 mt-0.5">{fieldErrors.name}</p>}
               </div>
               <div>
                 <label className="form-label">Email <span className="text-ink-muted/60 normal-case font-normal tracking-normal">(opcional)</span></label>
@@ -273,15 +253,15 @@ export default function ClientesPageClient() {
                   onChange={e => { setForm(f => ({ ...f, email: e.target.value })); if (fieldErrors.email) setFieldErrors(x => ({ ...x, email: undefined })) }}
                   placeholder="ana@ejemplo.com"
                   className={`input-field w-full ${fieldErrors.email ? 'border-red-400 focus:ring-red-300' : ''}`} />
-                {fieldErrors.email && <p className="text-xs text-red-500 mt-0.5">{fieldErrors.email}</p>}
+                {fieldErrors.email && <p className="text-xs text-red-700 mt-0.5">{fieldErrors.email}</p>}
               </div>
               <div>
-                <label className="form-label">Teléfono <span className="text-red-500">*</span></label>
+                <label className="form-label">Teléfono <span className="text-red-700">*</span></label>
                 <input id="new-client-phone" value={form.phone}
                   onChange={e => { setForm(f => ({ ...f, phone: e.target.value })); if (fieldErrors.phone) setFieldErrors(x => ({ ...x, phone: undefined })) }}
                   placeholder="3001234567"
                   className={`input-field w-full ${fieldErrors.phone ? 'border-red-400 focus:ring-red-300' : ''}`} />
-                {fieldErrors.phone && <p className="text-xs text-red-500 mt-0.5">{fieldErrors.phone}</p>}
+                {fieldErrors.phone && <p className="text-xs text-red-700 mt-0.5">{fieldErrors.phone}</p>}
               </div>
               <div>
                 <label className="form-label">Notas internas</label>
@@ -290,7 +270,7 @@ export default function ClientesPageClient() {
               </div>
 
               {formError && (
-                <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-3 py-2 rounded-lg">
+                <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2 rounded-lg">
                   {formError}
                 </div>
               )}
@@ -304,9 +284,7 @@ export default function ClientesPageClient() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+      </Modal>
     </div>
   )
 }

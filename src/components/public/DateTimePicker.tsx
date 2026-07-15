@@ -205,7 +205,7 @@ export default function DateTimePicker({
             <button type="button" onClick={() => changeMonth(-1)} disabled={!canPrev || disabled}
               aria-label="Mes anterior"
               className="w-11 h-11 flex items-center justify-center rounded-lg text-ink-muted
-                         hover:text-gold hover:bg-beige/60 transition-colors
+                         hover:text-gold-deep hover:bg-beige/60 transition-colors
                          disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent">
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
                 strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
@@ -214,7 +214,7 @@ export default function DateTimePicker({
             <button type="button" onClick={() => changeMonth(1)} disabled={!canNext || disabled}
               aria-label="Mes siguiente"
               className="w-11 h-11 flex items-center justify-center rounded-lg text-ink-muted
-                         hover:text-gold hover:bg-beige/60 transition-colors
+                         hover:text-gold-deep hover:bg-beige/60 transition-colors
                          disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent">
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
                 strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
@@ -224,7 +224,7 @@ export default function DateTimePicker({
           {/* Weekday labels */}
           <div className="grid grid-cols-7 gap-1 mb-1">
             {WEEKDAYS.map((w) => (
-              <div key={w} className="text-center text-[10px] tracking-widest uppercase text-gold py-1">
+              <div key={w} className="text-center text-[10px] tracking-widest uppercase text-gold-deep py-1">
                 {w}
               </div>
             ))}
@@ -249,13 +249,13 @@ export default function DateTimePicker({
               if (!inMonth) {
                 cls = 'text-ink-muted/25 cursor-default'
               } else if (isSelected) {
-                cls = 'bg-gold text-white font-medium'
+                cls = 'bg-gold text-ink font-medium'
               } else if (isTodayCell) {
-                cls = `border border-gold text-gold font-medium ${
+                cls = `border border-gold text-gold-deep font-medium ${
                   selectable ? 'bg-white hover:bg-gold-pale cursor-pointer' : 'cursor-not-allowed'
                 }`
               } else if (selectable) {
-                cls = 'bg-white border border-beige-dark text-ink hover:bg-beige hover:border-gold hover:text-gold cursor-pointer'
+                cls = 'bg-white border border-beige-dark text-ink hover:bg-beige hover:border-gold hover:text-gold-deep cursor-pointer'
               } else {
                 cls = `text-ink-muted/30 ${past ? 'cursor-default' : 'cursor-not-allowed'}`
               }
@@ -292,13 +292,13 @@ export default function DateTimePicker({
           )}
         </label>
 
-        {error && !autoPicking && <p className="text-sm text-red-500 mb-3">{error}</p>}
+        {error && !autoPicking && <p className="text-sm text-red-700 mb-3">{error}</p>}
 
         {/* No availability in the next 30 days → friendly WhatsApp message */}
         {!autoPicking && !loading && noUpcoming && (
           <div className="bg-beige/40 border border-beige-dark rounded-xl px-4 py-4 text-sm text-ink-muted">
             En este momento no tenemos disponibilidad próxima.{' '}
-            <WhatsAppLink className="text-gold hover:underline font-medium">
+            <WhatsAppLink className="text-gold-deep hover:underline font-medium">
               Escríbenos por WhatsApp
             </WhatsAppLink>{' '}y te ayudamos.
           </div>
@@ -322,8 +322,8 @@ export default function DateTimePicker({
                   onClick={() => onTimeChange(slot.startTime)}
                   className={`py-3 text-sm rounded-xl border transition-all duration-150 disabled:cursor-not-allowed
                     ${isSelected
-                      ? 'bg-gold border-gold text-white font-semibold'
-                      : 'bg-white border-beige-dark text-ink-muted hover:border-gold hover:text-gold'}`}>
+                      ? 'bg-gold border-gold text-ink font-semibold'
+                      : 'bg-white border-beige-dark text-ink-muted hover:border-gold hover:text-gold-deep'}`}>
                   {slot.startTime}
                 </button>
               )
@@ -333,7 +333,7 @@ export default function DateTimePicker({
 
         {/* Open day but all time slots are taken */}
         {!loading && !autoPicking && !error && !noUpcoming && !isSelectedDayClosed && slots.length > 0 && availableSlots.length === 0 && (
-          <div className="flex items-center gap-2 bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-500">
+          <div className="flex items-center gap-2 bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-700">
             <span>⚠</span> Todos los horarios de este día están ocupados. Por favor elige otra fecha.
           </div>
         )}

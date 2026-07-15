@@ -374,7 +374,7 @@ export default function ManualAppointmentModal() {
     form.descuentoTipo === 'VALOR_FIJO' && (Number(form.descuentoValor) || 0) > orderBase
 
   const Err = ({ k }: { k: keyof typeof EMPTY }) =>
-    touched[k] && fieldErrors[k] ? <p className="text-xs text-red-500 mt-0.5">{fieldErrors[k]}</p> : null
+    touched[k] && fieldErrors[k] ? <p className="text-xs text-red-700 mt-0.5">{fieldErrors[k]}</p> : null
 
   // Roles without citas:crear (e.g. solo lectura) don't get the manual-booking entry point.
   if (!can('citas:crear')) return null
@@ -451,7 +451,7 @@ export default function ManualAppointmentModal() {
                 <div className="space-y-3">
                   <div>
                     <label className="form-label">
-                      Nombre completo <span className="text-red-500">*</span>
+                      Nombre completo <span className="text-red-700">*</span>
                     </label>
                     <input value={form.clientName} onChange={field('clientName')} onBlur={handleBlur('clientName')}
                       placeholder="Ana García"
@@ -472,7 +472,7 @@ export default function ManualAppointmentModal() {
                   </div>
                   <div>
                     <label className="form-label">
-                      Teléfono <span className="text-red-500">*</span>
+                      Teléfono <span className="text-red-700">*</span>
                     </label>
                     <input value={form.clientPhone} onChange={field('clientPhone')} onBlur={handleBlur('clientPhone')}
                       placeholder="3001234567"
@@ -490,7 +490,7 @@ export default function ManualAppointmentModal() {
                 <div className="space-y-3">
                   <div>
                     <label className="form-label">
-                      Servicio <span className="text-red-500">*</span>
+                      Servicio <span className="text-red-700">*</span>
                     </label>
                     {/* Selected services as removable chips */}
                     {selectedServices.length > 0 && (
@@ -536,7 +536,7 @@ export default function ManualAppointmentModal() {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="form-label">
-                        Fecha <span className="text-red-500">*</span>
+                        Fecha <span className="text-red-700">*</span>
                       </label>
                       <input type="date" value={form.date} onChange={field('date')} onBlur={handleBlur('date')}
                         aria-label="Fecha"
@@ -552,7 +552,7 @@ export default function ManualAppointmentModal() {
                     </div>
                     <div>
                       <label className="form-label">
-                        Hora <span className="text-red-500">*</span>
+                        Hora <span className="text-red-700">*</span>
                       </label>
                       <input type="time" value={form.startTime}
                         aria-label="Hora"
@@ -632,7 +632,7 @@ export default function ManualAppointmentModal() {
                                 <input type="number" min={0} value={ex.amount} onChange={(e) => setLineExtra(s.id, i, { amount: e.target.value })}
                                   placeholder="$ valor" className="input-field w-[110px] text-sm" />
                                 <button type="button" onClick={() => removeLineExtra(s.id, i)}
-                                  aria-label="Eliminar adicional" className="text-ink-muted hover:text-red-500 px-1.5 text-lg leading-none">×</button>
+                                  aria-label="Eliminar adicional" className="text-ink-muted hover:text-red-700 px-1.5 text-lg leading-none">×</button>
                               </div>
                             ))}
                             <button type="button" onClick={() => addLineExtra(s.id)}
@@ -662,7 +662,7 @@ export default function ManualAppointmentModal() {
                           <input value={form.descuentoMotivo} onChange={field('descuentoMotivo')}
                             placeholder="Motivo (opcional)" className="input-field flex-1 min-w-[120px]" />
                         </div>
-                        {orderDiscountTooBig && <p className="text-xs text-red-500 mt-1">El descuento no puede superar el subtotal.</p>}
+                        {orderDiscountTooBig && <p className="text-xs text-red-700 mt-1">El descuento no puede superar el subtotal.</p>}
                       </div>
                     )}
 
@@ -752,7 +752,7 @@ export default function ManualAppointmentModal() {
               )}
 
               {apiError && (
-                <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-3 py-2 rounded-lg">
+                <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2 rounded-lg">
                   {apiError}
                 </div>
               )}

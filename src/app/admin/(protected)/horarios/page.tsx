@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
 import { usePermissionGuard, useCan } from '@/components/admin/usePermissionGuard'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 const DAYS = [
   { key: 'MONDAY',    label: 'Lunes'     },
@@ -128,17 +129,14 @@ export default function HorariosPage() {
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
 
       {/* Header */}
-      <div className="mb-6 sm:mb-8">
-        <p className="text-xs text-ink-muted tracking-widest uppercase mb-1">Configuración</p>
-        <h1 className="font-serif text-2xl sm:text-3xl text-ink font-light">Horarios</h1>
-      </div>
+      <PageHeader className="mb-6 sm:mb-8" eyebrow="Configuración" title="Horarios" />
 
       {/* Flash message */}
       {message && (
         <div className={`text-sm px-4 py-3 mb-5 border ${
           message.type === 'ok'
             ? 'bg-green-50 border-green-200 text-green-700'
-            : 'bg-red-50 border-red-200 text-red-600'
+            : 'bg-red-50 border-red-200 text-red-700'
         }`}>
           {message.type === 'ok' ? '✓ ' : '✗ '}{message.text}
         </div>
@@ -282,7 +280,7 @@ export default function HorariosPage() {
                     {can('horarios:editar') && (
                     <button
                       onClick={() => removeBlockedDate(b.id)}
-                      className="btn-row-action text-xs text-red-400 hover:text-red-600 shrink-0"
+                      className="btn-row-action text-xs text-red-700 hover:text-red-800 shrink-0"
                     >
                       Desbloquear
                     </button>

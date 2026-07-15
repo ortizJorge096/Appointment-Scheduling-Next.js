@@ -4,17 +4,11 @@
 
 import { useState, useEffect, use } from 'react'
 import Link from 'next/link'
-import { STATUS_LABEL, STATUS_CLASS } from '@/lib/appointmentStatus'
-import { PAYMENT_STATUS_LABEL as PAYMENT_LABEL } from '@/lib/labels'
+import { StatusBadge, PaymentBadge } from '@/components/ui/StatusBadge'
 import type { AppointmentWithService } from '@/types'
 import { usePermissionGuard, useCan } from '@/components/admin/usePermissionGuard'
+import { formatPrice } from '@/lib/utils'
 
-const COP = (n: number) =>
-  new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n)
-const PAYMENT_COLOR: Record<string, string> = {
-  PENDING: 'text-orange-600', PAID: 'text-green-600',
-  PARTIAL: 'text-blue-600', WAIVED: 'text-purple-600',
-}
 
 interface ClientData {
   id: string; name: string; email: string | null; phone: string | null; notes: string | null
@@ -189,7 +183,7 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
                   placeholder="Email (opcional)" className="input-field w-full" />
                 <input value={infoForm.phone} onChange={e => setInfoForm(f => ({ ...f, phone: e.target.value }))}
                   placeholder="Teléfono / celular" className="input-field w-full" />
-                {infoErr && <p className="text-xs text-red-600">{infoErr}</p>}
+                {infoErr && <p className="text-xs text-red-700">{infoErr}</p>}
                 <div className="flex gap-2 pt-1">
                   <button type="submit" disabled={savingInfo} className="btn-primary text-xs py-1.5 px-4 disabled:opacity-50">
                     {savingInfo ? 'Guardando…' : 'Guardar'}
@@ -230,7 +224,7 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
               <p className="text-xs text-ink-muted">completadas</p>
             </div>
             <div>
-              <p className="text-2xl font-serif text-gold">{COP(totalSpent)}</p>
+              <p className="text-2xl font-serif text-gold">{formatPrice(totalSpent)}</p>
               <p className="text-xs text-ink-muted">total pagado</p>
             </div>
           </div>
@@ -276,9 +270,7 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
                       ? apt.services.map((s) => s.service.name).join(' + ')
                       : apt.service.name}
                   </p>
-                  <span className={STATUS_CLASS[apt.status]}>
-                    {STATUS_LABEL[apt.status]}
-                  </span>
+                  <StatusBadge status={apt.status} />
                 </div>
                 <p className="text-xs text-ink-muted mt-0.5">
                   {new Date(apt.date).toLocaleDateString('es-CO', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}
@@ -288,11 +280,9 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
               </div>
               <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
                 <div className="text-right">
-                  <p className={`text-sm font-medium ${PAYMENT_COLOR[apt.paymentStatus]}`}>
-                    {PAYMENT_LABEL[apt.paymentStatus]}
-                  </p>
+                  <PaymentBadge status={apt.paymentStatus} className="text-sm" />
                   <p className="text-xs text-ink-muted">
-                    {COP(apt.amountPaid ?? getTotalPrice(apt))}
+                    {formatPrice(apt.amountPaid ?? getTotalPrice(apt))}
                   </p>
                 </div>
                 <Link href={`/admin/citas/${apt.id}`}
@@ -327,7 +317,7 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
             <button onClick={remove}
               disabled={busy || client._count.appointments > 0}
               title={client._count.appointments > 0 ? 'Tiene citas registradas; archívalo en su lugar' : undefined}
-              className="text-sm px-4 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed">
+              className="text-sm px-4 py-2 rounded-lg border border-red-200 text-red-700 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed">
               Eliminar definitivamente
             </button>
           </div>
@@ -336,7 +326,7 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
               Tiene {client._count.appointments} cita{client._count.appointments !== 1 ? 's' : ''} registrada{client._count.appointments !== 1 ? 's' : ''}; no se puede eliminar. Archívalo para ocultarlo.
             </p>
           )}
-          {actionMsg && <p className="text-xs text-red-600 mt-2">{actionMsg}</p>}
+          {actionMsg && <p className="text-xs text-red-700 mt-2">{actionMsg}</p>}
         </div>
       )}
     </div>

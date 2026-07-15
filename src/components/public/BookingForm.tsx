@@ -557,12 +557,12 @@ export default function BookingForm() {
             <div key={s} className="flex items-center flex-1">
               <div className="flex flex-col items-center">
                 <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all
-                  ${isDone ? 'bg-gold border-gold text-white'
+                  ${isDone ? 'bg-gold border-gold text-ink'
                     : isActive ? 'bg-ink border-ink text-gold-light shadow-[0_0_0_5px_rgba(184,147,42,0.18)]'
                     : 'bg-white border-beige-dark text-ink-muted'}`}>
                   {isDone ? '✓' : i + 1}
                 </div>
-                <span className={`text-[11px] mt-1.5 font-semibold hidden sm:block ${isActive ? 'text-ink' : 'text-ink-muted'}`}>
+                <span className={`text-[11px] mt-1.5 font-semibold hidden sm:block ${isActive ? 'text-ink' : 'text-ink-muted-deep'}`}>
                   {STEP_LABELS[s]}
                 </span>
               </div>
@@ -583,7 +583,7 @@ export default function BookingForm() {
       )}
 
       {submitError && (
-        <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 mb-6">
+        <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 mb-6">
           <div className="flex items-start gap-3">
             <span className="mt-0.5">⚠</span>
             <span>{submitError}</span>
@@ -609,10 +609,10 @@ export default function BookingForm() {
         <div className="animate-fade-in">
           <div className="mb-6">
             <h2 className="font-serif text-2xl text-ink">¿Cómo te quieres consentir?</h2>
-            <p className="text-sm text-ink-muted mt-1">Elige la categoría que mejor describe tu servicio. <span className="text-red-500">*</span></p>
+            <p className="text-sm text-ink-muted mt-1">Elige la categoría que mejor describe tu servicio. <span className="text-red-700">*</span></p>
           </div>
           {stepError && (
-            <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 border border-red-200 px-4 py-3 mb-4">
+            <div className="flex items-center gap-2 text-red-700 text-sm bg-red-50 border border-red-200 px-4 py-3 mb-4">
               <span>⚠</span> {stepError}
             </div>
           )}
@@ -670,13 +670,13 @@ export default function BookingForm() {
                 {isVipCategory ? (
                   'Elige tus servicios'
                 ) : (
-                  <>Servicios de <em className="text-gold italic">{categoryName(form.category).toLowerCase()}</em></>
+                  <>Servicios de <em className="text-gold-dark italic">{categoryName(form.category).toLowerCase()}</em></>
                 )}
               </h2>
               {/* VIP shows all categories at once → "change category" doesn't apply. */}
               {!isVipCategory && (
                 <button type="button" onClick={() => selectCategory(form.category)}
-                  className="text-xs tracking-widest uppercase font-semibold text-gold-dark hover:text-gold
+                  className="text-xs tracking-widest uppercase font-semibold text-gold-dark hover:text-gold-deep
                              border border-gold/40 rounded-full px-3 py-1.5 transition-colors">
                   ← Cambiar categoría
                 </button>
@@ -686,11 +686,11 @@ export default function BookingForm() {
               {isVipCategory
                 ? 'Selecciona 2 o más servicios (de cualquier categoría) para activar el descuento VIP.'
                 : 'Selecciona uno de los servicios disponibles. '}
-              <span className="text-red-500">*</span>
+              <span className="text-red-700">*</span>
             </p>
           </div>
           {stepError && (
-            <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 border border-red-200 px-4 py-3">
+            <div className="flex items-center gap-2 text-red-700 text-sm bg-red-50 border border-red-200 px-4 py-3">
               <span>⚠</span> {stepError}
             </div>
           )}
@@ -725,7 +725,7 @@ export default function BookingForm() {
                             </div>
                           </div>
                           <div className="text-right ml-4 shrink-0">
-                            <p className="text-gold font-medium">{formatPrice(svc.price)}</p>
+                            <p className="text-gold-deep font-medium">{formatPrice(svc.price)}</p>
                             <p className="text-xs text-ink-muted">{svc.durationMinutes} min</p>
                           </div>
                         </div>
@@ -759,7 +759,7 @@ export default function BookingForm() {
                         </div>
                       </div>
                       <div className="text-right ml-4 shrink-0">
-                        <p className="text-gold font-medium">{formatPrice(svc.price)}</p>
+                        <p className="text-gold-deep font-medium">{formatPrice(svc.price)}</p>
                         <p className="text-xs text-ink-muted">{svc.durationMinutes} min</p>
                       </div>
                     </div>
@@ -777,7 +777,7 @@ export default function BookingForm() {
                   <div className="flex items-center gap-3">
                     <span className="text-gold-dark font-medium">{formatPrice(s.price)}</span>
                     <button type="button" onClick={() => toggleService(s.id)}
-                      className="text-ink-muted hover:text-red-500 transition-colors text-xs">
+                      className="text-ink-muted hover:text-red-700 transition-colors text-xs">
                       Quitar
                     </button>
                   </div>
@@ -856,7 +856,7 @@ export default function BookingForm() {
         <div className="animate-fade-in max-w-[480px] mx-auto">
           <div className="mb-6">
             <h2 className="font-serif text-2xl text-ink">Elige fecha y hora</h2>
-            <p className="text-sm text-ink-muted mt-1">Selecciona el día y un horario disponible. <span className="text-red-500">*</span></p>
+            <p className="text-sm text-ink-muted mt-1">Selecciona el día y un horario disponible. <span className="text-red-700">*</span></p>
           </div>
 
           {/* Service summary */}
@@ -872,7 +872,7 @@ export default function BookingForm() {
                 </p>
               </div>
               <button type="button" onClick={() => setStep('service')}
-                className="shrink-0 text-xs tracking-widest uppercase text-ink-muted hover:text-gold transition-colors">
+                className="shrink-0 text-xs tracking-widest uppercase text-ink-muted hover:text-gold-deep transition-colors">
                 Cambiar
               </button>
             </div>
@@ -888,14 +888,14 @@ export default function BookingForm() {
                 </p>
               </div>
               <button type="button" onClick={() => setStep('service')}
-                className="shrink-0 text-xs tracking-widest uppercase text-ink-muted hover:text-gold transition-colors">
+                className="shrink-0 text-xs tracking-widest uppercase text-ink-muted hover:text-gold-deep transition-colors">
                 Cambiar
               </button>
             </div>
           )}
 
           {stepError && (
-            <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 border border-red-200 px-4 py-3 mb-4">
+            <div className="flex items-center gap-2 text-red-700 text-sm bg-red-50 border border-red-200 px-4 py-3 mb-4">
               <span>⚠</span> {stepError}
             </div>
           )}
@@ -991,7 +991,7 @@ export default function BookingForm() {
             {/* Phone first: the phone IS the client's identity, so we ask it up
                 front and offer to recognize returning clients (with consent). */}
             <div>
-              <label className="form-label">Teléfono / WhatsApp <span className="text-red-500">*</span></label>
+              <label className="form-label">Teléfono / WhatsApp <span className="text-red-700">*</span></label>
               <input
                 type="tel"
                 list="dl-phone"
@@ -1002,7 +1002,7 @@ export default function BookingForm() {
                 autoComplete="tel"
               />
               {fieldErrors.clientPhone && (
-                <p className="flex items-center gap-1.5 text-red-500 text-xs mt-1.5"><span>⚠</span> {fieldErrors.clientPhone}</p>
+                <p className="flex items-center gap-1.5 text-red-700 text-xs mt-1.5"><span>⚠</span> {fieldErrors.clientPhone}</p>
               )}
 
               {/* Returning-client recognition — consent-based, never auto-applied */}
@@ -1027,7 +1027,7 @@ export default function BookingForm() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="form-label">Nombre completo <span className="text-red-500">*</span></label>
+                <label className="form-label">Nombre completo <span className="text-red-700">*</span></label>
                 <input
                   type="text"
                   list="dl-name"
@@ -1038,7 +1038,7 @@ export default function BookingForm() {
                   autoComplete="name"
                 />
                 {fieldErrors.clientName && (
-                  <p className="flex items-center gap-1.5 text-red-500 text-xs mt-1.5"><span>⚠</span> {fieldErrors.clientName}</p>
+                  <p className="flex items-center gap-1.5 text-red-700 text-xs mt-1.5"><span>⚠</span> {fieldErrors.clientName}</p>
                 )}
               </div>
               <div>
@@ -1055,7 +1055,7 @@ export default function BookingForm() {
                   autoComplete="email"
                 />
                 {fieldErrors.clientEmail ? (
-                  <p className="flex items-center gap-1.5 text-red-500 text-xs mt-1.5"><span>⚠</span> {fieldErrors.clientEmail}</p>
+                  <p className="flex items-center gap-1.5 text-red-700 text-xs mt-1.5"><span>⚠</span> {fieldErrors.clientEmail}</p>
                 ) : (
                   <p className="text-xs text-ink-muted/60 mt-1.5">
                     Si lo proporcionas, recibirás confirmación y recordatorios automáticos de tu cita.

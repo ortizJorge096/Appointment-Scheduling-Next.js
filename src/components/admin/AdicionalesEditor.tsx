@@ -66,7 +66,7 @@ export default function AdicionalesEditor({ items, onChange, open, onAdd, onRemo
                 />
                 <button type="button" onClick={() => removeItem(i)}
                   aria-label="Eliminar adicional"
-                  className="text-ink-muted hover:text-red-500 transition-colors px-2 py-2.5 text-lg leading-none">
+                  className="text-ink-muted hover:text-red-700 transition-colors px-2 py-2.5 text-lg leading-none">
                   ×
                 </button>
               </div>
