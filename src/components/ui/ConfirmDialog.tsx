@@ -70,7 +70,7 @@ export function ConfirmDialogProvider({ children }: { children: React.ReactNode 
             <h2 className="font-serif text-xl text-ink mb-2">
               {options.title ?? (options.danger ? '¿Estás segura?' : 'Confirmar acción')}
             </h2>
-            <p className="text-sm text-ink-muted leading-relaxed mb-6">{options.message}</p>
+            <p className="text-sm text-ink-muted-deep leading-relaxed mb-6">{options.message}</p>
             <div className="flex gap-3">
               <button type="button" onClick={() => close(false)} className="btn-secondary flex-1 text-sm">
                 {options.cancelLabel ?? 'Cancelar'}

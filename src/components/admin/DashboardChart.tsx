@@ -35,7 +35,7 @@ export function DashboardChart({ days, periodDays, prevCount, prevRevenue }: Pro
 
   const tab = (m: 'citas' | 'ingresos', label: string) => (
     <button type="button" onClick={() => setMetric(m)}
-      className={`px-3 py-1 transition-colors ${metric === m ? 'bg-gold text-white' : 'text-ink-muted hover:bg-beige/40'}`}>
+      className={`px-3 py-1 transition-colors ${metric === m ? 'bg-gold text-ink' : 'text-ink-muted-deep hover:bg-beige/40'}`}>
       {label}
     </button>
   )
@@ -48,8 +48,8 @@ export function DashboardChart({ days, periodDays, prevCount, prevRevenue }: Pro
           <p className="text-xs mt-0.5">
             <b className="font-serif text-gold-dark text-base">{totalLabel}</b>
             {pct !== null && (
-              <span className={`ml-2 ${pct >= 0 ? 'text-green-600' : 'text-red-700'}`}>
-                {pct >= 0 ? '↑' : '↓'} {Math.abs(pct)}% <span className="text-ink-muted">vs. período anterior</span>
+              <span className={`ml-2 ${pct >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                {pct >= 0 ? '↑' : '↓'} {Math.abs(pct)}% <span className="text-ink-muted-deep">vs. período anterior</span>
               </span>
             )}
           </p>
@@ -74,7 +74,7 @@ export function DashboardChart({ days, periodDays, prevCount, prevRevenue }: Pro
                   title={`${d.weekday} ${d.label}: ${isRevenue ? formatPrice(d.revenue) : `${d.count} cita(s)`}`}
                 />
               </div>
-              <span className="text-[9px] text-ink-muted">{d.label}</span>
+              <span className="text-[9px] text-ink-muted-deep">{d.label}</span>
             </div>
           ))}
         </div>

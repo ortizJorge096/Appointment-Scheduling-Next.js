@@ -65,21 +65,21 @@ export default function VipDiscountConfigCard() {
   }
 
   if (loading) {
-    return <div className="bg-white border border-beige-dark rounded-xl p-6 mb-8 text-sm text-ink-muted">Cargando configuración VIP...</div>
+    return <div className="bg-white border border-beige-dark rounded-xl p-6 mb-8 text-sm text-ink-muted-deep">Cargando configuración VIP...</div>
   }
 
   return (
     <div className="bg-white border border-beige-dark rounded-xl p-6 mb-8">
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <div>
-          <p className="text-xs text-ink-muted tracking-widest uppercase mb-1">Regla de negocio</p>
+          <p className="text-xs text-ink-muted-deep tracking-widest uppercase mb-1">Regla de negocio</p>
           <h2 className="font-serif text-xl text-ink">Descuento VIP por múltiples servicios</h2>
-          <p className="text-sm text-ink-muted mt-1">
+          <p className="text-sm text-ink-muted-deep mt-1">
             Se aplica automáticamente cuando el cliente agenda 2 o más servicios (de cualquier categoría) en la misma cita.
           </p>
         </div>
         <label className="flex items-center gap-2 cursor-pointer shrink-0">
-          <span className="text-sm text-ink-muted">{enabled ? 'Activo' : 'Inactivo'}</span>
+          <span className="text-sm text-ink-muted-deep">{enabled ? 'Activo' : 'Inactivo'}</span>
           <span
             onClick={() => setEnabled((v) => !v)}
             className={`w-11 h-6 rounded-full relative transition-colors ${enabled ? 'bg-gold' : 'bg-beige-dark'}`}
@@ -97,26 +97,26 @@ export default function VipDiscountConfigCard() {
           .sort((a, b) => a.minServices - b.minServices)
           .map((t, i) => (
           <div key={i} className="flex flex-wrap items-center gap-y-2 gap-x-2 sm:gap-3 bg-beige/40 rounded-lg px-4 py-2.5">
-            <span className="text-sm text-ink-muted whitespace-nowrap">
+            <span className="text-sm text-ink-muted-deep whitespace-nowrap">
               <span className="sm:hidden">Desde</span>
               <span className="hidden sm:inline">A partir de</span>
             </span>
             <input type="number" min={2} max={20} value={t.minServices}
               onChange={(e) => updateTier(i, 'minServices', parseInt(e.target.value) || 2)}
               className="input-field w-16 sm:w-20 py-1.5 text-center" />
-            <span className="text-sm text-ink-muted whitespace-nowrap">
+            <span className="text-sm text-ink-muted-deep whitespace-nowrap">
               <span className="sm:hidden">serv. →</span>
               <span className="hidden sm:inline">servicios →</span>
             </span>
             <input type="number" min={0} max={100} value={t.discountPct}
               onChange={(e) => updateTier(i, 'discountPct', parseInt(e.target.value) || 0)}
               className="input-field w-16 sm:w-20 py-1.5 text-center" />
-            <span className="text-sm text-ink-muted whitespace-nowrap">
+            <span className="text-sm text-ink-muted-deep whitespace-nowrap">
               <span className="sm:hidden">% desc.</span>
               <span className="hidden sm:inline">% de descuento</span>
             </span>
             <button onClick={() => removeTier(i)}
-              className="btn-row-action ml-auto text-xs text-ink-muted hover:text-red-700">
+              className="btn-row-action ml-auto text-xs text-ink-muted-deep hover:text-red-700">
               Eliminar
             </button>
           </div>

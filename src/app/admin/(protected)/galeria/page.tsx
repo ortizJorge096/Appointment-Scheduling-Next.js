@@ -258,7 +258,7 @@ export default function GaleriaAdminPage() {
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
       <div className="mb-6 sm:mb-8 flex items-center justify-between">
         <div>
-          <p className="text-xs text-ink-muted tracking-widest uppercase mb-1">Contenido</p>
+          <p className="text-xs text-ink-muted-deep tracking-widest uppercase mb-1">Contenido</p>
           <h1 className="font-serif text-2xl sm:text-3xl text-ink font-light">Galería</h1>
         </div>
         <label className={`btn-primary cursor-pointer ${uploading ? 'opacity-70 pointer-events-none' : ''}`}>
@@ -289,11 +289,11 @@ export default function GaleriaAdminPage() {
       {success && <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 mb-5">✓ {success}</div>}
 
       {loading ? (
-        <p className="text-ink-muted text-sm py-10 text-center">Cargando...</p>
+        <p className="text-ink-muted-deep text-sm py-10 text-center">Cargando...</p>
       ) : images.length === 0 ? (
         <div className="border border-dashed border-beige-dark p-12 text-center bg-white">
-          <p className="text-ink-muted text-sm">Aún no hay imágenes. Sube la primera con el botón de arriba.</p>
-          <p className="text-ink-muted/60 text-xs mt-2">JPG · PNG · WebP · hasta 5 MB</p>
+          <p className="text-ink-muted-deep text-sm">Aún no hay imágenes. Sube la primera con el botón de arriba.</p>
+          <p className="text-ink-muted-deep text-xs mt-2">JPG · PNG · WebP · hasta 5 MB</p>
         </div>
       ) : (
         <>
@@ -331,7 +331,7 @@ export default function GaleriaAdminPage() {
                     {/* Focal point: pick where the crop centers. The preview shows the
                         result live in the (taller) proportion where it matters most. */}
                     <div>
-                      <p className="text-[10px] uppercase tracking-widest text-ink-muted mb-1">Punto focal</p>
+                      <p className="text-[10px] uppercase tracking-widest text-ink-muted-deep mb-1">Punto focal</p>
                       <div className="relative w-full max-w-[180px] aspect-[4/5] rounded overflow-hidden bg-beige mx-auto">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={img.url} alt=""
@@ -355,7 +355,7 @@ export default function GaleriaAdminPage() {
                           })}
                         </div>
                       </div>
-                      <p className="text-[11px] text-ink-muted mt-1 text-center">
+                      <p className="text-[11px] text-ink-muted-deep mt-1 text-center">
                         Punto focal: <span className="text-ink">{FOCAL_LABEL[editForm.focalPoint] ?? 'Centro'}</span>
                       </p>
                     </div>
@@ -368,35 +368,35 @@ export default function GaleriaAdminPage() {
                 ) : (
                   <>
                     <p className="font-medium text-ink text-sm truncate">
-                      {img.title || <span className="italic text-ink-muted/60">Sin título</span>}
+                      {img.title || <span className="italic text-ink-muted-deep">Sin título</span>}
                     </p>
-                    <p className="text-xs text-gold tracking-widest uppercase">
+                    <p className="text-xs text-gold-deep tracking-widest uppercase">
                       {img.category ? img.category.name : '—'}
                     </p>
                       <div className="flex items-center justify-between mt-2 pt-3 border-t border-beige-dark/60">
                         <div className="flex items-center gap-1">
                           <button disabled={idx === 0}
                             onClick={() => move(img, -1)}
-                            className="btn-row-action text-xs text-ink-muted hover:text-gold disabled:opacity-20">↑</button>
+                            className="btn-row-action text-xs text-ink-muted-deep hover:text-gold-deep disabled:opacity-20">↑</button>
                           <button disabled={idx === sortedImages.length - 1}
                             onClick={() => move(img, +1)}
-                            className="btn-row-action text-xs text-ink-muted hover:text-gold disabled:opacity-20">↓</button>
+                            className="btn-row-action text-xs text-ink-muted-deep hover:text-gold-deep disabled:opacity-20">↓</button>
                         </div>
                         <div className="flex items-center gap-2 sm:gap-3 text-xs">
                           <button
                             onClick={() => { replacingImgRef.current = img; replaceInputRef.current?.click() }}
                             disabled={replacingId === img.id}
-                            className="btn-row-action text-ink-muted hover:text-gold disabled:opacity-40">
+                            className="btn-row-action text-ink-muted-deep hover:text-gold-deep disabled:opacity-40">
                             {replacingId === img.id ? `${progress}%` : '📷'}
                           </button>
                           <button onClick={() => { setEditing(img.id); setEditForm({ title: img.title ?? '', description: img.description ?? '', categoryId: img.categoryId ?? '', focalPoint: img.focalPoint ?? 'center center' }) }}
-                            className="btn-row-action text-ink-muted hover:text-gold">✏️</button>
+                            className="btn-row-action text-ink-muted-deep hover:text-gold-deep">✏️</button>
                           <button onClick={() => toggleActive(img)}
-                            className={`btn-row-action ${img.isActive ? 'text-ink-muted hover:text-red-700' : 'text-green-600 hover:text-green-700'}`}>
+                            className={`btn-row-action ${img.isActive ? 'text-ink-muted-deep hover:text-red-700' : 'text-green-700 hover:text-green-700'}`}>
                             {img.isActive ? '👁' : '✓'}
                           </button>
                           <button onClick={() => deleteImage(img)}
-                            className="btn-row-action text-ink-muted hover:text-red-700 border-l border-beige-dark pl-3 ml-1">🗑</button>
+                            className="btn-row-action text-ink-muted-deep hover:text-red-700 border-l border-beige-dark pl-3 ml-1">🗑</button>
                         </div>
                       </div>
                   </>

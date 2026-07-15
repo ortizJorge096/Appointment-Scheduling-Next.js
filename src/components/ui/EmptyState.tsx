@@ -13,7 +13,7 @@ export function EmptyState({ title, icon, action, className = '' }: EmptyStatePr
   return (
     <div className={`py-16 px-6 text-center ${className}`.trim()}>
       {icon && <div className="text-3xl opacity-40 mb-2">{icon}</div>}
-      <p className="text-ink-muted text-sm">{title}</p>
+      <p className="text-ink-muted-deep text-sm">{title}</p>
       {action && <div className="mt-4">{action}</div>}
     </div>
   )

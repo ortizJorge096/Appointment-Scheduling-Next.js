@@ -143,14 +143,14 @@ export default function HorariosPage() {
       )}
 
       {loading ? (
-        <div className="text-ink-muted text-sm">Cargando horarios...</div>
+        <div className="text-ink-muted-deep text-sm">Cargando horarios...</div>
       ) : (
         <>
           {/* ── Daily schedules ── */}
           <section className="bg-white rounded-xl border border-beige-dark overflow-hidden mb-10">
             <div className="px-5 sm:px-6 py-4 border-b border-beige-dark">
               <h2 className="font-serif text-xl text-ink font-light">Días de atención</h2>
-              <p className="text-xs text-ink-muted mt-0.5">Guarda cada día por separado.</p>
+              <p className="text-xs text-ink-muted-deep mt-0.5">Guarda cada día por separado.</p>
             </div>
 
             <div className="divide-y divide-beige-dark">
@@ -172,7 +172,7 @@ export default function HorariosPage() {
                         <span className="text-sm font-medium text-ink">{dayLabel}</span>
                       </label>
 
-                      <div className="flex items-center gap-2 text-sm text-ink-muted">
+                      <div className="flex items-center gap-2 text-sm text-ink-muted-deep">
                         <input
                           type="time"
                           value={sched.startTime}
@@ -192,8 +192,8 @@ export default function HorariosPage() {
                     </div>
 
                     {/* Optional lunch break — leave both empty for a continuous day */}
-                    <div className="flex items-center gap-2 text-sm text-ink-muted">
-                      <span className="text-[10px] uppercase tracking-wider text-ink-muted/70 min-w-[64px]">Descanso</span>
+                    <div className="flex items-center gap-2 text-sm text-ink-muted-deep">
+                      <span className="text-[10px] uppercase tracking-wider text-ink-muted-deep min-w-[64px]">Descanso</span>
                       <input type="time" value={sched.breakStart ?? ''} disabled={!sched.isActive}
                         onChange={(e) => updateSchedule(sched.dayOfWeek, 'breakStart', e.target.value)}
                         className="input-field py-1.5 w-24 sm:w-28" />
@@ -222,7 +222,7 @@ export default function HorariosPage() {
           <section className="bg-white rounded-xl border border-beige-dark overflow-hidden">
             <div className="px-5 sm:px-6 py-4 border-b border-beige-dark">
               <h2 className="font-serif text-xl text-ink font-light">Fechas bloqueadas</h2>
-              <p className="text-xs text-ink-muted mt-0.5">Festivos, vacaciones o días sin atención.</p>
+              <p className="text-xs text-ink-muted-deep mt-0.5">Festivos, vacaciones o días sin atención.</p>
             </div>
 
             {can('horarios:editar') && (
@@ -258,7 +258,7 @@ export default function HorariosPage() {
             )}
 
             {blockedDates.length === 0 ? (
-              <div className="px-6 py-8 text-center text-ink-muted text-sm">
+              <div className="px-6 py-8 text-center text-ink-muted-deep text-sm">
                 No hay fechas bloqueadas.
               </div>
             ) : (
@@ -274,7 +274,7 @@ export default function HorariosPage() {
                         })}
                       </p>
                       {b.reason && (
-                        <p className="text-xs text-ink-muted mt-0.5 truncate">{b.reason}</p>
+                        <p className="text-xs text-ink-muted-deep mt-0.5 truncate">{b.reason}</p>
                       )}
                     </div>
                     {can('horarios:editar') && (

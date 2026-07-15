@@ -61,7 +61,7 @@
            transition-all duration-200 hover:bg-gold-deep hover:text-white;
   }
   .btn-ghost {
-    @apply bg-transparent text-ink-muted rounded-full px-4 py-2 text-sm
+    @apply bg-transparent text-ink-muted-deep rounded-full px-4 py-2 text-sm
            transition-colors duration-150
            hover:bg-beige-dark hover:text-ink;
   }
@@ -81,14 +81,14 @@
   .input-field {
     @apply w-full bg-white border border-beige-dark text-ink rounded-lg
            px-4 py-3 text-base sm:text-sm font-sans
-           placeholder:text-ink-muted/50
+           placeholder:text-ink-muted
            focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/15
            transition-all duration-150
            disabled:bg-beige disabled:cursor-not-allowed;
   }
   .input-dark {
     @apply w-full bg-white/5 border border-white/10 text-white rounded-lg
-           px-4 py-3 text-base sm:text-sm font-sans placeholder:text-white/30
+           px-4 py-3 text-base sm:text-sm font-sans placeholder:text-white/55
            focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20
            transition-all duration-150;
   }
@@ -99,8 +99,10 @@
     background-position: right 1rem center;
     padding-right: 2.5rem;
   }
+  /* muted-deep: labels sit on beige as often as on white, and ink-muted only
+     clears AA on white (4.85 vs 4.09). */
   .form-label {
-    @apply block text-xs font-medium tracking-widest uppercase text-ink-muted mb-2;
+    @apply block text-xs font-medium tracking-widest uppercase text-ink-muted-deep mb-2;
   }
 
   /* ── Badges ── */

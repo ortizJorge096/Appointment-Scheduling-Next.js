@@ -169,7 +169,7 @@ export default function CategoriesManager({
       {/* List */}
       <div className="bg-white rounded-xl border border-beige-dark overflow-hidden">
         {categories.length === 0 ? (
-          <div className="py-10 text-center text-ink-muted text-sm">
+          <div className="py-10 text-center text-ink-muted-deep text-sm">
             No hay categorías aún. Crea la primera.
           </div>
         ) : (
@@ -178,7 +178,7 @@ export default function CategoriesManager({
               <div key={cat.id}
                 className={`flex items-center justify-between px-4 sm:px-6 py-4 transition-opacity ${cat.isActive ? '' : 'opacity-50'}`}>
                 <div className="flex items-center gap-3 min-w-0 mr-4">
-                  <span className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gold-pale text-gold-dark shrink-0">
+                  <span className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gold-pale text-gold-deep shrink-0">
                     <Icon name={cat.icon} className="w-5 h-5" />
                   </span>
                   <div className="min-w-0">
@@ -188,21 +188,21 @@ export default function CategoriesManager({
                         <span className="text-[10px] tracking-widest uppercase bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full">Inactiva</span>
                       )}
                     </div>
-                    {cat.description && <p className="text-xs text-ink-muted mt-0.5 truncate">{cat.description}</p>}
+                    {cat.description && <p className="text-xs text-ink-muted-deep mt-0.5 truncate">{cat.description}</p>}
                   </div>
                 </div>
 
                 <div className="flex items-center gap-4 sm:gap-5 shrink-0">
-                  <span className="text-xs text-ink-muted whitespace-nowrap">
+                  <span className="text-xs text-ink-muted-deep whitespace-nowrap">
                     {cat._count.services} servicio{cat._count.services === 1 ? '' : 's'}
                   </span>
-                  <button onClick={() => openEdit(cat)} className="btn-row-action text-xs text-ink-muted hover:text-gold">Editar</button>
+                  <button onClick={() => openEdit(cat)} className="btn-row-action text-xs text-ink-muted-deep hover:text-gold-deep">Editar</button>
                   <button onClick={() => toggleActive(cat)}
-                    className={`btn-row-action text-xs ${cat.isActive ? 'text-ink-muted hover:text-amber-600' : 'text-green-600 hover:text-green-700'}`}>
+                    className={`btn-row-action text-xs ${cat.isActive ? 'text-ink-muted-deep hover:text-amber-600' : 'text-green-700 hover:text-green-700'}`}>
                     {cat.isActive ? 'Desactivar' : 'Activar'}
                   </button>
                   <button onClick={() => handleDelete(cat)}
-                    className={`btn-row-action text-xs ${cat._count.services > 0 ? 'text-gray-300 cursor-not-allowed' : 'text-ink-muted hover:text-red-700'}`}
+                    className={`btn-row-action text-xs ${cat._count.services > 0 ? 'text-gray-300 cursor-not-allowed' : 'text-ink-muted-deep hover:text-red-700'}`}
                     title={cat._count.services > 0 ? 'Tiene servicios asociados' : 'Eliminar'}>
                     Eliminar
                   </button>

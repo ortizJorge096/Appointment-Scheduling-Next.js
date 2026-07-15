@@ -146,7 +146,7 @@ export default function ClientesPageClient() {
           className={`text-sm px-3 py-2 rounded-lg border whitespace-nowrap transition-colors ${
             archived
               ? 'bg-gold/10 border-gold text-gold-dark'
-              : 'border-beige-dark text-ink-muted hover:bg-beige/40'
+              : 'border-beige-dark text-ink-muted-deep hover:bg-beige/40'
           }`}>
           {archived ? '← Ver activos' : 'Ver archivados'}
         </button>
@@ -161,7 +161,7 @@ export default function ClientesPageClient() {
       {/* Table — desktop */}
       <div className="bg-white rounded-xl border border-beige-dark overflow-x-auto">
         {loading ? (
-          <div className="py-16 text-center text-ink-muted text-sm">Cargando…</div>
+          <div className="py-16 text-center text-ink-muted-deep text-sm">Cargando…</div>
         ) : clients.length === 0 ? (
           <EmptyState
             icon="◉"
@@ -180,10 +180,10 @@ export default function ClientesPageClient() {
             <table className="w-full text-sm hidden md:table">
               <thead className="bg-beige/40 border-b border-beige-dark">
                 <tr>
-                  <th className="text-left px-5 py-3 font-medium text-xs text-ink-muted uppercase tracking-widest">Cliente</th>
-                  <th className="text-left px-5 py-3 font-medium text-xs text-ink-muted uppercase tracking-widest">Teléfono</th>
-                  <th className="text-center px-5 py-3 font-medium text-xs text-ink-muted uppercase tracking-widest">Citas</th>
-                  <th className="text-left px-5 py-3 font-medium text-xs text-ink-muted uppercase tracking-widest">Desde</th>
+                  <th className="text-left px-5 py-3 font-medium text-xs text-ink-muted-deep uppercase tracking-widest">Cliente</th>
+                  <th className="text-left px-5 py-3 font-medium text-xs text-ink-muted-deep uppercase tracking-widest">Teléfono</th>
+                  <th className="text-center px-5 py-3 font-medium text-xs text-ink-muted-deep uppercase tracking-widest">Citas</th>
+                  <th className="text-left px-5 py-3 font-medium text-xs text-ink-muted-deep uppercase tracking-widest">Desde</th>
                   <th className="px-5 py-3" />
                 </tr>
               </thead>
@@ -192,20 +192,20 @@ export default function ClientesPageClient() {
                   <tr key={c.id} className="hover:bg-beige/20 transition-colors">
                     <td className="px-5 py-3.5">
                       <p className="font-medium text-ink">{c.name}</p>
-                      <p className="text-xs text-ink-muted">{c.email}</p>
+                      <p className="text-xs text-ink-muted-deep">{c.email}</p>
                     </td>
-                    <td className="px-5 py-3.5 text-ink-muted whitespace-nowrap">{c.phone ?? '—'}</td>
+                    <td className="px-5 py-3.5 text-ink-muted-deep whitespace-nowrap">{c.phone ?? '—'}</td>
                     <td className="px-5 py-3.5 text-center">
                       <span className="inline-block bg-gold/10 text-gold-dark text-xs font-medium px-2 py-0.5 rounded-full">
                         {c._count.appointments}
                       </span>
                     </td>
-                    <td className="px-5 py-3.5 text-ink-muted text-xs whitespace-nowrap">
+                    <td className="px-5 py-3.5 text-ink-muted-deep text-xs whitespace-nowrap">
                       {new Date(c.createdAt).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}
                     </td>
                     <td className="px-5 py-3.5 text-right whitespace-nowrap">
                       <Link href={`/admin/clientes/${c.id}`}
-                        className="text-xs text-gold hover:underline">
+                        className="text-xs text-gold-deep hover:underline">
                         Ver historial →
                       </Link>
                     </td>
@@ -225,8 +225,8 @@ export default function ClientesPageClient() {
                       {c._count.appointments} citas
                     </span>
                   </div>
-                  <p className="text-xs text-ink-muted">{c.email}</p>
-                  {c.phone && <p className="text-xs text-ink-muted">{c.phone}</p>}
+                  <p className="text-xs text-ink-muted-deep">{c.email}</p>
+                  {c.phone && <p className="text-xs text-ink-muted-deep">{c.phone}</p>}
                 </Link>
               ))}
             </div>
@@ -248,7 +248,7 @@ export default function ClientesPageClient() {
                 {fieldErrors.name && <p className="text-xs text-red-700 mt-0.5">{fieldErrors.name}</p>}
               </div>
               <div>
-                <label className="form-label">Email <span className="text-ink-muted/60 normal-case font-normal tracking-normal">(opcional)</span></label>
+                <label className="form-label">Email <span className="text-ink-muted-deep normal-case font-normal tracking-normal">(opcional)</span></label>
                 <input id="new-client-email" type="email" value={form.email}
                   onChange={e => { setForm(f => ({ ...f, email: e.target.value })); if (fieldErrors.email) setFieldErrors(x => ({ ...x, email: undefined })) }}
                   placeholder="ana@ejemplo.com"

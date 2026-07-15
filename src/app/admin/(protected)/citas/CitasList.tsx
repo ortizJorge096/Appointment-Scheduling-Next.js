@@ -204,7 +204,7 @@ export default function CitasList({
                   className={`px-3 py-2.5 sm:py-1.5 text-xs border rounded-lg transition-colors
                     ${filters.status === s
                       ? 'bg-ink border-ink text-white'
-                      : 'bg-white border-beige-dark text-ink-muted hover:border-gold'}`}>
+                      : 'bg-white border-beige-dark text-ink-muted-deep hover:border-gold'}`}>
                   {s ? STATUS_LABEL[s as keyof typeof STATUS_LABEL] : 'Todas'}
                 </button>
               ))}
@@ -219,7 +219,7 @@ export default function CitasList({
                   className={`px-3 py-2.5 sm:py-1.5 text-xs border rounded-lg transition-colors
                     ${filters.scope === s
                       ? 'bg-ink border-ink text-white'
-                      : 'bg-white border-beige-dark text-ink-muted hover:border-gold'}`}>
+                      : 'bg-white border-beige-dark text-ink-muted-deep hover:border-gold'}`}>
                   {SCOPE_LABELS[s]}
                 </button>
               ))}
@@ -244,7 +244,7 @@ export default function CitasList({
           </div>
 
           <button type="button" onClick={() => setShowMore((v) => !v)}
-            className="text-xs text-ink-muted hover:text-gold transition-colors self-end pb-2 sm:pb-1.5">
+            className="text-xs text-ink-muted-deep hover:text-gold-deep transition-colors self-end pb-2 sm:pb-1.5">
             {showMore ? 'Menos filtros ▴' : 'Más filtros ▾'}
           </button>
         </div>
@@ -301,11 +301,11 @@ export default function CitasList({
             {chips.map((c, i) => (
               <button key={i} type="button" onClick={c.clear}
                 className="inline-flex items-center gap-1 text-xs bg-gold-pale text-ink border border-gold/30 rounded-full px-2.5 py-1 hover:bg-gold/20 transition-colors">
-                {c.label} <span className="text-ink-muted">×</span>
+                {c.label} <span className="text-ink-muted-deep">×</span>
               </button>
             ))}
             <button type="button" onClick={clearAll}
-              className="text-xs text-ink-muted hover:text-gold transition-colors">
+              className="text-xs text-ink-muted-deep hover:text-gold-deep transition-colors">
               Limpiar filtros
             </button>
           </div>
@@ -313,14 +313,14 @@ export default function CitasList({
       </div>
 
       {/* Counter */}
-      <p className="text-xs text-ink-muted mb-2 flex items-center gap-2">
+      <p className="text-xs text-ink-muted-deep mb-2 flex items-center gap-2">
         {loading ? 'Buscando…' : `${pagination.total} cita${pagination.total === 1 ? '' : 's'} encontrada${pagination.total === 1 ? '' : 's'}`}
       </p>
 
       {/* Results */}
       <div className={`bg-white rounded-xl border border-beige-dark overflow-x-auto transition-opacity ${loading ? 'opacity-60' : ''}`}>
         {appointments.length === 0 ? (
-          <div className="py-16 text-center text-ink-muted text-sm">
+          <div className="py-16 text-center text-ink-muted-deep text-sm">
             {loading ? 'Cargando…' : (
               <>
                 <p className="mb-3">No hay citas con los filtros seleccionados.</p>
@@ -335,7 +335,7 @@ export default function CitasList({
             {/* Table — desktop */}
             <table className="w-full text-sm hidden md:table">
               <thead>
-                <tr className="border-b border-beige-dark bg-beige text-xs text-ink-muted uppercase tracking-widest">
+                <tr className="border-b border-beige-dark bg-beige text-xs text-ink-muted-deep uppercase tracking-widest">
                   <th className="text-left px-5 py-3 font-medium">Fecha</th>
                   <th className="text-left px-5 py-3 font-medium">Hora</th>
                   <th className="text-left px-5 py-3 font-medium">Cliente</th>
@@ -352,22 +352,22 @@ export default function CitasList({
                     <td className="px-5 py-3.5 text-ink whitespace-nowrap">
                       {format(new Date(appt.date), 'd MMM yyyy', { locale: es })}
                     </td>
-                    <td className="px-5 py-3.5 text-ink-muted font-mono text-xs">{appt.startTime}</td>
+                    <td className="px-5 py-3.5 text-ink-muted-deep font-mono text-xs">{appt.startTime}</td>
                     <td className="px-5 py-3.5">
                       <p className="text-ink font-medium flex items-center gap-1.5">
                         {appt.clientName}
                         {!appt.clientEmail && (
-                          <span className="text-[10px] tracking-wide uppercase bg-beige text-ink-muted/70 border border-beige-dark px-1.5 py-0.5 rounded-full">
+                          <span className="text-[10px] tracking-wide uppercase bg-beige text-ink-muted-deep border border-beige-dark px-1.5 py-0.5 rounded-full">
                             sin correo
                           </span>
                         )}
                       </p>
-                      <p className="text-xs text-ink-muted">{appt.clientPhone}</p>
+                      <p className="text-xs text-ink-muted-deep">{appt.clientPhone}</p>
                     </td>
-                    <td className="px-5 py-3.5 text-ink-muted">{serviceNames(appt)}</td>
-                    <td className="px-5 py-3.5 text-gold hidden lg:table-cell">{formatPrice(serviceTotal(appt))}</td>
+                    <td className="px-5 py-3.5 text-ink-muted-deep">{serviceNames(appt)}</td>
+                    <td className="px-5 py-3.5 text-gold-deep hidden lg:table-cell">{formatPrice(serviceTotal(appt))}</td>
                     <td className="px-5 py-3.5 hidden lg:table-cell">
-                      <span className="text-[10px] tracking-wide uppercase bg-beige text-ink-muted border border-beige-dark px-2 py-0.5 rounded-full">
+                      <span className="text-[10px] tracking-wide uppercase bg-beige text-ink-muted-deep border border-beige-dark px-2 py-0.5 rounded-full">
                         {ORIGIN_LABELS[appt.origin] ?? appt.origin}
                       </span>
                     </td>
@@ -376,7 +376,7 @@ export default function CitasList({
                     </td>
                     <td className="px-5 py-3.5 text-right">
                       <Link href={`/admin/citas/${appt.id}`}
-                        className="text-xs text-gold-light group-hover:text-gold transition-colors">
+                        className="text-xs text-gold-deep group-hover:text-gold-dark transition-colors">
                         Ver →
                       </Link>
                     </td>
@@ -394,19 +394,19 @@ export default function CitasList({
                     <p className="text-sm font-medium text-ink flex items-center gap-1.5">
                       {appt.clientName}
                       {!appt.clientEmail && (
-                        <span className="text-[9px] tracking-wide uppercase bg-beige text-ink-muted/70 border border-beige-dark px-1.5 py-0.5 rounded-full">
+                        <span className="text-[9px] tracking-wide uppercase bg-beige text-ink-muted-deep border border-beige-dark px-1.5 py-0.5 rounded-full">
                           sin correo
                         </span>
                       )}
                     </p>
                     <StatusBadge status={appt.status} />
                   </div>
-                  <div className="flex items-center justify-between text-xs text-ink-muted">
+                  <div className="flex items-center justify-between text-xs text-ink-muted-deep">
                     <span>{format(new Date(appt.date), 'd MMM', { locale: es })} · {appt.startTime}</span>
-                    <span className="text-gold">{formatPrice(serviceTotal(appt))}</span>
+                    <span className="text-gold-deep">{formatPrice(serviceTotal(appt))}</span>
                   </div>
-                  <p className="text-xs text-ink-muted mt-0.5">{serviceNames(appt)}</p>
-                  <p className="text-[11px] text-ink-muted/70 mt-0.5">
+                  <p className="text-xs text-ink-muted-deep mt-0.5">{serviceNames(appt)}</p>
+                  <p className="text-[11px] text-ink-muted-deep mt-0.5">
                     {ORIGIN_LABELS[appt.origin] ?? appt.origin} · Solicitada: {formatRequestedAt(new Date(appt.createdAt))}
                   </p>
                 </Link>
@@ -419,14 +419,14 @@ export default function CitasList({
       {/* Pagination */}
       {pagination.totalPages > 1 && (
         <div className="flex items-center justify-between mt-4">
-          <p className="text-xs text-ink-muted">{pagination.total} citas · Página {pagination.page} de {pagination.totalPages}</p>
+          <p className="text-xs text-ink-muted-deep">{pagination.total} citas · Página {pagination.page} de {pagination.totalPages}</p>
           <div className="flex gap-2">
             <button type="button" disabled={pagination.page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="px-3 py-2.5 sm:py-1.5 text-xs border border-beige-dark rounded-lg text-ink-muted hover:border-gold transition-colors disabled:opacity-40 disabled:hover:border-beige-dark">
+              className="px-3 py-2.5 sm:py-1.5 text-xs border border-beige-dark rounded-lg text-ink-muted-deep hover:border-gold transition-colors disabled:opacity-40 disabled:hover:border-beige-dark">
               ← Anterior
             </button>
             <button type="button" disabled={pagination.page >= pagination.totalPages} onClick={() => setPage((p) => p + 1)}
-              className="px-3 py-2.5 sm:py-1.5 text-xs border border-beige-dark rounded-lg text-ink-muted hover:border-gold transition-colors disabled:opacity-40 disabled:hover:border-beige-dark">
+              className="px-3 py-2.5 sm:py-1.5 text-xs border border-beige-dark rounded-lg text-ink-muted-deep hover:border-gold transition-colors disabled:opacity-40 disabled:hover:border-beige-dark">
               Siguiente →
             </button>
           </div>

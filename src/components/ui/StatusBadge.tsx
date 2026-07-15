@@ -18,7 +18,7 @@ export function StatusBadge({ status, className = '' }: { status: string; classN
 /** Payment status as colored text (matches the current inline rendering). */
 export function PaymentBadge({ status, className = '' }: { status: string; className?: string }) {
   return (
-    <span className={`font-medium ${PAYMENT_STATUS_CLASS[status] ?? 'text-ink-muted'} ${className}`.trim()}>
+    <span className={`font-medium ${PAYMENT_STATUS_CLASS[status] ?? 'text-ink-muted-deep'} ${className}`.trim()}>
       {PAYMENT_STATUS_LABEL[status] ?? status}
     </span>
   )

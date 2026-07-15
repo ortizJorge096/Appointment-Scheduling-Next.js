@@ -211,9 +211,9 @@ export default function ProfesionalesPage() {
       {/* List */}
       <div className="bg-white rounded-xl border border-beige-dark overflow-hidden">
         {loading ? (
-          <div className="py-10 text-center text-ink-muted text-sm">Cargando...</div>
+          <div className="py-10 text-center text-ink-muted-deep text-sm">Cargando...</div>
         ) : professionals.length === 0 ? (
-          <div className="py-10 text-center text-ink-muted text-sm">
+          <div className="py-10 text-center text-ink-muted-deep text-sm">
             No hay profesionales aún. Crea el primero.
           </div>
         ) : (
@@ -229,7 +229,7 @@ export default function ProfesionalesPage() {
                     </span>
                     <div className="min-w-0">
                       <p className="font-medium text-ink truncate">{p.name}</p>
-                      <p className="text-xs text-ink-muted truncate">
+                      <p className="text-xs text-ink-muted-deep truncate">
                         {p.specialty} {p.specialty && '·'} ★ {p.rating.toFixed(1)} · {p.reviewCount} citas
                       </p>
                     </div>
@@ -242,14 +242,14 @@ export default function ProfesionalesPage() {
                       </span>
                     )}
                     {can('servicios:editar') && (<>
-                    <button onClick={() => openEdit(p)} className="btn-row-action text-xs text-ink-muted hover:text-gold">
+                    <button onClick={() => openEdit(p)} className="btn-row-action text-xs text-ink-muted-deep hover:text-gold-deep">
                       Editar
                     </button>
                     <button onClick={() => toggleActive(p)}
-                      className={`btn-row-action text-xs ${p.isActive ? 'text-ink-muted hover:text-amber-600' : 'text-green-600 hover:text-green-700'}`}>
+                      className={`btn-row-action text-xs ${p.isActive ? 'text-ink-muted-deep hover:text-amber-600' : 'text-green-700 hover:text-green-700'}`}>
                       {p.isActive ? 'Desactivar' : 'Activar'}
                     </button>
-                    <button onClick={() => handleDelete(p)} className="btn-row-action text-xs text-ink-muted hover:text-red-700">
+                    <button onClick={() => handleDelete(p)} className="btn-row-action text-xs text-ink-muted-deep hover:text-red-700">
                       Eliminar
                     </button>
                     </>)}
@@ -272,21 +272,21 @@ export default function ProfesionalesPage() {
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-ink-muted truncate">
+                      <p className="text-xs text-ink-muted-deep truncate">
                         {p.specialty} {p.specialty && '·'} ★ {p.rating.toFixed(1)} · {p.reviewCount} citas
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-4 mt-1.5">
                     {can('servicios:editar') && (<>
-                    <button onClick={() => openEdit(p)} className="btn-row-action text-xs text-ink-muted hover:text-gold">
+                    <button onClick={() => openEdit(p)} className="btn-row-action text-xs text-ink-muted-deep hover:text-gold-deep">
                       Editar
                     </button>
                     <button onClick={() => toggleActive(p)}
-                      className={`btn-row-action text-xs ${p.isActive ? 'text-ink-muted hover:text-amber-600' : 'text-green-600 hover:text-green-700'}`}>
+                      className={`btn-row-action text-xs ${p.isActive ? 'text-ink-muted-deep hover:text-amber-600' : 'text-green-700 hover:text-green-700'}`}>
                       {p.isActive ? 'Desactivar' : 'Activar'}
                     </button>
-                    <button onClick={() => handleDelete(p)} className="btn-row-action text-xs text-ink-muted hover:text-red-700">
+                    <button onClick={() => handleDelete(p)} className="btn-row-action text-xs text-ink-muted-deep hover:text-red-700">
                       Eliminar
                     </button>
                     </>)}
