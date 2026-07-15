@@ -11,7 +11,9 @@
 //     ...
 //   }
 
-import { createContext, useCallback, useContext, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useId, useRef, useState } from 'react'
+
+const FOCUSABLE = 'button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
 
 interface ConfirmOptions {
   title?:        string
@@ -40,6 +42,11 @@ export function ConfirmDialogProvider({ children }: { children: React.ReactNode 
   const [options, setOptions] = useState<ConfirmOptions | null>(null)
   // React 19 requires an initial value; keep the previous "starts empty" type.
   const resolveRef = useRef<((value: boolean) => void) | undefined>(undefined)
+  const titleId    = useId()
+  const msgId      = useId()
+  const panelRef   = useRef<HTMLDivElement>(null)
+  const cancelRef  = useRef<HTMLButtonElement>(null)
+  const restore    = useRef<HTMLElement | null>(null)
 
   const confirm = useCallback<ConfirmFn>((opts) => {
     setOptions(opts)
@@ -48,10 +55,38 @@ export function ConfirmDialogProvider({ children }: { children: React.ReactNode 
     })
   }, [])
 
-  function close(result: boolean) {
+  const close = useCallback((result: boolean) => {
     resolveRef.current?.(result)
     setOptions(null)
-  }
+  }, [])
+
+  const open = !!options
+  const danger = !!options?.danger
+
+  useEffect(() => {
+    if (!open) return
+    restore.current = document.activeElement as HTMLElement | null
+
+    // Destructive actions open focused on Cancel: an alertdialog is one Enter
+    // away from running, and that Enter must not be the one that deletes.
+    if (danger) cancelRef.current?.focus()
+
+    const onKey = (e: KeyboardEvent) => {
+      // Escape cancels — an alertdialog with no way out but the mouse is a trap.
+      if (e.key === 'Escape') { close(false); return }
+      if (e.key !== 'Tab') return
+      const els = Array.from(panelRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? [])
+      if (els.length === 0) { e.preventDefault(); return }
+      const top = els[0], bottom = els[els.length - 1]
+      if (e.shiftKey && document.activeElement === top) { e.preventDefault(); bottom.focus() }
+      else if (!e.shiftKey && document.activeElement === bottom) { e.preventDefault(); top.focus() }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      restore.current?.focus?.()
+    }
+  }, [open, danger, close])
 
   return (
     <ConfirmContext.Provider value={confirm}>
@@ -63,22 +98,24 @@ export function ConfirmDialogProvider({ children }: { children: React.ReactNode 
           onClick={() => close(false)}
         >
           <div
+            ref={panelRef}
             role="alertdialog" aria-modal="true"
+            aria-labelledby={titleId} aria-describedby={msgId}
             className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 animate-fade-in"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="font-serif text-xl text-ink mb-2">
+            <h2 id={titleId} className="font-serif text-xl text-ink mb-2">
               {options.title ?? (options.danger ? '¿Estás segura?' : 'Confirmar acción')}
             </h2>
-            <p className="text-sm text-ink-muted-deep leading-relaxed mb-6">{options.message}</p>
+            <p id={msgId} className="text-sm text-ink-muted-deep leading-relaxed mb-6">{options.message}</p>
             <div className="flex gap-3">
-              <button type="button" onClick={() => close(false)} className="btn-secondary flex-1 text-sm">
+              <button ref={cancelRef} type="button" onClick={() => close(false)} className="btn-secondary flex-1 text-sm">
                 {options.cancelLabel ?? 'Cancelar'}
               </button>
               <button
                 type="button"
                 onClick={() => close(true)}
-                autoFocus
+                autoFocus={!options.danger}
                 className={
                   options.danger
                     ? 'flex-1 rounded-full px-6 py-2.5 text-xs tracking-widest uppercase font-medium border border-red-300 text-red-700 hover:bg-red-50 transition-colors'
