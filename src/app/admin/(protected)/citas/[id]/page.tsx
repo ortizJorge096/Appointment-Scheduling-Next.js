@@ -41,7 +41,7 @@ const ACTIONS: Record<string, { label: string; status: AppointmentStatus; style:
   // No "Completar" here — registering the payment completes the appointment
   // (see the payment form). Completing without charge = pay $0 + "Cortesía".
   CONFIRMED: [
-    { label: 'No asistió', status: 'NO_SHOW',   style: 'border border-gray-300 text-gray-500 px-6 py-3 sm:py-2.5 text-xs tracking-widest uppercase hover:bg-gray-50 transition-colors' },
+    { label: 'No asistió', status: 'NO_SHOW',   style: 'border border-gray-300 text-gray-600 px-6 py-3 sm:py-2.5 text-xs tracking-widest uppercase hover:bg-gray-50 transition-colors' },
     { label: 'Cancelar',   status: 'CANCELLED', style: 'border border-red-300 text-red-700 px-6 py-3 sm:py-2.5 text-xs tracking-widest uppercase hover:bg-red-50 transition-colors' },
   ],
   COMPLETED: [],

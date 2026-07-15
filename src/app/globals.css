@@ -110,7 +110,7 @@
   .badge-confirmed { @apply bg-emerald-50 text-emerald-700 text-xs px-3 py-1 font-medium rounded-full; }
   .badge-completed { @apply bg-blue-50    text-blue-700    text-xs px-3 py-1 font-medium rounded-full; }
   .badge-cancelled { @apply bg-red-50     text-red-700     text-xs px-3 py-1 font-medium rounded-full; }
-  .badge-no_show   { @apply bg-gray-100   text-gray-500    text-xs px-3 py-1 font-medium rounded-full; }
+  .badge-no_show   { @apply bg-gray-100   text-gray-600    text-xs px-3 py-1 font-medium rounded-full; }
 
   /* ── Decorative ── */
   /* Small uppercase eyebrow on light surfaces → gold-deep (4.97:1). The rule
