@@ -66,7 +66,7 @@ function DetailPanel({ log }: { log: AuditLog }) {
       {diff.length > 0 ? (
         <div className="space-y-1">
           {diff.map((d, i) => (
-            <p key={i} className="text-[12px] text-ink break-words">
+            <p key={i} className="text-xs text-ink break-words">
               <span className="font-medium text-ink-muted-deep">{d.label}:</span>{' '}
               {d.kind === 'removed' ? (
                 <><span className="line-through text-red-700/80">{d.text}</span><span className="text-ink-muted-deep"> (eliminado)</span></>
@@ -75,20 +75,20 @@ function DetailPanel({ log }: { log: AuditLog }) {
           ))}
         </div>
       ) : (
-        <p className="text-[11px] text-ink-muted-deep">Sin cambios de datos.</p>
+        <p className="text-2xs text-ink-muted-deep">Sin cambios de datos.</p>
       )}
       {meta && (
         <div className="pt-1 border-t border-beige-dark/50">
-          <p className="text-[10px] uppercase tracking-widest text-ink-muted-deep mb-0.5">Detalle</p>
+          <p className="text-2xs uppercase tracking-widest text-ink-muted-deep mb-0.5">Detalle</p>
           {Object.entries(meta).map(([k, v]) => (
-            <p key={k} className="text-[11px] text-ink-muted-deep break-words">
+            <p key={k} className="text-2xs text-ink-muted-deep break-words">
               <span className="font-medium">{fieldLabel(k)}:</span> {formatValue(k, v)}
             </p>
           ))}
         </div>
       )}
       {(log.ip || log.userAgent) && (
-        <p className="text-[10px] text-ink-muted-deep break-all">
+        <p className="text-2xs text-ink-muted-deep break-all">
           {log.ip ?? ''}{log.userAgent ? ` · ${log.userAgent}` : ''}
         </p>
       )}
@@ -255,29 +255,29 @@ export default function AuditoriaPageClient() {
                     <tr className="hover:bg-beige/20 transition-colors align-top">
                       <td className="px-4 py-3 whitespace-nowrap text-xs text-ink-muted-deep">{formatDate(log.createdAt)}</td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium ${ACTION_COLORS[log.action]}`}>
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-2xs font-medium ${ACTION_COLORS[log.action]}`}>
                           <span aria-hidden>{ACTION_EMOJI[log.action]}</span> {ACTION_LABELS[log.action]}
                         </span>
-                        <span className="ml-1.5 text-[10px] text-ink-muted-deep">{ENTITY_LABELS[log.entity]}</span>
+                        <span className="ml-1.5 text-2xs text-ink-muted-deep">{ENTITY_LABELS[log.entity]}</span>
                       </td>
                       <td className="px-4 py-3 hidden sm:table-cell">
-                        <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-medium ${ACTOR_COLORS[actor]}`}>
+                        <span className={`inline-block px-2 py-0.5 rounded-full text-2xs font-medium ${ACTOR_COLORS[actor]}`}>
                           {ACTOR_LABELS[actor]}
                         </span>
                         {log.userEmail && (
-                          <p className="text-[10px] text-ink-muted-deep mt-0.5 max-w-[150px] truncate">{log.userEmail}</p>
+                          <p className="text-2xs text-ink-muted-deep mt-0.5 max-w-[150px] truncate">{log.userEmail}</p>
                         )}
                       </td>
                       <td className="px-4 py-3 text-ink">
-                        <span className="text-[13px]">{log.description ?? <span className="text-ink-muted-deep italic">{ENTITY_LABELS[log.entity]} · {ACTION_LABELS[log.action]}</span>}</span>
+                        <span className="text-sm">{log.description ?? <span className="text-ink-muted-deep italic">{ENTITY_LABELS[log.entity]} · {ACTION_LABELS[log.action]}</span>}</span>
                         <span className="sm:hidden block mt-0.5">
-                          <span className={`inline-block px-1.5 py-0.5 rounded-full text-[10px] ${ACTOR_COLORS[actor]}`}>{ACTOR_LABELS[actor]}</span>
+                          <span className={`inline-block px-1.5 py-0.5 rounded-full text-2xs ${ACTOR_COLORS[actor]}`}>{ACTOR_LABELS[actor]}</span>
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right whitespace-nowrap">
                         {(log.before || log.after || log.metadata) && (
                           <button type="button" onClick={() => setExpandedId(expanded ? null : log.id)}
-                            className="btn-row-action text-[11px] text-gold-deep hover:underline">
+                            className="btn-row-action text-2xs text-gold-deep hover:underline">
                             {expanded ? 'Ocultar' : 'Ver cambios'}
                           </button>
                         )}
@@ -286,7 +286,7 @@ export default function AuditoriaPageClient() {
                     {expanded && (
                       <tr className="bg-beige/10">
                         <td colSpan={5} className="px-4 pb-3 pt-0">
-                          <div className="md:hidden text-[11px] text-ink-muted-deep mb-1.5">{log.userEmail ?? '—'}</div>
+                          <div className="md:hidden text-2xs text-ink-muted-deep mb-1.5">{log.userEmail ?? '—'}</div>
                           <DetailPanel log={log} />
                         </td>
                       </tr>

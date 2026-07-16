@@ -146,11 +146,11 @@ export default function UsuariosClient({
             {users.map((u) => (
               <tr key={u.id} className="hover:bg-beige transition-colors">
                 <td className="px-5 py-3.5 text-ink font-medium">
-                  {u.name}{u.id === currentAdminId && <span className="text-[10px] text-ink-muted-deep ml-1">(tú)</span>}
+                  {u.name}{u.id === currentAdminId && <span className="text-2xs text-ink-muted-deep ml-1">(tú)</span>}
                 </td>
                 <td className="px-5 py-3.5 text-ink-muted-deep">{u.email}</td>
                 <td className="px-5 py-3.5">
-                  <span className={`text-[10px] tracking-wide uppercase px-2 py-0.5 rounded-full border ${
+                  <span className={`text-2xs tracking-wide uppercase px-2 py-0.5 rounded-full border ${
                     u.role === 'SUPER_ADMIN' ? 'bg-gold-pale text-gold-deep border-gold/30' : 'bg-beige text-ink-muted-deep border-beige-dark'
                   }`}>{ROLE_LABEL[u.role]}</span>
                 </td>
@@ -186,11 +186,11 @@ export default function UsuariosClient({
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-ink font-medium">
-                  {u.name}{u.id === currentAdminId && <span className="text-[10px] text-ink-muted-deep ml-1">(tú)</span>}
+                  {u.name}{u.id === currentAdminId && <span className="text-2xs text-ink-muted-deep ml-1">(tú)</span>}
                 </p>
                 <p className="text-xs text-ink-muted-deep truncate">{u.email}</p>
               </div>
-              <span className={`shrink-0 text-[10px] tracking-wide uppercase px-2 py-0.5 rounded-full border ${
+              <span className={`shrink-0 text-2xs tracking-wide uppercase px-2 py-0.5 rounded-full border ${
                 u.role === 'SUPER_ADMIN' ? 'bg-gold-pale text-gold-deep border-gold/30' : 'bg-beige text-ink-muted-deep border-beige-dark'
               }`}>{ROLE_LABEL[u.role]}</span>
             </div>
@@ -257,14 +257,14 @@ export default function UsuariosClient({
                   <label className="form-label">Contraseña temporal</label>
                   <PasswordInput value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
                     autoComplete="new-password" className="input-field w-full" />
-                  <p className="text-[11px] text-ink-muted-deep mt-1">Mínimo 8 caracteres, una mayúscula y un número. Compártela con el admin.</p>
+                  <p className="text-2xs text-ink-muted-deep mt-1">Mínimo 8 caracteres, una mayúscula y un número. Compártela con el admin.</p>
                 </div>
               ) : (
                 <div>
                   <label className="form-label">Restablecer contraseña <span className="text-ink-muted-deep normal-case font-normal tracking-normal">(opcional)</span></label>
                   <PasswordInput value={form.newPassword} onChange={(e) => setForm((f) => ({ ...f, newPassword: e.target.value }))}
                     autoComplete="new-password" placeholder="Dejar en blanco para no cambiarla" className="input-field w-full" />
-                  <p className="text-[11px] text-ink-muted-deep mt-1">Si la cambias, se cerrará la sesión de ese admin en todos sus dispositivos.</p>
+                  <p className="text-2xs text-ink-muted-deep mt-1">Si la cambias, se cerrará la sesión de ese admin en todos sus dispositivos.</p>
                 </div>
               )}
 

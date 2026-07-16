@@ -194,7 +194,7 @@ export default function CitasList({
         {/* Primary controls */}
         <div className="flex flex-wrap gap-3 items-end">
           <div>
-            <label className="form-label text-[10px]">Estado</label>
+            <label className="form-label text-2xs">Estado</label>
             <div className="flex gap-1.5 flex-wrap">
               {STATUS_FILTER.map((s) => (
                 <button key={s || 'ALL'} type="button"
@@ -212,7 +212,7 @@ export default function CitasList({
           </div>
 
           <div>
-            <label className="form-label text-[10px]">Ver</label>
+            <label className="form-label text-2xs">Ver</label>
             <div className="flex gap-1.5 flex-wrap">
               {SCOPE_OPTIONS.map((s) => (
                 <button key={s} type="button" onClick={() => patch({ scope: s })}
@@ -227,7 +227,7 @@ export default function CitasList({
           </div>
 
           <div>
-            <label htmlFor="f-origen" className="form-label text-[10px]">Origen</label>
+            <label htmlFor="f-origen" className="form-label text-2xs">Origen</label>
             <select id="f-origen" value={filters.origin} onChange={(e) => patch({ origin: e.target.value })}
               className="input-field py-1.5 bg-white">
               <option value="">Todos</option>
@@ -236,7 +236,7 @@ export default function CitasList({
           </div>
 
           <div>
-            <label htmlFor="f-ordenar" className="form-label text-[10px]">Ordenar</label>
+            <label htmlFor="f-ordenar" className="form-label text-2xs">Ordenar</label>
             <select id="f-ordenar" value={filters.sort} onChange={(e) => patch({ sort: e.target.value })}
               className="input-field py-1.5 bg-white">
               {SORT_OPTIONS.map((o) => <option key={o} value={o}>{SORT_LABELS[o]}</option>)}
@@ -253,7 +253,7 @@ export default function CitasList({
         {showMore && (
           <div className="flex flex-wrap gap-3 items-end border-t border-beige-dark pt-3">
             <div>
-              <label className="form-label text-[10px]">Servicio</label>
+              <label className="form-label text-2xs">Servicio</label>
               <select value={filters.serviceId} onChange={(e) => patch({ serviceId: e.target.value })}
                 className="input-field py-1.5 bg-white max-w-[200px]">
                 <option value="">Todos</option>
@@ -261,7 +261,7 @@ export default function CitasList({
               </select>
             </div>
             <div>
-              <label className="form-label text-[10px]">Categoría</label>
+              <label className="form-label text-2xs">Categoría</label>
               <select value={filters.categoryId} onChange={(e) => patch({ categoryId: e.target.value })}
                 className="input-field py-1.5 bg-white">
                 <option value="">Todas</option>
@@ -269,25 +269,25 @@ export default function CitasList({
               </select>
             </div>
             <div>
-              <label className="form-label text-[10px]">Valor mín</label>
+              <label className="form-label text-2xs">Valor mín</label>
               <input type="number" min={0} step={1000} value={filters.amountMin}
                 onChange={(e) => patch({ amountMin: e.target.value })}
                 className="input-field py-1.5 w-28" placeholder="0" />
             </div>
             <div>
-              <label className="form-label text-[10px]">Valor máx</label>
+              <label className="form-label text-2xs">Valor máx</label>
               <input type="number" min={0} step={1000} value={filters.amountMax}
                 onChange={(e) => patch({ amountMax: e.target.value })}
                 className="input-field py-1.5 w-28" placeholder="∞" />
             </div>
             <div>
-              <label className="form-label text-[10px]">Desde</label>
+              <label className="form-label text-2xs">Desde</label>
               <input type="date" value={filters.dateFrom}
                 onChange={(e) => patch({ dateFrom: e.target.value })}
                 className="input-field py-1.5 w-36" />
             </div>
             <div>
-              <label className="form-label text-[10px]">Hasta</label>
+              <label className="form-label text-2xs">Hasta</label>
               <input type="date" value={filters.dateTo}
                 onChange={(e) => patch({ dateTo: e.target.value })}
                 className="input-field py-1.5 w-36" />
@@ -357,7 +357,7 @@ export default function CitasList({
                       <p className="text-ink font-medium flex items-center gap-1.5">
                         {appt.clientName}
                         {!appt.clientEmail && (
-                          <span className="text-[10px] tracking-wide uppercase bg-beige text-ink-muted-deep border border-beige-dark px-1.5 py-0.5 rounded-full">
+                          <span className="text-2xs tracking-wide uppercase bg-beige text-ink-muted-deep border border-beige-dark px-1.5 py-0.5 rounded-full">
                             sin correo
                           </span>
                         )}
@@ -367,7 +367,7 @@ export default function CitasList({
                     <td className="px-5 py-3.5 text-ink-muted-deep">{serviceNames(appt)}</td>
                     <td className="px-5 py-3.5 text-gold-deep hidden lg:table-cell">{formatPrice(serviceTotal(appt))}</td>
                     <td className="px-5 py-3.5 hidden lg:table-cell">
-                      <span className="text-[10px] tracking-wide uppercase bg-beige text-ink-muted-deep border border-beige-dark px-2 py-0.5 rounded-full">
+                      <span className="text-2xs tracking-wide uppercase bg-beige text-ink-muted-deep border border-beige-dark px-2 py-0.5 rounded-full">
                         {ORIGIN_LABELS[appt.origin] ?? appt.origin}
                       </span>
                     </td>
@@ -394,7 +394,7 @@ export default function CitasList({
                     <p className="text-sm font-medium text-ink flex items-center gap-1.5">
                       {appt.clientName}
                       {!appt.clientEmail && (
-                        <span className="text-[10px] tracking-wide uppercase bg-beige text-ink-muted-deep border border-beige-dark px-1.5 py-0.5 rounded-full">
+                        <span className="text-2xs tracking-wide uppercase bg-beige text-ink-muted-deep border border-beige-dark px-1.5 py-0.5 rounded-full">
                           sin correo
                         </span>
                       )}
@@ -406,7 +406,7 @@ export default function CitasList({
                     <span className="text-gold-deep">{formatPrice(serviceTotal(appt))}</span>
                   </div>
                   <p className="text-xs text-ink-muted-deep mt-0.5">{serviceNames(appt)}</p>
-                  <p className="text-[11px] text-ink-muted-deep mt-0.5">
+                  <p className="text-2xs text-ink-muted-deep mt-0.5">
                     {ORIGIN_LABELS[appt.origin] ?? appt.origin} · Solicitada: {formatRequestedAt(new Date(appt.createdAt))}
                   </p>
                 </Link>

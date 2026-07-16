@@ -74,7 +74,7 @@ export function DashboardChart({ days, periodDays, prevCount, prevRevenue }: Pro
                   title={`${d.weekday} ${d.label}: ${isRevenue ? formatPrice(d.revenue) : `${d.count} cita(s)`}`}
                 />
               </div>
-              <span className="text-[10px] text-ink-muted-deep">{d.label}</span>
+              <span className="text-2xs text-ink-muted-deep">{d.label}</span>
             </div>
           ))}
         </div>

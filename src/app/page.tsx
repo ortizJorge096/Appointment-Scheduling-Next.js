@@ -137,7 +137,7 @@ function ContactoSection() {
               <PinIcon className="text-gold-deep w-5 h-5 shrink-0 mt-1" />
               <div className="min-w-0">
                 <p className="text-xs text-gold-deep tracking-widest uppercase mb-1">Dirección</p>
-                <p className="text-[15px] text-ink group-hover:text-gold-deep transition-colors">{STUDIO.address}</p>
+                <p className="text-base text-ink group-hover:text-gold-deep transition-colors">{STUDIO.address}</p>
               </div>
             </a>
 
@@ -145,7 +145,7 @@ function ContactoSection() {
               <ClockIcon className="text-gold-deep w-5 h-5 shrink-0 mt-1" />
               <div className="min-w-0">
                 <p className="text-xs text-gold-deep tracking-widest uppercase mb-1">Horario</p>
-                <p className="text-[15px] text-ink">{STUDIO.hours}</p>
+                <p className="text-base text-ink">{STUDIO.hours}</p>
                 <p className="text-sm text-ink-muted mt-0.5">
                   {STUDIO.hoursWeekend}:{' '}
                   <a href={WHATSAPP_URL} target="_blank" rel="noreferrer" className="text-gold-deep hover:underline">
@@ -160,7 +160,7 @@ function ContactoSection() {
               <PhoneIcon className="text-gold-deep w-5 h-5 shrink-0 mt-1" />
               <div className="min-w-0">
                 <p className="text-xs text-gold-deep tracking-widest uppercase mb-1">WhatsApp</p>
-                <p className="text-[15px] text-ink group-hover:text-gold-deep transition-colors">{STUDIO.phone}</p>
+                <p className="text-base text-ink group-hover:text-gold-deep transition-colors">{STUDIO.phone}</p>
               </div>
             </a>
 
@@ -169,7 +169,7 @@ function ContactoSection() {
               <MailIcon className="text-gold-deep w-5 h-5 shrink-0 mt-1" />
               <div className="min-w-0">
                 <p className="text-xs text-gold-deep tracking-widest uppercase mb-1">Email</p>
-                <p className="text-[15px] text-ink break-all group-hover:text-gold-deep transition-colors">{STUDIO.email}</p>
+                <p className="text-base text-ink break-all group-hover:text-gold-deep transition-colors">{STUDIO.email}</p>
               </div>
             </a>
           </div>

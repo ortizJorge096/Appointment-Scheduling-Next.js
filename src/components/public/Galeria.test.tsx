@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import Galeria from './Galeria'
 import { STUDIO, INSTAGRAM_URL, TIKTOK_URL } from '@/lib/config'
 
@@ -31,6 +31,16 @@ describe('Galeria', () => {
     const second = await screen.findByAltText('Diseño')
     expect(first.getAttribute('src')).toContain(encodeURIComponent(MOCK_IMAGES[0].url))
     expect(second.getAttribute('src')).toContain(encodeURIComponent(MOCK_IMAGES[1].url))
+  })
+
+  it('el lightbox muestra la descripción de la imagen cuando existe', async () => {
+    mockFetch([
+      { id: 'img-1', url: 'https://bucket.s3.amazonaws.com/img1.jpg', title: 'Nail art', description: 'Diseño a mano alzada en rojo', category: { id: 'c1', name: 'Uñas', slug: 'UNAS' } },
+    ])
+    render(<Galeria />)
+    // Open the lightbox by clicking the thumbnail button, then assert the caption.
+    fireEvent.click(await screen.findByRole('button', { name: 'Ampliar: Nail art' }))
+    expect(await screen.findByText('Diseño a mano alzada en rojo')).toBeInTheDocument()
   })
 
   it('cae a los gradientes placeholder cuando no hay imágenes activas', async () => {

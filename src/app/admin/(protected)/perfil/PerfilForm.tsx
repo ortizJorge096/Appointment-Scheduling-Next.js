@@ -67,7 +67,7 @@ export default function PerfilForm() {
         <label className="form-label">Nueva contraseña</label>
         <PasswordInput value={form.newPassword} onChange={field('newPassword')}
           autoComplete="new-password" className="input-field w-full" />
-        <p className="text-[11px] text-ink-muted-deep mt-1">Mínimo 8 caracteres, una mayúscula y un número.</p>
+        <p className="text-2xs text-ink-muted-deep mt-1">Mínimo 8 caracteres, una mayúscula y un número.</p>
       </div>
       <div>
         <label className="form-label">Confirmar nueva contraseña</label>

@@ -46,6 +46,13 @@ const config: Config = {
         sans:   ['DM Sans', 'system-ui', 'sans-serif'],
         script: ['Great Vibes', 'Cormorant Garamond', 'cursive'],
       },
+      // One step below Tailwind's text-xs (12px) for dense metadata — badges,
+      // timestamps, captions. Adding it as a token replaced ~86 ad-hoc
+      // text-[10px]/[11px]; the 10px uses round up to 11 (marginally more
+      // legible). Everything 12px+ uses Tailwind's default scale.
+      fontSize: {
+        '2xs': ['0.6875rem', { lineHeight: '1rem' }], // 11px
+      },
       keyframes: {
         fadeUp: {
           '0%':   { opacity: '0', transform: 'translateY(16px)' },

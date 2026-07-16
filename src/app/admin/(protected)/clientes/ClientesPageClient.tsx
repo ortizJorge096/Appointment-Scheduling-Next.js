@@ -250,7 +250,7 @@ export default function ClientesPageClient() {
                   onChange={e => { setForm(f => ({ ...f, name: e.target.value })); v.clearError('name') }}
                   onBlur={v.handleBlur('name')}
                   placeholder="Ana García"
-                  className={`input-field w-full ${v.errorOf('name') ? 'border-red-400 focus:ring-red-300' : ''}`} />
+                  className={`input-field w-full ${v.errorOf('name') ? 'input-error' : ''}`} />
                 {v.errorOf('name') && <p className="text-xs text-red-700 mt-0.5">{v.errorOf('name')}</p>}
               </div>
               <div>
@@ -259,7 +259,7 @@ export default function ClientesPageClient() {
                   onChange={e => { setForm(f => ({ ...f, email: e.target.value })); v.clearError('email') }}
                   onBlur={v.handleBlur('email')}
                   placeholder="ana@ejemplo.com"
-                  className={`input-field w-full ${v.errorOf('email') ? 'border-red-400 focus:ring-red-300' : ''}`} />
+                  className={`input-field w-full ${v.errorOf('email') ? 'input-error' : ''}`} />
                 {v.errorOf('email') && <p className="text-xs text-red-700 mt-0.5">{v.errorOf('email')}</p>}
               </div>
               <div>
@@ -268,7 +268,7 @@ export default function ClientesPageClient() {
                   onChange={e => { setForm(f => ({ ...f, phone: e.target.value })); v.clearError('phone') }}
                   onBlur={v.handleBlur('phone')}
                   placeholder="3001234567"
-                  className={`input-field w-full ${v.errorOf('phone') ? 'border-red-400 focus:ring-red-300' : ''}`} />
+                  className={`input-field w-full ${v.errorOf('phone') ? 'input-error' : ''}`} />
                 {v.errorOf('phone') && <p className="text-xs text-red-700 mt-0.5">{v.errorOf('phone')}</p>}
               </div>
               <div>
