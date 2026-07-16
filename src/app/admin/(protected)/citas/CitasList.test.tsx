@@ -13,7 +13,7 @@ const APPT = {
   service: { name: 'Manicura', price: 35000 }, services: [] as { price: number; service: { name: string } }[],
 }
 const BASE_FILTERS: CitasFilters = {
-  search: '', status: '', scope: 'upcoming', origin: '', serviceId: '', categoryId: '',
+  search: '', status: '', scope: 'upcoming', origin: '', payment: '', serviceId: '', categoryId: '',
   amountMin: '', amountMax: '', dateFrom: '', dateTo: '', sort: 'upcoming',
 }
 const PAGINATION = { total: 1, page: 1, limit: 20, totalPages: 1 }

@@ -139,6 +139,100 @@ export async function PATCH(
     return NextResponse.json({ success: false, error: 'Sin permiso' }, { status: 403 })
   }
 
+  // ── Add service lines to an existing appointment (admin edit) ──
+  // Self-contained path: creates the new AppointmentService rows and grows the
+  // appointment's duration, endTime and charge (precioFinal). An already-PAID
+  // appointment whose total now exceeds what was collected flips to PARTIAL, so
+  // the difference surfaces as a receivable in accounting.
+  const addServiceIds = parsed.data.addServiceIds
+  if (addServiceIds && addServiceIds.length > 0) {
+    if (appointment.status === 'CANCELLED') {
+      return NextResponse.json({ success: false, error: 'No se pueden agregar servicios a una cita cancelada.' }, { status: 400 })
+    }
+    const newServices = await prisma.service.findMany({
+      where:  { id: { in: addServiceIds } },
+      select: { id: true, name: true, price: true, durationMinutes: true },
+    })
+    if (newServices.length !== addServiceIds.length) {
+      return NextResponse.json({ success: false, error: 'Uno o más servicios no existen.' }, { status: 404 })
+    }
+
+    // Full recompute: existing lines (with their discounts/extras) + the new lines
+    // + general extras + any order-level discount → the new charge total.
+    const existingSvcRows = appointment.services ?? []
+    const existingLines = existingSvcRows.length > 0
+      ? existingSvcRows.map((sv) => ({
+          price:          sv.price,
+          descuentoTipo:  sv.descuentoTipo ?? null,
+          descuentoValor: sv.descuentoValor ?? null,
+          extras:         appointment.extras.filter((e) => e.appointmentServiceId === sv.id).map((e) => e.amount),
+        }))
+      : [{ price: appointment.service.price, descuentoTipo: null, descuentoValor: null, extras: [] as number[] }]
+    const newLines = newServices.map((s) => ({ price: s.price, descuentoTipo: null, descuentoValor: null, extras: [] as number[] }))
+    const generalExtras = appointment.extras.filter((e) => !e.appointmentServiceId).map((e) => e.amount)
+    const orderDiscount = appointment.descuentoValor != null
+      ? { tipo: appointment.descuentoTipo, valor: appointment.descuentoValor }
+      : undefined
+    const bd = computeAppointmentTotal([...existingLines, ...newLines], generalExtras, orderDiscount)
+    const newTotal = bd.total
+
+    const addedDuration    = newServices.reduce((sum, s) => sum + s.durationMinutes, 0)
+    const newTotalDuration = appointment.totalDurationMinutes + addedDuration
+    const newEndTime       = minutesToTime(timeToMinutes(appointment.startTime) + newTotalDuration)
+
+    // A paid appointment that now costs more than was collected owes the difference.
+    const flipsToPartial =
+      appointment.paymentStatus === 'PAID' &&
+      appointment.amountPaid != null &&
+      appointment.amountPaid < newTotal
+
+    // Legacy rows have no AppointmentService for the primary service — backfill it
+    // so the appointment becomes a consistent multi-line record after the add.
+    const backfillPrimary = existingSvcRows.length === 0
+
+    const addInclude = {
+      service:  { select: { id: true, name: true, price: true, durationMinutes: true } },
+      services: { include: { service: { select: { id: true, name: true, price: true, durationMinutes: true } } } },
+      extras:   { orderBy: { createdAt: 'asc' as const } },
+    }
+
+    const updated = await prisma.$transaction(async (tx) => {
+      if (backfillPrimary) {
+        await tx.appointmentService.create({
+          data: { appointmentId: id, serviceId: appointment.serviceId, serviceName: appointment.service.name, price: appointment.service.price },
+        })
+      }
+      await tx.appointmentService.createMany({
+        data: newServices.map((s) => ({ appointmentId: id, serviceId: s.id, serviceName: s.name, price: s.price })),
+      })
+      return tx.appointment.update({
+        where: { id },
+        data: {
+          totalDurationMinutes: newTotalDuration,
+          endTime:              newEndTime,
+          precioFinal:          newTotal,
+          ...(flipsToPartial ? { paymentStatus: 'PARTIAL' } : {}),
+        },
+        include: addInclude,
+      })
+    })
+
+    await audit({
+      action:    'UPDATE',
+      entity:    'APPOINTMENT',
+      entityId:  id,
+      actorType: 'ADMIN',
+      userEmail: admin.email,
+      ip:        getClientIp(request),
+      userAgent: getUserAgent(request),
+      description: `Admin agregó ${newServices.length} servicio(s) a la cita de ${updated.clientName}${flipsToPartial ? ' (queda pago parcial)' : ''}`,
+      before: { totalDurationMinutes: appointment.totalDurationMinutes, precioFinal: appointment.precioFinal, paymentStatus: appointment.paymentStatus },
+      after:  { totalDurationMinutes: newTotalDuration, precioFinal: newTotal, ...(flipsToPartial ? { paymentStatus: 'PARTIAL' } : {}), addedServices: newServices.map((s) => s.name) },
+    })
+
+    return NextResponse.json({ success: true, data: updated })
+  }
+
   const updateData: Record<string, unknown> = {}
 
   // ── Money: per-service discounts + per-line/general extras, OR an order-level

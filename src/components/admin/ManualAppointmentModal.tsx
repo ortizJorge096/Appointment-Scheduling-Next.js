@@ -72,6 +72,7 @@ export default function ManualAppointmentModal() {
   const can = useCan()
   const formRef = useRef<HTMLFormElement>(null)
   const [payMethod, setPayMethod] = useState('')  // payment method for a "Cita pasada"
+  const [paid, setPaid]           = useState(true) // was a "Cita pasada" already paid?
   const [open, setOpen]         = useState(false)
   const [services, setServices] = useState<Service[]>([])
   const [form, setForm]         = useState(EMPTY)
@@ -104,7 +105,7 @@ export default function ManualAppointmentModal() {
       setFieldErrors({}); setTouched({}); setApiError(''); setSuccess('')
     } else {
       setExtras([]); setExtrasOpen(false); setServiceQuery(''); setPickedClientId(null)
-      setLines({}); setDiscountScope('none')
+      setLines({}); setDiscountScope('none'); setPaid(true); setPayMethod('')
     }
   }, [open, loadServices])
 
@@ -219,6 +220,7 @@ export default function ManualAppointmentModal() {
       mode: form.mode,
       ...(!isPast ? { notifyClient: form.notifyClient } : {}),
       ...(isPast ? {
+        paid,
         extras: extras
           .filter((e) => e.description.trim() && Number(e.amount) > 0)
           .map((e) => ({ description: e.description.trim(), amount: Number(e.amount) })),
@@ -243,7 +245,7 @@ export default function ManualAppointmentModal() {
           descuentoValor:  Number(form.descuentoValor),
           descuentoMotivo: form.descuentoMotivo.trim() || undefined,
         } : {}),
-        ...(payMethod ? { paymentMethod: payMethod } : {}),
+        ...(paid && payMethod ? { paymentMethod: payMethod } : {}),
       } : {}),
     }
 
@@ -260,6 +262,7 @@ export default function ManualAppointmentModal() {
     setSuccess(isPast ? 'Cita registrada correctamente ✓' : 'Cita creada correctamente ✓')
     setForm(EMPTY)
     setPayMethod('')
+    setPaid(true)
     setExtras([])
     setExtrasOpen(false)
     setServiceQuery('')
@@ -407,23 +410,46 @@ export default function ManualAppointmentModal() {
                   ))}
                 </div>
                 {form.mode === 'PAST' && (
-                  <p className="text-xs text-ink bg-gold-pale border border-gold/30 rounded-lg px-3 py-2 mt-2">
-                    Esta cita se marcará como completada y pagada al guardar
-                  </p>
-                )}
-                {form.mode === 'PAST' && (
-                  <div className="mt-3">
-                    <label className="form-label text-2xs !mb-1 block">Método de pago</label>
-                    <div className="flex gap-2 flex-wrap">
-                      {([['EFECTIVO', 'Efectivo'], ['NEQUI', 'Nequi'], ['TARJETA', 'Tarjeta'], ['TRANSFERENCIA', 'Transferencia']] as const).map(([v, l]) => (
-                        <button key={v} type="button" onClick={() => setPayMethod(v)}
-                          className={`px-3 py-2 rounded-lg text-sm border transition-colors ${
-                            payMethod === v ? 'bg-gold text-ink border-gold' : 'border-beige-dark text-ink-muted-deep hover:border-gold/50'
-                          }`}>
-                          {l}
-                        </button>
-                      ))}
+                  <div className="mt-3 space-y-3">
+                    {/* Estado del pago: pagada (ingreso) o pendiente (cuenta por cobrar) */}
+                    <div>
+                      <span className="form-label text-2xs !mb-1 block">Estado del pago</span>
+                      <div className="flex gap-2">
+                        {([[true, 'Pagada'], [false, 'Pendiente de pago']] as const).map(([v, l]) => (
+                          <button key={l} type="button"
+                            onClick={() => { setPaid(v); if (!v) setPayMethod('') }}
+                            className={`flex-1 px-3 py-2 rounded-lg text-sm border transition-colors ${
+                              paid === v ? 'bg-gold text-ink border-gold' : 'border-beige-dark text-ink-muted-deep hover:border-gold/50'
+                            }`}>
+                            {l}
+                          </button>
+                        ))}
+                      </div>
                     </div>
+
+                    <p className={`text-xs rounded-lg px-3 py-2 border ${
+                      paid ? 'text-ink bg-gold-pale border-gold/30' : 'text-amber-800 bg-amber-50 border-amber-200'
+                    }`}>
+                      {paid
+                        ? 'Se marcará como completada y pagada al guardar.'
+                        : 'Se registrará como completada y pendiente de pago (cuenta por cobrar).'}
+                    </p>
+
+                    {paid && (
+                      <div>
+                        <label className="form-label text-2xs !mb-1 block">Método de pago</label>
+                        <div className="flex gap-2 flex-wrap">
+                          {([['EFECTIVO', 'Efectivo'], ['NEQUI', 'Nequi'], ['TARJETA', 'Tarjeta'], ['TRANSFERENCIA', 'Transferencia']] as const).map(([v, l]) => (
+                            <button key={v} type="button" onClick={() => setPayMethod(v)}
+                              className={`px-3 py-2 rounded-lg text-sm border transition-colors ${
+                                payMethod === v ? 'bg-gold text-ink border-gold' : 'border-beige-dark text-ink-muted-deep hover:border-gold/50'
+                              }`}>
+                              {l}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </fieldset>

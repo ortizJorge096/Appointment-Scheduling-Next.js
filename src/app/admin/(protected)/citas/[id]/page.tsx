@@ -58,6 +58,14 @@ export default function CitaDetailPage() {
   const router    = useRouter()
   const can       = useCan()
 
+  // Preserve the list's filters on return: the list opens this page with
+  // ?from=<query>; send the breadcrumb + post-action redirects back there.
+  const [backHref, setBackHref] = useState('/admin/citas')
+  useEffect(() => {
+    const from = new URLSearchParams(window.location.search).get('from')
+    if (from) setBackHref(`/admin/citas?${from}`)
+  }, [])
+
   const [appt, setAppt]         = useState<AppointmentWithService | null>(null)
   const [loading, setLoading]   = useState(true)
   const [updating, setUpdating] = useState(false)
@@ -88,6 +96,13 @@ export default function CitaDetailPage() {
   // Per-service discount + extras, keyed by AppointmentService id.
   const [lines, setLines] = useState<Record<string, LineInput>>({})
   const [discountScope, setDiscountScope] = useState<'none' | 'line' | 'order'>('none')
+
+  // Add-service picker (admin edit): append services to an existing appointment.
+  const [addOpen, setAddOpen]     = useState(false)
+  const [catalog, setCatalog]     = useState<{ id: string; name: string; price: number; durationMinutes: number }[]>([])
+  const [addQuery, setAddQuery]   = useState('')
+  const [toAdd, setToAdd]         = useState<string[]>([])
+  const [addingSvc, setAddingSvc] = useState(false)
 
   useEffect(() => {
     fetch(`/api/appointments/${id}`)
@@ -156,7 +171,7 @@ export default function CitaDetailPage() {
     setAppt(json.data)
     toast.success(`Cita marcada como ${STATUS_LABEL[status]}`)
     // Terminal states → back to the list (nothing else to do here).
-    if (status === 'CANCELLED' || status === 'NO_SHOW') router.push('/admin/citas')
+    if (status === 'CANCELLED' || status === 'NO_SHOW') router.push(backHref)
   }
 
   async function saveNotes() {
@@ -229,7 +244,7 @@ export default function CitaDetailPage() {
     setAppt(json.data)
     if (json.data.status === 'COMPLETED') {
       toast.success('Pago registrado — cita completada')
-      router.push('/admin/citas')
+      router.push(backHref)
     } else {
       toast.success('Pago guardado')
     }
@@ -288,6 +303,34 @@ export default function CitaDetailPage() {
     if (!payMethod) setPayMethod('EFECTIVO')
   }
 
+  // ── Add services to this appointment (loads the catalog once, on first open) ──
+  async function openAddService() {
+    setAddOpen(true)
+    if (catalog.length === 0) {
+      const r = await fetch('/api/services')
+      const j = await r.json()
+      if (j.success) setCatalog(j.data)
+    }
+  }
+  function toggleAdd(sid: string) {
+    setToAdd((prev) => (prev.includes(sid) ? prev.filter((x) => x !== sid) : [...prev, sid]))
+  }
+  async function saveAddServices() {
+    if (toAdd.length === 0) return
+    setAddingSvc(true)
+    const res  = await fetch(`/api/appointments/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ addServiceIds: toAdd }),
+    })
+    const json = await res.json()
+    setAddingSvc(false)
+    if (!json.success) { toast.error(json.error ?? 'No se pudo agregar el servicio'); return }
+    setAppt(json.data)
+    setToAdd([]); setAddOpen(false); setAddQuery('')
+    toast.success(json.data.paymentStatus === 'PARTIAL' ? 'Servicio agregado — queda pago parcial' : 'Servicio agregado')
+  }
+
   if (loading) return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto flex items-center gap-3 text-ink-muted-deep">
       <div className="w-5 h-5 border-2 border-gold border-t-transparent rounded-full animate-spin" />
@@ -298,7 +341,7 @@ export default function CitaDetailPage() {
   if (error || !appt) return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto">
       <p className="text-red-700 mb-4">{error ?? 'Error'}</p>
-      <Link href="/admin/citas" className="btn-secondary">← Volver</Link>
+      <Link href={backHref} className="btn-secondary">← Volver</Link>
     </div>
   )
 
@@ -363,7 +406,7 @@ export default function CitaDetailPage() {
 
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-xs text-ink-muted-deep mb-6">
-        <Link href="/admin/citas" className="hover:text-gold-deep hover:underline">Citas</Link>
+        <Link href={backHref} className="hover:text-gold-deep hover:underline">Citas</Link>
         <span>/</span>
         <span className="text-ink">{appt.clientName}</span>
       </div>
@@ -435,6 +478,43 @@ export default function CitaDetailPage() {
               <span className="text-gold-deep text-lg font-medium">{formatPrice(savedBreakdown.total)}</span>
             </div>
           </div>
+
+          {/* Add service — admin edit; grows the appointment's charge and duration. */}
+          {can('citas:editar') && appt.status !== 'CANCELLED' && (
+            <div className="mt-3 pt-3 border-t border-beige-dark">
+              {!addOpen ? (
+                <button type="button" onClick={openAddService} className="text-xs text-gold-deep hover:underline">
+                  + Agregar servicio
+                </button>
+              ) : (
+                <div className="space-y-2">
+                  <input type="search" value={addQuery} onChange={(e) => setAddQuery(e.target.value)}
+                    placeholder="🔍 Buscar servicio…" aria-label="Buscar servicio para agregar"
+                    className="input-field w-full text-sm" />
+                  <div className="max-h-40 overflow-y-auto rounded-lg border border-beige-dark divide-y divide-beige-dark">
+                    {catalog
+                      .filter((s) => s.name.toLowerCase().includes(addQuery.trim().toLowerCase()))
+                      .map((s) => (
+                        <label key={s.id} className="flex items-center gap-2 px-2 py-1.5 hover:bg-beige cursor-pointer text-sm">
+                          <input type="checkbox" checked={toAdd.includes(s.id)} onChange={() => toggleAdd(s.id)}
+                            className="accent-gold w-4 h-4 shrink-0" />
+                          <span className="flex-1 text-ink">{s.name}</span>
+                          <span className="text-xs text-ink-muted-deep whitespace-nowrap">{s.durationMinutes} min · {formatPrice(s.price)}</span>
+                        </label>
+                      ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={saveAddServices} disabled={addingSvc || toAdd.length === 0}
+                      className="btn-primary text-xs px-4 py-2 disabled:opacity-50">
+                      {addingSvc ? 'Agregando…' : `Agregar${toAdd.length > 0 ? ` (${toAdd.length})` : ''}`}
+                    </button>
+                    <button type="button" onClick={() => { setAddOpen(false); setToAdd([]); setAddQuery('') }}
+                      className="btn-secondary text-xs px-4 py-2">Cancelar</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Date and time — reschedulable while the appointment is still live */}

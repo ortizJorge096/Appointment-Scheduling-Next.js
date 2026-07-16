@@ -73,6 +73,27 @@ describe('GET /api/accounting', () => {
     expect(json.data.receivableCount).toBe(2)
   })
 
+  it('a rendered-but-unpaid past charge (PENDING + precioFinal) is a receivable at its snapshot, not income', async () => {
+    vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
+    // What "Cita pasada / Pendiente de pago" writes: PENDING, no amountPaid, and
+    // precioFinal snapshotting the exact amount owed (services + extras − discount),
+    // which here exceeds the gross catalog price so the two are distinguishable.
+    vi.mocked(prisma.appointment.findMany).mockResolvedValue([
+      { paymentStatus: 'PENDING', amountPaid: null, precioFinal: 42000, paymentMethod: null, service: { price: 35000 }, services: [] },
+    ] as never)
+    vi.mocked(prisma.expense.findMany).mockResolvedValue([])
+
+    const res = await GET(makeGetRequest())
+    const json = await res.json()
+
+    // Not collected → adds nothing to income.
+    expect(json.data.totalIncome).toBe(0)
+    // Owed in full at the snapshot (precioFinal), not the gross service price (35000).
+    expect(json.data.receivable).toBe(42000)
+    expect(json.data.receivableCount).toBe(1)
+    expect(json.data.pendingCount).toBe(1)
+  })
+
   it('falls back to service price when amountPaid is null for PAID', async () => {
     vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
     vi.mocked(prisma.appointment.findMany).mockResolvedValue([

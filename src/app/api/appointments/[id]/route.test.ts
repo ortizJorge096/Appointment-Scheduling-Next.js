@@ -6,11 +6,12 @@ vi.mock('next-auth', () => ({ getServerSession: vi.fn() }))
 vi.mock('@/lib/auth', () => ({ authOptions: {} }))
 vi.mock('@/lib/prisma', () => ({
   prisma: {
+    service:     { findMany: vi.fn() },
     appointment: {
       findUnique: vi.fn(),
       update:     vi.fn(),
     },
-    appointmentService: { update: vi.fn(), updateMany: vi.fn() },
+    appointmentService: { create: vi.fn(), createMany: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
     appointmentExtra:   { deleteMany: vi.fn(), createMany: vi.fn() },
     $transaction: vi.fn(),
   },
@@ -260,6 +261,64 @@ describe('PATCH /api/appointments/[id]', () => {
     const precioFinal = txAppointmentUpdate.mock.calls[0][0].data.precioFinal
     expect(precioFinal).toBeGreaterThan(0)
     expect(precioFinal).toBeLessThan(35000)
+  })
+
+  it('adds a service — grows duration/total and snapshots the new precioFinal', async () => {
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
+    const appt = {
+      ...MOCK_APPOINTMENT,
+      services: [{ id: 'as1', price: 35000, descuentoTipo: null, descuentoValor: null }],
+      extras: [], totalDurationMinutes: 45, paymentStatus: 'PENDING', amountPaid: null,
+    }
+    vi.mocked(prisma.appointment.findUnique).mockResolvedValue(appt as never)
+    vi.mocked(prisma.service.findMany).mockResolvedValue([{ id: 's2', name: 'Pedicura', price: 40000, durationMinutes: 60 }] as never)
+    const createMany = vi.fn().mockResolvedValue({ count: 1 })
+    const txUpdate   = vi.fn().mockResolvedValue({ ...appt })
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn) => fn({
+      appointmentService: { create: vi.fn(), createMany },
+      appointment:        { update: txUpdate },
+    }) as never)
+
+    const res = await PATCH(makeRequest({ addServiceIds: ['s2'] }), CTX())
+    expect(res.status).toBe(200)
+    // The new line is created with name + price snapshots…
+    expect(createMany).toHaveBeenCalledWith(expect.objectContaining({
+      data: [expect.objectContaining({ serviceId: 's2', serviceName: 'Pedicura', price: 40000 })],
+    }))
+    // …duration grows 45→105 and the charge covers both services.
+    const data = txUpdate.mock.calls[0][0].data
+    expect(data.totalDurationMinutes).toBe(105)
+    expect(data.precioFinal).toBe(75000)      // 35000 + 40000
+    expect(data.paymentStatus).toBeUndefined() // PENDING already owes it all — no flip
+  })
+
+  it('flips a PAID appointment to PARTIAL when the added service exceeds what was collected', async () => {
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
+    const appt = {
+      ...MOCK_APPOINTMENT,
+      services: [{ id: 'as1', price: 35000, descuentoTipo: null, descuentoValor: null }],
+      extras: [], totalDurationMinutes: 45, paymentStatus: 'PAID', amountPaid: 35000,
+    }
+    vi.mocked(prisma.appointment.findUnique).mockResolvedValue(appt as never)
+    vi.mocked(prisma.service.findMany).mockResolvedValue([{ id: 's2', name: 'Pedicura', price: 40000, durationMinutes: 60 }] as never)
+    const txUpdate = vi.fn().mockResolvedValue({ ...appt, paymentStatus: 'PARTIAL' })
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn) => fn({
+      appointmentService: { create: vi.fn(), createMany: vi.fn().mockResolvedValue({ count: 1 }) },
+      appointment:        { update: txUpdate },
+    }) as never)
+
+    await PATCH(makeRequest({ addServiceIds: ['s2'] }), CTX())
+    const data = txUpdate.mock.calls[0][0].data
+    // 35000 collected < 75000 new total → owes the difference (a receivable).
+    expect(data.paymentStatus).toBe('PARTIAL')
+    expect(data.precioFinal).toBe(75000)
+  })
+
+  it('rejects adding services to a cancelled appointment', async () => {
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
+    vi.mocked(prisma.appointment.findUnique).mockResolvedValue({ ...MOCK_APPOINTMENT, status: 'CANCELLED' })
+    const res = await PATCH(makeRequest({ addServiceIds: ['s2'] }), CTX())
+    expect(res.status).toBe(400)
   })
 })
 

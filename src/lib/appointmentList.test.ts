@@ -55,6 +55,22 @@ describe('buildAppointmentListQuery — status & origin', () => {
   })
 })
 
+describe('buildAppointmentListQuery — payment', () => {
+  it("'pending' matches PENDING or PARTIAL (still owes)", () => {
+    expect(buildAppointmentListQuery({ payment: 'pending', today: TODAY }).where.paymentStatus)
+      .toEqual({ in: ['PENDING', 'PARTIAL'] })
+  })
+
+  it('an exact PaymentStatus narrows to just that one', () => {
+    expect(buildAppointmentListQuery({ payment: 'PAID', today: TODAY }).where.paymentStatus).toBe('PAID')
+  })
+
+  it('ignores an unknown or absent payment value', () => {
+    expect(buildAppointmentListQuery({ payment: 'xxx', today: TODAY }).where.paymentStatus).toBeUndefined()
+    expect(buildAppointmentListQuery({ today: TODAY }).where.paymentStatus).toBeUndefined()
+  })
+})
+
 describe('buildAppointmentListQuery — value range', () => {
   it('builds a gte/lte amountPaid filter', () => {
     expect(buildAppointmentListQuery({ amountMin: 50000, amountMax: 100000, today: TODAY }).where.amountPaid)

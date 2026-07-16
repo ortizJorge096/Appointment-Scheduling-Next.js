@@ -273,7 +273,8 @@ function Lightbox({
         type="button"
         onClick={onClose}
         aria-label="Cerrar"
-        className="absolute top-4 right-4 w-11 h-11 flex items-center justify-center text-white/70 hover:text-white text-3xl leading-none"
+        className="absolute top-4 right-4 z-10 w-11 h-11 flex items-center justify-center rounded-full
+                   bg-ink/60 hover:bg-ink/80 backdrop-blur-sm text-white text-3xl leading-none transition-colors"
       >
         ×
       </button>
@@ -282,12 +283,14 @@ function Lightbox({
         <>
           <button type="button" aria-label="Anterior"
             onClick={(e) => { e.stopPropagation(); onPrev() }}
-            className="absolute left-2 sm:left-6 w-11 h-11 flex items-center justify-center text-white/60 hover:text-white text-4xl">
+            className="absolute left-2 sm:left-6 top-1/2 -translate-y-1/2 z-10 w-11 h-11 flex items-center justify-center rounded-full
+                       bg-ink/60 hover:bg-ink/80 backdrop-blur-sm text-white text-4xl leading-none transition-colors">
             ‹
           </button>
           <button type="button" aria-label="Siguiente"
             onClick={(e) => { e.stopPropagation(); onNext() }}
-            className="absolute right-2 sm:right-6 w-11 h-11 flex items-center justify-center text-white/60 hover:text-white text-4xl">
+            className="absolute right-2 sm:right-6 top-1/2 -translate-y-1/2 z-10 w-11 h-11 flex items-center justify-center rounded-full
+                       bg-ink/60 hover:bg-ink/80 backdrop-blur-sm text-white text-4xl leading-none transition-colors">
             ›
           </button>
         </>
