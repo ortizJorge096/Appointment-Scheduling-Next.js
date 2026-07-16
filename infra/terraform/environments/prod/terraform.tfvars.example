@@ -24,8 +24,10 @@ enable_ec2_k3s    = true
 # Alertas/monitoring APAGADAS por elección del negocio (sin CloudWatch alarms ni SNS).
 enable_monitoring = false
 
-# Backups: el módulo AWS Backup (vault 30/90/365 días) queda APAGADO.
-# La BD conserva 7 días de point-in-time recovery gratis (ver backup_retention_days en main.tf).
+# Backups: el módulo AWS Backup (vault 30/90/365 días) queda APAGADO — es el
+# único backup que cuesta. La BD conserva 1 día de point-in-time recovery gratis
+# (backup_retention_days = 1 en main.tf). No bajar a 0: es el "deshacer" sobre
+# datos de clientas y pagos.
 enable_aws_backup = false
 
 alarm_email = ""

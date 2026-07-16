@@ -143,17 +143,21 @@ module "rds" {
   skip_final_snapshot = var.db_skip_final_snapshot
   multi_az            = false # change to true when leaving Free Tier
   publicly_accessible = false
-  # Minimal safety net only: 7 days of FREE point-in-time recovery (RDS automated
-  # backups up to the DB size cost nothing). The long-retention AWS Backup vault
-  # below is disabled by default (var.enable_aws_backup) to save its storage cost.
+  # Minimal safety net only: 1 day of FREE point-in-time recovery (RDS automated
+  # backups up to the DB size cost nothing, so this is $0). It is the last undo
+  # for an accidental DELETE or a bad migration on client + payment data — do not
+  # take it to 0. 7 is also free if a longer window is ever wanted. The
+  # long-retention AWS Backup vault below stays off (var.enable_aws_backup): that
+  # is the part that actually costs (30/90/365-day snapshot storage).
   backup_retention_days = 1
 
   tags = { Component = "database" }
 }
 
 # ─── Long-retention backups via AWS Backup (vault + daily/weekly/monthly) ──
-# Disabled by default — the DB still has 7-day PITR above. Set
-# enable_aws_backup = true to bring back the 30/90/365-day vault.
+# Off (enable_aws_backup = false) — overkill for this site, and the vault's
+# snapshot storage is the only backup cost. The DB keeps 1-day free PITR above.
+# Set enable_aws_backup = true to bring back the 30/90/365-day vault.
 module "rds_backup" {
   count  = var.enable_aws_backup ? 1 : 0
   source = "../../modules/rds-backup"

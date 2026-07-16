@@ -133,8 +133,9 @@ variable "db_skip_final_snapshot" {
   default = false
 }
 
-# Long-retention AWS Backup vault (30/90/365 días). Off por elección del negocio:
-# la BD conserva igual 7 días de point-in-time recovery (gratis) vía RDS.
+# Long-retention AWS Backup vault (30/90/365 días). Off por elección del negocio
+# (es el único backup que cuesta): la BD conserva igual 1 día de point-in-time
+# recovery (gratis) vía RDS.
 variable "enable_aws_backup" {
   type    = bool
   default = false
