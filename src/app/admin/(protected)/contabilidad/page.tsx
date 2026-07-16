@@ -11,6 +11,7 @@ import { usePermissionGuard, useCan } from '@/components/admin/usePermissionGuar
 import { PAYMENT_METHOD_LABEL as METHOD_LABEL, EXPENSE_CATEGORY_LABEL as CAT_LABEL } from '@/lib/labels'
 import { formatPrice } from '@/lib/utils'
 import { useFieldValidation } from '@/hooks/useFieldValidation'
+import { SubmitButton } from '@/components/ui/SubmitButton'
 
 const PER_PAGE = 10
 
@@ -383,10 +384,10 @@ export default function ContabilidadPage() {
                 className="input-field w-full" />
             </div>
             {saveError && <p className="text-xs text-red-700">{saveError}</p>}
-            <button type="submit" disabled={saving}
+            <SubmitButton type="submit" loading={saving} loadingLabel="Guardando…"
               className="btn-primary w-full disabled:opacity-50">
-              {saving ? 'Guardando…' : '+ Registrar gasto'}
-            </button>
+              + Registrar gasto
+            </SubmitButton>
           </form>
         </div>
         )}

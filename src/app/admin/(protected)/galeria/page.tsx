@@ -6,6 +6,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
 import { Pagination } from '@/components/admin/Pagination'
 import { usePermissionGuard } from '@/components/admin/usePermissionGuard'
+import { SubmitButton } from '@/components/ui/SubmitButton'
 
 interface GalleryImage {
   id: string
@@ -261,7 +262,11 @@ export default function GaleriaAdminPage() {
           <p className="text-xs text-ink-muted-deep tracking-widest uppercase mb-1">Contenido</p>
           <h1 className="font-serif text-2xl sm:text-3xl text-ink font-light">Galería</h1>
         </div>
-        <label className={`btn-primary cursor-pointer ${uploading ? 'opacity-70 pointer-events-none' : ''}`}>
+        {/* A label-wrapped file input, not a <button>, so SubmitButton does not
+            fit — but the busy state still needs announcing. The percentage is a
+            better affordance than a spinner here, so aria-busy is all it lacks. */}
+        <label aria-busy={uploading || undefined}
+          className={`btn-primary cursor-pointer ${uploading ? 'opacity-70 pointer-events-none' : ''}`}>
           {uploading ? `Subiendo ${progress}%` : '+ Subir imagen'}
           <input
             ref={fileInputRef}

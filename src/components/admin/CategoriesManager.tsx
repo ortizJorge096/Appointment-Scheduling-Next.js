@@ -9,6 +9,7 @@ import { ICON_LABELS } from '@/lib/config'
 import { Icon } from '@/components/public/ServiceIcons'
 import { IconPicker } from '@/components/admin/IconPicker'
 import { useFieldValidation } from '@/hooks/useFieldValidation'
+import { SubmitButton } from '@/components/ui/SubmitButton'
 
 export interface AdminCategory {
   id: string
@@ -172,9 +173,9 @@ export default function CategoriesManager({
           </div>
 
           <div className="flex gap-3 pt-2">
-            <button onClick={handleSave} disabled={saving} className="btn-primary">
-              {saving ? 'Guardando...' : 'Guardar'}
-            </button>
+            <SubmitButton onClick={handleSave} loading={saving} loadingLabel="Guardando…" className="btn-primary">
+              Guardar
+            </SubmitButton>
             <button onClick={() => setShowForm(false)} className="btn-secondary">Cancelar</button>
           </div>
         </div>

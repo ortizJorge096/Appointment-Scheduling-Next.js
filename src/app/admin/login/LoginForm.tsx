@@ -9,6 +9,7 @@ import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { PasswordInput } from '@/components/ui/PasswordInput'
+import { SubmitButton } from '@/components/ui/SubmitButton'
 
 export default function LoginForm() {
   const router = useRouter()
@@ -77,15 +78,15 @@ export default function LoginForm() {
             </div>
             {/* hover lifts to gold-light: darkening to gold-dark would drop the
                 ink label to 3.8:1, the same trap .btn-primary fell into. */}
-            <button type="submit" disabled={loading}
+            <SubmitButton type="submit" loading={loading} loadingLabel="Ingresando…"
               className="w-full bg-gold text-ink py-3 text-xs font-medium
                          tracking-widest uppercase mt-2 transition-all duration-200
                          hover:bg-gold-light disabled:opacity-60
                          focus-visible:outline-none focus-visible:ring-2
                          focus-visible:ring-gold focus-visible:ring-offset-2
                          focus-visible:ring-offset-ink">
-              {loading ? 'Ingresando...' : 'Ingresar'}
-            </button>
+              Ingresar
+            </SubmitButton>
           </form>
         </div>
 

@@ -11,6 +11,7 @@ import { formatPrice, isValidPhone } from '@/lib/utils'
 import { trackBeginBooking, trackBookingConfirmed } from '@/lib/analytics'
 import { getWhatsAppUrl } from '@/lib/config'
 import { useFieldValidation } from '@/hooks/useFieldValidation'
+import { SubmitButton } from '@/components/ui/SubmitButton'
 
 interface Service {
   id: string
@@ -1112,9 +1113,9 @@ export default function BookingForm() {
         {step !== 'confirm' ? (
           <button ref={continueRef} type="button" onClick={handleNext} className="btn-cta">Continuar →</button>
         ) : (
-          <button type="button" onClick={handleSubmit} disabled={submitting} className="btn-cta disabled:opacity-70">
-            {submitting ? 'Confirmando...' : 'Confirmar cita'}
-          </button>
+          <SubmitButton type="button" onClick={handleSubmit} loading={submitting} loadingLabel="Confirmando…" className="btn-cta disabled:opacity-70">
+            Confirmar cita
+          </SubmitButton>
         )}
       </div>
 

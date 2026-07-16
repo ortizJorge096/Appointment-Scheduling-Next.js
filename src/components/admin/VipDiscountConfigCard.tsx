@@ -4,6 +4,8 @@
 // turn the rule on/off, and edit how many services unlock each discount tier.
 
 import { useState, useEffect } from 'react'
+import { SubmitButton } from '@/components/ui/SubmitButton'
+import { ToggleSwitch } from '@/components/ui/ToggleSwitch'
 
 interface Tier {
   minServices: number
@@ -78,15 +80,11 @@ export default function VipDiscountConfigCard() {
             Se aplica automáticamente cuando el cliente agenda 2 o más servicios (de cualquier categoría) en la misma cita.
           </p>
         </div>
-        <label className="flex items-center gap-2 cursor-pointer shrink-0">
-          <span className="text-sm text-ink-muted-deep">{enabled ? 'Activo' : 'Inactivo'}</span>
-          <span
-            onClick={() => setEnabled((v) => !v)}
-            className={`w-11 h-6 rounded-full relative transition-colors ${enabled ? 'bg-gold' : 'bg-beige-dark'}`}
-          >
-            <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${enabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
-          </span>
-        </label>
+        <ToggleSwitch
+          checked={enabled}
+          onChange={() => setEnabled((v) => !v)}
+          label="Descuento VIP por múltiples servicios"
+        />
       </div>
 
       {error   && <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 mb-4">{error}</div>}
@@ -125,9 +123,9 @@ export default function VipDiscountConfigCard() {
 
       <div className="flex items-center gap-3">
         <button onClick={addTier} className="btn-secondary text-sm">+ Añadir tramo</button>
-        <button onClick={handleSave} disabled={saving} className="btn-primary text-sm">
-          {saving ? 'Guardando...' : 'Guardar configuración VIP'}
-        </button>
+        <SubmitButton onClick={handleSave} loading={saving} loadingLabel="Guardando…" className="btn-primary text-sm">
+          Guardar configuración VIP
+        </SubmitButton>
       </div>
     </div>
   )

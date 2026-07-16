@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
 import { usePermissionGuard } from '@/components/admin/usePermissionGuard'
 import { useFieldValidation } from '@/hooks/useFieldValidation'
+import { SubmitButton } from '@/components/ui/SubmitButton'
 
 interface Testimonial {
   id: string
@@ -348,9 +349,9 @@ export default function TestimoniosPage() {
           </div>
 
           <div className="flex gap-3 pt-5">
-            <button onClick={handleSave} disabled={saving || uploading} className="btn-primary">
-              {saving ? 'Guardando…' : 'Guardar'}
-            </button>
+            <SubmitButton onClick={handleSave} loading={saving || uploading} loadingLabel="Guardando…" className="btn-primary">
+              Guardar
+            </SubmitButton>
             <button onClick={() => setShowForm(false)} className="btn-secondary">Cancelar</button>
           </div>
         </div>

@@ -5,6 +5,8 @@
 // existing "Primera disponible" auto-assignment already covers that case.
 
 import { useState, useEffect } from 'react'
+import { SubmitButton } from '@/components/ui/SubmitButton'
+import { ToggleSwitch } from '@/components/ui/ToggleSwitch'
 
 export default function BookingSettingsCard() {
   const [showProfessionalStep, setShowProfessionalStep] = useState(false)
@@ -98,19 +100,12 @@ export default function BookingSettingsCard() {
             el profesional automáticamente (primera disponible, según el orden configurado abajo).
           </p>
         </div>
-        <label className="flex items-center gap-2 cursor-pointer shrink-0">
-          <span className="text-sm text-ink-muted-deep">{showProfessionalStep ? 'Activo' : 'Inactivo'}</span>
-          <span
-            onClick={toggle}
-            className={`w-11 h-6 rounded-full relative transition-colors ${
-              showProfessionalStep ? 'bg-gold' : 'bg-beige-dark'
-            } ${saving ? 'opacity-60' : ''}`}
-          >
-            <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
-              showProfessionalStep ? 'translate-x-5' : 'translate-x-0.5'
-            }`} />
-          </span>
-        </label>
+        <ToggleSwitch
+          checked={showProfessionalStep}
+          onChange={toggle}
+          disabled={saving}
+          label="Selección de profesional en /agendar"
+        />
       </div>
 
       {/* Booking horizon */}
@@ -128,13 +123,17 @@ export default function BookingSettingsCard() {
             onChange={(e) => setMaxAdvanceInput(e.target.value)}
           />
           <span className="text-sm text-ink-muted-deep">días (7–365)</span>
-          <button
+          {/* savingDays is the busy state; "unchanged" disables without being
+              busy, so it stays plain disabled — aria-busy must not fire for it. */}
+          <SubmitButton
             onClick={saveMaxAdvance}
-            disabled={savingDays || maxAdvanceInput === String(maxAdvanceDays)}
+            loading={savingDays}
+            disabled={maxAdvanceInput === String(maxAdvanceDays)}
+            loadingLabel="Guardando…"
             className="btn-primary text-sm disabled:opacity-50"
           >
-            {savingDays ? 'Guardando...' : 'Guardar'}
-          </button>
+            Guardar
+          </SubmitButton>
         </div>
       </div>
 

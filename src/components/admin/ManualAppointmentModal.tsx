@@ -8,6 +8,7 @@ import ClientSearchInput, { type ClientHit } from './ClientSearchInput'
 import AdicionalesEditor, { type Adicional } from './AdicionalesEditor'
 import { useCan } from './usePermissionGuard'
 import { Modal } from '@/components/ui/Modal'
+import { SubmitButton } from '@/components/ui/SubmitButton'
 
 interface Service { id: string; name: string; price: number; durationMinutes: number; category?: { id: string; name: string; order: number } | null }
 
@@ -759,9 +760,9 @@ export default function ManualAppointmentModal() {
                   className="btn-secondary flex-1">
                   Cancelar
                 </button>
-                <button type="submit" disabled={saving} className="btn-primary flex-1 disabled:opacity-50">
-                  {saving ? 'Guardando…' : form.mode === 'PAST' ? 'Registrar cita pasada' : 'Crear cita'}
-                </button>
+                <SubmitButton type="submit" loading={saving} loadingLabel="Guardando…" className="btn-primary flex-1 disabled:opacity-50">
+                  {form.mode === 'PAST' ? 'Registrar cita pasada' : 'Crear cita'}
+                </SubmitButton>
               </div>
             </form>
         </Modal>

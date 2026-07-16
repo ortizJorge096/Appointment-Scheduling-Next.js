@@ -8,6 +8,7 @@ import { StatusBadge, PaymentBadge } from '@/components/ui/StatusBadge'
 import type { AppointmentWithService } from '@/types'
 import { usePermissionGuard, useCan } from '@/components/admin/usePermissionGuard'
 import { formatPrice } from '@/lib/utils'
+import { SubmitButton } from '@/components/ui/SubmitButton'
 
 
 interface ClientData {
@@ -185,9 +186,9 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
                   placeholder="Teléfono / celular" className="input-field w-full" />
                 {infoErr && <p className="text-xs text-red-700">{infoErr}</p>}
                 <div className="flex gap-2 pt-1">
-                  <button type="submit" disabled={savingInfo} className="btn-primary text-xs py-1.5 px-4 disabled:opacity-50">
-                    {savingInfo ? 'Guardando…' : 'Guardar'}
-                  </button>
+                  <SubmitButton type="submit" loading={savingInfo} loadingLabel="Guardando…" className="btn-primary text-xs py-1.5 px-4 disabled:opacity-50">
+                    Guardar
+                  </SubmitButton>
                   <button type="button" onClick={() => setEditInfo(false)} className="btn-secondary text-xs py-1.5 px-4">
                     Cancelar
                   </button>
@@ -245,10 +246,10 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
           />
           {can('clientes:editar') && (
             <div className="flex items-center gap-3 mt-2">
-              <button onClick={saveNotes} disabled={saving}
+              <SubmitButton onClick={saveNotes} loading={saving} loadingLabel="Guardando…"
                 className="btn-primary text-xs py-1.5 px-4 disabled:opacity-50">
-                {saving ? 'Guardando…' : 'Guardar notas'}
-              </button>
+                Guardar notas
+              </SubmitButton>
               {saveMsg && <span className="text-xs text-green-700">{saveMsg}</span>}
             </div>
           )}

@@ -8,6 +8,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { PasswordInput } from '@/components/ui/PasswordInput'
+import { SubmitButton } from '@/components/ui/SubmitButton'
 
 const EMPTY = { currentPassword: '', newPassword: '', confirmPassword: '' }
 
@@ -77,9 +78,9 @@ export default function PerfilForm() {
       {error   && <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2 rounded-lg">{error}</div>}
       {success && <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-3 py-2 rounded-lg">{success}</div>}
 
-      <button type="submit" disabled={saving} className="btn-primary w-full disabled:opacity-50">
-        {saving ? 'Guardando…' : 'Cambiar contraseña'}
-      </button>
+      <SubmitButton type="submit" loading={saving} loadingLabel="Guardando…" className="btn-primary w-full disabled:opacity-50">
+        Cambiar contraseña
+      </SubmitButton>
     </form>
   )
 }
