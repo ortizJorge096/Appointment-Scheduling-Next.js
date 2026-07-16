@@ -10,6 +10,7 @@ import { useConfirm } from '@/components/ui/ConfirmDialog'
 import { usePermissionGuard, useCan } from '@/components/admin/usePermissionGuard'
 import { PAYMENT_METHOD_LABEL as METHOD_LABEL, EXPENSE_CATEGORY_LABEL as CAT_LABEL } from '@/lib/labels'
 import { formatPrice } from '@/lib/utils'
+import { useFieldValidation } from '@/hooks/useFieldValidation'
 
 const PER_PAGE = 10
 
@@ -50,20 +51,23 @@ function csvCell(value: string) {
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
 }
 
+// Validated on blur and on submit. Module-level so the hook keeps a stable ref.
+const EXPENSE_FIELDS = ['description', 'amount', 'date'] as const
+
 const EMPTY_FORM = { description: '', amount: '', date: new Date().toISOString().slice(0, 10), category: 'OTROS', notes: '' }
 
 // Small period-over-period indicator. For expenses a rise is bad → `invert`
 // flips the color semantics so "up" reads red instead of green.
 function DeltaBadge({ current, previous, invert = false }: { current: number; previous: number; invert?: boolean }) {
   const d = pctDelta(current, previous)
-  if (!d) return <span className="text-[11px] text-ink-muted mt-1 block">— sin período anterior</span>
+  if (!d) return <span className="text-[11px] text-ink-muted-deep mt-1 block">— sin período anterior</span>
   const good  = d.dir === 'flat' ? null : invert ? d.dir === 'down' : d.dir === 'up'
-  const color = good === null ? 'text-ink-muted' : good ? 'text-green-600' : 'text-red-700'
+  const color = good === null ? 'text-ink-muted-deep' : good ? 'text-green-700' : 'text-red-700'
   const arrow = d.dir === 'up' ? '↑' : d.dir === 'down' ? '↓' : '→'
   return (
     <span className={`text-[11px] mt-1 inline-flex items-center gap-1 ${color}`}>
       <span>{arrow} {Math.abs(d.pct)}%</span>
-      <span className="text-ink-muted">vs. anterior</span>
+      <span className="text-ink-muted-deep">vs. anterior</span>
     </span>
   )
 }
@@ -86,6 +90,20 @@ export default function ContabilidadPage() {
   const [form, setForm]           = useState(EMPTY_FORM)
   const [saving, setSaving]       = useState(false)
   const [saveError, setSaveError] = useState('')
+
+  const v = useFieldValidation(EXPENSE_FIELDS, (k) => {
+    switch (k) {
+      case 'description':
+        return form.description.trim() ? undefined : 'La descripción es requerida'
+      case 'amount': {
+        const n = parseInt(form.amount)
+        if (!form.amount.trim()) return 'El monto es requerido'
+        return Number.isFinite(n) && n > 0 ? undefined : 'El monto debe ser mayor a 0'
+      }
+      case 'date':
+        return form.date ? undefined : 'La fecha es requerida'
+    }
+  })
 
   // Delete modal
   const [deleting, setDeleting]   = useState<string | null>(null)
@@ -124,6 +142,7 @@ export default function ContabilidadPage() {
 
   async function addExpense(e: React.FormEvent) {
     e.preventDefault()
+    if (Object.keys(v.validateAll()).length > 0) return
     setSaving(true); setSaveError('')
     const res = await fetch('/api/expenses', {
       method: 'POST',
@@ -133,7 +152,7 @@ export default function ContabilidadPage() {
     const j = await res.json()
     setSaving(false)
     if (!j.success) { setSaveError(j.error ?? 'Error al guardar'); return }
-    setForm(EMPTY_FORM)
+    setForm(EMPTY_FORM); v.reset()
     loadExpenses()
     loadSummary()
   }
@@ -181,9 +200,9 @@ export default function ContabilidadPage() {
       {/* Header */}
       <div className="mb-6 flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs text-ink-muted tracking-widest uppercase mb-1">Finanzas</p>
+          <p className="text-xs text-ink-muted-deep tracking-widest uppercase mb-1">Finanzas</p>
           <h1 className="font-serif text-2xl sm:text-3xl text-ink font-light">Contabilidad</h1>
-          <p className="text-sm text-ink-muted mt-0.5">Ingresos, gastos y utilidad neta del período</p>
+          <p className="text-sm text-ink-muted-deep mt-0.5">Ingresos, gastos y utilidad neta del período</p>
         </div>
         {expenses.length > 0 && (
           <button onClick={exportCsv}
@@ -215,7 +234,7 @@ export default function ContabilidadPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
         {/* Ingresos */}
         <div className="bg-white rounded-xl border border-beige-dark p-4">
-          <p className="text-xs text-ink-muted mb-1">Ingresos</p>
+          <p className="text-xs text-ink-muted-deep mb-1">Ingresos</p>
           <p className={`text-lg sm:text-xl font-serif font-light text-green-700 break-words ${loadingSum ? 'opacity-40' : ''}`}>
             {formatPrice(summary?.totalIncome ?? 0)}
           </p>
@@ -224,7 +243,7 @@ export default function ContabilidadPage() {
 
         {/* Gastos */}
         <div className="bg-white rounded-xl border border-beige-dark p-4">
-          <p className="text-xs text-ink-muted mb-1">Gastos</p>
+          <p className="text-xs text-ink-muted-deep mb-1">Gastos</p>
           <p className={`text-lg sm:text-xl font-serif font-light text-red-700 break-words ${loadingSum ? 'opacity-40' : ''}`}>
             {formatPrice(summary?.totalExpenses ?? 0)}
           </p>
@@ -233,27 +252,27 @@ export default function ContabilidadPage() {
 
         {/* Utilidad neta + margen */}
         <div className="bg-white rounded-xl border border-beige-dark p-4">
-          <p className="text-xs text-ink-muted mb-1">Utilidad neta</p>
+          <p className="text-xs text-ink-muted-deep mb-1">Utilidad neta</p>
           <p className={`text-lg sm:text-xl font-serif font-light break-words ${netColor} ${loadingSum ? 'opacity-40' : ''}`}>
             {formatPrice(summary?.netProfit ?? 0)}
           </p>
-          <span className="text-[11px] text-ink-muted mt-1 block">margen {summary?.marginPct ?? 0}%</span>
+          <span className="text-[11px] text-ink-muted-deep mt-1 block">margen {summary?.marginPct ?? 0}%</span>
         </div>
 
         {/* Por cobrar */}
         <div className="bg-white rounded-xl border border-gold/40 p-4">
-          <p className="text-xs text-ink-muted mb-1">Por cobrar</p>
+          <p className="text-xs text-ink-muted-deep mb-1">Por cobrar</p>
           <p className={`text-lg sm:text-xl font-serif font-light text-gold-dark break-words ${loadingSum ? 'opacity-40' : ''}`}>
             {formatPrice(summary?.receivable ?? 0)}
           </p>
-          <span className="text-[11px] text-ink-muted mt-1 block">
+          <span className="text-[11px] text-ink-muted-deep mt-1 block">
             {summary?.receivableCount ?? 0} {(summary?.receivableCount ?? 0) === 1 ? 'cita con saldo' : 'citas con saldo'}
           </span>
         </div>
       </div>
 
       {summary && (
-        <p className="text-xs text-ink-muted mb-6">
+        <p className="text-xs text-ink-muted-deep mb-6">
           {summary.paidCount} pagadas · {summary.pendingCount} sin pago · {summary.appointmentCount} total en el período
         </p>
       )}
@@ -263,19 +282,19 @@ export default function ContabilidadPage() {
         <div className="bg-white rounded-xl border border-beige-dark p-5 mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-serif text-ink">Ingresos por método de pago</h2>
-            <span className="text-xs text-ink-muted">Recibido {formatPrice(receivedTotal)}</span>
+            <span className="text-xs text-ink-muted-deep">Recibido {formatPrice(receivedTotal)}</span>
           </div>
           <div className="space-y-3">
             {summary.incomeByPaymentMethod.map(m => {
               const pct = receivedTotal > 0 ? Math.round((m.amount / receivedTotal) * 100) : 0
               return (
                 <div key={m.method} className="flex items-center gap-3">
-                  <span className="w-16 sm:w-28 text-xs sm:text-sm text-ink-muted shrink-0">{METHOD_LABEL[m.method] ?? m.method}</span>
+                  <span className="w-16 sm:w-28 text-xs sm:text-sm text-ink-muted-deep shrink-0">{METHOD_LABEL[m.method] ?? m.method}</span>
                   <div className="flex-1 h-2.5 rounded-full bg-beige overflow-hidden">
                     <div className="h-full rounded-full bg-gradient-to-r from-green-400 to-green-600" style={{ width: `${pct}%` }} />
                   </div>
                   <span className="w-24 sm:w-36 text-right text-xs sm:text-sm text-ink shrink-0">
-                    <b className="font-medium">{formatPrice(m.amount)}</b> <span className="text-ink-muted">· {pct}%</span>
+                    <b className="font-medium">{formatPrice(m.amount)}</b> <span className="text-ink-muted-deep">· {pct}%</span>
                   </span>
                 </div>
               )
@@ -289,19 +308,19 @@ export default function ContabilidadPage() {
         <div className="bg-white rounded-xl border border-beige-dark p-5 mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-serif text-ink">Gastos por categoría</h2>
-            <span className="text-xs text-ink-muted">Total {formatPrice(summary.totalExpenses)}</span>
+            <span className="text-xs text-ink-muted-deep">Total {formatPrice(summary.totalExpenses)}</span>
           </div>
           <div className="space-y-3">
             {summary.expensesByCategory.map(c => {
               const pct = summary.totalExpenses > 0 ? Math.round((c.amount / summary.totalExpenses) * 100) : 0
               return (
                 <div key={c.category} className="flex items-center gap-3">
-                  <span className="w-16 sm:w-24 text-xs sm:text-sm text-ink-muted shrink-0">{CAT_LABEL[c.category] ?? c.category}</span>
+                  <span className="w-16 sm:w-24 text-xs sm:text-sm text-ink-muted-deep shrink-0">{CAT_LABEL[c.category] ?? c.category}</span>
                   <div className="flex-1 h-2.5 rounded-full bg-beige overflow-hidden">
                     <div className="h-full rounded-full bg-gradient-to-r from-gold-light to-gold" style={{ width: `${pct}%` }} />
                   </div>
                   <span className="w-24 sm:w-36 text-right text-xs sm:text-sm text-ink shrink-0">
-                    <b className="font-medium">{formatPrice(c.amount)}</b> <span className="text-ink-muted">· {pct}%</span>
+                    <b className="font-medium">{formatPrice(c.amount)}</b> <span className="text-ink-muted-deep">· {pct}%</span>
                   </span>
                 </div>
               )
@@ -315,27 +334,36 @@ export default function ContabilidadPage() {
         {can('contabilidad:editar') && (
         <div>
           <h2 className="text-lg font-serif text-ink mb-3">Registrar gasto</h2>
-          <form onSubmit={addExpense} className="bg-white rounded-xl border border-beige-dark p-5 space-y-3">
+          {/* noValidate: `required` alone hands this to the browser's native
+              bubble — generic, in the browser's locale, and not on the field.
+              Our own errors are inline and match the rest of the admin. */}
+          <form onSubmit={addExpense} noValidate className="bg-white rounded-xl border border-beige-dark p-5 space-y-3">
             <div>
-              <label className="form-label text-[10px]">Descripción *</label>
-              <input required value={form.description}
-                onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+              <label htmlFor="gasto-desc" className="form-label text-[10px]">Descripción *</label>
+              <input id="gasto-desc" value={form.description}
+                onChange={e => { setForm(f => ({ ...f, description: e.target.value })); v.clearError('description') }}
+                onBlur={v.handleBlur('description')}
                 placeholder="Ej: Esmaltes UV, bombillas, etc."
-                className="input-field w-full" />
+                className={`input-field w-full ${v.errorOf('description') ? 'border-red-400 focus:ring-red-300' : ''}`} />
+              {v.errorOf('description') && <p className="text-xs text-red-700 mt-0.5">{v.errorOf('description')}</p>}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="min-w-0">
-                <label className="form-label text-[10px]">Monto (COP) *</label>
-                <input required type="number" min="1" value={form.amount}
-                  onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
+                <label htmlFor="gasto-monto" className="form-label text-[10px]">Monto (COP) *</label>
+                <input id="gasto-monto" type="number" min="1" value={form.amount}
+                  onChange={e => { setForm(f => ({ ...f, amount: e.target.value })); v.clearError('amount') }}
+                  onBlur={v.handleBlur('amount')}
                   placeholder="0"
-                  className="input-field w-full min-w-0" />
+                  className={`input-field w-full min-w-0 ${v.errorOf('amount') ? 'border-red-400 focus:ring-red-300' : ''}`} />
+                {v.errorOf('amount') && <p className="text-xs text-red-700 mt-0.5">{v.errorOf('amount')}</p>}
               </div>
               <div className="min-w-0">
-                <label className="form-label text-[10px]">Fecha *</label>
-                <input required type="date" value={form.date}
-                  onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
-                  className="input-field w-full min-w-0" />
+                <label htmlFor="gasto-fecha" className="form-label text-[10px]">Fecha *</label>
+                <input id="gasto-fecha" type="date" value={form.date}
+                  onChange={e => { setForm(f => ({ ...f, date: e.target.value })); v.clearError('date') }}
+                  onBlur={v.handleBlur('date')}
+                  className={`input-field w-full min-w-0 ${v.errorOf('date') ? 'border-red-400 focus:ring-red-300' : ''}`} />
+                {v.errorOf('date') && <p className="text-xs text-red-700 mt-0.5">{v.errorOf('date')}</p>}
               </div>
             </div>
             <div>
@@ -367,12 +395,12 @@ export default function ContabilidadPage() {
         <div>
           <h2 className="text-lg font-serif text-ink mb-3">
             Gastos del período
-            <span className="text-sm font-sans text-ink-muted ml-2">({expenses.length})</span>
+            <span className="text-sm font-sans text-ink-muted-deep ml-2">({expenses.length})</span>
           </h2>
           {loadingExp ? (
-            <p className="text-sm text-ink-muted">Cargando…</p>
+            <p className="text-sm text-ink-muted-deep">Cargando…</p>
           ) : expenses.length === 0 ? (
-            <p className="text-sm text-ink-muted">Sin gastos en este período.</p>
+            <p className="text-sm text-ink-muted-deep">Sin gastos en este período.</p>
           ) : (
             <div className="space-y-2">
               {pagedExpenses.map(exp => (
@@ -380,11 +408,11 @@ export default function ContabilidadPage() {
                   className="bg-white rounded-xl border border-beige-dark px-4 py-3 flex items-center justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-ink truncate">{exp.description}</p>
-                    <p className="text-xs text-ink-muted">
+                    <p className="text-xs text-ink-muted-deep">
                       {CAT_LABEL[exp.category]} ·{' '}
                       {new Date(exp.date).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })}
                     </p>
-                    {exp.notes && <p className="text-xs text-ink-muted/70 mt-0.5">{exp.notes}</p>}
+                    {exp.notes && <p className="text-xs text-ink-muted-deep mt-0.5">{exp.notes}</p>}
                   </div>
                   <div className="text-right shrink-0">
                     <p className="text-sm font-medium text-red-700">{formatPrice(exp.amount)}</p>
@@ -392,7 +420,7 @@ export default function ContabilidadPage() {
                       <button
                         onClick={() => deleteExpense(exp.id)}
                         disabled={deleting === exp.id}
-                        className="btn-row-action text-xs text-ink-muted/50 hover:text-red-700 mt-0.5">
+                        className="btn-row-action text-xs text-ink-muted-deep hover:text-red-700 mt-0.5">
                         {deleting === exp.id ? '…' : 'Eliminar'}
                       </button>
                     )}

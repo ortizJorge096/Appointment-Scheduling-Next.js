@@ -84,22 +84,22 @@ export default function BookingSettingsCard() {
   }
 
   if (loading) {
-    return <div className="bg-white border border-beige-dark rounded-xl p-6 mb-8 text-sm text-ink-muted">Cargando configuración de agendamiento...</div>
+    return <div className="bg-white border border-beige-dark rounded-xl p-6 mb-8 text-sm text-ink-muted-deep">Cargando configuración de agendamiento...</div>
   }
 
   return (
     <div className="bg-white border border-beige-dark rounded-xl p-6 mb-8">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <p className="text-xs text-ink-muted tracking-widest uppercase mb-1">Regla de negocio</p>
+          <p className="text-xs text-ink-muted-deep tracking-widest uppercase mb-1">Regla de negocio</p>
           <h2 className="font-serif text-xl text-ink">Selección de profesional en /agendar</h2>
-          <p className="text-sm text-ink-muted mt-1">
+          <p className="text-sm text-ink-muted-deep mt-1">
             Permitir que el cliente elija profesional. Si está desactivado, el sistema asignará
             el profesional automáticamente (primera disponible, según el orden configurado abajo).
           </p>
         </div>
         <label className="flex items-center gap-2 cursor-pointer shrink-0">
-          <span className="text-sm text-ink-muted">{showProfessionalStep ? 'Activo' : 'Inactivo'}</span>
+          <span className="text-sm text-ink-muted-deep">{showProfessionalStep ? 'Activo' : 'Inactivo'}</span>
           <span
             onClick={toggle}
             className={`w-11 h-6 rounded-full relative transition-colors ${
@@ -115,9 +115,9 @@ export default function BookingSettingsCard() {
 
       {/* Booking horizon */}
       <div className="border-t border-beige-dark mt-5 pt-5">
-        <p className="text-xs text-ink-muted tracking-widest uppercase mb-1">Ventana de reserva</p>
+        <p className="text-xs text-ink-muted-deep tracking-widest uppercase mb-1">Ventana de reserva</p>
         <h2 className="font-serif text-xl text-ink">¿Con cuántos días de anticipación pueden agendar?</h2>
-        <p className="text-sm text-ink-muted mt-1 mb-3">
+        <p className="text-sm text-ink-muted-deep mt-1 mb-3">
           Los clientes podrán ver disponibilidad hasta {maxAdvanceDays} días en el futuro.
         </p>
         <div className="flex items-center gap-3 flex-wrap">
@@ -127,7 +127,7 @@ export default function BookingSettingsCard() {
             value={maxAdvanceInput}
             onChange={(e) => setMaxAdvanceInput(e.target.value)}
           />
-          <span className="text-sm text-ink-muted">días (7–365)</span>
+          <span className="text-sm text-ink-muted-deep">días (7–365)</span>
           <button
             onClick={saveMaxAdvance}
             disabled={savingDays || maxAdvanceInput === String(maxAdvanceDays)}

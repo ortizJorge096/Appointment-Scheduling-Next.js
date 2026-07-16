@@ -15,9 +15,10 @@ export function PageHeader({ title, eyebrow, subtitle, actions, className = '' }
   return (
     <div className={`flex items-center justify-between gap-4 ${className}`.trim()}>
       <div className="min-w-0">
-        {eyebrow && <p className="text-xs text-ink-muted tracking-widest uppercase mb-1">{eyebrow}</p>}
+        {/* muted-deep, not muted: admin pages sit on beige, where ink-muted is 4.09:1. */}
+        {eyebrow && <p className="text-xs text-ink-muted-deep tracking-widest uppercase mb-1">{eyebrow}</p>}
         <h1 className="font-serif text-2xl sm:text-3xl text-ink font-light">{title}</h1>
-        {subtitle && <p className="text-sm text-ink-muted mt-0.5">{subtitle}</p>}
+        {subtitle && <p className="text-sm text-ink-muted-deep mt-0.5">{subtitle}</p>}
       </div>
       {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
     </div>

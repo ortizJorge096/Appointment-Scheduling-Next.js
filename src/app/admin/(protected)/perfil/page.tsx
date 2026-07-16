@@ -18,9 +18,9 @@ export default async function PerfilPage() {
       <PageHeader className="mb-6" eyebrow="Cuenta" title="Mi perfil" />
 
       <div className="bg-white rounded-xl border border-beige-dark p-5 mb-5 space-y-1 text-sm">
-        <p className="text-ink"><span className="text-ink-muted">Nombre:</span> {admin.name}</p>
-        <p className="text-ink"><span className="text-ink-muted">Email:</span> {admin.email}</p>
-        <p className="text-ink"><span className="text-ink-muted">Rol:</span> {ROLE_LABELS[admin.role]}</p>
+        <p className="text-ink"><span className="text-ink-muted-deep">Nombre:</span> {admin.name}</p>
+        <p className="text-ink"><span className="text-ink-muted-deep">Email:</span> {admin.email}</p>
+        <p className="text-ink"><span className="text-ink-muted-deep">Rol:</span> {ROLE_LABELS[admin.role]}</p>
       </div>
 
       <PerfilForm />

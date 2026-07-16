@@ -44,6 +44,11 @@ export default function ClientSearchInput({
 
   const rootRef = useRef<HTMLDivElement>(null)
 
+  // The highlight reset rides along with every change to the visible options,
+  // here and in the short-query branch below. It must NOT be moved into an
+  // effect on [results]: results are set from an async callback, so the effect
+  // can flush after a keydown has already moved the highlight and silently
+  // reset it to 0 — the user presses ArrowDown and Enter picks the first row.
   const search = useCallback(async (q: string) => {
     setLoading(true)
     try {
@@ -54,6 +59,7 @@ export default function ClientSearchInput({
           id: c.id, name: c.name, email: c.email, phone: c.phone,
           appointmentCount: c._count.appointments,
         })))
+        setHighlighted(0)
       }
     } catch {
       /* ignore network errors in the picker — admin can still type manually */
@@ -65,13 +71,10 @@ export default function ClientSearchInput({
   // Debounced search, only once the query is long enough
   useEffect(() => {
     const q = query.trim()
-    if (q.length < MIN_CHARS) { setResults([]); setLoading(false); return }
+    if (q.length < MIN_CHARS) { setResults([]); setHighlighted(0); setLoading(false); return }
     const t = setTimeout(() => search(q), DEBOUNCE_MS)
     return () => clearTimeout(t)
   }, [query, search])
-
-  // Reset keyboard highlight whenever the visible options change
-  useEffect(() => { setHighlighted(0) }, [results, query])
 
   // Click outside closes the dropdown
   useEffect(() => {
@@ -130,7 +133,7 @@ export default function ClientSearchInput({
         className="input-field w-full pr-9"
         autoComplete="off"
       />
-      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-muted text-sm pointer-events-none">
+      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-muted-deep text-sm pointer-events-none">
         {loading ? '…' : '⌕'}
       </span>
 
@@ -146,7 +149,7 @@ export default function ClientSearchInput({
                   i === highlighted ? 'bg-gold-pale' : 'hover:bg-gold-pale'
                 }`}>
                 <span className="block text-sm text-ink font-medium">{c.name}</span>
-                <span className="block text-xs text-ink-muted">
+                <span className="block text-xs text-ink-muted-deep">
                   {c.email}
                   {c.appointmentCount > 0 && ` · ${c.appointmentCount} cita${c.appointmentCount === 1 ? '' : 's'}`}
                 </span>
@@ -155,7 +158,7 @@ export default function ClientSearchInput({
           ))}
 
           {!loading && results.length === 0 && (
-            <li className="px-4 py-2.5 text-xs text-ink-muted border-b border-beige-dark">
+            <li className="px-4 py-2.5 text-xs text-ink-muted-deep border-b border-beige-dark">
               No encontrado
             </li>
           )}
@@ -164,7 +167,7 @@ export default function ClientSearchInput({
             <button type="button"
               onMouseEnter={() => setHighlighted(results.length)}
               onClick={createNew}
-              className={`w-full text-left px-4 py-2.5 text-sm text-gold font-medium transition-colors ${
+              className={`w-full text-left px-4 py-2.5 text-sm text-gold-deep font-medium transition-colors ${
                 highlighted === results.length ? 'bg-gold-pale' : 'hover:bg-gold-pale'
               }`}>
               + Crear cliente nuevo

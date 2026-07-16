@@ -47,7 +47,7 @@ const ACTION_COLORS: Record<AuditAction, string> = {
 }
 
 const ACTOR_COLORS: Record<AuditActor, string> = {
-  ADMIN: 'bg-gold-pale text-gold-dark', CLIENT: 'bg-blue-50 text-blue-700', SYSTEM: 'bg-gray-100 text-gray-600',
+  ADMIN: 'bg-gold-pale text-gold-deep', CLIENT: 'bg-blue-50 text-blue-700', SYSTEM: 'bg-gray-100 text-gray-600',
 }
 
 function formatDate(iso: string) {
@@ -67,28 +67,28 @@ function DetailPanel({ log }: { log: AuditLog }) {
         <div className="space-y-1">
           {diff.map((d, i) => (
             <p key={i} className="text-[12px] text-ink break-words">
-              <span className="font-medium text-ink-muted">{d.label}:</span>{' '}
+              <span className="font-medium text-ink-muted-deep">{d.label}:</span>{' '}
               {d.kind === 'removed' ? (
-                <><span className="line-through text-red-700/80">{d.text}</span><span className="text-ink-muted/60"> (eliminado)</span></>
+                <><span className="line-through text-red-700/80">{d.text}</span><span className="text-ink-muted-deep"> (eliminado)</span></>
               ) : d.text}
             </p>
           ))}
         </div>
       ) : (
-        <p className="text-[11px] text-ink-muted/50">Sin cambios de datos.</p>
+        <p className="text-[11px] text-ink-muted-deep">Sin cambios de datos.</p>
       )}
       {meta && (
         <div className="pt-1 border-t border-beige-dark/50">
-          <p className="text-[10px] uppercase tracking-widest text-ink-muted/70 mb-0.5">Detalle</p>
+          <p className="text-[10px] uppercase tracking-widest text-ink-muted-deep mb-0.5">Detalle</p>
           {Object.entries(meta).map(([k, v]) => (
-            <p key={k} className="text-[11px] text-ink-muted break-words">
+            <p key={k} className="text-[11px] text-ink-muted-deep break-words">
               <span className="font-medium">{fieldLabel(k)}:</span> {formatValue(k, v)}
             </p>
           ))}
         </div>
       )}
       {(log.ip || log.userAgent) && (
-        <p className="text-[10px] text-ink-muted/60 break-all">
+        <p className="text-[10px] text-ink-muted-deep break-all">
           {log.ip ?? ''}{log.userAgent ? ` · ${log.userAgent}` : ''}
         </p>
       )}
@@ -176,7 +176,7 @@ export default function AuditoriaPageClient() {
           <>
             <a href={`/api/audit/export?${exportParams.toString()}`}
               className="btn-secondary text-xs px-3 py-2.5 min-h-11 inline-flex items-center">Exportar CSV</a>
-            <span className="text-xs text-ink-muted bg-beige px-3 py-1.5 rounded-lg border border-beige-dark">
+            <span className="text-xs text-ink-muted-deep bg-beige px-3 py-1.5 rounded-lg border border-beige-dark">
               {pagination.total}
             </span>
           </>
@@ -195,36 +195,36 @@ export default function AuditoriaPageClient() {
       {/* Filters */}
       <div className="bg-white rounded-xl border border-beige-dark p-3 sm:p-4 grid grid-cols-2 sm:flex sm:flex-wrap gap-3 items-end">
         <div className="min-w-0">
-          <label className="block text-xs text-ink-muted mb-1">Entidad</label>
+          <label className="block text-xs text-ink-muted-deep mb-1">Entidad</label>
           <select value={entity} onChange={e => setFilter('entity', e.target.value)} className="input-field bg-white w-full min-w-0">
             <option value="">Todas</option>
             {(Object.keys(ENTITY_LABELS) as AuditEntity[]).map(e => <option key={e} value={e}>{ENTITY_LABELS[e]}</option>)}
           </select>
         </div>
         <div className="min-w-0">
-          <label className="block text-xs text-ink-muted mb-1">Acción</label>
+          <label className="block text-xs text-ink-muted-deep mb-1">Acción</label>
           <select value={action} onChange={e => setFilter('action', e.target.value)} className="input-field bg-white w-full min-w-0">
             <option value="">Todas</option>
             {(Object.keys(ACTION_LABELS) as AuditAction[]).map(a => <option key={a} value={a}>{ACTION_LABELS[a]}</option>)}
           </select>
         </div>
         <div className="min-w-0">
-          <label className="block text-xs text-ink-muted mb-1">Actor</label>
+          <label className="block text-xs text-ink-muted-deep mb-1">Actor</label>
           <select value={actorType} onChange={e => setFilter('actorType', e.target.value)} className="input-field bg-white w-full min-w-0">
             <option value="">Todos</option>
             {(Object.keys(ACTOR_LABELS) as AuditActor[]).map(a => <option key={a} value={a}>{ACTOR_LABELS[a]}</option>)}
           </select>
         </div>
         <div className="min-w-0">
-          <label className="block text-xs text-ink-muted mb-1">Desde</label>
+          <label className="block text-xs text-ink-muted-deep mb-1">Desde</label>
           <input type="date" value={dateFrom} onChange={e => setFilter('dateFrom', e.target.value)} className="input-field w-full min-w-0" />
         </div>
         <div className="min-w-0">
-          <label className="block text-xs text-ink-muted mb-1">Hasta</label>
+          <label className="block text-xs text-ink-muted-deep mb-1">Hasta</label>
           <input type="date" value={dateTo} onChange={e => setFilter('dateTo', e.target.value)} className="input-field w-full min-w-0" />
         </div>
         <button onClick={resetFilters}
-          className="col-span-2 sm:col-auto justify-center text-xs text-ink-muted hover:text-ink underline-offset-2 hover:underline transition-colors min-h-11 inline-flex items-center">
+          className="col-span-2 sm:col-auto justify-center text-xs text-ink-muted-deep hover:text-ink underline-offset-2 hover:underline transition-colors min-h-11 inline-flex items-center">
           Limpiar filtros
         </button>
       </div>
@@ -232,17 +232,17 @@ export default function AuditoriaPageClient() {
       {/* Table */}
       <div className="bg-white rounded-xl border border-beige-dark overflow-x-auto">
         {loading ? (
-          <div className="py-16 text-center text-sm text-ink-muted">Cargando...</div>
+          <div className="py-16 text-center text-sm text-ink-muted-deep">Cargando...</div>
         ) : logs.length === 0 ? (
           <EmptyState title="Sin registros para los filtros seleccionados." />
         ) : (
           <table className="w-full min-w-[720px] text-sm">
             <thead>
               <tr className="border-b border-beige-dark bg-beige/40">
-                <th className="text-left px-4 py-3 text-xs font-medium text-ink-muted uppercase tracking-widest">Fecha</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-ink-muted uppercase tracking-widest">Acción</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-ink-muted uppercase tracking-widest hidden sm:table-cell">Actor</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-ink-muted uppercase tracking-widest">Descripción</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-ink-muted-deep uppercase tracking-widest">Fecha</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-ink-muted-deep uppercase tracking-widest">Acción</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-ink-muted-deep uppercase tracking-widest hidden sm:table-cell">Actor</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-ink-muted-deep uppercase tracking-widest">Descripción</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -253,23 +253,23 @@ export default function AuditoriaPageClient() {
                 return (
                   <Fragment key={log.id}>
                     <tr className="hover:bg-beige/20 transition-colors align-top">
-                      <td className="px-4 py-3 whitespace-nowrap text-xs text-ink-muted">{formatDate(log.createdAt)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-xs text-ink-muted-deep">{formatDate(log.createdAt)}</td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium ${ACTION_COLORS[log.action]}`}>
                           <span aria-hidden>{ACTION_EMOJI[log.action]}</span> {ACTION_LABELS[log.action]}
                         </span>
-                        <span className="ml-1.5 text-[10px] text-ink-muted/70">{ENTITY_LABELS[log.entity]}</span>
+                        <span className="ml-1.5 text-[10px] text-ink-muted-deep">{ENTITY_LABELS[log.entity]}</span>
                       </td>
                       <td className="px-4 py-3 hidden sm:table-cell">
                         <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-medium ${ACTOR_COLORS[actor]}`}>
                           {ACTOR_LABELS[actor]}
                         </span>
                         {log.userEmail && (
-                          <p className="text-[10px] text-ink-muted/70 mt-0.5 max-w-[150px] truncate">{log.userEmail}</p>
+                          <p className="text-[10px] text-ink-muted-deep mt-0.5 max-w-[150px] truncate">{log.userEmail}</p>
                         )}
                       </td>
                       <td className="px-4 py-3 text-ink">
-                        <span className="text-[13px]">{log.description ?? <span className="text-ink-muted/60 italic">{ENTITY_LABELS[log.entity]} · {ACTION_LABELS[log.action]}</span>}</span>
+                        <span className="text-[13px]">{log.description ?? <span className="text-ink-muted-deep italic">{ENTITY_LABELS[log.entity]} · {ACTION_LABELS[log.action]}</span>}</span>
                         <span className="sm:hidden block mt-0.5">
                           <span className={`inline-block px-1.5 py-0.5 rounded-full text-[10px] ${ACTOR_COLORS[actor]}`}>{ACTOR_LABELS[actor]}</span>
                         </span>
@@ -277,7 +277,7 @@ export default function AuditoriaPageClient() {
                       <td className="px-4 py-3 text-right whitespace-nowrap">
                         {(log.before || log.after || log.metadata) && (
                           <button type="button" onClick={() => setExpandedId(expanded ? null : log.id)}
-                            className="btn-row-action text-[11px] text-gold hover:underline">
+                            className="btn-row-action text-[11px] text-gold-deep hover:underline">
                             {expanded ? 'Ocultar' : 'Ver cambios'}
                           </button>
                         )}
@@ -286,7 +286,7 @@ export default function AuditoriaPageClient() {
                     {expanded && (
                       <tr className="bg-beige/10">
                         <td colSpan={5} className="px-4 pb-3 pt-0">
-                          <div className="md:hidden text-[11px] text-ink-muted mb-1.5">{log.userEmail ?? '—'}</div>
+                          <div className="md:hidden text-[11px] text-ink-muted-deep mb-1.5">{log.userEmail ?? '—'}</div>
                           <DetailPanel log={log} />
                         </td>
                       </tr>

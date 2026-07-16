@@ -25,7 +25,7 @@ export function Pagination({ page, totalPages, onPage, hrefFor }: PaginationProp
   const nextDisabled = page === totalPages
 
   return (
-    <div className="flex items-center justify-between mt-4 text-sm text-ink-muted">
+    <div className="flex items-center justify-between mt-4 text-sm text-ink-muted-deep">
       {hrefFor ? (
         prevDisabled
           ? <span className={LINK_DISABLED_CLASS}>← Anterior</span>

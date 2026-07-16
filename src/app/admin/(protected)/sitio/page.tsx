@@ -81,7 +81,7 @@ export default function SitioPage() {
       {success && <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 mb-5">✓ {success}</div>}
 
       {loading || !form ? (
-        <div className="py-10 text-center text-ink-muted text-sm">Cargando...</div>
+        <div className="py-10 text-center text-ink-muted-deep text-sm">Cargando...</div>
       ) : (
         <div className="bg-white border border-beige-dark rounded-xl p-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -90,7 +90,7 @@ export default function SitioPage() {
               <input type="number" className="input-field" min={0}
                 value={form.appointmentsCount || ''}
                 onChange={(e) => set('appointmentsCount', parseInt(e.target.value) || 0)} />
-              <p className="text-xs text-ink-muted/60 mt-1">Se muestra como “+{form.appointmentsCount}”.</p>
+              <p className="text-xs text-ink-muted-deep mt-1">Se muestra como “+{form.appointmentsCount}”.</p>
             </div>
 
             <div>
@@ -98,7 +98,7 @@ export default function SitioPage() {
               <input type="number" className="input-field" min={0}
                 value={form.clientsCount || ''}
                 onChange={(e) => set('clientsCount', parseInt(e.target.value) || 0)} />
-              <p className="text-xs text-ink-muted/60 mt-1">Se muestra como “+{form.clientsCount}”.</p>
+              <p className="text-xs text-ink-muted-deep mt-1">Se muestra como “+{form.clientsCount}”.</p>
             </div>
 
             <div>
@@ -106,7 +106,7 @@ export default function SitioPage() {
               <input type="number" className="input-field" min={0}
                 value={form.yearsExperience || ''}
                 onChange={(e) => set('yearsExperience', parseInt(e.target.value) || 0)} />
-              <p className="text-xs text-ink-muted/60 mt-1">Se muestra como “+{form.yearsExperience}”.</p>
+              <p className="text-xs text-ink-muted-deep mt-1">Se muestra como “+{form.yearsExperience}”.</p>
             </div>
 
             <div>
@@ -114,14 +114,14 @@ export default function SitioPage() {
               <input type="number" className="input-field" min={0} max={5} step={0.1}
                 value={form.rating || ''}
                 onChange={(e) => set('rating', parseFloat(e.target.value) || 0)} />
-              <p className="text-xs text-ink-muted/60 mt-1">Se muestra como “{form.rating}★”.</p>
+              <p className="text-xs text-ink-muted-deep mt-1">Se muestra como “{form.rating}★”.</p>
             </div>
 
             <div className="sm:col-span-2">
               <label className="form-label">Servicios disponibles</label>
-              <input type="text" className="input-field bg-beige/40 text-ink-muted cursor-not-allowed"
+              <input type="text" className="input-field bg-beige/40 text-ink-muted-deep cursor-not-allowed"
                 value={servicesCount ?? '—'} disabled />
-              <p className="text-xs text-ink-muted/60 mt-1">
+              <p className="text-xs text-ink-muted-deep mt-1">
                 Se calcula automáticamente con los servicios activos del catálogo. No es editable.
               </p>
             </div>

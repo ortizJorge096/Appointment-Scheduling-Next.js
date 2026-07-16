@@ -27,8 +27,8 @@ export function IconPicker({
             onClick={() => onChange(key)}
             className={`flex items-center justify-center aspect-square rounded-lg border transition-colors
               ${selected
-                ? 'border-gold bg-gold-pale text-gold-dark ring-1 ring-gold'
-                : 'border-beige-dark text-ink-muted hover:border-gold/50 hover:text-gold-dark'}`}
+                ? 'border-gold bg-gold-pale text-gold-deep ring-1 ring-gold'
+                : 'border-beige-dark text-ink-muted-deep hover:border-gold/50 hover:text-gold-dark'}`}
           >
             <Icon name={key} className="w-6 h-6" />
           </button>

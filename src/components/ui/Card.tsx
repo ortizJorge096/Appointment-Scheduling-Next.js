@@ -42,8 +42,10 @@ export function StatCard({ label, value, accent = false, hint, className }: Stat
       accent ? 'border-gold' : 'border-beige-dark',
       className
     )}>
-      <p className="text-[11px] text-ink-muted tracking-widest uppercase mb-2 font-medium">{label}</p>
-      <p className={cn('font-serif text-3xl font-light leading-none', accent ? 'text-gold' : 'text-ink')}>
+      <p className="text-[11px] text-ink-muted-deep tracking-widest uppercase mb-2 font-medium">{label}</p>
+      {/* gold-dark, not gold: this is large text on white, where brand gold is
+          2.9:1 and misses even the 3:1 large-text floor. */}
+      <p className={cn('font-serif text-3xl font-light leading-none', accent ? 'text-gold-dark' : 'text-ink')}>
         {value}
       </p>
       {hint && <div className="text-[11px] mt-2">{hint}</div>}

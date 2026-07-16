@@ -41,7 +41,7 @@ const ACTIONS: Record<string, { label: string; status: AppointmentStatus; style:
   // No "Completar" here — registering the payment completes the appointment
   // (see the payment form). Completing without charge = pay $0 + "Cortesía".
   CONFIRMED: [
-    { label: 'No asistió', status: 'NO_SHOW',   style: 'border border-gray-300 text-gray-500 px-6 py-3 sm:py-2.5 text-xs tracking-widest uppercase hover:bg-gray-50 transition-colors' },
+    { label: 'No asistió', status: 'NO_SHOW',   style: 'border border-gray-300 text-gray-600 px-6 py-3 sm:py-2.5 text-xs tracking-widest uppercase hover:bg-gray-50 transition-colors' },
     { label: 'Cancelar',   status: 'CANCELLED', style: 'border border-red-300 text-red-700 px-6 py-3 sm:py-2.5 text-xs tracking-widest uppercase hover:bg-red-50 transition-colors' },
   ],
   COMPLETED: [],
@@ -288,7 +288,7 @@ export default function CitaDetailPage() {
   }
 
   if (loading) return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto flex items-center gap-3 text-ink-muted">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto flex items-center gap-3 text-ink-muted-deep">
       <div className="w-5 h-5 border-2 border-gold border-t-transparent rounded-full animate-spin" />
       Cargando cita...
     </div>
@@ -361,8 +361,8 @@ export default function CitaDetailPage() {
     <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto">
 
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-xs text-ink-muted mb-6">
-        <Link href="/admin/citas" className="hover:text-gold hover:underline">Citas</Link>
+      <div className="flex items-center gap-2 text-xs text-ink-muted-deep mb-6">
+        <Link href="/admin/citas" className="hover:text-gold-deep hover:underline">Citas</Link>
         <span>/</span>
         <span className="text-ink">{appt.clientName}</span>
       </div>
@@ -373,7 +373,7 @@ export default function CitaDetailPage() {
           <h1 className="font-serif text-3xl text-ink font-light mb-1">
             {appt.clientName}
           </h1>
-          <p className="text-xs text-ink-muted tracking-wide">
+          <p className="text-xs text-ink-muted-deep tracking-wide">
             Código: {appt.id.slice(0, 8).toUpperCase()}
           </p>
         </div>
@@ -391,25 +391,25 @@ export default function CitaDetailPage() {
 
         {/* Service */}
         <div className="bg-white rounded-xl border border-beige-dark p-5">
-          <p className="text-xs text-ink-muted uppercase tracking-widest mb-3">
+          <p className="text-xs text-ink-muted-deep uppercase tracking-widest mb-3">
             Servicio{appt.services && appt.services.length > 1 ? 's' : ''}
           </p>
           {svcRows.length > 0 ? (
             svcRows.map((s) => (
               <div key={s.id} className="flex justify-between gap-3 text-sm">
                 <span className="text-ink">{s.service.name}</span>
-                <span className="text-ink-muted whitespace-nowrap">{formatPrice(s.price)}</span>
+                <span className="text-ink-muted-deep whitespace-nowrap">{formatPrice(s.price)}</span>
               </div>
             ))
           ) : (
             <div className="flex justify-between gap-3 text-sm">
               <span className="text-ink">{appt.service.name}</span>
-              <span className="text-ink-muted whitespace-nowrap">{formatPrice(appt.service.price)}</span>
+              <span className="text-ink-muted-deep whitespace-nowrap">{formatPrice(appt.service.price)}</span>
             </div>
           )}
 
           {(appt.extras ?? []).length > 0 && (
-            <div className="text-xs text-ink-muted mt-2 pt-2 border-t border-beige-dark space-y-0.5">
+            <div className="text-xs text-ink-muted-deep mt-2 pt-2 border-t border-beige-dark space-y-0.5">
               {appt.extras!.map((e) => (
                 <p key={e.id}>+ Adicional ({e.description}): {formatPrice(e.amount)}</p>
               ))}
@@ -419,7 +419,7 @@ export default function CitaDetailPage() {
           {/* Subtotal / descuento / total (refleja el descuento guardado) */}
           <div className="mt-2 pt-2 border-t border-beige-dark text-sm space-y-1">
             {(savedBreakdown.discount > 0 || savedBreakdown.extrasTotal > 0) && (
-              <div className="flex justify-between text-ink-muted">
+              <div className="flex justify-between text-ink-muted-deep">
                 <span>Subtotal</span>
                 <span>{formatPrice(savedBreakdown.servicesSubtotal + savedBreakdown.extrasTotal)}</span>
               </div>
@@ -431,7 +431,7 @@ export default function CitaDetailPage() {
             )}
             <div className="flex justify-between items-center">
               <span className="text-ink font-medium">Total</span>
-              <span className="text-gold text-lg font-medium">{formatPrice(savedBreakdown.total)}</span>
+              <span className="text-gold-deep text-lg font-medium">{formatPrice(savedBreakdown.total)}</span>
             </div>
           </div>
         </div>
@@ -439,9 +439,9 @@ export default function CitaDetailPage() {
         {/* Date and time — reschedulable while the appointment is still live */}
         <div className="bg-white rounded-xl border border-beige-dark p-5">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-xs text-ink-muted uppercase tracking-widest">Fecha y hora</p>
+            <p className="text-xs text-ink-muted-deep uppercase tracking-widest">Fecha y hora</p>
             {!editSched && canReschedule && (
-              <button onClick={() => setEditSched(true)} className="text-xs text-gold hover:underline">Reprogramar</button>
+              <button onClick={() => setEditSched(true)} className="text-xs text-gold-deep hover:underline">Reprogramar</button>
             )}
           </div>
           {editSched ? (
@@ -465,14 +465,14 @@ export default function CitaDetailPage() {
                 <button onClick={() => { setEditSched(false); setSchedDate(format(new Date(appt.date), 'yyyy-MM-dd')); setSchedTime(appt.startTime) }}
                   className="btn-secondary text-xs px-4 py-2">Cancelar</button>
               </div>
-              <p className="text-[11px] text-ink-muted/70">Se recalcula la hora de fin; si el cliente tiene email, se le notifica el cambio.</p>
+              <p className="text-[11px] text-ink-muted-deep">Se recalcula la hora de fin; si el cliente tiene email, se le notifica el cambio.</p>
             </div>
           ) : (
             <>
               <p className="font-serif text-xl text-ink first-letter:uppercase">
                 {format(new Date(appt.date), "EEEE d 'de' MMMM", { locale: es })}
               </p>
-              <p className="text-ink-muted text-sm mt-1">
+              <p className="text-ink-muted-deep text-sm mt-1">
                 {appt.startTime} – {appt.endTime}
               </p>
             </>
@@ -481,24 +481,24 @@ export default function CitaDetailPage() {
 
         {/* Contact */}
         <div className="bg-white rounded-xl border border-beige-dark p-5">
-          <p className="text-xs text-ink-muted uppercase tracking-widest mb-3">Contacto</p>
+          <p className="text-xs text-ink-muted-deep uppercase tracking-widest mb-3">Contacto</p>
           {appt.clientEmail ? (
-            <p className="text-ink text-sm">📧 {appt.clientEmail} <span className="text-xs text-green-600">· notificaciones activas</span></p>
+            <p className="text-ink text-sm">📧 {appt.clientEmail} <span className="text-xs text-green-700">· notificaciones activas</span></p>
           ) : (
-            <p className="text-sm text-ink-muted italic">📵 Sin email — el cliente no recibe notificaciones</p>
+            <p className="text-sm text-ink-muted-deep italic">📵 Sin email — el cliente no recibe notificaciones</p>
           )}
           <div className="flex items-center justify-between gap-3 mt-1">
             <p className="text-ink text-sm">📱 {appt.clientPhone}</p>
             {waUrl ? (
               <a href={waUrl} target="_blank" rel="noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs text-gold border border-gold/40 rounded-full px-3 py-1.5 hover:bg-gold-pale transition-colors shrink-0">
+                className="inline-flex items-center gap-1.5 text-xs text-gold-deep border border-gold/40 rounded-full px-3 py-1.5 hover:bg-gold-pale transition-colors shrink-0">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
                   <path d="M.057 24l1.687-6.163a11.867 11.867 0 0 1-1.587-5.946C.16 5.335 5.495 0 12.05 0a11.817 11.817 0 0 1 8.413 3.488 11.824 11.824 0 0 1 3.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 0 1-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 0 0 1.51 5.26l-.999 3.648 3.978-1.207zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
                 </svg>
                 WhatsApp
               </a>
             ) : (
-              <span className="text-xs text-ink-muted/60 italic shrink-0" title="No se puede abrir WhatsApp con un número incompleto">
+              <span className="text-xs text-ink-muted-deep italic shrink-0" title="No se puede abrir WhatsApp con un número incompleto">
                 Teléfono incompleto
               </span>
             )}
@@ -507,13 +507,13 @@ export default function CitaDetailPage() {
 
         {/* Scheduling */}
         <div className="bg-white rounded-xl border border-beige-dark p-5">
-          <p className="text-xs text-ink-muted uppercase tracking-widest mb-3">Registro</p>
-          <p className="text-xs text-ink-muted">
+          <p className="text-xs text-ink-muted-deep uppercase tracking-widest mb-3">Registro</p>
+          <p className="text-xs text-ink-muted-deep">
             Agendado el{' '}
             {format(new Date(appt.createdAt), "d MMM yyyy 'a las' HH:mm", { locale: es })}
           </p>
           {appt.confirmationSentAt && (
-            <p className="text-xs text-green-600 mt-1">✓ Confirmación enviada</p>
+            <p className="text-xs text-green-700 mt-1">✓ Confirmación enviada</p>
           )}
           {appt.reminderSentAt && (
             <p className="text-xs text-blue-600 mt-1">✓ Recordatorio enviado</p>
@@ -524,11 +524,11 @@ export default function CitaDetailPage() {
       {/* Notes */}
       <div className="bg-white rounded-xl border border-beige-dark p-5 mb-8">
         <div className="flex items-center justify-between mb-3">
-          <p className="text-xs text-ink-muted uppercase tracking-widest">Notas</p>
+          <p className="text-xs text-ink-muted-deep uppercase tracking-widest">Notas</p>
           {!editNotes && can('citas:editar') && (
             <button
               onClick={() => setEditNotes(true)}
-              className="text-xs text-gold hover:underline"
+              className="text-xs text-gold-deep hover:underline"
             >
               Editar
             </button>
@@ -555,7 +555,7 @@ export default function CitaDetailPage() {
             </div>
           </div>
         ) : (
-          <p className="text-sm text-ink-muted italic">
+          <p className="text-sm text-ink-muted-deep italic">
             {appt.notes || 'Sin notas.'}
           </p>
         )}
@@ -565,9 +565,9 @@ export default function CitaDetailPage() {
       {can('citas:pago') && (
       <form onSubmit={savePayment} className="bg-white rounded-xl border border-beige-dark p-5 mb-8">
         <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
-          <p className="text-xs text-ink-muted uppercase tracking-widest">Pago</p>
+          <p className="text-xs text-ink-muted-deep uppercase tracking-widest">Pago</p>
           <button type="button" onClick={markPaidFull}
-            className="text-xs text-gold hover:underline">Marcar pagado (total)</button>
+            className="text-xs text-gold-deep hover:underline">Marcar pagado (total)</button>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
@@ -597,7 +597,7 @@ export default function CitaDetailPage() {
             {([['none', 'Sin descuento'], ['line', 'Por servicio'], ['order', 'Al total']] as const).map(([v, label]) => (
               <button key={v} type="button" onClick={() => changeScope(v)}
                 className={`flex-1 px-2 py-1.5 rounded-lg text-xs border transition-colors ${
-                  discountScope === v ? 'bg-gold text-white border-gold' : 'border-beige-dark text-ink-muted hover:border-gold/50'
+                  discountScope === v ? 'bg-gold text-ink border-gold' : 'border-beige-dark text-ink-muted-deep hover:border-gold/50'
                 }`}>
                 {label}
               </button>
@@ -613,14 +613,14 @@ export default function CitaDetailPage() {
               <div key={sv.id} className="border border-beige-dark rounded-lg p-3">
                 <div className="flex justify-between text-sm">
                   <span className="text-ink font-medium">{sv.service.name}</span>
-                  <span className="text-ink-muted">{formatPrice(sv.price)}</span>
+                  <span className="text-ink-muted-deep">{formatPrice(sv.price)}</span>
                 </div>
                 {discountScope === 'line' && (
                   <div className="flex flex-wrap items-center gap-2 mt-2">
                     <div className="flex rounded-lg border border-beige-dark overflow-hidden shrink-0">
                       {(['PORCENTAJE', 'VALOR_FIJO'] as const).map((t) => (
                         <button key={t} type="button" onClick={() => setLine(sv.id, { descTipo: t })}
-                          className={`px-2.5 py-1.5 text-xs ${l.descTipo === t ? 'bg-gold text-white' : 'bg-white text-ink-muted'}`}>
+                          className={`px-2.5 py-1.5 text-xs ${l.descTipo === t ? 'bg-gold text-ink' : 'bg-white text-ink-muted-deep'}`}>
                           {t === 'PORCENTAJE' ? '%' : '$'}
                         </button>
                       ))}
@@ -639,10 +639,10 @@ export default function CitaDetailPage() {
                     <input type="number" min={0} value={ex.amount} onChange={(e) => setLineExtra(sv.id, i, { amount: e.target.value })}
                       placeholder="$ valor" className="input-field w-[110px] text-sm" />
                     <button type="button" onClick={() => removeLineExtra(sv.id, i)} aria-label="Eliminar adicional"
-                      className="text-ink-muted hover:text-red-700 px-1.5 text-lg leading-none">×</button>
+                      className="text-ink-muted-deep hover:text-red-700 px-1.5 text-lg leading-none">×</button>
                   </div>
                 ))}
-                <button type="button" onClick={() => addLineExtra(sv.id)} className="text-xs text-gold hover:underline mt-2">+ Adicional a este servicio</button>
+                <button type="button" onClick={() => addLineExtra(sv.id)} className="text-xs text-gold-deep hover:underline mt-2">+ Adicional a este servicio</button>
               </div>
             )
           })}
@@ -656,7 +656,7 @@ export default function CitaDetailPage() {
               <div className="flex rounded-lg border border-beige-dark overflow-hidden shrink-0">
                 {(['PORCENTAJE', 'VALOR_FIJO'] as const).map((t) => (
                   <button key={t} type="button" onClick={() => setDiscTipo(t)}
-                    className={`px-3 py-2 text-sm ${discTipo === t ? 'bg-gold text-white' : 'bg-white text-ink-muted'}`}>
+                    className={`px-3 py-2 text-sm ${discTipo === t ? 'bg-gold text-ink' : 'bg-white text-ink-muted-deep'}`}>
                     {t === 'PORCENTAJE' ? '%' : '$'}
                   </button>
                 ))}
@@ -679,12 +679,12 @@ export default function CitaDetailPage() {
 
         {/* Breakdown */}
         <div className="bg-beige-pale rounded-lg px-4 py-3 text-sm space-y-1 mt-4">
-          <div className="flex justify-between text-ink-muted">
+          <div className="flex justify-between text-ink-muted-deep">
             <span>Servicio{svcRows.length > 1 ? 's' : ''}</span>
             <span>{formatPrice(breakdown.servicesSubtotal)}</span>
           </div>
           {breakdown.extrasTotal > 0 && (
-            <div className="flex justify-between text-ink-muted">
+            <div className="flex justify-between text-ink-muted-deep">
               <span>Adicionales</span><span>{formatPrice(breakdown.extrasTotal)}</span>
             </div>
           )}
@@ -702,7 +702,7 @@ export default function CitaDetailPage() {
           className="btn-primary text-xs px-5 py-2.5 sm:py-2 mt-4 disabled:opacity-50">
           {savingPay ? 'Guardando...' : 'Guardar pago'}
         </button>
-        <p className="text-[11px] text-ink-muted/70 mt-2">
+        <p className="text-[11px] text-ink-muted-deep mt-2">
           Con pago <strong>Pagado</strong> o <strong>Cortesía</strong>, la cita se marca como completada automáticamente. Un abono <strong>Parcial</strong> no la completa.
         </p>
       </form>

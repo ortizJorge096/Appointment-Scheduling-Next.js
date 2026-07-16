@@ -78,7 +78,7 @@ export default async function CitasPage({ searchParams }: { searchParams: Promis
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
       <div className="mb-6 sm:mb-8 flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs text-ink-muted tracking-widest uppercase mb-1">Gestión</p>
+          <p className="text-xs text-ink-muted-deep tracking-widest uppercase mb-1">Gestión</p>
           <h1 className="font-serif text-2xl sm:text-3xl text-ink font-light">Citas</h1>
         </div>
         <ManualAppointmentModal />

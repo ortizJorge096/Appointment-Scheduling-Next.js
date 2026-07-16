@@ -24,12 +24,12 @@ interface GalleryImage {
 }
 
 const PLACEHOLDER_GRADIENTS = [
-  'linear-gradient(145deg,#F2EBD9 0%,#B8932A 60%,#1A1209 100%)',
-  'linear-gradient(145deg,#E8DCC4 0%,#D4AD5A 70%,#2A2014 100%)',
-  'linear-gradient(145deg,#1A1209 0%,#B8932A 50%,#F2EBD9 100%)',
-  'linear-gradient(145deg,#2A2014 0%,#D4AD5A 40%,#E8DCC4 100%)',
-  'linear-gradient(145deg,#F5EDDA 0%,#8A6E1E 50%,#1A1209 100%)',
-  'linear-gradient(145deg,#1A1209 30%,#B8932A 100%)',
+  'linear-gradient(145deg,var(--beige) 0%,var(--gold) 60%,var(--ink) 100%)',
+  'linear-gradient(145deg,var(--beige-dark) 0%,var(--gold-light) 70%,var(--ink-soft) 100%)',
+  'linear-gradient(145deg,var(--ink) 0%,var(--gold) 50%,var(--beige) 100%)',
+  'linear-gradient(145deg,var(--ink-soft) 0%,var(--gold-light) 40%,var(--beige-dark) 100%)',
+  'linear-gradient(145deg,var(--gold-pale) 0%,var(--gold-dark) 50%,var(--ink) 100%)',
+  'linear-gradient(145deg,var(--ink) 30%,var(--gold) 100%)',
 ]
 
 const PLACEHOLDER_ITEMS = [
@@ -262,7 +262,7 @@ function Lightbox({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-[#1a1209]/95"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/95"
       onClick={onClose}
       onTouchStart={(e) => setTouchX(e.touches[0].clientX)}
       onTouchEnd={onTouchEnd}

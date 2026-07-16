@@ -32,7 +32,7 @@ export default function HeroCarousel({ images }: { images: string[] }) {
       onMouseLeave={() => setPaused(false)}
     >
       {/* Fallback gradient — always behind the slides */}
-      <div className="absolute inset-0" style={{ background: 'linear-gradient(160deg,#2A2014 0%,#1A1209 60%,#0F0A05 100%)' }} />
+      <div className="absolute inset-0" style={{ background: 'linear-gradient(160deg,var(--ink-soft) 0%,var(--ink) 60%,#0F0A05 100%)' }} />
 
       {images.map((src, i) => (
         failed[i] ? null : (
