@@ -66,7 +66,7 @@ export default function Navbar() {
           )}
         </div>
 
-        <button className="md:hidden absolute right-2 min-w-[44px] min-h-[44px] flex flex-col items-center justify-center gap-1.5"
+        <button type="button" className="md:hidden absolute right-2 min-w-[44px] min-h-[44px] flex flex-col items-center justify-center gap-1.5"
           onClick={() => setMenuOpen(!menuOpen)} aria-label="Menú">
           <span className={`block w-5 h-px bg-white transition-all ${menuOpen ? 'rotate-45 translate-y-2' : ''}`} />
           <span className={`block w-5 h-px bg-white transition-all ${menuOpen ? 'opacity-0' : ''}`} />

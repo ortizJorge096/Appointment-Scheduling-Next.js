@@ -237,7 +237,7 @@ export default function ProfesionalesPage() {
 
                   <div className="flex items-center gap-5 shrink-0">
                     {!p.isActive && (
-                      <span className="text-[10px] tracking-widest uppercase bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full">
+                      <span className="text-[10px] tracking-widest uppercase bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
                         Inactivo
                       </span>
                     )}
@@ -267,7 +267,7 @@ export default function ProfesionalesPage() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-medium text-ink text-sm truncate">{p.name}</p>
                         {!p.isActive && (
-                          <span className="text-[10px] tracking-widest uppercase bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full shrink-0">
+                          <span className="text-[10px] tracking-widest uppercase bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full shrink-0">
                             Inactivo
                           </span>
                         )}

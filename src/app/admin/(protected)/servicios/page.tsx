@@ -193,7 +193,7 @@ export default function ServiciosPage() {
               {svc.category?.name ?? 'Sin categoría'}
             </span>
             {!svc.isActive && (
-              <span className="text-[10px] tracking-widest uppercase bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full">Inactivo</span>
+              <span className="text-[10px] tracking-widest uppercase bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">Inactivo</span>
             )}
           </div>
           {svc.description && <p className="text-xs text-ink-muted-deep mt-0.5 truncate">{svc.description}</p>}
