@@ -442,19 +442,19 @@ export default function ManualAppointmentModal() {
 
                 <div className="space-y-3">
                   <div>
-                    <label className="form-label">
+                    <label htmlFor="ma-nombre" className="form-label">
                       Nombre completo <span className="text-red-700">*</span>
                     </label>
-                    <input value={form.clientName} onChange={field('clientName')} onBlur={handleBlur('clientName')}
+                    <input id="ma-nombre" value={form.clientName} onChange={field('clientName')} onBlur={handleBlur('clientName')}
                       placeholder="Ana García"
                       className={`input-field w-full ${touched.clientName && fieldErrors.clientName ? 'border-red-400 focus:ring-red-300' : ''}`} />
                     <Err k="clientName" />
                   </div>
                   <div>
-                    <label className="form-label">
+                    <label htmlFor="ma-email" className="form-label">
                       Email <span className="text-ink-muted-deep normal-case font-normal tracking-normal">(opcional)</span>
                     </label>
-                    <input ref={emailInputRef} type="email" value={form.clientEmail} onChange={field('clientEmail')} onBlur={handleBlur('clientEmail')}
+                    <input id="ma-email" ref={emailInputRef} type="email" value={form.clientEmail} onChange={field('clientEmail')} onBlur={handleBlur('clientEmail')}
                       placeholder="ana@ejemplo.com"
                       className={`input-field w-full ${touched.clientEmail && fieldErrors.clientEmail ? 'border-red-400 focus:ring-red-300' : ''}`} />
                     <Err k="clientEmail" />
@@ -463,10 +463,10 @@ export default function ManualAppointmentModal() {
                     )}
                   </div>
                   <div>
-                    <label className="form-label">
+                    <label htmlFor="ma-telefono" className="form-label">
                       Teléfono <span className="text-red-700">*</span>
                     </label>
-                    <input value={form.clientPhone} onChange={field('clientPhone')} onBlur={handleBlur('clientPhone')}
+                    <input id="ma-telefono" value={form.clientPhone} onChange={field('clientPhone')} onBlur={handleBlur('clientPhone')}
                       placeholder="3001234567"
                       className={`input-field w-full ${touched.clientPhone && fieldErrors.clientPhone ? 'border-red-400 focus:ring-red-300' : ''}`} />
                     <Err k="clientPhone" />
@@ -727,8 +727,8 @@ export default function ManualAppointmentModal() {
 
               {/* Notas */}
               <div>
-                <label className="form-label">Notas internas</label>
-                <textarea value={form.notes} onChange={field('notes')}
+                <label htmlFor="ma-notas" className="form-label">Notas internas</label>
+                <textarea id="ma-notas" value={form.notes} onChange={field('notes')}
                   placeholder="Preferencias, alergias, observaciones..."
                   rows={2} className="input-field w-full resize-none" />
               </div>
