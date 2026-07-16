@@ -4,18 +4,27 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Mirror of the `colors` scale in tailwind.config.ts, for the places Tailwind
+   classes cannot reach: inline style={{}} gradients and CSS keyframes.
+   Two sources for one palette is a known cost — they had already drifted
+   (beige-deeper and ink-muted-deep existed only in the config, so var() on them
+   failed silently). Keep them in sync, or fold one into the other.
+   Not covered here: lib/email.ts. Email clients ignore var(), so its hex are
+   required, not drift — which is most of the palette's raw hex in this repo. */
 :root {
-  --gold:        #B8932A;
-  --gold-light:  #D4AD5A;
-  --gold-pale:   #F5EDDA;
-  --gold-dark:   #8A6E1E;
-  --gold-deep:   #7A611A;
-  --beige:       #F2EBD9;
-  --beige-dark:  #E8DCC4;
-  --ink:         #1A1209;
-  --ink-soft:    #2A2014;
-  --ink-mid:     #4A4035;
-  --ink-muted:   #7A7060;
+  --gold:            #B8932A;
+  --gold-light:      #D4AD5A;
+  --gold-pale:       #F5EDDA;
+  --gold-dark:       #8A6E1E;
+  --gold-deep:       #7A611A;
+  --beige:           #F2EBD9;
+  --beige-dark:      #E8DCC4;
+  --beige-deeper:    #D9CCAF;
+  --ink:             #1A1209;
+  --ink-soft:        #2A2014;
+  --ink-mid:         #4A4035;
+  --ink-muted:       #7A7060;
+  --ink-muted-deep:  #6E6656;
 }
 
 @layer base {

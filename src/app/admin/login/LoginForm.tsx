@@ -33,7 +33,7 @@ export default function LoginForm() {
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
                         w-[600px] h-[600px] rounded-full opacity-5"
-          style={{ background: 'radial-gradient(circle, #D4AD5A 0%, transparent 70%)' }} />
+          style={{ background: 'radial-gradient(circle, var(--gold-light) 0%, transparent 70%)' }} />
       </div>
 
       <div className="relative w-full max-w-sm">

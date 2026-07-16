@@ -653,14 +653,14 @@ export default function BookingForm() {
                 <button type="button" onClick={() => selectCategory(VIP_PSEUDO_CATEGORY)}
                   className="text-left p-6 rounded-2xl border border-ink bg-ink hover:border-gold/60
                              transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5">
-                  <span className="inline-flex items-center justify-center w-14 h-14 rounded-full mb-4 bg-[rgba(212,173,90,.15)] text-[var(--gold-light)]">
+                  <span className="inline-flex items-center justify-center w-14 h-14 rounded-full mb-4 bg-gold-light/15 text-gold-light">
                     <Icon name="promo" className="w-7 h-7" />
                   </span>
                   <p className="font-serif text-xl text-white">Paquete VIP</p>
                   <p className="text-sm text-[#b7ae9c] leading-snug mt-1.5">
                     {VIP_BLURB}
                   </p>
-                  <p className="text-[11px] tracking-widest uppercase text-[var(--gold-light)] font-semibold mt-3">
+                  <p className="text-[11px] tracking-widest uppercase text-gold-light font-semibold mt-3">
                     Reserva doble
                   </p>
                 </button>
