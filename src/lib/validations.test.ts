@@ -147,8 +147,16 @@ describe('createServiceSchema', () => {
     expect(createServiceSchema.safeParse(withoutCategory).success).toBe(false)
   })
 
-  it('rechaza categoryId que no es cuid', () => {
-    expect(createServiceSchema.safeParse({ ...valid, categoryId: '123' }).success).toBe(false)
+  // The id's encoding is not the schema's business. Emptiness is what a form can
+  // get wrong; whether the id exists is the foreign key's job.
+  it('rechaza categoryId vacío', () => {
+    expect(createServiceSchema.safeParse({ ...valid, categoryId: '' }).success).toBe(false)
+  })
+
+  it('acepta categoryId uuid — así están las categorías reales', () => {
+    expect(createServiceSchema.safeParse({
+      ...valid, categoryId: '2cf42ae6-3b04-4aba-94dd-e4df8ed553f6',
+    }).success).toBe(true)
   })
 
   it('rechaza precio negativo', () => {

@@ -285,9 +285,15 @@ export const createServiceSchema = z.object({
     .max(300)
     .optional(),
 
+  // Not .cuid(): the seeded categories carry uuids, so .cuid() rejected every
+  // real one — it was impossible to save a service with a category, and the
+  // message blamed the user for picking a bad option. Ids are opaque: the
+  // encoding is Prisma's business, and the foreign key is what actually proves
+  // the category exists. The other .cuid() ids in this file point at tables that
+  // happen to be cuid today; same over-specification, just not biting yet.
   categoryId: z
     .string()
-    .cuid('Selecciona una categoría válida'),
+    .min(1, 'Selecciona una categoría'),
 
   price: z
     .number()
@@ -374,7 +380,7 @@ export const galleryCreateSchema = z.object({
   s3Key:       z.string().min(1).max(300),
   title:       z.string().max(120).optional(),
   description: z.string().max(300).optional(),
-  categoryId:  z.string().cuid('Categoría inválida').nullable().optional(),
+  categoryId:  z.string().min(1, 'Categoría inválida').nullable().optional(),
   width:       z.number().int().positive().optional(),
   height:      z.number().int().positive().optional(),
   focalPoint:  focalPointSchema.optional(),
@@ -384,7 +390,7 @@ export const galleryUpdateSchema = z.object({
   s3Key:       z.string().min(1).max(300).optional(),
   title:       z.string().max(120).nullable().optional(),
   description: z.string().max(300).nullable().optional(),
-  categoryId:  z.string().cuid('Categoría inválida').nullable().optional(),
+  categoryId:  z.string().min(1, 'Categoría inválida').nullable().optional(),
   order:       z.number().int().min(0).optional(),
   isActive:    z.boolean().optional(),
   focalPoint:  focalPointSchema.optional(),
