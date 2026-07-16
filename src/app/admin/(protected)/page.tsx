@@ -217,7 +217,7 @@ export default async function DashboardPage() {
                 <div className="flex items-center gap-4 sm:gap-6 min-w-0">
                   <div className="text-center w-12 sm:w-14 shrink-0">
                     <p className="font-serif text-lg text-ink">{appt.startTime}</p>
-                    <p className="text-[10px] text-ink-muted-deep">{appt.endTime}</p>
+                    <p className="text-2xs text-ink-muted-deep">{appt.endTime}</p>
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-ink truncate">{appt.clientName}</p>

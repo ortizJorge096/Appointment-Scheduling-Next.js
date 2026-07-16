@@ -200,7 +200,7 @@ export default function CategoriesManager({
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-medium text-ink">{cat.name}</p>
                       {!cat.isActive && (
-                        <span className="text-[10px] tracking-widest uppercase bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">Inactiva</span>
+                        <span className="text-2xs tracking-widest uppercase bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">Inactiva</span>
                       )}
                     </div>
                     {cat.description && <p className="text-xs text-ink-muted-deep mt-0.5 truncate">{cat.description}</p>}

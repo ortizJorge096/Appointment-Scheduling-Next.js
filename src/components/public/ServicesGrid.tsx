@@ -106,7 +106,7 @@ export default function ServicesGrid() {
                         <p className="font-serif text-xl leading-none text-gold-dark">
                           Desde {formatPrice(minPrice)}
                         </p>
-                        <p className="text-[11px] mt-1.5 text-ink-muted">
+                        <p className="text-2xs mt-1.5 text-ink-muted">
                           {durationLabel}
                         </p>
                       </div>
@@ -135,7 +135,7 @@ export default function ServicesGrid() {
                 <div className="flex items-end justify-between pt-4 mt-auto border-t border-[rgba(255,255,255,.08)]">
                   <div>
                     <p className="font-serif text-xl leading-none text-gold-light">Personalizado</p>
-                    <p className="text-[11px] mt-1.5 text-cream-muted">Reserva doble</p>
+                    <p className="text-2xs mt-1.5 text-cream-muted">Reserva doble</p>
                   </div>
                   <Link href="/agendar?modo=vip"
                     className="text-xs tracking-widest uppercase font-semibold transition-colors text-gold-light hover:text-gold">

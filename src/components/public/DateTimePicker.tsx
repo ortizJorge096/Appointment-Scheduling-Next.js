@@ -224,7 +224,7 @@ export default function DateTimePicker({
           {/* Weekday labels */}
           <div className="grid grid-cols-7 gap-1 mb-1">
             {WEEKDAYS.map((w) => (
-              <div key={w} className="text-center text-[10px] tracking-widest uppercase text-gold-deep py-1">
+              <div key={w} className="text-center text-2xs tracking-widest uppercase text-gold-deep py-1">
                 {w}
               </div>
             ))}

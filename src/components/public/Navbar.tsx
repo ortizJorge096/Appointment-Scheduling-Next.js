@@ -48,7 +48,7 @@ export default function Navbar() {
           {SECTIONS.map((s) => (
             <li key={s.anchor}>
               <Link href={navHref(s.anchor)}
-                className="text-[13px] font-semibold tracking-wide rounded-full px-4 py-2.5
+                className="text-sm font-semibold tracking-wide rounded-full px-4 py-2.5
                            text-cream hover:text-white transition-all duration-200">
                 {s.label}
               </Link>
@@ -59,7 +59,7 @@ export default function Navbar() {
         <div className="hidden md:block ml-2">
           {!isOnBooking && (
             <Link href="/agendar"
-              className="text-[13px] font-semibold tracking-wide rounded-full px-4 py-2.5
+              className="text-sm font-semibold tracking-wide rounded-full px-4 py-2.5
                          bg-gradient-to-br from-gold-light to-gold text-ink transition-all duration-200">
               Agendar cita
             </Link>

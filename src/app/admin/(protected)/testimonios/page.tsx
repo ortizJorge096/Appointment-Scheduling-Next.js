@@ -248,7 +248,7 @@ export default function TestimoniosPage() {
             }`}>
             {label}
             {t === 'pendientes' && pendientes.length > 0 && (
-              <span className="ml-2 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-gold text-ink text-[10px] font-semibold">
+              <span className="ml-2 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-gold text-ink text-2xs font-semibold">
                 {pendientes.length}
               </span>
             )}
@@ -412,9 +412,9 @@ export default function TestimoniosPage() {
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-medium text-ink truncate">{t.clientName}</p>
-                      <span className="text-[10px] tracking-widest uppercase bg-gold-pale text-gold-deep px-2 py-0.5 rounded-full">{t.type}</span>
-                      <span className={`text-[10px] tracking-widest uppercase px-2 py-0.5 rounded-full ${STATUS_BADGE[t.status]}`}>{STATUS_LABEL[t.status]}</span>
-                      {t.source === 'CLIENT' && <span className="text-[10px] tracking-widest uppercase bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">Cliente</span>}
+                      <span className="text-2xs tracking-widest uppercase bg-gold-pale text-gold-deep px-2 py-0.5 rounded-full">{t.type}</span>
+                      <span className={`text-2xs tracking-widest uppercase px-2 py-0.5 rounded-full ${STATUS_BADGE[t.status]}`}>{STATUS_LABEL[t.status]}</span>
+                      {t.source === 'CLIENT' && <span className="text-2xs tracking-widest uppercase bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">Cliente</span>}
                     </div>
                     <p className="text-xs text-ink-muted-deep mt-0.5 truncate">{t.text.slice(0, 60)}{t.text.length > 60 ? '…' : ''} · {'★'.repeat(t.stars)}</p>
                   </div>

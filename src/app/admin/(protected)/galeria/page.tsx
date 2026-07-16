@@ -336,7 +336,7 @@ export default function GaleriaAdminPage() {
                     {/* Focal point: pick where the crop centers. The preview shows the
                         result live in the (taller) proportion where it matters most. */}
                     <div>
-                      <p className="text-[10px] uppercase tracking-widest text-ink-muted-deep mb-1">Punto focal</p>
+                      <p className="text-2xs uppercase tracking-widest text-ink-muted-deep mb-1">Punto focal</p>
                       <div className="relative w-full max-w-[180px] aspect-[4/5] rounded overflow-hidden bg-beige mx-auto">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={img.url} alt=""
@@ -360,7 +360,7 @@ export default function GaleriaAdminPage() {
                           })}
                         </div>
                       </div>
-                      <p className="text-[11px] text-ink-muted-deep mt-1 text-center">
+                      <p className="text-2xs text-ink-muted-deep mt-1 text-center">
                         Punto focal: <span className="text-ink">{FOCAL_LABEL[editForm.focalPoint] ?? 'Centro'}</span>
                       </p>
                     </div>

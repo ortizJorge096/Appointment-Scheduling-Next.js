@@ -413,7 +413,7 @@ export default function ManualAppointmentModal() {
                 )}
                 {form.mode === 'PAST' && (
                   <div className="mt-3">
-                    <label className="form-label text-[10px] !mb-1 block">Método de pago</label>
+                    <label className="form-label text-2xs !mb-1 block">Método de pago</label>
                     <div className="flex gap-2 flex-wrap">
                       {([['EFECTIVO', 'Efectivo'], ['NEQUI', 'Nequi'], ['TARJETA', 'Tarjeta'], ['TRANSFERENCIA', 'Transferencia']] as const).map(([v, l]) => (
                         <button key={v} type="button" onClick={() => setPayMethod(v)}
@@ -460,7 +460,7 @@ export default function ManualAppointmentModal() {
                       className={`input-field w-full ${touched.clientEmail && fieldErrors.clientEmail ? 'border-red-400 focus:ring-red-300' : ''}`} />
                     <Err k="clientEmail" />
                     {!form.clientEmail.trim() && (
-                      <p className="text-[11px] text-ink-muted-deep mt-0.5">Sin email no se enviarán notificaciones al cliente.</p>
+                      <p className="text-2xs text-ink-muted-deep mt-0.5">Sin email no se enviarán notificaciones al cliente.</p>
                     )}
                   </div>
                   <div>
@@ -507,7 +507,7 @@ export default function ManualAppointmentModal() {
                         <p className="text-xs text-ink-muted-deep text-center py-3">Sin resultados</p>
                       ) : groupedServices.map(g => (
                         <div key={g.name}>
-                          <p className="text-[10px] uppercase tracking-wider text-ink-muted-deep px-2 pt-1 pb-0.5">{g.name}</p>
+                          <p className="text-2xs uppercase tracking-wider text-ink-muted-deep px-2 pt-1 pb-0.5">{g.name}</p>
                           {g.items.map(s => (
                             <label key={s.id} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-beige cursor-pointer text-sm">
                               <input type="checkbox" checked={form.serviceIds.includes(s.id)}
@@ -520,7 +520,7 @@ export default function ManualAppointmentModal() {
                       ))}
                     </div>
                     {form.serviceIds.length > 1 && (
-                      <p className="text-[11px] text-ink-muted-deep mt-1">
+                      <p className="text-2xs text-ink-muted-deep mt-1">
                         {form.serviceIds.length} servicios · {form.serviceIds.reduce((t, id) => t + (services.find(s => s.id === id)?.durationMinutes ?? 0), 0)} min en total
                       </p>
                     )}
@@ -536,7 +536,7 @@ export default function ManualAppointmentModal() {
                         min={form.mode === 'PAST' ? minManualDate() : today()}
                         max={form.mode === 'PAST' ? today() : undefined}
                         className={`input-field w-full ${touched.date && fieldErrors.date ? 'border-red-400' : ''}`} />
-                      <p className="text-[11px] text-ink-muted-deep mt-1">
+                      <p className="text-2xs text-ink-muted-deep mt-1">
                         {form.mode === 'PAST'
                           ? `Hoy o hasta ${PAST_LIMIT_DAYS} días atrás`
                           : 'Desde hoy en adelante'}
@@ -682,7 +682,7 @@ export default function ManualAppointmentModal() {
                         <span>Total a cobrar</span><span>{formatPrice(breakdown.total)}</span>
                       </div>
                       {breakdown.total === 0 && breakdown.discount > 0 && (
-                        <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 mt-1">
+                        <p className="text-2xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 mt-1">
                           ⚠️ El total será $0. Se registrará como cortesía.
                         </p>
                       )}
