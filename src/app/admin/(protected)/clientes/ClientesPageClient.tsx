@@ -11,10 +11,11 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { Modal } from '@/components/ui/Modal'
 import { useUrlFilters } from '@/hooks/useUrlFilters'
 import { isValidPhone } from '@/lib/utils'
+import { useFieldValidation } from '@/hooks/useFieldValidation'
 
 const EMPTY_FORM = { name: '', email: '', phone: '', notes: '' }
-type FieldErrors = Partial<Record<'name' | 'email' | 'phone', string>>
-// Validated on blur and on submit, in display order.
+// Validated on blur and on submit, in display order. Module-level so the hook
+// keeps a stable reference; the ids match `new-client-<key>` for error focusing.
 const VALIDATED_FIELDS = ['name', 'email', 'phone'] as const
 
 export default function ClientesPageClient() {
@@ -36,8 +37,22 @@ export default function ClientesPageClient() {
   const [form, setForm]             = useState(EMPTY_FORM)
   const [saving, setSaving]         = useState(false)
   const [formError, setFormError]   = useState('')
-  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
-  const [touched, setTouched]         = useState<Partial<Record<keyof FieldErrors, boolean>>>({})
+  const v = useFieldValidation(VALIDATED_FIELDS, (k) => {
+    switch (k) {
+      case 'name':
+        if (!form.name.trim()) return 'El nombre es requerido'
+        if (!/\p{L}/u.test(form.name)) return 'El nombre debe incluir letras'
+        return undefined
+      case 'phone':
+        if (!form.phone.trim()) return 'El teléfono es requerido'
+        if (!isValidPhone(form.phone)) return 'El teléfono debe tener entre 10 y 15 dígitos'
+        return undefined
+      case 'email':
+        // Optional — only checked once something was typed.
+        if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) return 'Email inválido'
+        return undefined
+    }
+  })
 
   // Keep the input in sync if the URL changes externally (e.g. back button)
   useEffect(() => { setSearchInput(query) }, [query])
@@ -71,50 +86,11 @@ export default function ClientesPageClient() {
 
   const totalPages = Math.ceil(total / 20)
 
-  // Client-side validation mirrors the server (name must include letters, phone
-  // must be 10–15 digits) so the admin gets an inline, focused error in Spanish
-  // instead of a raw Zod message dumped into a banner.
-  function validateField(k: keyof FieldErrors): string | undefined {
-    switch (k) {
-      case 'name':
-        if (!form.name.trim()) return 'El nombre es requerido'
-        if (!/\p{L}/u.test(form.name)) return 'El nombre debe incluir letras'
-        return undefined
-      case 'phone':
-        if (!form.phone.trim()) return 'El teléfono es requerido'
-        if (!isValidPhone(form.phone)) return 'El teléfono debe tener entre 10 y 15 dígitos'
-        return undefined
-      case 'email':
-        // Optional — only checked once something was typed.
-        if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) return 'Email inválido'
-        return undefined
-    }
-  }
-
-  function validate(): FieldErrors {
-    const errs: FieldErrors = {}
-    for (const k of VALIDATED_FIELDS) {
-      const err = validateField(k)
-      if (err) errs[k] = err
-    }
-    return errs
-  }
-
-  // Tell the admin as they leave each field, not once they hit Guardar. Gated on
-  // `touched` so an untouched form never shows errors before it has been used.
-  const handleBlur = (k: keyof FieldErrors) => () => {
-    setTouched((t) => ({ ...t, [k]: true }))
-    setFieldErrors((fe) => ({ ...fe, [k]: validateField(k) }))
-  }
-
   async function createClient(e: React.FormEvent) {
     e.preventDefault()
-    const errs = validate()
-    setFieldErrors(errs)
-    // Submit reveals every error at once, so mark all fields touched.
-    setTouched(Object.fromEntries(VALIDATED_FIELDS.map((k) => [k, true])))
+    const errs = v.validateAll()
     if (Object.keys(errs).length > 0) {
-      const first = VALIDATED_FIELDS.find((k) => errs[k])
+      const first = v.firstErrorKey(errs)
       if (first) document.getElementById(`new-client-${first}`)?.focus()
       return
     }
@@ -135,7 +111,7 @@ export default function ClientesPageClient() {
       if (!json.success) { setFormError(json.error ?? 'No se pudo crear el cliente'); return }
       setShowCreate(false)
       setForm(EMPTY_FORM)
-      setFieldErrors({}); setTouched({})
+      v.reset()
       setParams({ page: null })
       await load()
     } catch {
@@ -153,7 +129,7 @@ export default function ClientesPageClient() {
         title="Clientes"
         subtitle={`${total} cliente${total !== 1 ? 's' : ''} ${archived ? `archivado${total !== 1 ? 's' : ''}` : `registrado${total !== 1 ? 's' : ''}`}`}
         actions={
-          <button onClick={() => { setForm(EMPTY_FORM); setFormError(''); setFieldErrors({}); setTouched({}); setShowCreate(true) }}
+          <button onClick={() => { setForm(EMPTY_FORM); setFormError(''); v.reset(); setShowCreate(true) }}
             className="btn-primary text-sm">
             + Nuevo
           </button>
@@ -197,7 +173,7 @@ export default function ClientesPageClient() {
               : archived ? 'No hay clientes archivados.'
               : 'Aún no hay clientes registrados.'}
             action={!query && !archived ? (
-              <button onClick={() => { setForm(EMPTY_FORM); setFormError(''); setFieldErrors({}); setTouched({}); setShowCreate(true) }}
+              <button onClick={() => { setForm(EMPTY_FORM); setFormError(''); v.reset(); setShowCreate(true) }}
                 className="btn-primary text-sm">
                 + Crear el primero
               </button>
@@ -270,29 +246,29 @@ export default function ClientesPageClient() {
               <div>
                 <label htmlFor="new-client-name" className="form-label">Nombre completo <span className="text-red-700">*</span></label>
                 <input id="new-client-name" value={form.name}
-                  onChange={e => { setForm(f => ({ ...f, name: e.target.value })); if (fieldErrors.name) setFieldErrors(x => ({ ...x, name: undefined })) }}
-                  onBlur={handleBlur('name')}
+                  onChange={e => { setForm(f => ({ ...f, name: e.target.value })); v.clearError('name') }}
+                  onBlur={v.handleBlur('name')}
                   placeholder="Ana García"
-                  className={`input-field w-full ${touched.name && fieldErrors.name ? 'border-red-400 focus:ring-red-300' : ''}`} />
-                {touched.name && fieldErrors.name && <p className="text-xs text-red-700 mt-0.5">{fieldErrors.name}</p>}
+                  className={`input-field w-full ${v.errorOf('name') ? 'border-red-400 focus:ring-red-300' : ''}`} />
+                {v.errorOf('name') && <p className="text-xs text-red-700 mt-0.5">{v.errorOf('name')}</p>}
               </div>
               <div>
                 <label htmlFor="new-client-email" className="form-label">Email <span className="text-ink-muted-deep normal-case font-normal tracking-normal">(opcional)</span></label>
                 <input id="new-client-email" type="email" value={form.email}
-                  onChange={e => { setForm(f => ({ ...f, email: e.target.value })); if (fieldErrors.email) setFieldErrors(x => ({ ...x, email: undefined })) }}
-                  onBlur={handleBlur('email')}
+                  onChange={e => { setForm(f => ({ ...f, email: e.target.value })); v.clearError('email') }}
+                  onBlur={v.handleBlur('email')}
                   placeholder="ana@ejemplo.com"
-                  className={`input-field w-full ${touched.email && fieldErrors.email ? 'border-red-400 focus:ring-red-300' : ''}`} />
-                {touched.email && fieldErrors.email && <p className="text-xs text-red-700 mt-0.5">{fieldErrors.email}</p>}
+                  className={`input-field w-full ${v.errorOf('email') ? 'border-red-400 focus:ring-red-300' : ''}`} />
+                {v.errorOf('email') && <p className="text-xs text-red-700 mt-0.5">{v.errorOf('email')}</p>}
               </div>
               <div>
                 <label htmlFor="new-client-phone" className="form-label">Teléfono <span className="text-red-700">*</span></label>
                 <input id="new-client-phone" value={form.phone}
-                  onChange={e => { setForm(f => ({ ...f, phone: e.target.value })); if (fieldErrors.phone) setFieldErrors(x => ({ ...x, phone: undefined })) }}
-                  onBlur={handleBlur('phone')}
+                  onChange={e => { setForm(f => ({ ...f, phone: e.target.value })); v.clearError('phone') }}
+                  onBlur={v.handleBlur('phone')}
                   placeholder="3001234567"
-                  className={`input-field w-full ${touched.phone && fieldErrors.phone ? 'border-red-400 focus:ring-red-300' : ''}`} />
-                {touched.phone && fieldErrors.phone && <p className="text-xs text-red-700 mt-0.5">{fieldErrors.phone}</p>}
+                  className={`input-field w-full ${v.errorOf('phone') ? 'border-red-400 focus:ring-red-300' : ''}`} />
+                {v.errorOf('phone') && <p className="text-xs text-red-700 mt-0.5">{v.errorOf('phone')}</p>}
               </div>
               <div>
                 <label className="form-label">Notas internas</label>
