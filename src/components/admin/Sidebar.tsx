@@ -126,7 +126,7 @@ export default function AdminSidebar() {
           className={`w-full flex items-center gap-2 px-3 mt-4 mb-1 text-[10px] tracking-widest uppercase
                       transition-colors ${hasActive ? 'text-gold' : 'text-white/55 hover:text-white/80'}`}
         >
-          <span className={`text-[8px] leading-none transition-transform duration-200 ${expanded ? 'rotate-90' : ''}`}>▶</span>
+          <span aria-hidden="true" className={`text-[10px] leading-none transition-transform duration-200 ${expanded ? 'rotate-90' : ''}`}>▶</span>
           <span className="flex-1 text-left">{group.label}</span>
         </button>
 

@@ -394,7 +394,7 @@ export default function CitasList({
                     <p className="text-sm font-medium text-ink flex items-center gap-1.5">
                       {appt.clientName}
                       {!appt.clientEmail && (
-                        <span className="text-[9px] tracking-wide uppercase bg-beige text-ink-muted-deep border border-beige-dark px-1.5 py-0.5 rounded-full">
+                        <span className="text-[10px] tracking-wide uppercase bg-beige text-ink-muted-deep border border-beige-dark px-1.5 py-0.5 rounded-full">
                           sin correo
                         </span>
                       )}
