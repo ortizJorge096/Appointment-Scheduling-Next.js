@@ -30,7 +30,7 @@ export default function Navbar() {
   }
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-ink/90 backdrop-blur-md ${
+    <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-ink/90 backdrop-blur-md ${
       scrolled ? 'shadow-md' : ''
     }`}>
       <div className="relative max-w-7xl mx-auto px-6 lg:px-10 h-16 flex items-center justify-center gap-1.5">
@@ -44,17 +44,19 @@ export default function Navbar() {
           </span>
         </Link>
 
-        <ul className="hidden md:flex items-center gap-1.5">
-          {SECTIONS.map((s) => (
-            <li key={s.anchor}>
-              <Link href={navHref(s.anchor)}
-                className="text-sm font-semibold tracking-wide rounded-full px-4 py-2.5
-                           text-cream hover:text-white transition-all duration-200">
-                {s.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <nav aria-label="Navegación principal" className="hidden md:block">
+          <ul className="flex items-center gap-1.5">
+            {SECTIONS.map((s) => (
+              <li key={s.anchor}>
+                <Link href={navHref(s.anchor)}
+                  className="text-sm font-semibold tracking-wide rounded-full px-4 py-2.5
+                             text-cream hover:text-white transition-all duration-200">
+                  {s.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
 
         <div className="hidden md:block ml-2">
           {!isOnBooking && (
@@ -76,13 +78,15 @@ export default function Navbar() {
 
       {menuOpen && (
         <div className="md:hidden bg-ink border-t border-white/10 px-6 py-6 flex flex-col gap-2">
-          {SECTIONS.map((s) => (
-            <Link key={s.anchor} href={navHref(s.anchor)}
-              className="text-sm text-cream uppercase tracking-widest hover:text-white transition-colors px-4 py-2.5 rounded-full"
-              onClick={() => setMenuOpen(false)}>
-              {s.label}
-            </Link>
-          ))}
+          <nav aria-label="Navegación principal" className="flex flex-col gap-2">
+            {SECTIONS.map((s) => (
+              <Link key={s.anchor} href={navHref(s.anchor)}
+                className="text-sm text-cream uppercase tracking-widest hover:text-white transition-colors px-4 py-2.5 rounded-full"
+                onClick={() => setMenuOpen(false)}>
+                {s.label}
+              </Link>
+            ))}
+          </nav>
           {!isOnBooking && (
             <Link href="/agendar" className="btn-cta text-center mt-2"
               onClick={() => setMenuOpen(false)}>
@@ -91,6 +95,6 @@ export default function Navbar() {
           )}
         </div>
       )}
-    </nav>
+    </header>
   )
 }

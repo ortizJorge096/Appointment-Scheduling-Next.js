@@ -304,10 +304,11 @@ function Lightbox({
             priority
           />
         </div>
-        {(image.title || image.category) && (
-          <figcaption className="text-center">
+        {(image.title || image.description || image.category) && (
+          <figcaption className="text-center max-w-lg px-4">
             {image.title && <p className="font-serif italic text-white text-lg leading-tight">{image.title}</p>}
-            {image.category && <p className="text-gold-light text-xs mt-1 tracking-widest uppercase">{image.category.name}</p>}
+            {image.description && <p className="text-white/70 text-sm mt-1.5 leading-relaxed">{image.description}</p>}
+            {image.category && <p className="text-gold-light text-xs mt-1.5 tracking-widest uppercase">{image.category.name}</p>}
           </figcaption>
         )}
       </figure>

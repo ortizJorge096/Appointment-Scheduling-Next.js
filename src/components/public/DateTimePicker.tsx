@@ -5,7 +5,7 @@
 // fills `dateOpen` (open/closed per day); the API and business rules
 // (sundays, blocked dates, capacity) are unchanged.
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useId } from 'react'
 import {
   format, addDays, addMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek,
   eachDayOfInterval, isSameMonth, isBefore, isAfter, startOfDay,
@@ -37,6 +37,9 @@ export default function DateTimePicker({
 }: Props) {
   // Clamp defensively to the same bounds the admin setting enforces (7–365).
   const daysToShow = Math.min(365, Math.max(7, maxAdvanceDays))
+
+  // Stable ids so each visible group heading (Fecha / Hora) names its radiogroup.
+  const gid = useId()
 
   const [slots,   setSlots]   = useState<TimeSlot[]>([])
   const [loading, setLoading] = useState(false)
@@ -190,14 +193,14 @@ export default function DateTimePicker({
 
       {/* ── Calendar ── */}
       <div>
-        <label className="form-label">
+        <span id={`${gid}-date`} className="form-label">
           Fecha
           {rangeLoading && (
             <span className="ml-2 text-ink-muted/50 normal-case font-normal tracking-normal">
               Consultando disponibilidad...
             </span>
           )}
-        </label>
+        </span>
 
         <div className="w-full bg-white border border-beige-dark rounded-[18px] p-5 shadow-sm">
           {/* Header: month nav (44×44 touch targets, chevron icons) */}
@@ -231,7 +234,7 @@ export default function DateTimePicker({
           </div>
 
           {/* Day cells — all the same size; only the style changes per state */}
-          <div className="grid grid-cols-7 gap-1">
+          <div role="radiogroup" aria-labelledby={`${gid}-date`} className="grid grid-cols-7 gap-1">
             {gridDays.map((day) => {
               const dayStr      = format(day, 'yyyy-MM-dd')
               const inMonth     = isSameMonth(day, viewMonth)
@@ -283,14 +286,14 @@ export default function DateTimePicker({
 
       {/* ── Time picker ── */}
       <div>
-        <label className="form-label">
+        <span id={`${gid}-time`} className="form-label">
           Hora disponible
           {(loading || autoPicking) && (
             <span className="ml-2 text-ink-muted/50 normal-case font-normal tracking-normal">
               {autoPicking ? 'Buscando disponibilidad...' : 'Cargando...'}
             </span>
           )}
-        </label>
+        </span>
 
         {error && !autoPicking && <p className="text-sm text-red-700 mb-3">{error}</p>}
 
@@ -312,7 +315,7 @@ export default function DateTimePicker({
         )}
 
         {!loading && !autoPicking && availableSlots.length > 0 && (
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+          <div role="radiogroup" aria-labelledby={`${gid}-time`} className="grid grid-cols-3 sm:grid-cols-4 gap-2">
             {availableSlots.map((slot) => {
               const isSelected = slot.startTime === selectedTime
               return (
@@ -334,7 +337,7 @@ export default function DateTimePicker({
         {/* Open day but all time slots are taken */}
         {!loading && !autoPicking && !error && !noUpcoming && !isSelectedDayClosed && slots.length > 0 && availableSlots.length === 0 && (
           <div className="flex items-center gap-2 bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-700">
-            <span>⚠</span> Todos los horarios de este día están ocupados. Por favor elige otra fecha.
+            <span aria-hidden="true">⚠</span> Todos los horarios de este día están ocupados. Por favor elige otra fecha.
           </div>
         )}
       </div>
