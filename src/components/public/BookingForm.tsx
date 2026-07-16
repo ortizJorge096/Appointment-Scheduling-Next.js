@@ -10,6 +10,7 @@ import { es } from 'date-fns/locale'
 import { formatPrice, isValidPhone } from '@/lib/utils'
 import { trackBeginBooking, trackBookingConfirmed } from '@/lib/analytics'
 import { getWhatsAppUrl } from '@/lib/config'
+import { useFieldValidation } from '@/hooks/useFieldValidation'
 
 interface Service {
   id: string
@@ -71,11 +72,10 @@ function resolveDiscountPercent(serviceCount: number, settings: VipSettings): nu
   return applicable?.discountPct ?? 0
 }
 
-interface FieldErrors {
-  clientName?:  string
-  clientEmail?: string
-  clientPhone?: string
-}
+// Confirm-step fields, in display order. Module-level so the hook keeps a
+// stable reference. Step-level errors (category, time) stay in the banner —
+// they do not belong to any one field.
+const CONFIRM_FIELDS = ['clientPhone', 'clientName', 'clientEmail'] as const
 
 const STORAGE_KEY = 'vj_booking_client'
 
@@ -115,8 +115,8 @@ export default function BookingForm() {
   // pre-filled message (blocked/inactive client, or the per-phone booking cap).
   const [whatsappCta, setWhatsappCta] = useState<string | null>(null)
   const [stepError,   setStepError]   = useState<string | null>(null)
-  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [attempted,   setAttempted]   = useState(false)
+
   // Phone-first client recognition (consent-based autofill on the confirm step)
   const [lookup,          setLookup]          = useState<{ name: string } | null>(null)
   const [lookupDismissed, setLookupDismissed] = useState(false)
@@ -132,6 +132,24 @@ export default function BookingForm() {
     clientEmail:    '',
     clientPhone:    '',
     notes:          '',
+  })
+
+  // Tell the client as they leave each field. Waiting for "Confirmar" means
+  // filling the whole form before learning the phone was wrong — on the step
+  // that decides whether the booking happens at all.
+  const v = useFieldValidation(CONFIRM_FIELDS, (k) => {
+    switch (k) {
+      case 'clientName':
+        return form.clientName.trim().length >= 2
+          ? undefined : 'Ingresa tu nombre completo (mínimo 2 caracteres).'
+      case 'clientEmail':
+        // Optional — only checked once something was typed.
+        return !form.clientEmail.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.clientEmail.trim())
+          ? undefined : 'Ingresa un email válido (ej: correo@dominio.com).'
+      case 'clientPhone':
+        return isValidPhone(form.clientPhone)
+          ? undefined : 'Ingresa un número de teléfono válido (mínimo 10 dígitos).'
+    }
   })
 
   // 1. Signal we are already on the client
@@ -255,7 +273,7 @@ export default function BookingForm() {
   // Clear errors and scroll to top when step changes
   useEffect(() => {
     setStepError(null)
-    setFieldErrors({})
+    v.reset()
     setAttempted(false)
     setTimeout(() => {
       formTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -333,8 +351,10 @@ export default function BookingForm() {
 
   function updateForm(field: keyof FormData, value: string | string[]) {
     setForm((prev) => ({ ...prev, [field]: value }))
-    if (typeof value === 'string' && field in fieldErrors) {
-      setFieldErrors((prev) => ({ ...prev, [field]: undefined }))
+    // An error you are already fixing should stop shouting while you fix it;
+    // blur re-checks it.
+    if (CONFIRM_FIELDS.includes(field as (typeof CONFIRM_FIELDS)[number])) {
+      v.clearError(field as (typeof CONFIRM_FIELDS)[number])
     }
     setStepError(null)
   }
@@ -349,7 +369,7 @@ export default function BookingForm() {
       clientName:  lookup.name,
       clientEmail: prev.clientEmail || savedClientData.clientEmail,
     }))
-    setFieldErrors({})
+    v.reset()
     setLookupDismissed(true)
   }
 
@@ -399,18 +419,7 @@ export default function BookingForm() {
       if (!form.startTime) { setStepError('Por favor selecciona una hora disponible.'); return false }
       return true
     }
-    if (step === 'confirm') {
-      const errors: FieldErrors = {}
-      if (form.clientName.trim().length < 2)
-        errors.clientName = 'Ingresa tu nombre completo (mínimo 2 caracteres).'
-      // Email is optional — only validate the format if something was typed.
-      if (form.clientEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.clientEmail.trim()))
-        errors.clientEmail = 'Ingresa un email válido (ej: correo@dominio.com).'
-      if (!isValidPhone(form.clientPhone))
-        errors.clientPhone = 'Ingresa un número de teléfono válido (mínimo 10 dígitos).'
-      if (Object.keys(errors).length > 0) { setFieldErrors(errors); return false }
-      return true
-    }
+    if (step === 'confirm') return Object.keys(v.validateAll()).length === 0
     return true
   }
 
@@ -995,14 +1004,15 @@ export default function BookingForm() {
               <input
                 type="tel"
                 list="dl-phone"
-                className={inputClass(fieldErrors.clientPhone)}
+                className={inputClass(v.errorOf('clientPhone'))}
                 placeholder="300 000 0000"
                 value={form.clientPhone}
                 onChange={(e) => updateForm('clientPhone', e.target.value)}
+                onBlur={v.handleBlur('clientPhone')}
                 autoComplete="tel"
               />
-              {fieldErrors.clientPhone && (
-                <p className="flex items-center gap-1.5 text-red-700 text-xs mt-1.5"><span>⚠</span> {fieldErrors.clientPhone}</p>
+              {v.errorOf('clientPhone') && (
+                <p className="flex items-center gap-1.5 text-red-700 text-xs mt-1.5"><span>⚠</span> {v.errorOf('clientPhone')}</p>
               )}
 
               {/* Returning-client recognition — consent-based, never auto-applied */}
@@ -1031,14 +1041,15 @@ export default function BookingForm() {
                 <input
                   type="text"
                   list="dl-name"
-                  className={inputClass(fieldErrors.clientName)}
+                  className={inputClass(v.errorOf('clientName'))}
                   placeholder="Tu nombre y apellido"
                   value={form.clientName}
                   onChange={(e) => updateForm('clientName', e.target.value)}
+                  onBlur={v.handleBlur('clientName')}
                   autoComplete="name"
                 />
-                {fieldErrors.clientName && (
-                  <p className="flex items-center gap-1.5 text-red-700 text-xs mt-1.5"><span>⚠</span> {fieldErrors.clientName}</p>
+                {v.errorOf('clientName') && (
+                  <p className="flex items-center gap-1.5 text-red-700 text-xs mt-1.5"><span>⚠</span> {v.errorOf('clientName')}</p>
                 )}
               </div>
               <div>
@@ -1048,14 +1059,15 @@ export default function BookingForm() {
                 <input
                   type="email"
                   list="dl-email"
-                  className={inputClass(fieldErrors.clientEmail)}
+                  className={inputClass(v.errorOf('clientEmail'))}
                   placeholder="tu@email.com"
                   value={form.clientEmail}
                   onChange={(e) => updateForm('clientEmail', e.target.value)}
+                  onBlur={v.handleBlur('clientEmail')}
                   autoComplete="email"
                 />
-                {fieldErrors.clientEmail ? (
-                  <p className="flex items-center gap-1.5 text-red-700 text-xs mt-1.5"><span>⚠</span> {fieldErrors.clientEmail}</p>
+                {v.errorOf('clientEmail') ? (
+                  <p className="flex items-center gap-1.5 text-red-700 text-xs mt-1.5"><span>⚠</span> {v.errorOf('clientEmail')}</p>
                 ) : (
                   <p className="text-xs text-ink-muted/60 mt-1.5">
                     Si lo proporcionas, recibirás confirmación y recordatorios automáticos de tu cita.
