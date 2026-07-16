@@ -158,12 +158,17 @@ export default function AdminSidebar() {
           onClick={() => setOpen(false)} aria-hidden />
       )}
 
+      {/* invisible when the mobile drawer is closed, not just translated away:
+          transform moves it off-screen but leaves all 19 controls in the tab
+          order, so keyboard and screen-reader users walk the whole nav before
+          reaching the page. visibility:hidden drops them; md:visible restores
+          the static desktop sidebar. */}
       <aside
         className={`bg-ink border-r border-white/10 flex flex-col shrink-0
                     w-64 md:w-56 min-h-screen
                     fixed md:static inset-y-0 left-0 z-50
-                    transform transition-transform duration-300 ease-in-out
-                    ${open ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}
+                    transform transition-[transform,visibility] duration-300 ease-in-out
+                    ${open ? 'translate-x-0 visible' : '-translate-x-full invisible'} md:translate-x-0 md:visible`}
       >
         <div className="px-6 py-6 border-b border-white/10 flex items-start justify-between">
           <div>
