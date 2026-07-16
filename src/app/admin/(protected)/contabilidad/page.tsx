@@ -345,7 +345,7 @@ export default function ContabilidadPage() {
                 onChange={e => { setForm(f => ({ ...f, description: e.target.value })); v.clearError('description') }}
                 onBlur={v.handleBlur('description')}
                 placeholder="Ej: Esmaltes UV, bombillas, etc."
-                className={`input-field w-full ${v.errorOf('description') ? 'border-red-400 focus:ring-red-300' : ''}`} />
+                className={`input-field w-full ${v.errorOf('description') ? 'input-error' : ''}`} />
               {v.errorOf('description') && <p className="text-xs text-red-700 mt-0.5">{v.errorOf('description')}</p>}
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -355,7 +355,7 @@ export default function ContabilidadPage() {
                   onChange={e => { setForm(f => ({ ...f, amount: e.target.value })); v.clearError('amount') }}
                   onBlur={v.handleBlur('amount')}
                   placeholder="0"
-                  className={`input-field w-full min-w-0 ${v.errorOf('amount') ? 'border-red-400 focus:ring-red-300' : ''}`} />
+                  className={`input-field w-full min-w-0 ${v.errorOf('amount') ? 'input-error' : ''}`} />
                 {v.errorOf('amount') && <p className="text-xs text-red-700 mt-0.5">{v.errorOf('amount')}</p>}
               </div>
               <div className="min-w-0">
@@ -363,7 +363,7 @@ export default function ContabilidadPage() {
                 <input id="gasto-fecha" type="date" value={form.date}
                   onChange={e => { setForm(f => ({ ...f, date: e.target.value })); v.clearError('date') }}
                   onBlur={v.handleBlur('date')}
-                  className={`input-field w-full min-w-0 ${v.errorOf('date') ? 'border-red-400 focus:ring-red-300' : ''}`} />
+                  className={`input-field w-full min-w-0 ${v.errorOf('date') ? 'input-error' : ''}`} />
                 {v.errorOf('date') && <p className="text-xs text-red-700 mt-0.5">{v.errorOf('date')}</p>}
               </div>
             </div>

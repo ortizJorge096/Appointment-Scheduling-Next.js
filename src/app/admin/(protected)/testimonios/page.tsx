@@ -268,7 +268,7 @@ export default function TestimoniosPage() {
             <div>
               <label htmlFor="t-nombre" className="form-label">Nombre del cliente *</label>
               <input id="t-nombre" type="text" value={form.clientName}
-                className={`input-field ${v.errorOf('clientName') ? 'border-red-400 focus:ring-red-300' : ''}`}
+                className={`input-field ${v.errorOf('clientName') ? 'input-error' : ''}`}
                 onChange={(e) => { setForm({ ...form, clientName: e.target.value }); v.clearError('clientName') }}
                 onBlur={v.handleBlur('clientName')}
                 placeholder="Ej: Carmen Morales" />
@@ -280,7 +280,7 @@ export default function TestimoniosPage() {
             <div>
               <label htmlFor="t-tipo" className="form-label">Tipo de cliente *</label>
               <select id="t-tipo" value={form.typeValue}
-                className={`select-field ${v.errorOf('type') ? 'border-red-400 focus:ring-red-300' : ''}`}
+                className={`select-field ${v.errorOf('type') ? 'input-error' : ''}`}
                 onChange={(e) => { setForm({ ...form, typeValue: e.target.value }); v.clearError('type') }}
                 onBlur={v.handleBlur('type')}>
                 {TYPE_PRESETS.map((p) => <option key={p} value={p}>{p}</option>)}
@@ -299,7 +299,7 @@ export default function TestimoniosPage() {
             <div className="sm:col-span-2">
               <label htmlFor="t-texto" className="form-label">Testimonio *</label>
               <textarea id="t-texto" rows={3} maxLength={MAX_TEXT}
-                className={`input-field resize-none ${v.errorOf('text') ? 'border-red-400 focus:ring-red-300' : ''}`}
+                className={`input-field resize-none ${v.errorOf('text') ? 'input-error' : ''}`}
                 value={form.text}
                 onChange={(e) => { setForm({ ...form, text: e.target.value }); v.clearError('text') }}
                 onBlur={v.handleBlur('text')}

@@ -448,7 +448,7 @@ export default function ManualAppointmentModal() {
                     </label>
                     <input id="ma-nombre" value={form.clientName} onChange={field('clientName')} onBlur={handleBlur('clientName')}
                       placeholder="Ana García"
-                      className={`input-field w-full ${touched.clientName && fieldErrors.clientName ? 'border-red-400 focus:ring-red-300' : ''}`} />
+                      className={`input-field w-full ${touched.clientName && fieldErrors.clientName ? 'input-error' : ''}`} />
                     <Err k="clientName" />
                   </div>
                   <div>
@@ -457,7 +457,7 @@ export default function ManualAppointmentModal() {
                     </label>
                     <input id="ma-email" ref={emailInputRef} type="email" value={form.clientEmail} onChange={field('clientEmail')} onBlur={handleBlur('clientEmail')}
                       placeholder="ana@ejemplo.com"
-                      className={`input-field w-full ${touched.clientEmail && fieldErrors.clientEmail ? 'border-red-400 focus:ring-red-300' : ''}`} />
+                      className={`input-field w-full ${touched.clientEmail && fieldErrors.clientEmail ? 'input-error' : ''}`} />
                     <Err k="clientEmail" />
                     {!form.clientEmail.trim() && (
                       <p className="text-2xs text-ink-muted-deep mt-0.5">Sin email no se enviarán notificaciones al cliente.</p>
@@ -469,7 +469,7 @@ export default function ManualAppointmentModal() {
                     </label>
                     <input id="ma-telefono" value={form.clientPhone} onChange={field('clientPhone')} onBlur={handleBlur('clientPhone')}
                       placeholder="3001234567"
-                      className={`input-field w-full ${touched.clientPhone && fieldErrors.clientPhone ? 'border-red-400 focus:ring-red-300' : ''}`} />
+                      className={`input-field w-full ${touched.clientPhone && fieldErrors.clientPhone ? 'input-error' : ''}`} />
                     <Err k="clientPhone" />
                   </div>
                 </div>

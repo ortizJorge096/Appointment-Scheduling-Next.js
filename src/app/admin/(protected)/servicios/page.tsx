@@ -305,7 +305,7 @@ export default function ServiciosPage() {
                 <div className="sm:col-span-2">
                   <label htmlFor="svc-nombre" className="form-label">Nombre *</label>
                   <input id="svc-nombre" type="text"
-                    className={`input-field ${v.errorOf('name') ? 'border-red-400 focus:ring-red-300' : ''}`}
+                    className={`input-field ${v.errorOf('name') ? 'input-error' : ''}`}
                     value={form.name}
                     onChange={(e) => { setForm({ ...form, name: e.target.value }); v.clearError('name') }}
                     onBlur={v.handleBlur('name')}
@@ -324,7 +324,7 @@ export default function ServiciosPage() {
                 <div className="sm:col-span-2">
                   <label htmlFor="svc-categoria" className="form-label">Categoría *</label>
                   <select id="svc-categoria"
-                    className={`select-field ${v.errorOf('categoryId') ? 'border-red-400 focus:ring-red-300' : ''}`}
+                    className={`select-field ${v.errorOf('categoryId') ? 'input-error' : ''}`}
                     value={form.categoryId}
                     onChange={(e) => { setForm({ ...form, categoryId: e.target.value }); v.clearError('categoryId') }}
                     onBlur={v.handleBlur('categoryId')}>
@@ -339,7 +339,7 @@ export default function ServiciosPage() {
                 <div>
                   <label htmlFor="svc-precio" className="form-label">Precio (COP) *</label>
                   <input id="svc-precio" type="number" min={0} step={1000}
-                    className={`input-field ${v.errorOf('price') ? 'border-red-400 focus:ring-red-300' : ''}`}
+                    className={`input-field ${v.errorOf('price') ? 'input-error' : ''}`}
                     value={form.price || ''}
                     onChange={(e) => { setForm({ ...form, price: parseInt(e.target.value) || 0 }); v.clearError('price') }}
                     onBlur={v.handleBlur('price')}
@@ -350,7 +350,7 @@ export default function ServiciosPage() {
                 <div>
                   <label htmlFor="svc-duracion" className="form-label">Duración (minutos) *</label>
                   <input id="svc-duracion" type="number" min={15} step={15}
-                    className={`input-field ${v.errorOf('durationMinutes') ? 'border-red-400 focus:ring-red-300' : ''}`}
+                    className={`input-field ${v.errorOf('durationMinutes') ? 'input-error' : ''}`}
                     value={form.durationMinutes || ''}
                     onChange={(e) => { setForm({ ...form, durationMinutes: parseInt(e.target.value) || 0 }); v.clearError('durationMinutes') }}
                     onBlur={v.handleBlur('durationMinutes')}
