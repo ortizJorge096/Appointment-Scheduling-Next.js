@@ -102,14 +102,14 @@ const lineExtrasSchema = z.array(z.object({
 // Manual create keys lines by serviceId (rows don't exist yet); the appointment
 // update keys them by the existing AppointmentService id.
 const manualServiceLineSchema = z.object({
-  serviceId:       z.string().cuid('ID de servicio inválido'),
+  serviceId:       z.string().min(1, 'ID de servicio inválido'),
   descuentoTipo:   z.nativeEnum(DiscountType).nullable().optional(),
   descuentoValor:  z.number().int().min(0).nullable().optional(),
   descuentoMotivo: z.string().max(200).nullable().optional(),
   extras:          lineExtrasSchema,
 })
 const updateServiceLineSchema = z.object({
-  appointmentServiceId: z.string().cuid('ID de línea inválido'),
+  appointmentServiceId: z.string().min(1, 'ID de línea inválido'),
   descuentoTipo:   z.nativeEnum(DiscountType).nullable().optional(),
   descuentoValor:  z.number().int().min(0).nullable().optional(),
   descuentoMotivo: z.string().max(200).nullable().optional(),
@@ -161,10 +161,10 @@ export const createAppointmentSchema = z.object({
 
   serviceId: z
     .string()
-    .cuid('ID de servicio inválido'),
+    .min(1, 'ID de servicio inválido'),
 
   serviceIds: z
-    .array(z.string().cuid('ID de servicio inválido'))
+    .array(z.string().min(1, 'ID de servicio inválido'))
     .min(1, 'Selecciona al menos un servicio')
     .max(5, 'Máximo 5 servicios por cita')
     .optional(),
@@ -179,7 +179,7 @@ export const createAppointmentSchema = z.object({
   // Omitted or null means "First available" (the server automatically assigns the first available professional)  
   professionalId: z
     .string()
-    .cuid('ID de profesional inválido')
+    .min(1, 'ID de profesional inválido')
     .nullable()
     .optional(),
 
@@ -209,9 +209,9 @@ export type CreateAppointmentSchema = z.infer<typeof createAppointmentSchema>
 
 export const availabilityQuerySchema = z.object({
   date: dateString,
-  serviceId: z.string().cuid('ID de servicio inválido').optional(),
+  serviceId: z.string().min(1, 'ID de servicio inválido').optional(),
   durationMinutes: z.coerce.number().int().min(15).max(480).optional(),
-  professionalId: z.string().cuid('ID de profesional inválido').optional(),
+  professionalId: z.string().min(1, 'ID de profesional inválido').optional(),
 }).refine(
   (data) => data.serviceId || data.durationMinutes,
   { message: 'Se requiere serviceId o durationMinutes' }
@@ -285,12 +285,13 @@ export const createServiceSchema = z.object({
     .max(300)
     .optional(),
 
-  // Not .cuid(): the seeded categories carry uuids, so .cuid() rejected every
-  // real one — it was impossible to save a service with a category, and the
-  // message blamed the user for picking a bad option. Ids are opaque: the
-  // encoding is Prisma's business, and the foreign key is what actually proves
-  // the category exists. The other .cuid() ids in this file point at tables that
-  // happen to be cuid today; same over-specification, just not biting yet.
+  // Ids are validated for presence, not encoding. .cuid() here rejected the
+  // seeded categories outright (they carry uuids), making it impossible to save
+  // a service with a category — while blaming the user. An id's encoding is
+  // Prisma's business, and the foreign key is what actually proves the row
+  // exists; the schema only needs to know a value was sent. Every id in this
+  // file follows this rule now, so no table's id format can break validation
+  // again the way categories did.
   categoryId: z
     .string()
     .min(1, 'Selecciona una categoría'),
@@ -443,11 +444,11 @@ export const createManualAppointmentSchema = z.object({
   // When an existing client was picked in the modal: its id, so we reuse and
   // enrich that exact profile (e.g. save a phone it was missing) instead of
   // re-resolving identity and risking a duplicate.
-  clientId:    z.string().cuid('ID de cliente inválido').optional(),
-  serviceId:   z.string().cuid('ID de servicio inválido'),
+  clientId:    z.string().min(1, 'ID de cliente inválido').optional(),
+  serviceId:   z.string().min(1, 'ID de servicio inválido'),
   // Optional multi-service: when 2+ are sent, serviceId stays the primary and
   // the appointment gets one AppointmentService row per service.
-  serviceIds:  z.array(z.string().cuid('ID de servicio inválido')).min(1).max(5).optional(),
+  serviceIds:  z.array(z.string().min(1, 'ID de servicio inválido')).min(1).max(5).optional(),
   date:        dateString,
   startTime:   timeString,
   source:      z.nativeEnum(AppointmentSource).default(AppointmentSource.PRESENCIAL),
