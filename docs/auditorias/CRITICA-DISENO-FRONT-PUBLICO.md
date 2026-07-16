@@ -1,5 +1,23 @@
 ## Crítica de diseño: Sitio público (landing + reserva)
 
+> ⚠️ **Nota de seguimiento (2026-07-15).** Este documento se generó por análisis
+> estático. Al implementarlo se auditó el contraste **midiendo sobre el render**,
+> y varias afirmaciones no sobrevivieron. Se conserva por su valor histórico —
+> acertó el rumbo (el contraste era el problema principal) — pero **no lo tomes
+> como fuente de valores**:
+>
+> - `text-white/55` se llamó "límite/insuficiente": mide **6.15:1**, pasa AA.
+> - `text-gold` sobre claro se estimó en "~3.5:1": mide **2.44** — se subestimó.
+> - Recomendó oscurecer a `gold-dark`: **gold-dark da 4.08 sobre beige y SIGUE
+>   fallando** en texto normal. La solución real fue `gold-deep`. Seguir esta
+>   recomendación habría dejado el bug vivo.
+> - "No vi guard de `prefers-reduced-motion`": **ya existía** en `globals.css`.
+> - "7 botones sin `type`": medido en el render, era **1** (y fuera de `<form>`,
+>   sin el riesgo descrito).
+>
+> Los valores medidos y el porqué del método están en
+> `infra/docs/decisions/ADR-012-color-semantico-por-superficie.md`.
+
 > Basada en el código real del frontend (`src/components/public/`, `src/app/page.tsx`, `globals.css`, `tailwind.config.ts`). Al no haber Figma ni capturas conectadas, la evaluación es sobre marcado, tokens, jerarquía y accesibilidad del DOM — no sobre píxeles renderizados. Para el matiz visual fino (sombras, ritmo real, foto), conviene un pase con capturas.
 
 ### Impresión general

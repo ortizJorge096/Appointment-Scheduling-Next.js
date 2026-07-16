@@ -1,5 +1,13 @@
 ## Auditoría del sistema de diseño
 
+> **Nota de seguimiento (2026-07-15).** Los conteos de este documento se
+> verificaron y se sostienen. Una conclusión sí se corrigió al implementar: la
+> acción #1 ("reemplazar los 149 hex por tokens, mecánico") daba por deriva algo
+> que no lo es — **103 de esos hex están en `lib/email.ts`, donde los clientes de
+> correo ignoran `var()` y el hex es obligatorio.** El alcance real era ~29, ya
+> aplicado. El resto (escala tipográfica, estados `loading`/`error`, nombres
+> duplicados) sigue siendo trabajo válido para una rama de design-system propia.
+
 > Escaneo estático de `src/` (público + admin): `globals.css`, `tailwind.config.ts` y todos los `.tsx`. Métricas extraídas del código real, no estimadas.
 
 ### Resumen
