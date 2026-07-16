@@ -62,6 +62,7 @@ export async function GET(
     status:     searchParams.get('status')     ?? undefined,
     scope:      searchParams.get('scope')      ?? undefined,
     origin:     searchParams.get('origin')     ?? undefined,
+    payment:    searchParams.get('payment')    ?? undefined,
     search:     searchParams.get('search')     ?? undefined,
     serviceId:  searchParams.get('serviceId')  ?? undefined,
     categoryId: searchParams.get('categoryId') ?? undefined,

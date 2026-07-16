@@ -18,6 +18,10 @@ export type Scope = (typeof SCOPE_OPTIONS)[number]
 export const ORIGIN_OPTIONS = ['PUBLIC', 'MANUAL', 'VIP', 'PAST'] as const
 export type Origin = (typeof ORIGIN_OPTIONS)[number]
 
+// Payment-status filter — 'pending' groups PENDING+PARTIAL (still owes); the exact
+// PaymentStatus values are accepted too.
+export const PAYMENT_STATUSES = ['PENDING', 'PAID', 'PARTIAL', 'WAIVED'] as const
+
 const APPOINTMENT_STATUSES = ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'NO_SHOW'] as const
 type KnownStatus = (typeof APPOINTMENT_STATUSES)[number]
 
@@ -49,6 +53,8 @@ export interface CitasQueryParams {
   status?: string
   scope?: string
   origin?: string
+  /** Payment filter. 'pending' = still owes (PENDING/PARTIAL); or an exact PaymentStatus. */
+  payment?: string
   /** Free text: client name, service name, or code (id prefix). */
   search?: string
   serviceId?: string
@@ -86,6 +92,14 @@ export function buildAppointmentListQuery(params: CitasQueryParams): CitasQuery 
   }
 
   if (origin) where.origin = origin
+
+  // Payment filter. 'pending' = still owes (PENDING or PARTIAL); an exact
+  // PaymentStatus value narrows to just that one.
+  if (params.payment === 'pending') {
+    where.paymentStatus = { in: ['PENDING', 'PARTIAL'] }
+  } else if (params.payment && (PAYMENT_STATUSES as readonly string[]).includes(params.payment)) {
+    where.paymentStatus = params.payment as (typeof PAYMENT_STATUSES)[number]
+  }
 
   // Date window. An explicit range always wins over the scope window.
   const todayStart = new Date(`${today}T00:00:00`)

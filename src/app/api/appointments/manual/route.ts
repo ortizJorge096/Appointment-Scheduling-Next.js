@@ -56,6 +56,9 @@ export async function POST(
     descuentoTipo, descuentoValor, descuentoMotivo,
   } = parsed.data
 
+  // A past appointment can be recorded as paid (income) or pending (a receivable).
+  const paidPast = mode === 'PAST' && parsed.data.paid
+
   // Date/time window depends on the mode (business timezone is authoritative).
   const todayBogota = toZonedTime(new Date(), STUDIO.timezone)
   const todayStr    = format(todayBogota, 'yyyy-MM-dd')
@@ -146,7 +149,11 @@ export async function POST(
   }
 
   const hasOrderDiscount = descuentoTipo != null && descuentoValor != null && descuentoValor > 0
-  const precioFinal: number | null = mode === 'PAST' && hasOrderDiscount ? breakdown.total : null
+  // Snapshot the charge total when there's a discount (so it isn't recomputed from
+  // gross) or when the past charge is unpaid (so the receivable knows the exact
+  // amount owed, incl. extras). Otherwise null — income comes from amountPaid.
+  const precioFinal: number | null =
+    mode === 'PAST' && (hasOrderDiscount || !paidPast) ? breakdown.total : null
 
   // Upcoming manual bookings must fall within the studio's schedule for that day
   // (open day, business hours, outside the lunch break, not a blocked date) AND
@@ -243,15 +250,19 @@ export async function POST(
           origin:      isPast ? 'PAST' : 'MANUAL',
           notes:       notes?.trim() ?? null,
           ...(isPast ? {
-            paymentStatus: 'PAID',
-            amountPaid:    breakdown.total,
-            ...(parsed.data.paymentMethod ? { paymentMethod: parsed.data.paymentMethod } : {}),
+            paymentStatus: paidPast ? 'PAID' : 'PENDING',
+            // Only a paid charge records money in; an unpaid one leaves amountPaid
+            // and paymentMethod null and surfaces as a receivable in accounting.
+            ...(paidPast ? {
+              amountPaid: breakdown.total,
+              ...(parsed.data.paymentMethod ? { paymentMethod: parsed.data.paymentMethod } : {}),
+            } : {}),
             ...(hasOrderDiscount ? {
               descuentoTipo,
               descuentoValor,
               descuentoMotivo: descuentoMotivo?.trim() || null,
-              precioFinal,
             } : {}),
+            ...(precioFinal != null ? { precioFinal } : {}),
           } : {}),
           services: {
             create: servicesList.map((s) => {
@@ -331,7 +342,7 @@ export async function POST(
       .catch((err) => console.error('Error enviando confirmación (cita manual):', err))
   }
 
-  const discountLabel = precioFinal != null
+  const discountLabel = hasOrderDiscount
     ? (descuentoTipo === 'PORCENTAJE' ? `${descuentoValor}%` : formatPrice(descuentoValor!))
     : null
 
@@ -355,6 +366,7 @@ export async function POST(
       mode,
       notifyClient: mode !== 'PAST' ? notifyClient : undefined,
       ...(mode === 'PAST' ? {
+        paid:                paidPast,
         amountPaid:          appointment.amountPaid,
         servicesSubtotal:    breakdown.servicesSubtotal,
         extrasTotal:         breakdown.extrasTotal,

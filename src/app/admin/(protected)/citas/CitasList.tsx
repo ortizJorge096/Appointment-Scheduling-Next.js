@@ -25,6 +25,7 @@ interface Appt {
   date: string
   startTime: string
   status: string
+  paymentStatus: string
   origin: string
   createdAt: string
   service: { name: string; price: number }
@@ -38,6 +39,7 @@ export interface CitasFilters {
   status: string   // '' = Todas
   scope: string
   origin: string   // '' = todos
+  payment: string  // '' = todos · 'pending' = por cobrar · 'PAID' = pagadas
   serviceId: string
   categoryId: string
   amountMin: string
@@ -48,7 +50,7 @@ export interface CitasFilters {
 }
 
 const EMPTY_FILTERS: CitasFilters = {
-  search: '', status: '', scope: 'upcoming', origin: '',
+  search: '', status: '', scope: 'upcoming', origin: '', payment: '',
   serviceId: '', categoryId: '', amountMin: '', amountMax: '',
   dateFrom: '', dateTo: '', sort: 'upcoming',
 }
@@ -66,6 +68,7 @@ function buildQueryString(f: CitasFilters, page: number): string {
   if (f.status)                       p.set('status', f.status)
   if (f.scope && f.scope !== 'upcoming') p.set('scope', f.scope)
   if (f.origin)                       p.set('origin', f.origin)
+  if (f.payment)                      p.set('payment', f.payment)
   if (f.serviceId)                    p.set('serviceId', f.serviceId)
   if (f.categoryId)                   p.set('categoryId', f.categoryId)
   if (f.amountMin)                    p.set('amountMin', f.amountMin)
@@ -86,6 +89,17 @@ function serviceTotal(a: Appt): number {
   return a.services && a.services.length > 1
     ? a.services.reduce((sum, s) => sum + s.price, 0)
     : a.service.price
+}
+
+// Small amber pill flagging an appointment that still owes money. Rendered next
+// to the status badge so a rendered-but-unpaid ("Completada" + this) row stands out.
+function PaymentPill({ paymentStatus }: { paymentStatus: string }) {
+  if (paymentStatus !== 'PENDING' && paymentStatus !== 'PARTIAL') return null
+  return (
+    <span className="text-2xs tracking-wide uppercase bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded-full whitespace-nowrap">
+      {paymentStatus === 'PARTIAL' ? 'Pago parcial' : 'Pendiente de pago'}
+    </span>
+  )
 }
 
 export default function CitasList({
@@ -167,6 +181,7 @@ export default function CitasList({
   if (filters.status)            chips.push({ label: STATUS_LABEL[filters.status as keyof typeof STATUS_LABEL] ?? filters.status, clear: () => patch({ status: '' }) })
   if (filters.scope !== 'upcoming') chips.push({ label: `Ver: ${SCOPE_LABELS[filters.scope]}`, clear: () => patch({ scope: 'upcoming' }) })
   if (filters.origin)            chips.push({ label: `Origen: ${ORIGIN_LABELS[filters.origin]}`, clear: () => patch({ origin: '' }) })
+  if (filters.payment)           chips.push({ label: filters.payment === 'pending' ? 'Pendiente de pago' : 'Pagadas', clear: () => patch({ payment: '' }) })
   if (filters.serviceId)         chips.push({ label: services.find((s) => s.id === filters.serviceId)?.name ?? 'Servicio', clear: () => patch({ serviceId: '' }) })
   if (filters.categoryId)        chips.push({ label: categories.find((c) => c.id === filters.categoryId)?.name ?? 'Categoría', clear: () => patch({ categoryId: '' }) })
   if (filters.amountMin || filters.amountMax)
@@ -221,6 +236,25 @@ export default function CitasList({
                       ? 'bg-ink border-ink text-white'
                       : 'bg-white border-beige-dark text-ink-muted-deep hover:border-gold'}`}>
                   {SCOPE_LABELS[s]}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="form-label text-2xs">Pago</label>
+            <div className="flex gap-1.5 flex-wrap">
+              {([['', 'Todos'], ['pending', 'Pendiente'], ['PAID', 'Pagadas']] as const).map(([v, l]) => (
+                <button key={v || 'ALL'} type="button"
+                  // "Pendiente" targets past receivables, so from the default "Próximas"
+                  // view switch to "Pasadas" — where a future booking isn't trivially
+                  // PENDING by default.
+                  onClick={() => patch(v === 'pending' && filters.scope === 'upcoming' ? { payment: v, scope: 'past' } : { payment: v })}
+                  className={`px-3 py-2.5 sm:py-1.5 text-xs border rounded-lg transition-colors
+                    ${filters.payment === v
+                      ? 'bg-ink border-ink text-white'
+                      : 'bg-white border-beige-dark text-ink-muted-deep hover:border-gold'}`}>
+                  {l}
                 </button>
               ))}
             </div>
@@ -372,7 +406,10 @@ export default function CitasList({
                       </span>
                     </td>
                     <td className="px-5 py-3.5">
-                      <StatusBadge status={appt.status} />
+                      <div className="flex flex-col items-start gap-1">
+                        <StatusBadge status={appt.status} />
+                        <PaymentPill paymentStatus={appt.paymentStatus} />
+                      </div>
                     </td>
                     <td className="px-5 py-3.5 text-right">
                       <Link href={`/admin/citas/${appt.id}`}
@@ -399,7 +436,10 @@ export default function CitasList({
                         </span>
                       )}
                     </p>
-                    <StatusBadge status={appt.status} />
+                    <div className="flex flex-col items-end gap-1">
+                      <StatusBadge status={appt.status} />
+                      <PaymentPill paymentStatus={appt.paymentStatus} />
+                    </div>
                   </div>
                   <div className="flex items-center justify-between text-xs text-ink-muted-deep">
                     <span>{format(new Date(appt.date), 'd MMM', { locale: es })} · {appt.startTime}</span>

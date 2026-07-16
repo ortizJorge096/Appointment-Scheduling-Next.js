@@ -460,9 +460,13 @@ export const createManualAppointmentSchema = z.object({
   // confirmed" email since it's already completed).
   notifyClient: z.boolean().optional().default(false),
 
-  // "Cita pasada": registers an already-rendered appointment directly as
-  // completed and paid. Defaults to the existing ("Cita próxima") behavior.
+  // "Cita pasada": registers an already-rendered appointment. Paid by default
+  // (COMPLETED + PAID); with paid=false the service is recorded as rendered but
+  // unpaid (COMPLETED + PENDING) — a receivable. Defaults to "Cita próxima".
   mode:             z.enum(['UPCOMING', 'PAST']).optional().default('UPCOMING'),
+
+  // Whether a past appointment was already paid. false = pending (a receivable).
+  paid:             z.boolean().optional().default(true),
 
   // Payment method for a past (already-paid) appointment — cash or digital.
   paymentMethod:    z.nativeEnum(PaymentMethod).optional(),

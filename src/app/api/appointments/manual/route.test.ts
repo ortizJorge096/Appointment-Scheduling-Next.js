@@ -299,6 +299,31 @@ describe('POST /api/appointments/manual', () => {
       expect(createArgs.data.services.create[0].price).toBe(35000)
     })
 
+    it('registers a PAST appointment as pending payment (paid=false) — a receivable, not income', async () => {
+      vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
+      vi.mocked(prisma.service.findMany).mockResolvedValue([MOCK_SERVICE] as never)
+      vi.mocked(prisma.appointment.findFirst).mockResolvedValue(null)
+      const create = vi.fn().mockResolvedValue({ ...MOCK_APPOINTMENT, status: 'COMPLETED', paymentStatus: 'PENDING' })
+      vi.mocked(prisma.$transaction).mockImplementation(async (fn) => fn({
+        appointment: { findFirst: vi.fn().mockResolvedValue(null), create },
+        client:      { upsert: vi.fn().mockResolvedValue(MOCK_CLIENT) },
+      }) as never)
+
+      const res = await POST(makeRequest({
+        ...VALID_BODY, date: recentPastDate(2), mode: 'PAST', paid: false,
+        paymentMethod: 'EFECTIVO', // ignored when unpaid
+      }))
+      expect(res.status).toBe(201)
+      const data = create.mock.calls[0][0].data
+      // The service was rendered (COMPLETED) but nothing was collected.
+      expect(data.status).toBe('COMPLETED')
+      expect(data.paymentStatus).toBe('PENDING')
+      expect(data.amountPaid).toBeUndefined()
+      expect(data.paymentMethod).toBeUndefined() // not recorded for an unpaid charge
+      // The exact amount owed is snapshotted so accounting's receivable is accurate.
+      expect(data.precioFinal).toBe(35000)
+    })
+
     it('applies a per-service discount to the past charge', async () => {
       vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
       vi.mocked(prisma.service.findMany).mockResolvedValue([{ id: VALID_BODY.serviceId, name: 'Manicura', price: 35000, durationMinutes: 45 }] as never)
