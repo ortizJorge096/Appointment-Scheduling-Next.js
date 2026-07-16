@@ -78,6 +78,19 @@ normal**. `gold-deep` es al revés: no sirve sobre oscuro.
 fallaba justo donde más importa: los banners `bg-red-50`. `red-400` solo se
 mantiene en el banner del login, que va sobre tinta.
 
+### Verde y gris (estado)
+
+| Token | sobre blanco | sobre beige | sobre `gray-100` |
+|-------|--------------|-------------|------------------|
+| `green-600` | 3.30 ❌ | — | — |
+| `green-700` | **5.02** ✅ | — | — |
+| `gray-500` | 4.76 ✅ | 4.07 ❌ | 4.36 ❌ |
+| `gray-600` | **7.56** ✅ | **6.36** ✅ | **6.82** ✅ |
+
+Mismo patrón que el rojo: el escalón `-600` de Tailwind parece seguro y no lo es
+fuera del blanco puro. `gray-300`/`gray-400` se mantienen donde marcan controles
+**deshabilitados** — 1.4.3 exime el texto de componentes inactivos.
+
 ### Blanco con opacidad, sobre ink
 
 | Clase | Ratio | |
@@ -113,6 +126,26 @@ componer el alfa del color y comparar contra el umbral según tamaño y peso.
 Hay que **recorrer el flujo de reserva**: el día y la hora seleccionados, el
 paso completado del stepper y los banners de error no existen en el DOM
 inicial y fue justo ahí donde vivían los peores fallos (2.9).
+
+## Diálogos
+
+El contraste no sirve de nada si el diálogo no existe para quien no ve. `Modal`
+y `ConfirmDialog` llevan `role` (`dialog` / `alertdialog`), `aria-modal`, nombre
+accesible, trampa de Tab, foco inicial dentro y restauración al cerrar.
+
+Dos reglas que salieron de arreglarlos:
+
+- **El foco inicial no va en el botón de cerrar** — la ✕ va primero en el DOM,
+  pero abrir un formulario sobre la salida es mal punto de entrada.
+- **Un diálogo destructivo abre en *Cancelar*.** `autoFocus` estaba en confirmar
+  aun con `danger`, así que "¿Eliminar? Esta acción no se puede deshacer" abría
+  a un Enter de ejecutarse.
+
+**No todo panel es un diálogo.** `profesionales`, `servicios`, `testimonios` y
+`CategoriesManager` son formularios **en línea**, sin overlay. Ponerles
+`role="dialog"` anunciaría un diálogo inexistente y atraparía el foco en algo de
+lo que uno debe poder salir tabulando. El admin tiene **dos** modales reales, no
+siete: contarlos antes de "unificarlos".
 
 ## Deuda consciente
 

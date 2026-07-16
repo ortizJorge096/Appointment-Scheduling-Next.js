@@ -27,6 +27,24 @@
 
 @layer components {
 
+  /* ── Focus ──
+     Inputs ship their own gold ring; buttons had nothing and fell back to the
+     browser's default outline, which is inconsistent across browsers and nearly
+     invisible on .btn-primary's gold or .btn-cta's gradient. This matters more
+     since Modal and ConfirmDialog trap Tab: holding someone inside a dialog
+     where the buttons never show where they are is worse than not trapping.
+     focus-visible, not focus — the ring is for keyboard users, not mouse clicks. */
+  .btn-primary, .btn-secondary, .btn-outline-gold, .btn-outline-gold-on-light,
+  .btn-ghost, .btn-cta, .btn-row-action {
+    @apply focus-visible:outline-none focus-visible:ring-2
+           focus-visible:ring-gold-deep focus-visible:ring-offset-2
+           focus-visible:ring-offset-beige;
+  }
+  /* On ink the offset must match the surface, or the ring floats on a beige halo. */
+  .btn-outline-gold {
+    @apply focus-visible:ring-gold focus-visible:ring-offset-ink;
+  }
+
   /* ── Buttons ── */
   /* Ink on gold, not white: white on gold is 2.9:1 and fails AA at this size.
      Ink reads 6.39:1, and .btn-cta already pairs ink with gold. Hover lifts to

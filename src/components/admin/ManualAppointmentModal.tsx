@@ -7,6 +7,7 @@ import { computeAppointmentTotal } from '@/lib/discount'
 import ClientSearchInput, { type ClientHit } from './ClientSearchInput'
 import AdicionalesEditor, { type Adicional } from './AdicionalesEditor'
 import { useCan } from './usePermissionGuard'
+import { Modal } from '@/components/ui/Modal'
 
 interface Service { id: string; name: string; price: number; durationMinutes: number; category?: { id: string; name: string; order: number } | null }
 
@@ -386,16 +387,7 @@ export default function ManualAppointmentModal() {
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/40 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-beige-dark">
-              <h2 className="font-serif text-xl text-ink">Nueva cita manual</h2>
-              <button onClick={() => setOpen(false)}
-                className="text-ink-muted-deep hover:text-ink text-xl leading-none">×</button>
-            </div>
-
+        <Modal open onClose={() => setOpen(false)} title="Nueva cita manual" maxWidth="max-w-lg">
             <form ref={formRef} onSubmit={submit} noValidate className="px-6 py-5 space-y-5">
 
               {/* Modo de creación */}
@@ -772,8 +764,7 @@ export default function ManualAppointmentModal() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+        </Modal>
       )}
     </>
   )
