@@ -31,7 +31,7 @@ export default function NosotrosStats() {
     <div className="grid grid-cols-3 gap-6 pt-6 border-t border-beige-dark">
       {items.map((it) => (
         <div key={it.label}>
-          <p className="font-serif text-3xl text-gold font-light">{it.value}</p>
+          <p className="font-serif text-3xl text-gold-dark font-light">{it.value}</p>
           <p className="text-xs text-ink-muted mt-1 leading-tight">{it.label}</p>
         </div>
       ))}

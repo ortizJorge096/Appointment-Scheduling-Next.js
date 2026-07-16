@@ -4,17 +4,12 @@
 
 import { useState, useEffect, use } from 'react'
 import Link from 'next/link'
-import { STATUS_LABEL, STATUS_CLASS } from '@/lib/appointmentStatus'
-import { PAYMENT_STATUS_LABEL as PAYMENT_LABEL } from '@/lib/labels'
+import { StatusBadge, PaymentBadge } from '@/components/ui/StatusBadge'
 import type { AppointmentWithService } from '@/types'
 import { usePermissionGuard, useCan } from '@/components/admin/usePermissionGuard'
+import { formatPrice } from '@/lib/utils'
+import { SubmitButton } from '@/components/ui/SubmitButton'
 
-const COP = (n: number) =>
-  new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n)
-const PAYMENT_COLOR: Record<string, string> = {
-  PENDING: 'text-orange-600', PAID: 'text-green-600',
-  PARTIAL: 'text-blue-600', WAIVED: 'text-purple-600',
-}
 
 interface ClientData {
   id: string; name: string; email: string | null; phone: string | null; notes: string | null
@@ -151,8 +146,8 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
     }
   }
 
-  if (loading) return <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto text-ink-muted">Cargando…</div>
-  if (!client) return <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto text-ink-muted">Cliente no encontrado.</div>
+  if (loading) return <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto text-ink-muted-deep">Cargando…</div>
+  if (!client) return <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto text-ink-muted-deep">Cliente no encontrado.</div>
 
   // Helper to get total price from appointment (supports multi-service)
   function getTotalPrice(a: AppointmentWithService): number {
@@ -171,8 +166,8 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
       {/* Breadcrumb */}
-      <div className="text-xs text-ink-muted mb-4">
-        <Link href="/admin/clientes" className="hover:text-gold">Clientes</Link>
+      <div className="text-xs text-ink-muted-deep mb-4">
+        <Link href="/admin/clientes" className="hover:text-gold-deep">Clientes</Link>
         <span className="mx-1.5">›</span>
         <span>{client.name}</span>
       </div>
@@ -189,11 +184,11 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
                   placeholder="Email (opcional)" className="input-field w-full" />
                 <input value={infoForm.phone} onChange={e => setInfoForm(f => ({ ...f, phone: e.target.value }))}
                   placeholder="Teléfono / celular" className="input-field w-full" />
-                {infoErr && <p className="text-xs text-red-600">{infoErr}</p>}
+                {infoErr && <p className="text-xs text-red-700">{infoErr}</p>}
                 <div className="flex gap-2 pt-1">
-                  <button type="submit" disabled={savingInfo} className="btn-primary text-xs py-1.5 px-4 disabled:opacity-50">
-                    {savingInfo ? 'Guardando…' : 'Guardar'}
-                  </button>
+                  <SubmitButton type="submit" loading={savingInfo} loadingLabel="Guardando…" className="btn-primary text-xs py-1.5 px-4 disabled:opacity-50">
+                    Guardar
+                  </SubmitButton>
                   <button type="button" onClick={() => setEditInfo(false)} className="btn-secondary text-xs py-1.5 px-4">
                     Cancelar
                   </button>
@@ -207,12 +202,12 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
                     <span className="inline-block bg-amber-100 text-amber-700 text-xs font-medium px-2 py-0.5 rounded-full">Archivado</span>
                   )}
                   {can('clientes:editar') && (
-                    <button onClick={openEditInfo} className="btn-row-action text-xs text-gold hover:underline">Editar datos</button>
+                    <button onClick={openEditInfo} className="btn-row-action text-xs text-gold-deep hover:underline">Editar datos</button>
                   )}
                 </div>
-                {client.email && <p className="text-sm text-ink-muted mt-1">{client.email}</p>}
-                {client.phone && <p className="text-sm text-ink-muted">{client.phone}</p>}
-                <p className="text-xs text-ink-muted/60 mt-2">
+                {client.email && <p className="text-sm text-ink-muted-deep mt-1">{client.email}</p>}
+                {client.phone && <p className="text-sm text-ink-muted-deep">{client.phone}</p>}
+                <p className="text-xs text-ink-muted-deep mt-2">
                   Cliente desde {new Date(client.createdAt).toLocaleDateString('es-CO', {
                     day: '2-digit', month: 'long', year: 'numeric',
                   })}
@@ -223,15 +218,15 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
           <div className="flex gap-4 sm:gap-6 text-center shrink-0 mt-4 sm:mt-0">
             <div>
               <p className="text-2xl font-serif text-ink">{client._count.appointments}</p>
-              <p className="text-xs text-ink-muted">citas</p>
+              <p className="text-xs text-ink-muted-deep">citas</p>
             </div>
             <div>
               <p className="text-2xl font-serif text-ink">{completed}</p>
-              <p className="text-xs text-ink-muted">completadas</p>
+              <p className="text-xs text-ink-muted-deep">completadas</p>
             </div>
             <div>
-              <p className="text-2xl font-serif text-gold">{COP(totalSpent)}</p>
-              <p className="text-xs text-ink-muted">total pagado</p>
+              <p className="text-2xl font-serif text-gold-deep">{formatPrice(totalSpent)}</p>
+              <p className="text-xs text-ink-muted-deep">total pagado</p>
             </div>
           </div>
         </div>
@@ -251,11 +246,11 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
           />
           {can('clientes:editar') && (
             <div className="flex items-center gap-3 mt-2">
-              <button onClick={saveNotes} disabled={saving}
+              <SubmitButton onClick={saveNotes} loading={saving} loadingLabel="Guardando…"
                 className="btn-primary text-xs py-1.5 px-4 disabled:opacity-50">
-                {saving ? 'Guardando…' : 'Guardar notas'}
-              </button>
-              {saveMsg && <span className="text-xs text-green-600">{saveMsg}</span>}
+                Guardar notas
+              </SubmitButton>
+              {saveMsg && <span className="text-xs text-green-700">{saveMsg}</span>}
             </div>
           )}
         </div>
@@ -264,7 +259,7 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
       {/* Appointment history */}
       <h2 className="text-lg font-serif text-ink mb-3">Historial de citas</h2>
       {client.appointments.length === 0 ? (
-        <p className="text-sm text-ink-muted">Sin citas registradas.</p>
+        <p className="text-sm text-ink-muted-deep">Sin citas registradas.</p>
       ) : (
         <div className="space-y-3">
           {client.appointments.map(apt => (
@@ -276,11 +271,9 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
                       ? apt.services.map((s) => s.service.name).join(' + ')
                       : apt.service.name}
                   </p>
-                  <span className={STATUS_CLASS[apt.status]}>
-                    {STATUS_LABEL[apt.status]}
-                  </span>
+                  <StatusBadge status={apt.status} />
                 </div>
-                <p className="text-xs text-ink-muted mt-0.5">
+                <p className="text-xs text-ink-muted-deep mt-0.5">
                   {new Date(apt.date).toLocaleDateString('es-CO', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}
                   {' · '}
                   {apt.startTime} – {apt.endTime}
@@ -288,15 +281,13 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
               </div>
               <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
                 <div className="text-right">
-                  <p className={`text-sm font-medium ${PAYMENT_COLOR[apt.paymentStatus]}`}>
-                    {PAYMENT_LABEL[apt.paymentStatus]}
-                  </p>
-                  <p className="text-xs text-ink-muted">
-                    {COP(apt.amountPaid ?? getTotalPrice(apt))}
+                  <PaymentBadge status={apt.paymentStatus} className="text-sm" />
+                  <p className="text-xs text-ink-muted-deep">
+                    {formatPrice(apt.amountPaid ?? getTotalPrice(apt))}
                   </p>
                 </div>
                 <Link href={`/admin/citas/${apt.id}`}
-                  className="btn-row-action text-xs text-gold hover:underline shrink-0">
+                  className="btn-row-action text-xs text-gold-deep hover:underline shrink-0">
                   Ver →
                 </Link>
               </div>
@@ -309,7 +300,7 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
       {can('clientes:editar') && (
         <div className="mt-8 bg-white rounded-xl border border-beige-dark p-5 sm:p-6">
           <h2 className="text-lg font-serif text-ink mb-1">Administración</h2>
-          <p className="text-xs text-ink-muted mb-4">
+          <p className="text-xs text-ink-muted-deep mb-4">
             Archiva un cliente para ocultarlo del directorio sin perder su historial. Eliminar es permanente.
           </p>
           <div className="flex flex-col sm:flex-row gap-3">
@@ -327,16 +318,16 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
             <button onClick={remove}
               disabled={busy || client._count.appointments > 0}
               title={client._count.appointments > 0 ? 'Tiene citas registradas; archívalo en su lugar' : undefined}
-              className="text-sm px-4 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed">
+              className="text-sm px-4 py-2 rounded-lg border border-red-200 text-red-700 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed">
               Eliminar definitivamente
             </button>
           </div>
           {client._count.appointments > 0 && (
-            <p className="text-xs text-ink-muted/70 mt-2">
+            <p className="text-xs text-ink-muted-deep mt-2">
               Tiene {client._count.appointments} cita{client._count.appointments !== 1 ? 's' : ''} registrada{client._count.appointments !== 1 ? 's' : ''}; no se puede eliminar. Archívalo para ocultarlo.
             </p>
           )}
-          {actionMsg && <p className="text-xs text-red-600 mt-2">{actionMsg}</p>}
+          {actionMsg && <p className="text-xs text-red-700 mt-2">{actionMsg}</p>}
         </div>
       )}
     </div>

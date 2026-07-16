@@ -28,6 +28,18 @@ describe('createAppointmentSchema', () => {
     expect(createAppointmentSchema.safeParse(valid).success).toBe(true)
   })
 
+  // Ids are validated for presence, not encoding: a uuid serviceId is as valid
+  // as a cuid one, and an empty one is the only thing the schema should reject.
+  it('acepta serviceId uuid', () => {
+    expect(createAppointmentSchema.safeParse({
+      ...valid, serviceId: '2cf42ae6-3b04-4aba-94dd-e4df8ed553f6',
+    }).success).toBe(true)
+  })
+
+  it('rechaza serviceId vacío', () => {
+    expect(createAppointmentSchema.safeParse({ ...valid, serviceId: '' }).success).toBe(false)
+  })
+
   it('rechaza nombre muy corto', () => {
     expect(createAppointmentSchema.safeParse({ ...valid, clientName: 'A' }).success).toBe(false)
   })
@@ -147,8 +159,16 @@ describe('createServiceSchema', () => {
     expect(createServiceSchema.safeParse(withoutCategory).success).toBe(false)
   })
 
-  it('rechaza categoryId que no es cuid', () => {
-    expect(createServiceSchema.safeParse({ ...valid, categoryId: '123' }).success).toBe(false)
+  // The id's encoding is not the schema's business. Emptiness is what a form can
+  // get wrong; whether the id exists is the foreign key's job.
+  it('rechaza categoryId vacío', () => {
+    expect(createServiceSchema.safeParse({ ...valid, categoryId: '' }).success).toBe(false)
+  })
+
+  it('acepta categoryId uuid — así están las categorías reales', () => {
+    expect(createServiceSchema.safeParse({
+      ...valid, categoryId: '2cf42ae6-3b04-4aba-94dd-e4df8ed553f6',
+    }).success).toBe(true)
   })
 
   it('rechaza precio negativo', () => {

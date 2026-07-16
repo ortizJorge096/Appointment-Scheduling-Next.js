@@ -38,10 +38,10 @@ export default function AdicionalesEditor({ items, onChange, open, onAdd, onRemo
         <span className="form-label !mb-0">Adicional (opcional)</span>
         {open ? (
           <button type="button" onClick={onRemove}
-            className="text-xs text-ink-muted hover:text-ink transition-colors">Ocultar</button>
+            className="text-xs text-ink-muted-deep hover:text-ink transition-colors">Ocultar</button>
         ) : (
           <button type="button" onClick={onAdd}
-            className="text-xs text-gold hover:underline">+ Agregar adicional</button>
+            className="text-xs text-gold-deep hover:underline">+ Agregar adicional</button>
         )}
       </div>
 
@@ -66,12 +66,12 @@ export default function AdicionalesEditor({ items, onChange, open, onAdd, onRemo
                 />
                 <button type="button" onClick={() => removeItem(i)}
                   aria-label="Eliminar adicional"
-                  className="text-ink-muted hover:text-red-500 transition-colors px-2 py-2.5 text-lg leading-none">
+                  className="text-ink-muted-deep hover:text-red-700 transition-colors px-2 py-2.5 text-lg leading-none">
                   ×
                 </button>
               </div>
             ))}
-            <button type="button" onClick={addItem} className="text-xs text-gold hover:underline">
+            <button type="button" onClick={addItem} className="text-xs text-gold-deep hover:underline">
               + {items.length > 0 ? 'Agregar otro' : 'Agregar adicional'}
             </button>
           </div>

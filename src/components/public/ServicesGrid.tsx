@@ -54,16 +54,16 @@ export default function ServicesGrid() {
     <section id="servicios" className="py-24 bg-beige/20 relative overflow-hidden">
       <div
         className="absolute -top-40 -right-40 w-[480px] h-[480px] rounded-full pointer-events-none opacity-[0.05]"
-        style={{ background: 'radial-gradient(circle, #B8932A 0%, transparent 70%)' }}
+        style={{ background: 'radial-gradient(circle, var(--gold) 0%, transparent 70%)' }}
       />
 
       <div className="relative max-w-7xl mx-auto px-6 lg:px-10">
         <div className="text-center mb-16">
           <span className="eyebrow-center">Servicios</span>
           <h2 className="text-4xl lg:text-5xl font-serif font-light text-ink mt-5">
-            Rituales de belleza a tu <em className="text-gold italic">medida</em>
+            Rituales de belleza a tu <em className="text-gold-dark italic">medida</em>
           </h2>
-          <p className="text-ink-muted text-sm mt-5 max-w-md mx-auto leading-relaxed">
+          <p className="text-ink-muted-deep text-sm mt-5 max-w-md mx-auto leading-relaxed">
             Cada servicio incluye consulta personalizada y productos premium.
           </p>
         </div>
@@ -111,7 +111,7 @@ export default function ServicesGrid() {
                         </p>
                       </div>
                       <Link href={`/agendar?categoria=${cat.slug}`}
-                        className="text-xs tracking-widest uppercase font-semibold transition-colors text-gold-dark hover:text-gold">
+                        className="text-xs tracking-widest uppercase font-semibold transition-colors text-gold-dark hover:text-gold-deep">
                         Reservar →
                       </Link>
                     </div>
@@ -121,24 +121,24 @@ export default function ServicesGrid() {
 
               {/* Static VIP promo card — multi-service discount flow, not tied to a real category */}
               <div className="group card-premium-hover accent-top p-8 flex flex-col gap-4 bg-ink text-white">
-                <span className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[rgba(212,173,90,.15)] text-[var(--gold-light)]">
+                <span className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gold-light/15 text-gold-light">
                   <Icon name="promo" className="w-7 h-7" />
                 </span>
 
                 <div>
                   <h3 className="font-serif text-2xl leading-tight text-white">Paquete VIP</h3>
-                  <p className="text-sm leading-relaxed mt-2 text-[#b7ae9c]">
+                  <p className="text-sm leading-relaxed mt-2 text-cream-muted">
                     Combina servicios y ahorra hasta 30%.
                   </p>
                 </div>
 
                 <div className="flex items-end justify-between pt-4 mt-auto border-t border-[rgba(255,255,255,.08)]">
                   <div>
-                    <p className="font-serif text-xl leading-none text-[var(--gold-light)]">Personalizado</p>
-                    <p className="text-[11px] mt-1.5 text-[#b7ae9c]">Reserva doble</p>
+                    <p className="font-serif text-xl leading-none text-gold-light">Personalizado</p>
+                    <p className="text-[11px] mt-1.5 text-cream-muted">Reserva doble</p>
                   </div>
                   <Link href="/agendar?modo=vip"
-                    className="text-xs tracking-widest uppercase font-semibold transition-colors text-[var(--gold-light)] hover:text-[var(--gold)]">
+                    className="text-xs tracking-widest uppercase font-semibold transition-colors text-gold-light hover:text-gold">
                     Reservar →
                   </Link>
                 </div>

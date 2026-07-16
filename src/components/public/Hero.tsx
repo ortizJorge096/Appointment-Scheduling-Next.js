@@ -12,7 +12,7 @@ export default async function Hero() {
   return (
     <section className="relative min-h-screen bg-ink flex items-center overflow-hidden">
       <div className="absolute inset-0 pointer-events-none"
-        style={{ background: 'radial-gradient(120% 120% at 80% 10%, #262017 0%, #1A1209 55%)' }}
+        style={{ background: 'radial-gradient(120% 120% at 80% 10%, #262017 0%, var(--ink) 55%)' }}
       />
       <div className="absolute -top-32 -right-20 w-[520px] h-[520px] rounded-full pointer-events-none blur-sm"
         style={{ background: 'radial-gradient(circle, rgba(212,173,90,.32), transparent 65%)' }}

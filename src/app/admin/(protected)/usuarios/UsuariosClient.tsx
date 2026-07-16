@@ -11,6 +11,8 @@ import { ROLES, ROLE_LABELS, ROLE_DESCRIPTIONS, roleCapabilities, type Role } fr
 import { useConfirm } from '@/components/ui/ConfirmDialog'
 import { useToast } from '@/components/ui/Toast'
 import { PasswordInput } from '@/components/ui/PasswordInput'
+import { Modal } from '@/components/ui/Modal'
+import { SubmitButton } from '@/components/ui/SubmitButton'
 
 interface AdminRow {
   id: string
@@ -124,14 +126,14 @@ export default function UsuariosClient({
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-3 py-2 rounded-lg mb-4">{error}</div>
+        <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2 rounded-lg mb-4">{error}</div>
       )}
 
       {/* Desktop: table (hidden on mobile — the action table is unusable at <640px) */}
       <div className="bg-white rounded-xl border border-beige-dark overflow-x-auto hidden sm:block">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-beige-dark bg-beige text-xs text-ink-muted uppercase tracking-widest">
+            <tr className="border-b border-beige-dark bg-beige text-xs text-ink-muted-deep uppercase tracking-widest">
               <th className="text-left px-5 py-3 font-medium">Nombre</th>
               <th className="text-left px-5 py-3 font-medium">Email</th>
               <th className="text-left px-5 py-3 font-medium">Rol</th>
@@ -144,30 +146,30 @@ export default function UsuariosClient({
             {users.map((u) => (
               <tr key={u.id} className="hover:bg-beige transition-colors">
                 <td className="px-5 py-3.5 text-ink font-medium">
-                  {u.name}{u.id === currentAdminId && <span className="text-[10px] text-ink-muted ml-1">(tú)</span>}
+                  {u.name}{u.id === currentAdminId && <span className="text-[10px] text-ink-muted-deep ml-1">(tú)</span>}
                 </td>
-                <td className="px-5 py-3.5 text-ink-muted">{u.email}</td>
+                <td className="px-5 py-3.5 text-ink-muted-deep">{u.email}</td>
                 <td className="px-5 py-3.5">
                   <span className={`text-[10px] tracking-wide uppercase px-2 py-0.5 rounded-full border ${
-                    u.role === 'SUPER_ADMIN' ? 'bg-gold-pale text-gold-dark border-gold/30' : 'bg-beige text-ink-muted border-beige-dark'
+                    u.role === 'SUPER_ADMIN' ? 'bg-gold-pale text-gold-deep border-gold/30' : 'bg-beige text-ink-muted-deep border-beige-dark'
                   }`}>{ROLE_LABEL[u.role]}</span>
                 </td>
                 <td className="px-5 py-3.5">
-                  <span className={u.isActive ? 'text-green-600' : 'text-ink-muted'}>
+                  <span className={u.isActive ? 'text-green-700' : 'text-ink-muted-deep'}>
                     {u.isActive ? 'Activo' : 'Inactivo'}
                   </span>
                 </td>
-                <td className="px-5 py-3.5 text-ink-muted text-xs whitespace-nowrap hidden sm:table-cell">
+                <td className="px-5 py-3.5 text-ink-muted-deep text-xs whitespace-nowrap hidden sm:table-cell">
                   {u.lastLoginAt ? format(new Date(u.lastLoginAt), "d MMM yyyy · HH:mm", { locale: es }) : '—'}
                 </td>
                 <td className="px-5 py-3.5 text-right whitespace-nowrap">
-                  <button onClick={() => openEdit(u)} className="text-xs text-gold-light hover:text-gold transition-colors">Editar</button>
+                  <button onClick={() => openEdit(u)} className="text-xs text-gold-deep hover:text-gold-dark transition-colors">Editar</button>
                   {u.id !== currentAdminId && (
                     <>
-                      <button onClick={() => toggleActive(u)} className="text-xs text-ink-muted hover:text-gold transition-colors ml-3">
+                      <button onClick={() => toggleActive(u)} className="text-xs text-ink-muted-deep hover:text-gold-deep transition-colors ml-3">
                         {u.isActive ? 'Desactivar' : 'Activar'}
                       </button>
-                      <button onClick={() => remove(u)} className="text-xs text-ink-muted hover:text-red-500 transition-colors ml-3">Eliminar</button>
+                      <button onClick={() => remove(u)} className="text-xs text-ink-muted-deep hover:text-red-700 transition-colors ml-3">Eliminar</button>
                     </>
                   )}
                 </td>
@@ -184,16 +186,16 @@ export default function UsuariosClient({
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-ink font-medium">
-                  {u.name}{u.id === currentAdminId && <span className="text-[10px] text-ink-muted ml-1">(tú)</span>}
+                  {u.name}{u.id === currentAdminId && <span className="text-[10px] text-ink-muted-deep ml-1">(tú)</span>}
                 </p>
-                <p className="text-xs text-ink-muted truncate">{u.email}</p>
+                <p className="text-xs text-ink-muted-deep truncate">{u.email}</p>
               </div>
               <span className={`shrink-0 text-[10px] tracking-wide uppercase px-2 py-0.5 rounded-full border ${
-                u.role === 'SUPER_ADMIN' ? 'bg-gold-pale text-gold-dark border-gold/30' : 'bg-beige text-ink-muted border-beige-dark'
+                u.role === 'SUPER_ADMIN' ? 'bg-gold-pale text-gold-deep border-gold/30' : 'bg-beige text-ink-muted-deep border-beige-dark'
               }`}>{ROLE_LABEL[u.role]}</span>
             </div>
             <div className="flex items-center justify-between gap-2 mt-3">
-              <span className={`text-sm ${u.isActive ? 'text-green-600' : 'text-ink-muted'}`}>
+              <span className={`text-sm ${u.isActive ? 'text-green-700' : 'text-ink-muted-deep'}`}>
                 {u.isActive ? 'Activo' : 'Inactivo'}
               </span>
               <div className="flex flex-wrap items-center justify-end gap-2">
@@ -202,11 +204,11 @@ export default function UsuariosClient({
                 {u.id !== currentAdminId && (
                   <>
                     <button onClick={() => toggleActive(u)}
-                      className="min-h-11 px-3 rounded-lg border border-beige-dark text-sm text-ink-muted">
+                      className="min-h-11 px-3 rounded-lg border border-beige-dark text-sm text-ink-muted-deep">
                       {u.isActive ? 'Desactivar' : 'Activar'}
                     </button>
                     <button onClick={() => remove(u)}
-                      className="min-h-11 px-3 rounded-lg border border-red-200 text-sm text-red-500">Eliminar</button>
+                      className="min-h-11 px-3 rounded-lg border border-red-200 text-sm text-red-700">Eliminar</button>
                   </>
                 )}
               </div>
@@ -217,12 +219,8 @@ export default function UsuariosClient({
 
       {/* Create / edit modal */}
       {modal && (
-        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 bg-ink/40 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90dvh] overflow-y-auto">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-beige-dark">
-              <h2 className="font-serif text-xl text-ink">{modal.mode === 'create' ? 'Nuevo admin' : 'Editar admin'}</h2>
-              <button onClick={() => setModal(null)} className="text-ink-muted hover:text-ink text-xl leading-none p-2 -m-2">×</button>
-            </div>
+        <Modal open onClose={() => setModal(null)}
+          title={modal.mode === 'create' ? 'Nuevo admin' : 'Editar admin'}>
             <form onSubmit={submitModal} noValidate className="px-6 py-5 space-y-4">
               <div>
                 <label className="form-label">Nombre</label>
@@ -239,10 +237,10 @@ export default function UsuariosClient({
                   {ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
                 </select>
                 {/* What this role can do — derived from permissions.ts */}
-                <div className="mt-2 text-xs text-ink-muted bg-beige-pale border border-beige-dark rounded-lg p-2.5">
+                <div className="mt-2 text-xs text-ink-muted-deep bg-beige-pale border border-beige-dark rounded-lg p-2.5">
                   <p>{ROLE_DESCRIPTIONS[form.role]}</p>
                   <button type="button" onClick={() => setShowPerms((v) => !v)}
-                    className="text-gold hover:underline mt-1">
+                    className="text-gold-deep hover:underline mt-1">
                     {showPerms ? 'Ocultar permisos' : 'Ver qué puede hacer'}
                   </button>
                   {showPerms && (
@@ -259,28 +257,27 @@ export default function UsuariosClient({
                   <label className="form-label">Contraseña temporal</label>
                   <PasswordInput value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
                     autoComplete="new-password" className="input-field w-full" />
-                  <p className="text-[11px] text-ink-muted mt-1">Mínimo 8 caracteres, una mayúscula y un número. Compártela con el admin.</p>
+                  <p className="text-[11px] text-ink-muted-deep mt-1">Mínimo 8 caracteres, una mayúscula y un número. Compártela con el admin.</p>
                 </div>
               ) : (
                 <div>
-                  <label className="form-label">Restablecer contraseña <span className="text-ink-muted/60 normal-case font-normal tracking-normal">(opcional)</span></label>
+                  <label className="form-label">Restablecer contraseña <span className="text-ink-muted-deep normal-case font-normal tracking-normal">(opcional)</span></label>
                   <PasswordInput value={form.newPassword} onChange={(e) => setForm((f) => ({ ...f, newPassword: e.target.value }))}
                     autoComplete="new-password" placeholder="Dejar en blanco para no cambiarla" className="input-field w-full" />
-                  <p className="text-[11px] text-ink-muted mt-1">Si la cambias, se cerrará la sesión de ese admin en todos sus dispositivos.</p>
+                  <p className="text-[11px] text-ink-muted-deep mt-1">Si la cambias, se cerrará la sesión de ese admin en todos sus dispositivos.</p>
                 </div>
               )}
 
-              {error && <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-3 py-2 rounded-lg">{error}</div>}
+              {error && <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2 rounded-lg">{error}</div>}
 
               <div className="flex gap-3 pt-1">
                 <button type="button" onClick={() => setModal(null)} className="btn-secondary flex-1">Cancelar</button>
-                <button type="submit" disabled={saving} className="btn-primary flex-1 disabled:opacity-50">
-                  {saving ? 'Guardando…' : modal.mode === 'create' ? 'Crear admin' : 'Guardar cambios'}
-                </button>
+                <SubmitButton type="submit" loading={saving} loadingLabel="Guardando…" className="btn-primary flex-1 disabled:opacity-50">
+                  {modal.mode === 'create' ? 'Crear admin' : 'Guardar cambios'}
+                </SubmitButton>
               </div>
             </form>
-          </div>
-        </div>
+        </Modal>
       )}
     </>
   )

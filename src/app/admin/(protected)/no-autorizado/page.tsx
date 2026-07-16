@@ -10,7 +10,7 @@ export default function NoAutorizadoPage() {
       <div className="bg-white rounded-xl border border-beige-dark p-8 sm:p-10 text-center">
         <div className="text-4xl mb-4">🔒</div>
         <h1 className="font-serif text-2xl text-ink mb-2">Sin acceso</h1>
-        <p className="text-sm text-ink-muted mb-6 leading-relaxed">
+        <p className="text-sm text-ink-muted-deep mb-6 leading-relaxed">
           Tu rol no tiene permiso para ver esta sección. Si crees que es un error,
           contacta a un super administrador.
         </p>

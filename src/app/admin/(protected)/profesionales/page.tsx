@@ -6,6 +6,9 @@ import { useState, useEffect } from 'react'
 import BookingSettingsCard from '@/components/admin/BookingSettingsCard'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
 import { usePermissionGuard, useCan } from '@/components/admin/usePermissionGuard'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { useFieldValidation } from '@/hooks/useFieldValidation'
+import { SubmitButton } from '@/components/ui/SubmitButton'
 
 interface Professional {
   id: string
@@ -16,6 +19,9 @@ interface Professional {
   isActive: boolean
   order: number
 }
+
+// Validated on blur and on submit. Module-level so the hook keeps a stable ref.
+const PRO_FIELDS = ['name'] as const
 
 const EMPTY: Omit<Professional, 'id' | 'isActive'> = {
   name: '', specialty: '', rating: 5, reviewCount: 0, order: 0,
@@ -35,6 +41,10 @@ export default function ProfesionalesPage() {
   const [showForm, setShowForm] = useState(false)
   const [form, setForm]         = useState(EMPTY)
 
+  const v = useFieldValidation(PRO_FIELDS, (k) =>
+    k === 'name' && !form.name.trim() ? 'El nombre es requerido' : undefined
+  )
+
   function load() {
     fetch('/api/professionals?includeInactive=true')
       .then((r) => r.json())
@@ -50,6 +60,7 @@ export default function ProfesionalesPage() {
     setForm(EMPTY)
     setShowForm(true)
     setError(null)
+    v.reset()
   }
 
   function openEdit(p: Professional) {
@@ -63,10 +74,11 @@ export default function ProfesionalesPage() {
     })
     setShowForm(true)
     setError(null)
+    v.reset()
   }
 
   async function handleSave() {
-    if (!form.name.trim()) { setError('El nombre es requerido'); return }
+    if (Object.keys(v.validateAll()).length > 0) return
 
     setSaving(true)
     setError(null)
@@ -129,21 +141,18 @@ export default function ProfesionalesPage() {
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
 
       {/* Header */}
-      <div className="mb-6 sm:mb-8 flex items-center justify-between">
-        <div>
-          <p className="text-xs text-ink-muted tracking-widest uppercase mb-1">Equipo</p>
-          <h1 className="font-serif text-2xl sm:text-3xl text-ink font-light">Profesionales</h1>
-          <p className="text-sm text-ink-muted mt-1">
-            Cada profesional activo puede atender una cita a la vez — define la capacidad real de la agenda.
-          </p>
-        </div>
-        {can('servicios:editar') && (
+      <PageHeader
+        className="mb-6 sm:mb-8"
+        eyebrow="Equipo"
+        title="Profesionales"
+        subtitle="Cada profesional activo puede atender una cita a la vez — define la capacidad real de la agenda."
+        actions={can('servicios:editar') && (
           <button onClick={openNew} className="btn-primary text-sm shrink-0">+ Nuevo</button>
         )}
-      </div>
+      />
 
       {/* Messages */}
-      {error   && <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 mb-5">{error}</div>}
+      {error   && <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 mb-5">{error}</div>}
       {success && <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 mb-5">✓ {success}</div>}
 
       {can('configuracion:editar') && <BookingSettingsCard />}
@@ -157,12 +166,15 @@ export default function ProfesionalesPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             <div className="sm:col-span-2">
-              <label className="form-label">Nombre *</label>
-              <input type="text" className="input-field"
+              <label htmlFor="pro-nombre" className="form-label">Nombre *</label>
+              <input id="pro-nombre" type="text"
+                className={`input-field ${v.errorOf('name') ? 'border-red-400 focus:ring-red-300' : ''}`}
                 value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                onChange={(e) => { setForm({ ...form, name: e.target.value }); v.clearError('name') }}
+                onBlur={v.handleBlur('name')}
                 placeholder="Ej: Valentina J."
               />
+              {v.errorOf('name') && <p className="text-xs text-red-700 mt-0.5">{v.errorOf('name')}</p>}
             </div>
 
             <div className="sm:col-span-2">
@@ -200,9 +212,9 @@ export default function ProfesionalesPage() {
           </div>
 
           <div className="flex gap-3 pt-2">
-            <button onClick={handleSave} disabled={saving} className="btn-primary">
-              {saving ? 'Guardando...' : 'Guardar'}
-            </button>
+            <SubmitButton onClick={handleSave} loading={saving} loadingLabel="Guardando…" className="btn-primary">
+              Guardar
+            </SubmitButton>
             <button onClick={() => setShowForm(false)} className="btn-secondary">
               Cancelar
             </button>
@@ -213,9 +225,9 @@ export default function ProfesionalesPage() {
       {/* List */}
       <div className="bg-white rounded-xl border border-beige-dark overflow-hidden">
         {loading ? (
-          <div className="py-10 text-center text-ink-muted text-sm">Cargando...</div>
+          <div className="py-10 text-center text-ink-muted-deep text-sm">Cargando...</div>
         ) : professionals.length === 0 ? (
-          <div className="py-10 text-center text-ink-muted text-sm">
+          <div className="py-10 text-center text-ink-muted-deep text-sm">
             No hay profesionales aún. Crea el primero.
           </div>
         ) : (
@@ -231,7 +243,7 @@ export default function ProfesionalesPage() {
                     </span>
                     <div className="min-w-0">
                       <p className="font-medium text-ink truncate">{p.name}</p>
-                      <p className="text-xs text-ink-muted truncate">
+                      <p className="text-xs text-ink-muted-deep truncate">
                         {p.specialty} {p.specialty && '·'} ★ {p.rating.toFixed(1)} · {p.reviewCount} citas
                       </p>
                     </div>
@@ -239,19 +251,19 @@ export default function ProfesionalesPage() {
 
                   <div className="flex items-center gap-5 shrink-0">
                     {!p.isActive && (
-                      <span className="text-[10px] tracking-widest uppercase bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full">
+                      <span className="text-[10px] tracking-widest uppercase bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
                         Inactivo
                       </span>
                     )}
                     {can('servicios:editar') && (<>
-                    <button onClick={() => openEdit(p)} className="btn-row-action text-xs text-ink-muted hover:text-gold">
+                    <button onClick={() => openEdit(p)} className="btn-row-action text-xs text-ink-muted-deep hover:text-gold-deep">
                       Editar
                     </button>
                     <button onClick={() => toggleActive(p)}
-                      className={`btn-row-action text-xs ${p.isActive ? 'text-ink-muted hover:text-amber-600' : 'text-green-600 hover:text-green-700'}`}>
+                      className={`btn-row-action text-xs ${p.isActive ? 'text-ink-muted-deep hover:text-amber-600' : 'text-green-700 hover:text-green-700'}`}>
                       {p.isActive ? 'Desactivar' : 'Activar'}
                     </button>
-                    <button onClick={() => handleDelete(p)} className="btn-row-action text-xs text-ink-muted hover:text-red-500">
+                    <button onClick={() => handleDelete(p)} className="btn-row-action text-xs text-ink-muted-deep hover:text-red-700">
                       Eliminar
                     </button>
                     </>)}
@@ -269,26 +281,26 @@ export default function ProfesionalesPage() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-medium text-ink text-sm truncate">{p.name}</p>
                         {!p.isActive && (
-                          <span className="text-[10px] tracking-widest uppercase bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full shrink-0">
+                          <span className="text-[10px] tracking-widest uppercase bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full shrink-0">
                             Inactivo
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-ink-muted truncate">
+                      <p className="text-xs text-ink-muted-deep truncate">
                         {p.specialty} {p.specialty && '·'} ★ {p.rating.toFixed(1)} · {p.reviewCount} citas
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-4 mt-1.5">
                     {can('servicios:editar') && (<>
-                    <button onClick={() => openEdit(p)} className="btn-row-action text-xs text-ink-muted hover:text-gold">
+                    <button onClick={() => openEdit(p)} className="btn-row-action text-xs text-ink-muted-deep hover:text-gold-deep">
                       Editar
                     </button>
                     <button onClick={() => toggleActive(p)}
-                      className={`btn-row-action text-xs ${p.isActive ? 'text-ink-muted hover:text-amber-600' : 'text-green-600 hover:text-green-700'}`}>
+                      className={`btn-row-action text-xs ${p.isActive ? 'text-ink-muted-deep hover:text-amber-600' : 'text-green-700 hover:text-green-700'}`}>
                       {p.isActive ? 'Desactivar' : 'Activar'}
                     </button>
-                    <button onClick={() => handleDelete(p)} className="btn-row-action text-xs text-ink-muted hover:text-red-500">
+                    <button onClick={() => handleDelete(p)} className="btn-row-action text-xs text-ink-muted-deep hover:text-red-700">
                       Eliminar
                     </button>
                     </>)}

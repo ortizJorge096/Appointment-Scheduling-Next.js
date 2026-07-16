@@ -95,7 +95,7 @@ export default function AdminSidebar() {
         className={`flex items-center gap-3 px-3 py-2.5 text-sm transition-colors border-l-2 pl-[10px] ${
           active
             ? 'bg-gold/10 text-gold border-gold'
-            : 'text-white/40 hover:text-white hover:bg-white/5 border-transparent'
+            : 'text-white/55 hover:text-white hover:bg-white/5 border-transparent'
         }`}
       >
         <span className="w-4 text-center">{item.icon}</span>
@@ -124,9 +124,9 @@ export default function AdminSidebar() {
           onClick={() => toggleGroup(group.id)}
           aria-expanded={expanded}
           className={`w-full flex items-center gap-2 px-3 mt-4 mb-1 text-[10px] tracking-widest uppercase
-                      transition-colors ${hasActive ? 'text-gold/80' : 'text-white/25 hover:text-white/50'}`}
+                      transition-colors ${hasActive ? 'text-gold' : 'text-white/55 hover:text-white/80'}`}
         >
-          <span className={`text-[8px] leading-none transition-transform duration-200 ${expanded ? 'rotate-90' : ''}`}>▶</span>
+          <span aria-hidden="true" className={`text-[10px] leading-none transition-transform duration-200 ${expanded ? 'rotate-90' : ''}`}>▶</span>
           <span className="flex-1 text-left">{group.label}</span>
         </button>
 
@@ -158,12 +158,17 @@ export default function AdminSidebar() {
           onClick={() => setOpen(false)} aria-hidden />
       )}
 
+      {/* invisible when the mobile drawer is closed, not just translated away:
+          transform moves it off-screen but leaves all 19 controls in the tab
+          order, so keyboard and screen-reader users walk the whole nav before
+          reaching the page. visibility:hidden drops them; md:visible restores
+          the static desktop sidebar. */}
       <aside
         className={`bg-ink border-r border-white/10 flex flex-col shrink-0
                     w-64 md:w-56 min-h-screen
                     fixed md:static inset-y-0 left-0 z-50
-                    transform transition-transform duration-300 ease-in-out
-                    ${open ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}
+                    transform transition-[transform,visibility] duration-300 ease-in-out
+                    ${open ? 'translate-x-0 visible' : '-translate-x-full invisible'} md:translate-x-0 md:visible`}
       >
         <div className="px-6 py-6 border-b border-white/10 flex items-start justify-between">
           <div>
@@ -173,7 +178,7 @@ export default function AdminSidebar() {
               </p>
               <span className="logo-studio text-white/70 text-[0.5rem] mt-1 block">Beauty Studio</span>
             </Link>
-            <p className="text-[10px] text-white/20 mt-2 tracking-widest uppercase">Panel admin</p>
+            <p className="text-[10px] text-white/50 mt-2 tracking-widest uppercase">Panel admin</p>
           </div>
           {/* Close button (mobile) */}
           <button onClick={() => setOpen(false)} aria-label="Cerrar menú"
@@ -185,14 +190,14 @@ export default function AdminSidebar() {
         </nav>
 
         <div className="px-4 py-5 border-t border-white/10">
-          <p className="text-xs text-white/30 truncate mb-3">{session?.user?.email}</p>
+          <p className="text-xs text-white/55 truncate mb-3">{session?.user?.email}</p>
           <Link href="/admin/perfil"
-            className="block text-xs text-white/30 hover:text-gold transition-colors mb-2">
+            className="block text-xs text-white/55 hover:text-gold transition-colors mb-2">
             Mi perfil
           </Link>
           <button
             onClick={() => signOut({ callbackUrl: '/admin/login' })}
-            className="text-xs text-white/30 hover:text-gold transition-colors"
+            className="text-xs text-white/55 hover:text-gold transition-colors"
           >
             Cerrar sesi&oacute;n &rarr;
           </button>

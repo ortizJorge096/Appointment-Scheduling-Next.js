@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
 import { usePermissionGuard, useCan } from '@/components/admin/usePermissionGuard'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 const DAYS = [
   { key: 'MONDAY',    label: 'Lunes'     },
@@ -128,31 +129,28 @@ export default function HorariosPage() {
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
 
       {/* Header */}
-      <div className="mb-6 sm:mb-8">
-        <p className="text-xs text-ink-muted tracking-widest uppercase mb-1">Configuración</p>
-        <h1 className="font-serif text-2xl sm:text-3xl text-ink font-light">Horarios</h1>
-      </div>
+      <PageHeader className="mb-6 sm:mb-8" eyebrow="Configuración" title="Horarios" />
 
       {/* Flash message */}
       {message && (
         <div className={`text-sm px-4 py-3 mb-5 border ${
           message.type === 'ok'
             ? 'bg-green-50 border-green-200 text-green-700'
-            : 'bg-red-50 border-red-200 text-red-600'
+            : 'bg-red-50 border-red-200 text-red-700'
         }`}>
           {message.type === 'ok' ? '✓ ' : '✗ '}{message.text}
         </div>
       )}
 
       {loading ? (
-        <div className="text-ink-muted text-sm">Cargando horarios...</div>
+        <div className="text-ink-muted-deep text-sm">Cargando horarios...</div>
       ) : (
         <>
           {/* ── Daily schedules ── */}
           <section className="bg-white rounded-xl border border-beige-dark overflow-hidden mb-10">
             <div className="px-5 sm:px-6 py-4 border-b border-beige-dark">
               <h2 className="font-serif text-xl text-ink font-light">Días de atención</h2>
-              <p className="text-xs text-ink-muted mt-0.5">Guarda cada día por separado.</p>
+              <p className="text-xs text-ink-muted-deep mt-0.5">Guarda cada día por separado.</p>
             </div>
 
             <div className="divide-y divide-beige-dark">
@@ -174,7 +172,7 @@ export default function HorariosPage() {
                         <span className="text-sm font-medium text-ink">{dayLabel}</span>
                       </label>
 
-                      <div className="flex items-center gap-2 text-sm text-ink-muted">
+                      <div className="flex items-center gap-2 text-sm text-ink-muted-deep">
                         <input
                           type="time"
                           value={sched.startTime}
@@ -194,8 +192,8 @@ export default function HorariosPage() {
                     </div>
 
                     {/* Optional lunch break — leave both empty for a continuous day */}
-                    <div className="flex items-center gap-2 text-sm text-ink-muted">
-                      <span className="text-[10px] uppercase tracking-wider text-ink-muted/70 min-w-[64px]">Descanso</span>
+                    <div className="flex items-center gap-2 text-sm text-ink-muted-deep">
+                      <span className="text-[10px] uppercase tracking-wider text-ink-muted-deep min-w-[64px]">Descanso</span>
                       <input type="time" value={sched.breakStart ?? ''} disabled={!sched.isActive}
                         onChange={(e) => updateSchedule(sched.dayOfWeek, 'breakStart', e.target.value)}
                         className="input-field py-1.5 w-24 sm:w-28" />
@@ -224,7 +222,7 @@ export default function HorariosPage() {
           <section className="bg-white rounded-xl border border-beige-dark overflow-hidden">
             <div className="px-5 sm:px-6 py-4 border-b border-beige-dark">
               <h2 className="font-serif text-xl text-ink font-light">Fechas bloqueadas</h2>
-              <p className="text-xs text-ink-muted mt-0.5">Festivos, vacaciones o días sin atención.</p>
+              <p className="text-xs text-ink-muted-deep mt-0.5">Festivos, vacaciones o días sin atención.</p>
             </div>
 
             {can('horarios:editar') && (
@@ -260,7 +258,7 @@ export default function HorariosPage() {
             )}
 
             {blockedDates.length === 0 ? (
-              <div className="px-6 py-8 text-center text-ink-muted text-sm">
+              <div className="px-6 py-8 text-center text-ink-muted-deep text-sm">
                 No hay fechas bloqueadas.
               </div>
             ) : (
@@ -276,13 +274,13 @@ export default function HorariosPage() {
                         })}
                       </p>
                       {b.reason && (
-                        <p className="text-xs text-ink-muted mt-0.5 truncate">{b.reason}</p>
+                        <p className="text-xs text-ink-muted-deep mt-0.5 truncate">{b.reason}</p>
                       )}
                     </div>
                     {can('horarios:editar') && (
                     <button
                       onClick={() => removeBlockedDate(b.id)}
-                      className="btn-row-action text-xs text-red-400 hover:text-red-600 shrink-0"
+                      className="btn-row-action text-xs text-red-700 hover:text-red-800 shrink-0"
                     >
                       Desbloquear
                     </button>

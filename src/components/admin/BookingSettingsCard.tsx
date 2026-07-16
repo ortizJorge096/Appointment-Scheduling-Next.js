@@ -5,6 +5,8 @@
 // existing "Primera disponible" auto-assignment already covers that case.
 
 import { useState, useEffect } from 'react'
+import { SubmitButton } from '@/components/ui/SubmitButton'
+import { ToggleSwitch } from '@/components/ui/ToggleSwitch'
 
 export default function BookingSettingsCard() {
   const [showProfessionalStep, setShowProfessionalStep] = useState(false)
@@ -84,40 +86,33 @@ export default function BookingSettingsCard() {
   }
 
   if (loading) {
-    return <div className="bg-white border border-beige-dark rounded-xl p-6 mb-8 text-sm text-ink-muted">Cargando configuración de agendamiento...</div>
+    return <div className="bg-white border border-beige-dark rounded-xl p-6 mb-8 text-sm text-ink-muted-deep">Cargando configuración de agendamiento...</div>
   }
 
   return (
     <div className="bg-white border border-beige-dark rounded-xl p-6 mb-8">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <p className="text-xs text-ink-muted tracking-widest uppercase mb-1">Regla de negocio</p>
+          <p className="text-xs text-ink-muted-deep tracking-widest uppercase mb-1">Regla de negocio</p>
           <h2 className="font-serif text-xl text-ink">Selección de profesional en /agendar</h2>
-          <p className="text-sm text-ink-muted mt-1">
+          <p className="text-sm text-ink-muted-deep mt-1">
             Permitir que el cliente elija profesional. Si está desactivado, el sistema asignará
             el profesional automáticamente (primera disponible, según el orden configurado abajo).
           </p>
         </div>
-        <label className="flex items-center gap-2 cursor-pointer shrink-0">
-          <span className="text-sm text-ink-muted">{showProfessionalStep ? 'Activo' : 'Inactivo'}</span>
-          <span
-            onClick={toggle}
-            className={`w-11 h-6 rounded-full relative transition-colors ${
-              showProfessionalStep ? 'bg-gold' : 'bg-beige-dark'
-            } ${saving ? 'opacity-60' : ''}`}
-          >
-            <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
-              showProfessionalStep ? 'translate-x-5' : 'translate-x-0.5'
-            }`} />
-          </span>
-        </label>
+        <ToggleSwitch
+          checked={showProfessionalStep}
+          onChange={toggle}
+          disabled={saving}
+          label="Selección de profesional en /agendar"
+        />
       </div>
 
       {/* Booking horizon */}
       <div className="border-t border-beige-dark mt-5 pt-5">
-        <p className="text-xs text-ink-muted tracking-widest uppercase mb-1">Ventana de reserva</p>
+        <p className="text-xs text-ink-muted-deep tracking-widest uppercase mb-1">Ventana de reserva</p>
         <h2 className="font-serif text-xl text-ink">¿Con cuántos días de anticipación pueden agendar?</h2>
-        <p className="text-sm text-ink-muted mt-1 mb-3">
+        <p className="text-sm text-ink-muted-deep mt-1 mb-3">
           Los clientes podrán ver disponibilidad hasta {maxAdvanceDays} días en el futuro.
         </p>
         <div className="flex items-center gap-3 flex-wrap">
@@ -127,18 +122,22 @@ export default function BookingSettingsCard() {
             value={maxAdvanceInput}
             onChange={(e) => setMaxAdvanceInput(e.target.value)}
           />
-          <span className="text-sm text-ink-muted">días (7–365)</span>
-          <button
+          <span className="text-sm text-ink-muted-deep">días (7–365)</span>
+          {/* savingDays is the busy state; "unchanged" disables without being
+              busy, so it stays plain disabled — aria-busy must not fire for it. */}
+          <SubmitButton
             onClick={saveMaxAdvance}
-            disabled={savingDays || maxAdvanceInput === String(maxAdvanceDays)}
+            loading={savingDays}
+            disabled={maxAdvanceInput === String(maxAdvanceDays)}
+            loadingLabel="Guardando…"
             className="btn-primary text-sm disabled:opacity-50"
           >
-            {savingDays ? 'Guardando...' : 'Guardar'}
-          </button>
+            Guardar
+          </SubmitButton>
         </div>
       </div>
 
-      {error   && <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 mt-4">{error}</div>}
+      {error   && <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 mt-4">{error}</div>}
       {success && <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 mt-4">✓ {success}</div>}
     </div>
   )

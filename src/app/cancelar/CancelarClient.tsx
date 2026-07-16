@@ -133,7 +133,7 @@ export default function CancelarClient() {
             </div>
 
             {error && (
-              <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 mb-6 text-left">
+              <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 mb-6 text-left">
                 <span className="mt-0.5">⚠</span> {error}
               </div>
             )}

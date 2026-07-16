@@ -14,7 +14,7 @@ export default function NosotrosImage() {
       {/* Decorative background */}
       <div
         className="absolute inset-0 translate-x-4 translate-y-4 rounded-2xl"
-        style={{ background: 'linear-gradient(160deg,#F2EBD9 0%,#D4AD5A 60%,#8A6E1E 100%)' }}
+        style={{ background: 'linear-gradient(160deg,var(--beige) 0%,var(--gold-light) 60%,var(--gold-dark) 100%)' }}
       />
 
       <div className="relative w-full aspect-[4/5] rounded-2xl overflow-hidden shadow-xl">
@@ -22,7 +22,7 @@ export default function NosotrosImage() {
           /* Fallback: gradient when the image doesn't exist yet */
           <div
             className="w-full h-full"
-            style={{ background: 'linear-gradient(160deg,#F2EBD9 0%,#D4AD5A 60%,#8A6E1E 100%)' }}
+            style={{ background: 'linear-gradient(160deg,var(--beige) 0%,var(--gold-light) 60%,var(--gold-dark) 100%)' }}
           />
         ) : (
           <Image
@@ -39,7 +39,7 @@ export default function NosotrosImage() {
 
       <div className="absolute -bottom-3 -left-3 sm:-bottom-6 sm:-left-6 max-w-[calc(100%-1.5rem)]
                       bg-ink border border-gold/30 p-4 sm:p-5 shadow-lg rounded-xl">
-        <p className="text-xs text-gold/60 tracking-widest uppercase mb-1">Especialistas en</p>
+        <p className="text-xs text-gold tracking-widest uppercase mb-1">Especialistas en</p>
         <p className="font-serif text-lg text-white">Uñas · Pestañas · Cejas</p>
       </div>
     </div>

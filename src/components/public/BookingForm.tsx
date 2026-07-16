@@ -10,6 +10,8 @@ import { es } from 'date-fns/locale'
 import { formatPrice, isValidPhone } from '@/lib/utils'
 import { trackBeginBooking, trackBookingConfirmed } from '@/lib/analytics'
 import { getWhatsAppUrl } from '@/lib/config'
+import { useFieldValidation } from '@/hooks/useFieldValidation'
+import { SubmitButton } from '@/components/ui/SubmitButton'
 
 interface Service {
   id: string
@@ -71,11 +73,10 @@ function resolveDiscountPercent(serviceCount: number, settings: VipSettings): nu
   return applicable?.discountPct ?? 0
 }
 
-interface FieldErrors {
-  clientName?:  string
-  clientEmail?: string
-  clientPhone?: string
-}
+// Confirm-step fields, in display order. Module-level so the hook keeps a
+// stable reference. Step-level errors (category, time) stay in the banner —
+// they do not belong to any one field.
+const CONFIRM_FIELDS = ['clientPhone', 'clientName', 'clientEmail'] as const
 
 const STORAGE_KEY = 'vj_booking_client'
 
@@ -115,8 +116,8 @@ export default function BookingForm() {
   // pre-filled message (blocked/inactive client, or the per-phone booking cap).
   const [whatsappCta, setWhatsappCta] = useState<string | null>(null)
   const [stepError,   setStepError]   = useState<string | null>(null)
-  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [attempted,   setAttempted]   = useState(false)
+
   // Phone-first client recognition (consent-based autofill on the confirm step)
   const [lookup,          setLookup]          = useState<{ name: string } | null>(null)
   const [lookupDismissed, setLookupDismissed] = useState(false)
@@ -132,6 +133,24 @@ export default function BookingForm() {
     clientEmail:    '',
     clientPhone:    '',
     notes:          '',
+  })
+
+  // Tell the client as they leave each field. Waiting for "Confirmar" means
+  // filling the whole form before learning the phone was wrong — on the step
+  // that decides whether the booking happens at all.
+  const v = useFieldValidation(CONFIRM_FIELDS, (k) => {
+    switch (k) {
+      case 'clientName':
+        return form.clientName.trim().length >= 2
+          ? undefined : 'Ingresa tu nombre completo (mínimo 2 caracteres).'
+      case 'clientEmail':
+        // Optional — only checked once something was typed.
+        return !form.clientEmail.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.clientEmail.trim())
+          ? undefined : 'Ingresa un email válido (ej: correo@dominio.com).'
+      case 'clientPhone':
+        return isValidPhone(form.clientPhone)
+          ? undefined : 'Ingresa un número de teléfono válido (mínimo 10 dígitos).'
+    }
   })
 
   // 1. Signal we are already on the client
@@ -255,7 +274,7 @@ export default function BookingForm() {
   // Clear errors and scroll to top when step changes
   useEffect(() => {
     setStepError(null)
-    setFieldErrors({})
+    v.reset()
     setAttempted(false)
     setTimeout(() => {
       formTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -333,8 +352,10 @@ export default function BookingForm() {
 
   function updateForm(field: keyof FormData, value: string | string[]) {
     setForm((prev) => ({ ...prev, [field]: value }))
-    if (typeof value === 'string' && field in fieldErrors) {
-      setFieldErrors((prev) => ({ ...prev, [field]: undefined }))
+    // An error you are already fixing should stop shouting while you fix it;
+    // blur re-checks it.
+    if (CONFIRM_FIELDS.includes(field as (typeof CONFIRM_FIELDS)[number])) {
+      v.clearError(field as (typeof CONFIRM_FIELDS)[number])
     }
     setStepError(null)
   }
@@ -349,7 +370,7 @@ export default function BookingForm() {
       clientName:  lookup.name,
       clientEmail: prev.clientEmail || savedClientData.clientEmail,
     }))
-    setFieldErrors({})
+    v.reset()
     setLookupDismissed(true)
   }
 
@@ -399,18 +420,7 @@ export default function BookingForm() {
       if (!form.startTime) { setStepError('Por favor selecciona una hora disponible.'); return false }
       return true
     }
-    if (step === 'confirm') {
-      const errors: FieldErrors = {}
-      if (form.clientName.trim().length < 2)
-        errors.clientName = 'Ingresa tu nombre completo (mínimo 2 caracteres).'
-      // Email is optional — only validate the format if something was typed.
-      if (form.clientEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.clientEmail.trim()))
-        errors.clientEmail = 'Ingresa un email válido (ej: correo@dominio.com).'
-      if (!isValidPhone(form.clientPhone))
-        errors.clientPhone = 'Ingresa un número de teléfono válido (mínimo 10 dígitos).'
-      if (Object.keys(errors).length > 0) { setFieldErrors(errors); return false }
-      return true
-    }
+    if (step === 'confirm') return Object.keys(v.validateAll()).length === 0
     return true
   }
 
@@ -557,12 +567,12 @@ export default function BookingForm() {
             <div key={s} className="flex items-center flex-1">
               <div className="flex flex-col items-center">
                 <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all
-                  ${isDone ? 'bg-gold border-gold text-white'
+                  ${isDone ? 'bg-gold border-gold text-ink'
                     : isActive ? 'bg-ink border-ink text-gold-light shadow-[0_0_0_5px_rgba(184,147,42,0.18)]'
                     : 'bg-white border-beige-dark text-ink-muted'}`}>
                   {isDone ? '✓' : i + 1}
                 </div>
-                <span className={`text-[11px] mt-1.5 font-semibold hidden sm:block ${isActive ? 'text-ink' : 'text-ink-muted'}`}>
+                <span className={`text-[11px] mt-1.5 font-semibold hidden sm:block ${isActive ? 'text-ink' : 'text-ink-muted-deep'}`}>
                   {STEP_LABELS[s]}
                 </span>
               </div>
@@ -583,7 +593,7 @@ export default function BookingForm() {
       )}
 
       {submitError && (
-        <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 mb-6">
+        <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 mb-6">
           <div className="flex items-start gap-3">
             <span className="mt-0.5">⚠</span>
             <span>{submitError}</span>
@@ -609,10 +619,10 @@ export default function BookingForm() {
         <div className="animate-fade-in">
           <div className="mb-6">
             <h2 className="font-serif text-2xl text-ink">¿Cómo te quieres consentir?</h2>
-            <p className="text-sm text-ink-muted mt-1">Elige la categoría que mejor describe tu servicio. <span className="text-red-500">*</span></p>
+            <p className="text-sm text-ink-muted mt-1">Elige la categoría que mejor describe tu servicio. <span className="text-red-700">*</span></p>
           </div>
           {stepError && (
-            <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 border border-red-200 px-4 py-3 mb-4">
+            <div className="flex items-center gap-2 text-red-700 text-sm bg-red-50 border border-red-200 px-4 py-3 mb-4">
               <span>⚠</span> {stepError}
             </div>
           )}
@@ -644,14 +654,14 @@ export default function BookingForm() {
                 <button type="button" onClick={() => selectCategory(VIP_PSEUDO_CATEGORY)}
                   className="text-left p-6 rounded-2xl border border-ink bg-ink hover:border-gold/60
                              transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5">
-                  <span className="inline-flex items-center justify-center w-14 h-14 rounded-full mb-4 bg-[rgba(212,173,90,.15)] text-[var(--gold-light)]">
+                  <span className="inline-flex items-center justify-center w-14 h-14 rounded-full mb-4 bg-gold-light/15 text-gold-light">
                     <Icon name="promo" className="w-7 h-7" />
                   </span>
                   <p className="font-serif text-xl text-white">Paquete VIP</p>
-                  <p className="text-sm text-[#b7ae9c] leading-snug mt-1.5">
+                  <p className="text-sm text-cream-muted leading-snug mt-1.5">
                     {VIP_BLURB}
                   </p>
-                  <p className="text-[11px] tracking-widest uppercase text-[var(--gold-light)] font-semibold mt-3">
+                  <p className="text-[11px] tracking-widest uppercase text-gold-light font-semibold mt-3">
                     Reserva doble
                   </p>
                 </button>
@@ -670,13 +680,13 @@ export default function BookingForm() {
                 {isVipCategory ? (
                   'Elige tus servicios'
                 ) : (
-                  <>Servicios de <em className="text-gold italic">{categoryName(form.category).toLowerCase()}</em></>
+                  <>Servicios de <em className="text-gold-dark italic">{categoryName(form.category).toLowerCase()}</em></>
                 )}
               </h2>
               {/* VIP shows all categories at once → "change category" doesn't apply. */}
               {!isVipCategory && (
                 <button type="button" onClick={() => selectCategory(form.category)}
-                  className="text-xs tracking-widest uppercase font-semibold text-gold-dark hover:text-gold
+                  className="text-xs tracking-widest uppercase font-semibold text-gold-dark hover:text-gold-deep
                              border border-gold/40 rounded-full px-3 py-1.5 transition-colors">
                   ← Cambiar categoría
                 </button>
@@ -686,11 +696,11 @@ export default function BookingForm() {
               {isVipCategory
                 ? 'Selecciona 2 o más servicios (de cualquier categoría) para activar el descuento VIP.'
                 : 'Selecciona uno de los servicios disponibles. '}
-              <span className="text-red-500">*</span>
+              <span className="text-red-700">*</span>
             </p>
           </div>
           {stepError && (
-            <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 border border-red-200 px-4 py-3">
+            <div className="flex items-center gap-2 text-red-700 text-sm bg-red-50 border border-red-200 px-4 py-3">
               <span>⚠</span> {stepError}
             </div>
           )}
@@ -725,7 +735,7 @@ export default function BookingForm() {
                             </div>
                           </div>
                           <div className="text-right ml-4 shrink-0">
-                            <p className="text-gold font-medium">{formatPrice(svc.price)}</p>
+                            <p className="text-gold-deep font-medium">{formatPrice(svc.price)}</p>
                             <p className="text-xs text-ink-muted">{svc.durationMinutes} min</p>
                           </div>
                         </div>
@@ -759,7 +769,7 @@ export default function BookingForm() {
                         </div>
                       </div>
                       <div className="text-right ml-4 shrink-0">
-                        <p className="text-gold font-medium">{formatPrice(svc.price)}</p>
+                        <p className="text-gold-deep font-medium">{formatPrice(svc.price)}</p>
                         <p className="text-xs text-ink-muted">{svc.durationMinutes} min</p>
                       </div>
                     </div>
@@ -777,7 +787,7 @@ export default function BookingForm() {
                   <div className="flex items-center gap-3">
                     <span className="text-gold-dark font-medium">{formatPrice(s.price)}</span>
                     <button type="button" onClick={() => toggleService(s.id)}
-                      className="text-ink-muted hover:text-red-500 transition-colors text-xs">
+                      className="text-ink-muted hover:text-red-700 transition-colors text-xs">
                       Quitar
                     </button>
                   </div>
@@ -856,7 +866,7 @@ export default function BookingForm() {
         <div className="animate-fade-in max-w-[480px] mx-auto">
           <div className="mb-6">
             <h2 className="font-serif text-2xl text-ink">Elige fecha y hora</h2>
-            <p className="text-sm text-ink-muted mt-1">Selecciona el día y un horario disponible. <span className="text-red-500">*</span></p>
+            <p className="text-sm text-ink-muted mt-1">Selecciona el día y un horario disponible. <span className="text-red-700">*</span></p>
           </div>
 
           {/* Service summary */}
@@ -872,7 +882,7 @@ export default function BookingForm() {
                 </p>
               </div>
               <button type="button" onClick={() => setStep('service')}
-                className="shrink-0 text-xs tracking-widest uppercase text-ink-muted hover:text-gold transition-colors">
+                className="shrink-0 text-xs tracking-widest uppercase text-ink-muted hover:text-gold-deep transition-colors">
                 Cambiar
               </button>
             </div>
@@ -888,14 +898,14 @@ export default function BookingForm() {
                 </p>
               </div>
               <button type="button" onClick={() => setStep('service')}
-                className="shrink-0 text-xs tracking-widest uppercase text-ink-muted hover:text-gold transition-colors">
+                className="shrink-0 text-xs tracking-widest uppercase text-ink-muted hover:text-gold-deep transition-colors">
                 Cambiar
               </button>
             </div>
           )}
 
           {stepError && (
-            <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 border border-red-200 px-4 py-3 mb-4">
+            <div className="flex items-center gap-2 text-red-700 text-sm bg-red-50 border border-red-200 px-4 py-3 mb-4">
               <span>⚠</span> {stepError}
             </div>
           )}
@@ -991,18 +1001,19 @@ export default function BookingForm() {
             {/* Phone first: the phone IS the client's identity, so we ask it up
                 front and offer to recognize returning clients (with consent). */}
             <div>
-              <label className="form-label">Teléfono / WhatsApp <span className="text-red-500">*</span></label>
+              <label className="form-label">Teléfono / WhatsApp <span className="text-red-700">*</span></label>
               <input
                 type="tel"
                 list="dl-phone"
-                className={inputClass(fieldErrors.clientPhone)}
+                className={inputClass(v.errorOf('clientPhone'))}
                 placeholder="300 000 0000"
                 value={form.clientPhone}
                 onChange={(e) => updateForm('clientPhone', e.target.value)}
+                onBlur={v.handleBlur('clientPhone')}
                 autoComplete="tel"
               />
-              {fieldErrors.clientPhone && (
-                <p className="flex items-center gap-1.5 text-red-500 text-xs mt-1.5"><span>⚠</span> {fieldErrors.clientPhone}</p>
+              {v.errorOf('clientPhone') && (
+                <p className="flex items-center gap-1.5 text-red-700 text-xs mt-1.5"><span>⚠</span> {v.errorOf('clientPhone')}</p>
               )}
 
               {/* Returning-client recognition — consent-based, never auto-applied */}
@@ -1027,18 +1038,19 @@ export default function BookingForm() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="form-label">Nombre completo <span className="text-red-500">*</span></label>
+                <label className="form-label">Nombre completo <span className="text-red-700">*</span></label>
                 <input
                   type="text"
                   list="dl-name"
-                  className={inputClass(fieldErrors.clientName)}
+                  className={inputClass(v.errorOf('clientName'))}
                   placeholder="Tu nombre y apellido"
                   value={form.clientName}
                   onChange={(e) => updateForm('clientName', e.target.value)}
+                  onBlur={v.handleBlur('clientName')}
                   autoComplete="name"
                 />
-                {fieldErrors.clientName && (
-                  <p className="flex items-center gap-1.5 text-red-500 text-xs mt-1.5"><span>⚠</span> {fieldErrors.clientName}</p>
+                {v.errorOf('clientName') && (
+                  <p className="flex items-center gap-1.5 text-red-700 text-xs mt-1.5"><span>⚠</span> {v.errorOf('clientName')}</p>
                 )}
               </div>
               <div>
@@ -1048,14 +1060,15 @@ export default function BookingForm() {
                 <input
                   type="email"
                   list="dl-email"
-                  className={inputClass(fieldErrors.clientEmail)}
+                  className={inputClass(v.errorOf('clientEmail'))}
                   placeholder="tu@email.com"
                   value={form.clientEmail}
                   onChange={(e) => updateForm('clientEmail', e.target.value)}
+                  onBlur={v.handleBlur('clientEmail')}
                   autoComplete="email"
                 />
-                {fieldErrors.clientEmail ? (
-                  <p className="flex items-center gap-1.5 text-red-500 text-xs mt-1.5"><span>⚠</span> {fieldErrors.clientEmail}</p>
+                {v.errorOf('clientEmail') ? (
+                  <p className="flex items-center gap-1.5 text-red-700 text-xs mt-1.5"><span>⚠</span> {v.errorOf('clientEmail')}</p>
                 ) : (
                   <p className="text-xs text-ink-muted/60 mt-1.5">
                     Si lo proporcionas, recibirás confirmación y recordatorios automáticos de tu cita.
@@ -1100,9 +1113,9 @@ export default function BookingForm() {
         {step !== 'confirm' ? (
           <button ref={continueRef} type="button" onClick={handleNext} className="btn-cta">Continuar →</button>
         ) : (
-          <button type="button" onClick={handleSubmit} disabled={submitting} className="btn-cta disabled:opacity-70">
-            {submitting ? 'Confirmando...' : 'Confirmar cita'}
-          </button>
+          <SubmitButton type="button" onClick={handleSubmit} loading={submitting} loadingLabel="Confirmando…" className="btn-cta disabled:opacity-70">
+            Confirmar cita
+          </SubmitButton>
         )}
       </div>
 

@@ -9,7 +9,9 @@ import { es } from 'date-fns/locale'
 import { StatCard } from '@/components/ui/Card'
 import { DashboardChart } from '@/components/admin/DashboardChart'
 import { formatPrice } from '@/lib/utils'
-import { STATUS_LABEL, STATUS_CLASS } from '@/lib/appointmentStatus'
+import { STATUS_LABEL } from '@/lib/appointmentStatus'
+import { StatusBadge } from '@/components/ui/StatusBadge'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 export const metadata: Metadata = { title: 'Dashboard' }
 export const dynamic = 'force-dynamic'
@@ -36,13 +38,13 @@ function completedRevenue(list: Array<Priced & { status: string }>): number {
 // Period-over-period trend chip. A rise is good by default (revenue, volume);
 // pass `invert` where a rise is bad. No baseline → a muted placeholder.
 function Trend({ current, previous, label, invert = false }: { current: number; previous: number; label: string; invert?: boolean }) {
-  if (previous <= 0) return <span className="text-ink-muted">— sin dato previo</span>
+  if (previous <= 0) return <span className="text-ink-muted-deep">— sin dato previo</span>
   const pct   = Math.round(((current - previous) / previous) * 100)
   const dir   = pct > 0 ? 'up' : pct < 0 ? 'down' : 'flat'
   const good  = dir === 'flat' ? null : invert ? dir === 'down' : dir === 'up'
-  const color = good === null ? 'text-ink-muted' : good ? 'text-green-600' : 'text-red-500'
+  const color = good === null ? 'text-ink-muted-deep' : good ? 'text-green-700' : 'text-red-700'
   const arrow = dir === 'up' ? '↑' : dir === 'down' ? '↓' : '→'
-  return <span className={color}>{arrow} {Math.abs(pct)}% <span className="text-ink-muted">{label}</span></span>
+  return <span className={color}>{arrow} {Math.abs(pct)}% <span className="text-ink-muted-deep">{label}</span></span>
 }
 
 export default async function DashboardPage() {
@@ -146,12 +148,7 @@ export default async function DashboardPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
       {/* Header */}
-      <div className="mb-8">
-        <p className="text-xs text-ink-muted tracking-widest uppercase mb-1">
-          {format(now, "EEEE d 'de' MMMM", { locale: es })}
-        </p>
-        <h1 className="font-serif text-2xl sm:text-3xl text-ink font-light">Dashboard</h1>
-      </div>
+      <PageHeader className="mb-8" eyebrow={format(now, "EEEE d 'de' MMMM", { locale: es })} title="Dashboard" />
 
       {/* Stats — business metrics with period-over-period context */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
@@ -176,7 +173,7 @@ export default async function DashboardPage() {
         <div className="bg-white rounded-xl border border-beige-dark p-5 sm:p-6">
           <h2 className="font-serif text-xl text-ink mb-5">Distribución ({periodTotal})</h2>
           {periodTotal === 0 ? (
-            <p className="text-sm text-ink-muted">Sin datos en el período.</p>
+            <p className="text-sm text-ink-muted-deep">Sin datos en el período.</p>
           ) : (
             <div className="space-y-4">
               {STATUS_ORDER.map((st) => {
@@ -185,8 +182,8 @@ export default async function DashboardPage() {
                 return (
                   <div key={st}>
                     <div className="flex items-center justify-between text-xs mb-1.5">
-                      <span className="text-ink-muted">{STATUS_LABEL[st]}</span>
-                      <span className="text-ink-muted">{n} · {pct}%</span>
+                      <span className="text-ink-muted-deep">{STATUS_LABEL[st]}</span>
+                      <span className="text-ink-muted-deep">{n} · {pct}%</span>
                     </div>
                     <div className="h-2 rounded-full bg-beige overflow-hidden">
                       <div className="h-full rounded-full bg-gradient-to-r from-gold-light to-gold"
@@ -204,11 +201,11 @@ export default async function DashboardPage() {
       <div className="bg-white rounded-xl border border-beige-dark overflow-hidden">
         <div className="px-5 sm:px-6 py-4 border-b border-beige-dark flex items-center justify-between">
           <h2 className="font-serif text-xl text-ink font-light">Citas de hoy</h2>
-          <Link href="/admin/citas" className="text-xs text-gold hover:underline">Ver todas →</Link>
+          <Link href="/admin/citas" className="text-xs text-gold-deep hover:underline">Ver todas →</Link>
         </div>
 
         {todayAppointments.length === 0 ? (
-          <div className="px-5 sm:px-6 py-12 text-center text-ink-muted text-sm">
+          <div className="px-5 sm:px-6 py-12 text-center text-ink-muted-deep text-sm">
             No hay citas agendadas para hoy.
           </div>
         ) : (
@@ -220,11 +217,11 @@ export default async function DashboardPage() {
                 <div className="flex items-center gap-4 sm:gap-6 min-w-0">
                   <div className="text-center w-12 sm:w-14 shrink-0">
                     <p className="font-serif text-lg text-ink">{appt.startTime}</p>
-                    <p className="text-[10px] text-ink-muted">{appt.endTime}</p>
+                    <p className="text-[10px] text-ink-muted-deep">{appt.endTime}</p>
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-ink truncate">{appt.clientName}</p>
-                    <p className="text-xs text-ink-muted">
+                    <p className="text-xs text-ink-muted-deep">
                       {appt.services && appt.services.length > 1
                         ? appt.services.map((s) => s.service.name).join(' + ')
                         : appt.service.name}
@@ -232,15 +229,15 @@ export default async function DashboardPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
-                  <p className="text-sm text-gold hidden sm:block">
+                  <p className="text-sm text-gold-deep hidden sm:block">
                     {formatPrice(
                       appt.services && appt.services.length > 1
                         ? appt.services.reduce((sum, s) => sum + s.price, 0)
                         : appt.service.price
                     )}
                   </p>
-                  <span className={STATUS_CLASS[appt.status]}>{STATUS_LABEL[appt.status]}</span>
-                  <span className="text-gold-light group-hover:text-gold transition-colors text-lg">›</span>
+                  <StatusBadge status={appt.status} />
+                  <span aria-hidden="true" className="text-gold-light group-hover:text-gold-deep transition-colors text-lg">›</span>
                 </div>
               </Link>
             ))}
@@ -252,10 +249,10 @@ export default async function DashboardPage() {
       <div className="bg-white rounded-xl border border-beige-dark overflow-hidden mt-6">
         <div className="px-5 sm:px-6 py-4 border-b border-beige-dark flex items-center justify-between">
           <h2 className="font-serif text-xl text-ink font-light">Clientes frecuentes</h2>
-          <Link href="/admin/clientes" className="text-xs text-gold hover:underline">Ver todos →</Link>
+          <Link href="/admin/clientes" className="text-xs text-gold-deep hover:underline">Ver todos →</Link>
         </div>
         {topClients.length === 0 ? (
-          <div className="px-5 sm:px-6 py-12 text-center text-ink-muted text-sm">
+          <div className="px-5 sm:px-6 py-12 text-center text-ink-muted-deep text-sm">
             Aún no hay clientes registrados.
           </div>
         ) : (
@@ -264,19 +261,19 @@ export default async function DashboardPage() {
               <Link key={c.id} href={`/admin/clientes/${c.id}`}
                 className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 hover:bg-beige transition-colors group">
                 <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-                  <span className="w-9 h-9 rounded-full bg-gold-pale text-gold-dark flex items-center justify-center text-xs font-semibold shrink-0">
+                  <span className="w-9 h-9 rounded-full bg-gold-pale text-gold-deep flex items-center justify-center text-xs font-semibold shrink-0">
                     {c.name.slice(0, 2).toUpperCase()}
                   </span>
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-ink truncate">{c.name}</p>
-                    <p className="text-xs text-ink-muted truncate">{c.email}</p>
+                    <p className="text-xs text-ink-muted-deep truncate">{c.email}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <span className="text-xs font-medium text-gold-dark bg-gold/10 px-2.5 py-0.5 rounded-full">
                     {c._count.appointments} cita{c._count.appointments === 1 ? '' : 's'}
                   </span>
-                  <span className="text-gold-light group-hover:text-gold transition-colors text-lg">›</span>
+                  <span aria-hidden="true" className="text-gold-light group-hover:text-gold-deep transition-colors text-lg">›</span>
                 </div>
               </Link>
             ))}

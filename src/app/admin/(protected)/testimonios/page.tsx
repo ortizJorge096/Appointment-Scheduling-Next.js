@@ -7,6 +7,8 @@
 import { useState, useEffect } from 'react'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
 import { usePermissionGuard } from '@/components/admin/usePermissionGuard'
+import { useFieldValidation } from '@/hooks/useFieldValidation'
+import { SubmitButton } from '@/components/ui/SubmitButton'
 
 interface Testimonial {
   id: string
@@ -35,7 +37,7 @@ const STATUS_BADGE: Record<Testimonial['status'], string> = {
   APPROVED: 'bg-green-100 text-green-700',
   PENDING:  'bg-amber-100 text-amber-700',
   REJECTED: 'bg-red-100 text-red-700',
-  DRAFT:    'bg-gray-100 text-gray-500',
+  DRAFT:    'bg-gray-100 text-gray-600',
 }
 const STATUS_LABEL: Record<Testimonial['status'], string> = {
   APPROVED: 'Aprobado', PENDING: 'Pendiente', REJECTED: 'Rechazado', DRAFT: 'Borrador',
@@ -51,6 +53,10 @@ interface FormState {
   imageKey: string | null
   isActive: boolean
 }
+
+// Validated on blur and on submit, in display order. 'type' covers the preset
+// select and its custom free-text twin, which are one field to the user.
+const T_FIELDS = ['clientName', 'type', 'text'] as const
 
 const EMPTY: FormState = {
   clientName: '', typeValue: TYPE_PRESETS[0], typeCustom: '', text: '', stars: 5,
@@ -72,6 +78,17 @@ export default function TestimoniosPage() {
   const [editing, setEditing]   = useState<Testimonial | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [form, setForm]         = useState<FormState>(EMPTY)
+
+  const v = useFieldValidation(T_FIELDS, (k) => {
+    switch (k) {
+      case 'clientName':
+        return form.clientName.trim().length >= 2 ? undefined : 'El nombre es requerido'
+      case 'type':
+        return resolveType(form).length >= 2 ? undefined : 'El tipo de cliente es requerido'
+      case 'text':
+        return form.text.trim().length >= 5 ? undefined : 'El testimonio es muy corto'
+    }
+  })
 
   function flash(msg: string) { setSuccess(msg); setTimeout(() => setSuccess(null), 3000) }
 
@@ -98,6 +115,7 @@ export default function TestimoniosPage() {
     setEditing(null)
     setForm(EMPTY)
     setShowForm(true)
+    v.reset()
     setError(null)
   }
 
@@ -115,6 +133,7 @@ export default function TestimoniosPage() {
       isActive:   t.isActive,
     })
     setShowForm(true)
+    v.reset()
     setError(null)
   }
 
@@ -141,10 +160,7 @@ export default function TestimoniosPage() {
   }
 
   async function handleSave() {
-    const type = resolveType(form)
-    if (form.clientName.trim().length < 2) { setError('El nombre es requerido'); return }
-    if (type.length < 2)                   { setError('El tipo de cliente es requerido'); return }
-    if (form.text.trim().length < 5)       { setError('El testimonio es muy corto'); return }
+    if (Object.keys(v.validateAll()).length > 0) return
 
     setSaving(true)
     setError(null)
@@ -152,7 +168,7 @@ export default function TestimoniosPage() {
     const method = editing ? 'PATCH' : 'POST'
     const body: Record<string, unknown> = {
       clientName: form.clientName.trim(),
-      type,
+      type: resolveType(form),
       text: form.text.trim(),
       stars: form.stars,
       imageUrl: form.imageUrl,
@@ -217,7 +233,7 @@ export default function TestimoniosPage() {
     <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto">
       <div className="mb-6 flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <p className="text-xs text-ink-muted tracking-widest uppercase mb-1">Contenido</p>
+          <p className="text-xs text-ink-muted-deep tracking-widest uppercase mb-1">Contenido</p>
           <h1 className="font-serif text-2xl sm:text-3xl text-ink font-light">Testimonios</h1>
         </div>
         <button onClick={openNew} className="btn-primary text-sm shrink-0">+ Agregar testimonio</button>
@@ -228,7 +244,7 @@ export default function TestimoniosPage() {
         {([['todos', 'Todos'], ['pendientes', 'Pendientes']] as [Tab, string][]).map(([t, label]) => (
           <button key={t} onClick={() => { setTab(t); setError(null) }}
             className={`px-4 py-2.5 text-sm font-medium -mb-px border-b-2 transition-colors ${
-              tab === t ? 'border-gold text-ink' : 'border-transparent text-ink-muted hover:text-ink'
+              tab === t ? 'border-gold text-ink' : 'border-transparent text-ink-muted-deep hover:text-ink'
             }`}>
             {label}
             {t === 'pendientes' && pendientes.length > 0 && (
@@ -240,7 +256,7 @@ export default function TestimoniosPage() {
         ))}
       </div>
 
-      {error   && <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 mb-5">{error}</div>}
+      {error   && <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 mb-5">{error}</div>}
       {success && <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 mb-5">✓ {success}</div>}
 
       {/* Form */}
@@ -250,33 +266,48 @@ export default function TestimoniosPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="form-label">Nombre del cliente *</label>
-              <input type="text" className="input-field" value={form.clientName}
-                onChange={(e) => setForm({ ...form, clientName: e.target.value })}
+              <label htmlFor="t-nombre" className="form-label">Nombre del cliente *</label>
+              <input id="t-nombre" type="text" value={form.clientName}
+                className={`input-field ${v.errorOf('clientName') ? 'border-red-400 focus:ring-red-300' : ''}`}
+                onChange={(e) => { setForm({ ...form, clientName: e.target.value }); v.clearError('clientName') }}
+                onBlur={v.handleBlur('clientName')}
                 placeholder="Ej: Carmen Morales" />
-              <p className="text-xs text-ink-muted/60 mt-1">Las iniciales se generan solas.</p>
+              {v.errorOf('clientName')
+                ? <p className="text-xs text-red-700 mt-0.5">{v.errorOf('clientName')}</p>
+                : <p className="text-xs text-ink-muted-deep mt-1">Las iniciales se generan solas.</p>}
             </div>
 
             <div>
-              <label className="form-label">Tipo de cliente *</label>
-              <select className="select-field" value={form.typeValue}
-                onChange={(e) => setForm({ ...form, typeValue: e.target.value })}>
+              <label htmlFor="t-tipo" className="form-label">Tipo de cliente *</label>
+              <select id="t-tipo" value={form.typeValue}
+                className={`select-field ${v.errorOf('type') ? 'border-red-400 focus:ring-red-300' : ''}`}
+                onChange={(e) => { setForm({ ...form, typeValue: e.target.value }); v.clearError('type') }}
+                onBlur={v.handleBlur('type')}>
                 {TYPE_PRESETS.map((p) => <option key={p} value={p}>{p}</option>)}
                 <option value="__custom__">Personalizado…</option>
               </select>
               {form.typeValue === '__custom__' && (
                 <input type="text" className="input-field mt-2" value={form.typeCustom}
-                  onChange={(e) => setForm({ ...form, typeCustom: e.target.value })}
+                  onChange={(e) => { setForm({ ...form, typeCustom: e.target.value }); v.clearError('type') }}
+                  onBlur={v.handleBlur('type')}
+                  aria-label="Tipo de cliente personalizado"
                   placeholder="Escribe el tipo" />
               )}
+              {v.errorOf('type') && <p className="text-xs text-red-700 mt-0.5">{v.errorOf('type')}</p>}
             </div>
 
             <div className="sm:col-span-2">
-              <label className="form-label">Testimonio *</label>
-              <textarea className="input-field resize-none" rows={3} maxLength={MAX_TEXT}
-                value={form.text} onChange={(e) => setForm({ ...form, text: e.target.value })}
+              <label htmlFor="t-texto" className="form-label">Testimonio *</label>
+              <textarea id="t-texto" rows={3} maxLength={MAX_TEXT}
+                className={`input-field resize-none ${v.errorOf('text') ? 'border-red-400 focus:ring-red-300' : ''}`}
+                value={form.text}
+                onChange={(e) => { setForm({ ...form, text: e.target.value }); v.clearError('text') }}
+                onBlur={v.handleBlur('text')}
                 placeholder="Lo que dijo el cliente…" />
-              <p className="text-xs text-ink-muted/50 mt-1 text-right">{form.text.length}/{MAX_TEXT}</p>
+              <div className="flex justify-between gap-2 mt-1">
+                <p className="text-xs text-red-700">{v.errorOf('text')}</p>
+                <p className="text-xs text-ink-muted-deep text-right shrink-0">{form.text.length}/{MAX_TEXT}</p>
+              </div>
             </div>
 
             <div>
@@ -284,7 +315,7 @@ export default function TestimoniosPage() {
               <div className="flex gap-1">
                 {[1, 2, 3, 4, 5].map((n) => (
                   <button key={n} type="button" onClick={() => setForm({ ...form, stars: n })}
-                    className={`text-2xl leading-none transition-colors ${n <= form.stars ? 'text-gold' : 'text-beige-dark'}`}
+                    className={`text-2xl leading-none transition-colors ${n <= form.stars ? 'text-gold-deep' : 'text-beige-dark'}`}
                     aria-label={`${n} estrellas`}>★</button>
                 ))}
               </div>
@@ -297,7 +328,7 @@ export default function TestimoniosPage() {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={form.imageUrl} alt="" className="w-16 h-16 object-cover rounded-lg border border-beige-dark" />
                   <button type="button" onClick={() => setForm({ ...form, imageUrl: null, imageKey: null })}
-                    className="text-xs text-ink-muted hover:text-red-500">Quitar imagen</button>
+                    className="text-xs text-ink-muted-deep hover:text-red-700">Quitar imagen</button>
                 </div>
               ) : (
                 <label className={`btn-secondary text-sm cursor-pointer inline-block ${uploading ? 'opacity-60 pointer-events-none' : ''}`}>
@@ -312,15 +343,15 @@ export default function TestimoniosPage() {
               <div className="flex items-center gap-2">
                 <input id="t-active" type="checkbox" checked={form.isActive}
                   onChange={(e) => setForm({ ...form, isActive: e.target.checked })} />
-                <label htmlFor="t-active" className="text-sm text-ink-muted">Activo (visible en el sitio)</label>
+                <label htmlFor="t-active" className="text-sm text-ink-muted-deep">Activo (visible en el sitio)</label>
               </div>
             )}
           </div>
 
           <div className="flex gap-3 pt-5">
-            <button onClick={handleSave} disabled={saving || uploading} className="btn-primary">
-              {saving ? 'Guardando…' : 'Guardar'}
-            </button>
+            <SubmitButton onClick={handleSave} loading={saving || uploading} loadingLabel="Guardando…" className="btn-primary">
+              Guardar
+            </SubmitButton>
             <button onClick={() => setShowForm(false)} className="btn-secondary">Cancelar</button>
           </div>
         </div>
@@ -332,7 +363,7 @@ export default function TestimoniosPage() {
           {([['all', 'Todos'], ['active', 'Activos'], ['inactive', 'Inactivos']] as [Filter, string][]).map(([f, label]) => (
             <button key={f} onClick={() => setFilter(f)}
               className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
-                filter === f ? 'border-gold bg-gold-pale text-gold-dark' : 'border-beige-dark text-ink-muted hover:border-gold/50'
+                filter === f ? 'border-gold bg-gold-pale text-gold-deep' : 'border-beige-dark text-ink-muted-deep hover:border-gold/50'
               }`}>{label}</button>
           ))}
         </div>
@@ -341,24 +372,24 @@ export default function TestimoniosPage() {
       {/* List */}
       <div className="bg-white rounded-xl border border-beige-dark overflow-hidden">
         {loading ? (
-          <div className="py-10 text-center text-ink-muted text-sm">Cargando...</div>
+          <div className="py-10 text-center text-ink-muted-deep text-sm">Cargando...</div>
         ) : tab === 'pendientes' ? (
           pendientes.length === 0 ? (
-            <div className="py-10 text-center text-ink-muted text-sm">No hay reseñas pendientes de moderación.</div>
+            <div className="py-10 text-center text-ink-muted-deep text-sm">No hay reseñas pendientes de moderación.</div>
           ) : (
             <div className="divide-y divide-beige-dark">
               {pendientes.map((t) => (
                 <div key={t.id} className="px-4 sm:px-6 py-4">
                   <div className="flex items-start justify-between gap-3 flex-wrap">
                     <div className="min-w-0">
-                      <p className="font-medium text-ink">{t.clientName} <span className="text-ink-muted text-xs">· {t.type}</span></p>
-                      <p className="text-sm text-ink-muted mt-1">&ldquo;{t.text}&rdquo;</p>
-                      <p className="text-gold text-xs mt-1">{'★'.repeat(t.stars)}</p>
+                      <p className="font-medium text-ink">{t.clientName} <span className="text-ink-muted-deep text-xs">· {t.type}</span></p>
+                      <p className="text-sm text-ink-muted-deep mt-1">&ldquo;{t.text}&rdquo;</p>
+                      <p className="text-gold-deep text-xs mt-1">{'★'.repeat(t.stars)}</p>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
-                      <button onClick={() => approve(t)} className="btn-row-action text-xs text-green-600 hover:text-green-700">Aprobar</button>
-                      <button onClick={() => reject(t)} className="btn-row-action text-xs text-ink-muted hover:text-red-500">Rechazar</button>
-                      <button onClick={() => openEdit(t)} className="btn-row-action text-xs text-ink-muted hover:text-gold">Editar</button>
+                      <button onClick={() => approve(t)} className="btn-row-action text-xs text-green-700 hover:text-green-700">Aprobar</button>
+                      <button onClick={() => reject(t)} className="btn-row-action text-xs text-ink-muted-deep hover:text-red-700">Rechazar</button>
+                      <button onClick={() => openEdit(t)} className="btn-row-action text-xs text-ink-muted-deep hover:text-gold-deep">Editar</button>
                     </div>
                   </div>
                 </div>
@@ -366,7 +397,7 @@ export default function TestimoniosPage() {
             </div>
           )
         ) : todos.length === 0 ? (
-          <div className="py-10 text-center text-ink-muted text-sm">No hay testimonios aún. Agrega el primero.</div>
+          <div className="py-10 text-center text-ink-muted-deep text-sm">No hay testimonios aún. Agrega el primero.</div>
         ) : (
           <div className="divide-y divide-beige-dark">
             {[...todos].sort((a, b) => a.order - b.order).map((t, idx, arr) => (
@@ -376,30 +407,30 @@ export default function TestimoniosPage() {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={t.imageUrl} alt="" className="w-12 h-12 object-cover rounded-lg border border-beige-dark shrink-0" />
                   ) : (
-                    <span className="w-12 h-12 rounded-lg bg-gold-pale text-gold-dark flex items-center justify-center font-serif text-sm shrink-0">{t.initials}</span>
+                    <span className="w-12 h-12 rounded-lg bg-gold-pale text-gold-deep flex items-center justify-center font-serif text-sm shrink-0">{t.initials}</span>
                   )}
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-medium text-ink truncate">{t.clientName}</p>
-                      <span className="text-[10px] tracking-widest uppercase bg-gold-pale text-gold-dark px-2 py-0.5 rounded-full">{t.type}</span>
+                      <span className="text-[10px] tracking-widest uppercase bg-gold-pale text-gold-deep px-2 py-0.5 rounded-full">{t.type}</span>
                       <span className={`text-[10px] tracking-widest uppercase px-2 py-0.5 rounded-full ${STATUS_BADGE[t.status]}`}>{STATUS_LABEL[t.status]}</span>
                       {t.source === 'CLIENT' && <span className="text-[10px] tracking-widest uppercase bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">Cliente</span>}
                     </div>
-                    <p className="text-xs text-ink-muted mt-0.5 truncate">{t.text.slice(0, 60)}{t.text.length > 60 ? '…' : ''} · {'★'.repeat(t.stars)}</p>
+                    <p className="text-xs text-ink-muted-deep mt-0.5 truncate">{t.text.slice(0, 60)}{t.text.length > 60 ? '…' : ''} · {'★'.repeat(t.stars)}</p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-3 sm:gap-4 shrink-0">
                   <div className="flex flex-col">
-                    <button disabled={idx === 0} onClick={() => move(t, -1)} className="text-xs text-ink-muted hover:text-gold disabled:opacity-20 leading-none">↑</button>
-                    <button disabled={idx === arr.length - 1} onClick={() => move(t, 1)} className="text-xs text-ink-muted hover:text-gold disabled:opacity-20 leading-none">↓</button>
+                    <button disabled={idx === 0} onClick={() => move(t, -1)} className="text-xs text-ink-muted-deep hover:text-gold-deep disabled:opacity-20 leading-none">↑</button>
+                    <button disabled={idx === arr.length - 1} onClick={() => move(t, 1)} className="text-xs text-ink-muted-deep hover:text-gold-deep disabled:opacity-20 leading-none">↓</button>
                   </div>
-                  <button onClick={() => openEdit(t)} className="btn-row-action text-xs text-ink-muted hover:text-gold">Editar</button>
+                  <button onClick={() => openEdit(t)} className="btn-row-action text-xs text-ink-muted-deep hover:text-gold-deep">Editar</button>
                   <button onClick={() => toggleActive(t)}
-                    className={`btn-row-action text-xs ${t.isActive ? 'text-ink-muted hover:text-amber-600' : 'text-green-600 hover:text-green-700'}`}>
+                    className={`btn-row-action text-xs ${t.isActive ? 'text-ink-muted-deep hover:text-amber-600' : 'text-green-700 hover:text-green-700'}`}>
                     {t.isActive ? 'Desactivar' : 'Activar'}
                   </button>
-                  <button onClick={() => handleDelete(t)} className="btn-row-action text-xs text-ink-muted hover:text-red-500">Eliminar</button>
+                  <button onClick={() => handleDelete(t)} className="btn-row-action text-xs text-ink-muted-deep hover:text-red-700">Eliminar</button>
                 </div>
               </div>
             ))}

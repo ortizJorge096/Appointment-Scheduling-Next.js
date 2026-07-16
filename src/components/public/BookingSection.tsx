@@ -54,7 +54,7 @@ export default async function BookingSection() {
                 </div>
                 <div>
                   <p className="text-white text-sm font-medium">{s.title}</p>
-                  <p className="text-white/40 text-xs mt-0.5">{s.desc}</p>
+                  <p className="text-white/55 text-xs mt-0.5">{s.desc}</p>
                 </div>
               </div>
             ))}
@@ -73,7 +73,7 @@ export default async function BookingSection() {
               'Atención personalizada y sin prisa',
             ].map((text) => (
               <div key={text} className="flex items-center gap-3 text-sm text-ink-muted">
-                <span className="text-gold text-xs">✦</span>
+                <span aria-hidden="true" className="text-gold-deep text-xs">✦</span>
                 {text}
               </div>
             ))}

@@ -5,6 +5,7 @@
 import { Resend } from 'resend'
 import { STUDIO, WHATSAPP_URL, INSTAGRAM_URL } from './config'
 import { audit } from './audit'
+import { formatPrice } from './utils'
 import type { AppointmentWithService } from '../types'
 
 // ─────────────────────────────────────────────────────────────
@@ -38,12 +39,6 @@ function formatDate(date: string | Date, startTime: string): string {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
     timeZone: 'America/Bogota',
   })} a las ${startTime}`
-}
-
-function formatPrice(price: number): string {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency', currency: 'COP', minimumFractionDigits: 0,
-  }).format(price)
 }
 
 // ─── Base template ────────────────────────────────────────────

@@ -29,10 +29,10 @@ export default function DescuentoEditor({
         <span className="form-label !mb-0">Descuento</span>
         {open ? (
           <button type="button" onClick={onRemove}
-            className="text-xs text-ink-muted hover:text-red-500 transition-colors">− Quitar descuento</button>
+            className="text-xs text-ink-muted-deep hover:text-red-700 transition-colors">− Quitar descuento</button>
         ) : (
           <button type="button" onClick={onAdd}
-            className="text-xs text-gold hover:underline">+ Agregar descuento</button>
+            className="text-xs text-gold-deep hover:underline">+ Agregar descuento</button>
         )}
       </div>
 
@@ -44,7 +44,7 @@ export default function DescuentoEditor({
               {(['PORCENTAJE', 'VALOR_FIJO'] as const).map((t) => (
                 <button key={t} type="button" onClick={() => onChange({ tipo: t })}
                   className={`px-3 py-2 text-sm transition-colors ${
-                    tipo === t ? 'bg-gold text-white' : 'bg-white text-ink-muted hover:text-ink'
+                    tipo === t ? 'bg-gold text-ink' : 'bg-white text-ink-muted-deep hover:text-ink'
                   }`}>
                   {t === 'PORCENTAJE' ? '%' : '$'}
                 </button>
@@ -59,7 +59,7 @@ export default function DescuentoEditor({
           <input className="input-field w-full mt-2" value={motivo}
             onChange={(e) => onChange({ motivo: e.target.value })}
             placeholder="Motivo del descuento (interno, opcional)…" />
-          {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+          {error && <p className="text-xs text-red-700 mt-1">{error}</p>}
         </div>
       </div>
     </div>

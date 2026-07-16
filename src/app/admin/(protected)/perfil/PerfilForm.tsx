@@ -8,6 +8,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { PasswordInput } from '@/components/ui/PasswordInput'
+import { SubmitButton } from '@/components/ui/SubmitButton'
 
 const EMPTY = { currentPassword: '', newPassword: '', confirmPassword: '' }
 
@@ -66,7 +67,7 @@ export default function PerfilForm() {
         <label className="form-label">Nueva contraseña</label>
         <PasswordInput value={form.newPassword} onChange={field('newPassword')}
           autoComplete="new-password" className="input-field w-full" />
-        <p className="text-[11px] text-ink-muted mt-1">Mínimo 8 caracteres, una mayúscula y un número.</p>
+        <p className="text-[11px] text-ink-muted-deep mt-1">Mínimo 8 caracteres, una mayúscula y un número.</p>
       </div>
       <div>
         <label className="form-label">Confirmar nueva contraseña</label>
@@ -74,12 +75,12 @@ export default function PerfilForm() {
           autoComplete="new-password" className="input-field w-full" />
       </div>
 
-      {error   && <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-3 py-2 rounded-lg">{error}</div>}
+      {error   && <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2 rounded-lg">{error}</div>}
       {success && <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-3 py-2 rounded-lg">{success}</div>}
 
-      <button type="submit" disabled={saving} className="btn-primary w-full disabled:opacity-50">
-        {saving ? 'Guardando…' : 'Cambiar contraseña'}
-      </button>
+      <SubmitButton type="submit" loading={saving} loadingLabel="Guardando…" className="btn-primary w-full disabled:opacity-50">
+        Cambiar contraseña
+      </SubmitButton>
     </form>
   )
 }

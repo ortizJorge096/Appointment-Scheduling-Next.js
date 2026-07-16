@@ -11,7 +11,7 @@ const paddings = { sm: 'p-4', md: 'p-6', lg: 'p-8 lg:p-10' }
 
 export function Card({ children, className, padding = 'md' }: CardProps) {
   return (
-    <div className={cn('bg-white border border-beige-dark rounded-2xl shadow-sm', paddings[padding], className)}>
+    <div className={cn('bg-white border border-beige-dark rounded-xl shadow-sm', paddings[padding], className)}>
       {children}
     </div>
   )
@@ -20,7 +20,7 @@ export function Card({ children, className, padding = 'md' }: CardProps) {
 // Dark card for sections on dark background
 export function DarkCard({ children, className }: Omit<CardProps, 'padding'>) {
   return (
-    <div className={cn('bg-white/[0.04] border border-white/10 rounded-2xl p-6', className)}>
+    <div className={cn('bg-white/[0.04] border border-white/10 rounded-xl p-6', className)}>
       {children}
     </div>
   )
@@ -42,8 +42,10 @@ export function StatCard({ label, value, accent = false, hint, className }: Stat
       accent ? 'border-gold' : 'border-beige-dark',
       className
     )}>
-      <p className="text-[11px] text-ink-muted tracking-widest uppercase mb-2 font-medium">{label}</p>
-      <p className={cn('font-serif text-3xl font-light leading-none', accent ? 'text-gold' : 'text-ink')}>
+      <p className="text-[11px] text-ink-muted-deep tracking-widest uppercase mb-2 font-medium">{label}</p>
+      {/* gold-dark, not gold: this is large text on white, where brand gold is
+          2.9:1 and misses even the 3:1 large-text floor. */}
+      <p className={cn('font-serif text-3xl font-light leading-none', accent ? 'text-gold-dark' : 'text-ink')}>
         {value}
       </p>
       {hint && <div className="text-[11px] mt-2">{hint}</div>}

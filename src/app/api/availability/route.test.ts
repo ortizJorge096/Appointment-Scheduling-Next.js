@@ -39,8 +39,11 @@ describe('GET /api/availability', () => {
     expect(res.status).toBe(400)
   })
 
-  it('returns 400 for invalid serviceId (not a cuid)', async () => {
-    const res = await GET(makeRequest({ date: '2026-12-01', serviceId: 'not-a-cuid' }))
+  // The schema validates presence, not id encoding — a non-existent id is the
+  // DB's job, and pinning the format rejected real uuid rows (see the categories
+  // fix). An empty serviceId is what a caller can actually get wrong.
+  it('returns 400 for an empty serviceId', async () => {
+    const res = await GET(makeRequest({ date: '2026-12-01', serviceId: '' }))
     expect(res.status).toBe(400)
   })
 

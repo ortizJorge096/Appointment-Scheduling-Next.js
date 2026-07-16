@@ -1,91 +1,27 @@
-'use client'
 // src/app/admin/login/page.tsx
-import { useState } from 'react'
-import { signIn } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { PasswordInput } from '@/components/ui/PasswordInput'
+// Server shell: bounces an already signed-in admin to the dashboard, and only
+// then renders the credentials form. Same server-page + client-form split the
+// rest of the admin uses (perfil, clientes), and it keeps the session check on
+// the server — a client-side check would flash the form before redirecting.
+//
+// Deliberately not middleware: authorization in this app lives per page
+// (requirePermission) and per API route (getCurrentAdmin). A middleware would
+// add a second, parallel place to get it wrong.
 
-export default function LoginPage() {
-  const router = useRouter()
-  const [email,    setEmail]    = useState('')
-  const [password, setPassword] = useState('')
-  const [error,    setError]    = useState<string | null>(null)
-  const [loading,  setLoading]  = useState(false)
+import type { Metadata } from 'next'
+import { getServerSession } from 'next-auth'
+import { redirect } from 'next/navigation'
+import { authOptions } from '@/lib/auth'
+import LoginForm from './LoginForm'
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setLoading(true); setError(null)
-    const result = await signIn('credentials', { email, password, redirect: false })
-    if (result?.error) { setError('Email o contraseña incorrectos.'); setLoading(false); return }
-    router.push('/admin')
-    router.refresh()
-  }
+export const metadata: Metadata = { title: 'Ingresar' }
+export const dynamic = 'force-dynamic'
 
-  return (
-    <main className="min-h-screen bg-ink flex items-center justify-center px-6">
+export default async function LoginPage() {
+  // Showing a login form to someone already signed in is a dead end: it invites
+  // re-authenticating as another user without an explicit sign-out.
+  const session = await getServerSession(authOptions)
+  if (session) redirect('/admin')
 
-      {/* Decoration */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
-                        w-[600px] h-[600px] rounded-full opacity-5"
-          style={{ background: 'radial-gradient(circle, #D4AD5A 0%, transparent 70%)' }} />
-      </div>
-
-      <div className="relative w-full max-w-sm">
-        {/* Logo */}
-        <div className="text-center mb-10">
-          <p className="logo-script text-gold text-4xl leading-none">
-            Valentina Jimenez
-          </p>
-          <p className="logo-studio text-white/70 text-[0.6rem] mt-1">Beauty Studio</p>
-          <p className="text-white/20 text-xs mt-3 tracking-widest uppercase">Panel de administración</p>
-        </div>
-
-        {/* Gold separator */}
-        <div className="flex items-center gap-3 mb-8">
-          <div className="flex-1 h-px bg-white/10" />
-          <div className="w-1.5 h-1.5 bg-gold rotate-45" />
-          <div className="flex-1 h-px bg-white/10" />
-        </div>
-
-        {/* Card */}
-        <div className="border border-white/10 p-8">
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm px-4 py-3 mb-5">
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs text-white/30 uppercase tracking-widest mb-2">Email</label>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                required autoComplete="email" className="input-dark"
-                placeholder="admin@vjbeautystudio.com" />
-            </div>
-            <div>
-              <label className="block text-xs text-white/30 uppercase tracking-widest mb-2">Contraseña</label>
-              <PasswordInput value={password} onChange={(e) => setPassword(e.target.value)}
-                required autoComplete="current-password" className="input-dark"
-                iconClassName="text-white/40 hover:text-white/80"
-                placeholder="••••••••" />
-            </div>
-            <button type="submit" disabled={loading}
-              className="w-full bg-gold text-ink py-3 text-xs font-medium
-                         tracking-widest uppercase mt-2 transition-all duration-200
-                         hover:bg-gold-dark disabled:opacity-60">
-              {loading ? 'Ingresando...' : 'Ingresar'}
-            </button>
-          </form>
-        </div>
-
-        <p className="text-center mt-6">
-          <Link href="/" className="text-xs text-white/20 hover:text-white/50 transition-colors">
-            ← Volver al sitio
-          </Link>
-        </p>
-      </div>
-    </main>
-  )
+  return <LoginForm />
 }

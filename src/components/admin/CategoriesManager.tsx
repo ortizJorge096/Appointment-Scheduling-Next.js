@@ -8,6 +8,8 @@ import { useState } from 'react'
 import { ICON_LABELS } from '@/lib/config'
 import { Icon } from '@/components/public/ServiceIcons'
 import { IconPicker } from '@/components/admin/IconPicker'
+import { useFieldValidation } from '@/hooks/useFieldValidation'
+import { SubmitButton } from '@/components/ui/SubmitButton'
 
 export interface AdminCategory {
   id: string
@@ -27,6 +29,9 @@ interface FormState {
   order: number
 }
 
+// Validated on blur and on submit. Module-level so the hook keeps a stable ref.
+const CAT_FIELDS = ['name'] as const
+
 const EMPTY: FormState = { name: '', description: '', icon: 'promo', order: 0 }
 
 export default function CategoriesManager({
@@ -42,13 +47,19 @@ export default function CategoriesManager({
 }) {
   const [editing, setEditing] = useState<AdminCategory | null>(null)
   const [showForm, setShowForm] = useState(false)
+
   const [form, setForm] = useState<FormState>(EMPTY)
   const [saving, setSaving] = useState(false)
+
+  const v = useFieldValidation(CAT_FIELDS, (k) =>
+    k === 'name' && form.name.trim().length < 2 ? 'El nombre debe tener al menos 2 caracteres' : undefined
+  )
 
   function openNew() {
     setEditing(null)
     setForm({ ...EMPTY, order: (categories.at(-1)?.order ?? 0) + 1 })
     setShowForm(true)
+    v.reset()
     onError(null)
   }
 
@@ -56,11 +67,12 @@ export default function CategoriesManager({
     setEditing(cat)
     setForm({ name: cat.name, description: cat.description ?? '', icon: cat.icon, order: cat.order })
     setShowForm(true)
+    v.reset()
     onError(null)
   }
 
   async function handleSave() {
-    if (form.name.trim().length < 2) { onError('El nombre debe tener al menos 2 caracteres'); return }
+    if (Object.keys(v.validateAll()).length > 0) return
 
     setSaving(true)
     onError(null)
@@ -129,11 +141,14 @@ export default function CategoriesManager({
 
           <div className="grid grid-cols-1 gap-4 mb-4">
             <div>
-              <label className="form-label">Nombre *</label>
-              <input type="text" className="input-field"
+              <label htmlFor="cat-nombre" className="form-label">Nombre *</label>
+              <input id="cat-nombre" type="text"
+                className={`input-field ${v.errorOf('name') ? 'border-red-400 focus:ring-red-300' : ''}`}
                 value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                onChange={(e) => { setForm({ ...form, name: e.target.value }); v.clearError('name') }}
+                onBlur={v.handleBlur('name')}
                 placeholder="Ej: Uñas" />
+              {v.errorOf('name') && <p className="text-xs text-red-700 mt-0.5">{v.errorOf('name')}</p>}
             </div>
 
             <div>
@@ -158,9 +173,9 @@ export default function CategoriesManager({
           </div>
 
           <div className="flex gap-3 pt-2">
-            <button onClick={handleSave} disabled={saving} className="btn-primary">
-              {saving ? 'Guardando...' : 'Guardar'}
-            </button>
+            <SubmitButton onClick={handleSave} loading={saving} loadingLabel="Guardando…" className="btn-primary">
+              Guardar
+            </SubmitButton>
             <button onClick={() => setShowForm(false)} className="btn-secondary">Cancelar</button>
           </div>
         </div>
@@ -169,7 +184,7 @@ export default function CategoriesManager({
       {/* List */}
       <div className="bg-white rounded-xl border border-beige-dark overflow-hidden">
         {categories.length === 0 ? (
-          <div className="py-10 text-center text-ink-muted text-sm">
+          <div className="py-10 text-center text-ink-muted-deep text-sm">
             No hay categorías aún. Crea la primera.
           </div>
         ) : (
@@ -178,31 +193,31 @@ export default function CategoriesManager({
               <div key={cat.id}
                 className={`flex items-center justify-between px-4 sm:px-6 py-4 transition-opacity ${cat.isActive ? '' : 'opacity-50'}`}>
                 <div className="flex items-center gap-3 min-w-0 mr-4">
-                  <span className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gold-pale text-gold-dark shrink-0">
+                  <span className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gold-pale text-gold-deep shrink-0">
                     <Icon name={cat.icon} className="w-5 h-5" />
                   </span>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-medium text-ink">{cat.name}</p>
                       {!cat.isActive && (
-                        <span className="text-[10px] tracking-widest uppercase bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full">Inactiva</span>
+                        <span className="text-[10px] tracking-widest uppercase bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">Inactiva</span>
                       )}
                     </div>
-                    {cat.description && <p className="text-xs text-ink-muted mt-0.5 truncate">{cat.description}</p>}
+                    {cat.description && <p className="text-xs text-ink-muted-deep mt-0.5 truncate">{cat.description}</p>}
                   </div>
                 </div>
 
                 <div className="flex items-center gap-4 sm:gap-5 shrink-0">
-                  <span className="text-xs text-ink-muted whitespace-nowrap">
+                  <span className="text-xs text-ink-muted-deep whitespace-nowrap">
                     {cat._count.services} servicio{cat._count.services === 1 ? '' : 's'}
                   </span>
-                  <button onClick={() => openEdit(cat)} className="btn-row-action text-xs text-ink-muted hover:text-gold">Editar</button>
+                  <button onClick={() => openEdit(cat)} className="btn-row-action text-xs text-ink-muted-deep hover:text-gold-deep">Editar</button>
                   <button onClick={() => toggleActive(cat)}
-                    className={`btn-row-action text-xs ${cat.isActive ? 'text-ink-muted hover:text-amber-600' : 'text-green-600 hover:text-green-700'}`}>
+                    className={`btn-row-action text-xs ${cat.isActive ? 'text-ink-muted-deep hover:text-amber-600' : 'text-green-700 hover:text-green-700'}`}>
                     {cat.isActive ? 'Desactivar' : 'Activar'}
                   </button>
                   <button onClick={() => handleDelete(cat)}
-                    className={`btn-row-action text-xs ${cat._count.services > 0 ? 'text-gray-300 cursor-not-allowed' : 'text-ink-muted hover:text-red-500'}`}
+                    className={`btn-row-action text-xs ${cat._count.services > 0 ? 'text-gray-300 cursor-not-allowed' : 'text-ink-muted-deep hover:text-red-700'}`}
                     title={cat._count.services > 0 ? 'Tiene servicios asociados' : 'Eliminar'}>
                     Eliminar
                   </button>

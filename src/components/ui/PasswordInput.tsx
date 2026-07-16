@@ -14,7 +14,7 @@ type PasswordInputProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, 'typ
 
 export function PasswordInput({
   className = '',
-  iconClassName = 'text-ink-muted hover:text-ink',
+  iconClassName = 'text-ink-muted-deep hover:text-ink',
   ...props
 }: PasswordInputProps) {
   const [show, setShow] = useState(false)

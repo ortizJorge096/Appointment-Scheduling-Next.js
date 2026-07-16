@@ -5,6 +5,7 @@ import { getCurrentAdmin } from '@/lib/authz'
 import { hasPermission } from '@/lib/permissions'
 import { prisma } from '@/lib/prisma'
 import UsuariosClient from './UsuariosClient'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 export const metadata: Metadata = { title: 'Usuarios' }
 export const dynamic = 'force-dynamic'
@@ -22,10 +23,7 @@ export default async function UsuariosPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto">
-      <div className="mb-6">
-        <p className="text-xs text-ink-muted tracking-widest uppercase mb-1">Configuración</p>
-        <h1 className="font-serif text-2xl sm:text-3xl text-ink font-light">Usuarios</h1>
-      </div>
+      <PageHeader className="mb-6" eyebrow="Configuración" title="Usuarios" />
       {/* Serialize Date → ISO string so it matches the /api/users response shape. */}
       <UsuariosClient initialUsers={JSON.parse(JSON.stringify(users))} currentAdminId={admin.id} />
     </div>

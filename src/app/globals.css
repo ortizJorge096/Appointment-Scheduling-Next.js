@@ -4,17 +4,27 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Mirror of the `colors` scale in tailwind.config.ts, for the places Tailwind
+   classes cannot reach: inline style={{}} gradients and CSS keyframes.
+   Two sources for one palette is a known cost — they had already drifted
+   (beige-deeper and ink-muted-deep existed only in the config, so var() on them
+   failed silently). Keep them in sync, or fold one into the other.
+   Not covered here: lib/email.ts. Email clients ignore var(), so its hex are
+   required, not drift — which is most of the palette's raw hex in this repo. */
 :root {
-  --gold:        #B8932A;
-  --gold-light:  #D4AD5A;
-  --gold-pale:   #F5EDDA;
-  --gold-dark:   #8A6E1E;
-  --beige:       #F2EBD9;
-  --beige-dark:  #E8DCC4;
-  --ink:         #1A1209;
-  --ink-soft:    #2A2014;
-  --ink-mid:     #4A4035;
-  --ink-muted:   #7A7060;
+  --gold:            #B8932A;
+  --gold-light:      #D4AD5A;
+  --gold-pale:       #F5EDDA;
+  --gold-dark:       #8A6E1E;
+  --gold-deep:       #7A611A;
+  --beige:           #F2EBD9;
+  --beige-dark:      #E8DCC4;
+  --beige-deeper:    #D9CCAF;
+  --ink:             #1A1209;
+  --ink-soft:        #2A2014;
+  --ink-mid:         #4A4035;
+  --ink-muted:       #7A7060;
+  --ink-muted-deep:  #6E6656;
 }
 
 @layer base {
@@ -26,11 +36,33 @@
 
 @layer components {
 
+  /* ── Focus ──
+     Inputs ship their own gold ring; buttons had nothing and fell back to the
+     browser's default outline, which is inconsistent across browsers and nearly
+     invisible on .btn-primary's gold or .btn-cta's gradient. This matters more
+     since Modal and ConfirmDialog trap Tab: holding someone inside a dialog
+     where the buttons never show where they are is worse than not trapping.
+     focus-visible, not focus — the ring is for keyboard users, not mouse clicks. */
+  .btn-primary, .btn-secondary, .btn-outline-gold, .btn-outline-gold-on-light,
+  .btn-ghost, .btn-cta, .btn-row-action {
+    @apply focus-visible:outline-none focus-visible:ring-2
+           focus-visible:ring-gold-deep focus-visible:ring-offset-2
+           focus-visible:ring-offset-beige;
+  }
+  /* On ink the offset must match the surface, or the ring floats on a beige halo. */
+  .btn-outline-gold {
+    @apply focus-visible:ring-gold focus-visible:ring-offset-ink;
+  }
+
   /* ── Buttons ── */
+  /* Ink on gold, not white: white on gold is 2.9:1 and fails AA at this size.
+     Ink reads 6.39:1, and .btn-cta already pairs ink with gold. Hover lifts to
+     gold-light (8.75:1) rather than darkening to gold-dark, which would pull
+     ink back down to 3.8:1. */
   .btn-primary {
-    @apply bg-gold text-white rounded-full px-8 py-3.5 text-xs font-medium
+    @apply bg-gold text-ink rounded-full px-8 py-3.5 text-xs font-medium
            tracking-widest uppercase transition-all duration-200 shadow-sm
-           hover:bg-gold-dark hover:-translate-y-0.5
+           hover:bg-gold-light hover:-translate-y-0.5
            disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-secondary {
@@ -39,13 +71,24 @@
            transition-all duration-200 hover:bg-ink hover:text-white
            disabled:opacity-50 disabled:cursor-not-allowed;
   }
+  /* Gold is semantic by surface, so the outline button ships in two variants.
+     Base = dark surfaces (Hero), where brand gold reads 6.39:1 on ink. The
+     filled hover switches the label to ink (6.39:1); white on gold is 2.9:1. */
   .btn-outline-gold {
     @apply bg-transparent text-gold border border-gold rounded-full
            px-8 py-3.5 text-xs font-medium tracking-widest uppercase
-           transition-all duration-200 hover:bg-gold hover:text-white;
+           transition-all duration-200 hover:bg-gold hover:text-ink;
+  }
+  /* Light surfaces: brand gold drops to 2.44:1 on beige for both the label and
+     the border, which needs 3:1 as a control boundary. gold-deep clears both at
+     4.97:1, and the filled hover keeps white legible at 5.91:1. */
+  .btn-outline-gold-on-light {
+    @apply bg-transparent text-gold-deep border border-gold-deep rounded-full
+           px-8 py-3.5 text-xs font-medium tracking-widest uppercase
+           transition-all duration-200 hover:bg-gold-deep hover:text-white;
   }
   .btn-ghost {
-    @apply bg-transparent text-ink-muted rounded-full px-4 py-2 text-sm
+    @apply bg-transparent text-ink-muted-deep rounded-full px-4 py-2 text-sm
            transition-colors duration-150
            hover:bg-beige-dark hover:text-ink;
   }
@@ -62,17 +105,23 @@
      routing the zoom can persist across navigations — looks like an unrelated
      layout bug on other pages. 16px+ disables that zoom. Reverts to text-sm
      at sm+ where it doesn't apply. */
+  /* border-ink-muted, not beige-dark: beige-dark is 1.36:1 on white and 1.14:1
+     on beige — a field you can't see once the placeholder is gone. Inputs sit on
+     both surfaces, and only ink-muted (4.87 / 4.09) clears 3:1 on both. Defined
+     fields beat a soft-but-invisible border. */
   .input-field {
-    @apply w-full bg-white border border-beige-dark text-ink rounded-lg
+    @apply w-full bg-white border border-ink-muted text-ink rounded-lg
            px-4 py-3 text-base sm:text-sm font-sans
-           placeholder:text-ink-muted/50
+           placeholder:text-ink-muted
            focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/15
            transition-all duration-150
            disabled:bg-beige disabled:cursor-not-allowed;
   }
+  /* border-white/35 (3.21:1 on ink), not /10 (1.31): same reason as input-field,
+     on the dark login surface. */
   .input-dark {
-    @apply w-full bg-white/5 border border-white/10 text-white rounded-lg
-           px-4 py-3 text-base sm:text-sm font-sans placeholder:text-white/30
+    @apply w-full bg-white/5 border border-white/35 text-white rounded-lg
+           px-4 py-3 text-base sm:text-sm font-sans placeholder:text-white/55
            focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20
            transition-all duration-150;
   }
@@ -83,20 +132,24 @@
     background-position: right 1rem center;
     padding-right: 2.5rem;
   }
+  /* muted-deep: labels sit on beige as often as on white, and ink-muted only
+     clears AA on white (4.85 vs 4.09). */
   .form-label {
-    @apply block text-xs font-medium tracking-widest uppercase text-ink-muted mb-2;
+    @apply block text-xs font-medium tracking-widest uppercase text-ink-muted-deep mb-2;
   }
 
   /* ── Badges ── */
   .badge-pending   { @apply bg-amber-50   text-amber-700   text-xs px-3 py-1 font-medium rounded-full; }
   .badge-confirmed { @apply bg-emerald-50 text-emerald-700 text-xs px-3 py-1 font-medium rounded-full; }
   .badge-completed { @apply bg-blue-50    text-blue-700    text-xs px-3 py-1 font-medium rounded-full; }
-  .badge-cancelled { @apply bg-red-50     text-red-600     text-xs px-3 py-1 font-medium rounded-full; }
-  .badge-no_show   { @apply bg-gray-100   text-gray-500    text-xs px-3 py-1 font-medium rounded-full; }
+  .badge-cancelled { @apply bg-red-50     text-red-700     text-xs px-3 py-1 font-medium rounded-full; }
+  .badge-no_show   { @apply bg-gray-100   text-gray-600    text-xs px-3 py-1 font-medium rounded-full; }
 
   /* ── Decorative ── */
+  /* Small uppercase eyebrow on light surfaces → gold-deep (4.97:1). The rule
+     before it is decorative, so it keeps the brand gold. */
   .section-tag {
-    @apply text-xs font-medium tracking-widest uppercase text-gold
+    @apply text-xs font-medium tracking-widest uppercase text-gold-deep
            flex items-center gap-2
            before:content-[''] before:block before:w-5 before:h-px before:bg-gold;
   }
@@ -158,7 +211,7 @@
   /* Centered eyebrow with lines on both sides (section headings) */
   .eyebrow-center {
     @apply inline-flex items-center gap-3 text-xs font-medium tracking-[0.28em]
-           uppercase text-gold-dark
+           uppercase text-gold-deep
            before:content-[''] before:block before:w-8 before:h-px before:bg-gold/50
            after:content-[''] after:block after:w-8 after:h-px after:bg-gold/50;
   }
