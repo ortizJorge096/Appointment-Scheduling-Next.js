@@ -12,6 +12,7 @@ import { Icon } from '@/components/public/ServiceIcons'
 import CategoriesManager, { type AdminCategory } from '@/components/admin/CategoriesManager'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { usePermissionGuard, useCan } from '@/components/admin/usePermissionGuard'
+import { useFieldValidation } from '@/hooks/useFieldValidation'
 
 const PER_PAGE = 8
 
@@ -42,6 +43,10 @@ const EMPTY_SERVICE: ServiceForm = {
   name: '', description: '', categoryId: '', price: 0, durationMinutes: 45, order: 0,
 }
 
+// Validated on blur and on submit, in display order. Module-level so the hook
+// keeps a stable reference.
+const SERVICE_FIELDS = ['name', 'categoryId', 'price', 'durationMinutes'] as const
+
 export default function ServiciosPage() {
   usePermissionGuard('servicios:ver')
   const can = useCan()
@@ -57,6 +62,19 @@ export default function ServiciosPage() {
   const [editing, setEditing]   = useState<Service | null>(null) // null = new
   const [showForm, setShowForm] = useState(false)
   const [form, setForm]         = useState<ServiceForm>(EMPTY_SERVICE)
+
+  const v = useFieldValidation(SERVICE_FIELDS, (k) => {
+    switch (k) {
+      case 'name':
+        return form.name.trim() ? undefined : 'El nombre es requerido'
+      case 'categoryId':
+        return form.categoryId ? undefined : 'Selecciona una categoría'
+      case 'price':
+        return form.price > 0 ? undefined : 'El precio debe ser mayor a 0'
+      case 'durationMinutes':
+        return form.durationMinutes >= 15 ? undefined : 'La duración mínima es 15 minutos'
+    }
+  })
   const [page, setPage]         = useState(1)
   const [search, setSearch]     = useState('')
 
@@ -113,6 +131,7 @@ export default function ServiciosPage() {
     })
     setShowForm(true)
     setError(null)
+    v.reset()
   }
 
   function openEdit(svc: Service) {
@@ -127,12 +146,14 @@ export default function ServiciosPage() {
     })
     setShowForm(true)
     setError(null)
+    v.reset()
   }
 
   async function handleSave() {
-    if (!form.name.trim())   { setError('El nombre es requerido'); return }
-    if (!form.categoryId)    { setError('La categoría es requerida'); return }
-    if (form.price <= 0)     { setError('El precio debe ser mayor a 0'); return }
+    // Errors land on the field that caused them, not in a banner at the top of
+    // a six-field form where you have to work out which one it meant.
+    const errs = v.validateAll()
+    if (Object.keys(errs).length > 0) return
 
     setSaving(true)
     setError(null)
@@ -281,11 +302,14 @@ export default function ServiciosPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 <div className="sm:col-span-2">
-                  <label className="form-label">Nombre *</label>
-                  <input type="text" className="input-field"
+                  <label htmlFor="svc-nombre" className="form-label">Nombre *</label>
+                  <input id="svc-nombre" type="text"
+                    className={`input-field ${v.errorOf('name') ? 'border-red-400 focus:ring-red-300' : ''}`}
                     value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    onChange={(e) => { setForm({ ...form, name: e.target.value }); v.clearError('name') }}
+                    onBlur={v.handleBlur('name')}
                     placeholder="Ej: Manicure en gel" />
+                  {v.errorOf('name') && <p className="text-xs text-red-700 mt-0.5">{v.errorOf('name')}</p>}
                 </div>
 
                 <div className="sm:col-span-2">
@@ -297,31 +321,40 @@ export default function ServiciosPage() {
                 </div>
 
                 <div className="sm:col-span-2">
-                  <label className="form-label">Categoría *</label>
-                  <select className="select-field"
+                  <label htmlFor="svc-categoria" className="form-label">Categoría *</label>
+                  <select id="svc-categoria"
+                    className={`select-field ${v.errorOf('categoryId') ? 'border-red-400 focus:ring-red-300' : ''}`}
                     value={form.categoryId}
-                    onChange={(e) => setForm({ ...form, categoryId: e.target.value })}>
+                    onChange={(e) => { setForm({ ...form, categoryId: e.target.value }); v.clearError('categoryId') }}
+                    onBlur={v.handleBlur('categoryId')}>
                     <option value="" disabled>Selecciona una categoría</option>
                     {categories.map((cat) => (
                       <option key={cat.id} value={cat.id}>{cat.name}{cat.isActive ? '' : ' (inactiva)'}</option>
                     ))}
                   </select>
+                  {v.errorOf('categoryId') && <p className="text-xs text-red-700 mt-0.5">{v.errorOf('categoryId')}</p>}
                 </div>
 
                 <div>
-                  <label className="form-label">Precio (COP) *</label>
-                  <input type="number" className="input-field" min={0} step={1000}
+                  <label htmlFor="svc-precio" className="form-label">Precio (COP) *</label>
+                  <input id="svc-precio" type="number" min={0} step={1000}
+                    className={`input-field ${v.errorOf('price') ? 'border-red-400 focus:ring-red-300' : ''}`}
                     value={form.price || ''}
-                    onChange={(e) => setForm({ ...form, price: parseInt(e.target.value) || 0 })}
+                    onChange={(e) => { setForm({ ...form, price: parseInt(e.target.value) || 0 }); v.clearError('price') }}
+                    onBlur={v.handleBlur('price')}
                     placeholder="45000" />
+                  {v.errorOf('price') && <p className="text-xs text-red-700 mt-0.5">{v.errorOf('price')}</p>}
                 </div>
 
                 <div>
-                  <label className="form-label">Duración (minutos) *</label>
-                  <input type="number" className="input-field" min={15} step={15}
+                  <label htmlFor="svc-duracion" className="form-label">Duración (minutos) *</label>
+                  <input id="svc-duracion" type="number" min={15} step={15}
+                    className={`input-field ${v.errorOf('durationMinutes') ? 'border-red-400 focus:ring-red-300' : ''}`}
                     value={form.durationMinutes || ''}
-                    onChange={(e) => setForm({ ...form, durationMinutes: parseInt(e.target.value) || 0 })}
+                    onChange={(e) => { setForm({ ...form, durationMinutes: parseInt(e.target.value) || 0 }); v.clearError('durationMinutes') }}
+                    onBlur={v.handleBlur('durationMinutes')}
                     placeholder="60" />
+                  {v.errorOf('durationMinutes') && <p className="text-xs text-red-700 mt-0.5">{v.errorOf('durationMinutes')}</p>}
                 </div>
 
                 <div>
@@ -336,7 +369,7 @@ export default function ServiciosPage() {
                 <button onClick={handleSave} disabled={saving} className="btn-primary">
                   {saving ? 'Guardando...' : 'Guardar'}
                 </button>
-                <button onClick={() => setShowForm(false)} className="btn-secondary">Cancelar</button>
+                <button onClick={() => { v.reset(); setShowForm(false) }} className="btn-secondary">Cancelar</button>
               </div>
             </div>
           )}

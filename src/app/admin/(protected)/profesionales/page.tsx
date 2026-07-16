@@ -7,6 +7,7 @@ import BookingSettingsCard from '@/components/admin/BookingSettingsCard'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
 import { usePermissionGuard, useCan } from '@/components/admin/usePermissionGuard'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { useFieldValidation } from '@/hooks/useFieldValidation'
 
 interface Professional {
   id: string
@@ -17,6 +18,9 @@ interface Professional {
   isActive: boolean
   order: number
 }
+
+// Validated on blur and on submit. Module-level so the hook keeps a stable ref.
+const PRO_FIELDS = ['name'] as const
 
 const EMPTY: Omit<Professional, 'id' | 'isActive'> = {
   name: '', specialty: '', rating: 5, reviewCount: 0, order: 0,
@@ -36,6 +40,10 @@ export default function ProfesionalesPage() {
   const [showForm, setShowForm] = useState(false)
   const [form, setForm]         = useState(EMPTY)
 
+  const v = useFieldValidation(PRO_FIELDS, (k) =>
+    k === 'name' && !form.name.trim() ? 'El nombre es requerido' : undefined
+  )
+
   function load() {
     fetch('/api/professionals?includeInactive=true')
       .then((r) => r.json())
@@ -51,6 +59,7 @@ export default function ProfesionalesPage() {
     setForm(EMPTY)
     setShowForm(true)
     setError(null)
+    v.reset()
   }
 
   function openEdit(p: Professional) {
@@ -64,10 +73,11 @@ export default function ProfesionalesPage() {
     })
     setShowForm(true)
     setError(null)
+    v.reset()
   }
 
   async function handleSave() {
-    if (!form.name.trim()) { setError('El nombre es requerido'); return }
+    if (Object.keys(v.validateAll()).length > 0) return
 
     setSaving(true)
     setError(null)
@@ -155,12 +165,15 @@ export default function ProfesionalesPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             <div className="sm:col-span-2">
-              <label className="form-label">Nombre *</label>
-              <input type="text" className="input-field"
+              <label htmlFor="pro-nombre" className="form-label">Nombre *</label>
+              <input id="pro-nombre" type="text"
+                className={`input-field ${v.errorOf('name') ? 'border-red-400 focus:ring-red-300' : ''}`}
                 value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                onChange={(e) => { setForm({ ...form, name: e.target.value }); v.clearError('name') }}
+                onBlur={v.handleBlur('name')}
                 placeholder="Ej: Valentina J."
               />
+              {v.errorOf('name') && <p className="text-xs text-red-700 mt-0.5">{v.errorOf('name')}</p>}
             </div>
 
             <div className="sm:col-span-2">

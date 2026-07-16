@@ -7,6 +7,7 @@
 import { useState, useEffect } from 'react'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
 import { usePermissionGuard } from '@/components/admin/usePermissionGuard'
+import { useFieldValidation } from '@/hooks/useFieldValidation'
 
 interface Testimonial {
   id: string
@@ -52,6 +53,10 @@ interface FormState {
   isActive: boolean
 }
 
+// Validated on blur and on submit, in display order. 'type' covers the preset
+// select and its custom free-text twin, which are one field to the user.
+const T_FIELDS = ['clientName', 'type', 'text'] as const
+
 const EMPTY: FormState = {
   clientName: '', typeValue: TYPE_PRESETS[0], typeCustom: '', text: '', stars: 5,
   imageUrl: null, imageKey: null, isActive: true,
@@ -72,6 +77,17 @@ export default function TestimoniosPage() {
   const [editing, setEditing]   = useState<Testimonial | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [form, setForm]         = useState<FormState>(EMPTY)
+
+  const v = useFieldValidation(T_FIELDS, (k) => {
+    switch (k) {
+      case 'clientName':
+        return form.clientName.trim().length >= 2 ? undefined : 'El nombre es requerido'
+      case 'type':
+        return resolveType(form).length >= 2 ? undefined : 'El tipo de cliente es requerido'
+      case 'text':
+        return form.text.trim().length >= 5 ? undefined : 'El testimonio es muy corto'
+    }
+  })
 
   function flash(msg: string) { setSuccess(msg); setTimeout(() => setSuccess(null), 3000) }
 
@@ -98,6 +114,7 @@ export default function TestimoniosPage() {
     setEditing(null)
     setForm(EMPTY)
     setShowForm(true)
+    v.reset()
     setError(null)
   }
 
@@ -115,6 +132,7 @@ export default function TestimoniosPage() {
       isActive:   t.isActive,
     })
     setShowForm(true)
+    v.reset()
     setError(null)
   }
 
@@ -141,10 +159,7 @@ export default function TestimoniosPage() {
   }
 
   async function handleSave() {
-    const type = resolveType(form)
-    if (form.clientName.trim().length < 2) { setError('El nombre es requerido'); return }
-    if (type.length < 2)                   { setError('El tipo de cliente es requerido'); return }
-    if (form.text.trim().length < 5)       { setError('El testimonio es muy corto'); return }
+    if (Object.keys(v.validateAll()).length > 0) return
 
     setSaving(true)
     setError(null)
@@ -152,7 +167,7 @@ export default function TestimoniosPage() {
     const method = editing ? 'PATCH' : 'POST'
     const body: Record<string, unknown> = {
       clientName: form.clientName.trim(),
-      type,
+      type: resolveType(form),
       text: form.text.trim(),
       stars: form.stars,
       imageUrl: form.imageUrl,
@@ -250,33 +265,48 @@ export default function TestimoniosPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="form-label">Nombre del cliente *</label>
-              <input type="text" className="input-field" value={form.clientName}
-                onChange={(e) => setForm({ ...form, clientName: e.target.value })}
+              <label htmlFor="t-nombre" className="form-label">Nombre del cliente *</label>
+              <input id="t-nombre" type="text" value={form.clientName}
+                className={`input-field ${v.errorOf('clientName') ? 'border-red-400 focus:ring-red-300' : ''}`}
+                onChange={(e) => { setForm({ ...form, clientName: e.target.value }); v.clearError('clientName') }}
+                onBlur={v.handleBlur('clientName')}
                 placeholder="Ej: Carmen Morales" />
-              <p className="text-xs text-ink-muted-deep mt-1">Las iniciales se generan solas.</p>
+              {v.errorOf('clientName')
+                ? <p className="text-xs text-red-700 mt-0.5">{v.errorOf('clientName')}</p>
+                : <p className="text-xs text-ink-muted-deep mt-1">Las iniciales se generan solas.</p>}
             </div>
 
             <div>
-              <label className="form-label">Tipo de cliente *</label>
-              <select className="select-field" value={form.typeValue}
-                onChange={(e) => setForm({ ...form, typeValue: e.target.value })}>
+              <label htmlFor="t-tipo" className="form-label">Tipo de cliente *</label>
+              <select id="t-tipo" value={form.typeValue}
+                className={`select-field ${v.errorOf('type') ? 'border-red-400 focus:ring-red-300' : ''}`}
+                onChange={(e) => { setForm({ ...form, typeValue: e.target.value }); v.clearError('type') }}
+                onBlur={v.handleBlur('type')}>
                 {TYPE_PRESETS.map((p) => <option key={p} value={p}>{p}</option>)}
                 <option value="__custom__">Personalizado…</option>
               </select>
               {form.typeValue === '__custom__' && (
                 <input type="text" className="input-field mt-2" value={form.typeCustom}
-                  onChange={(e) => setForm({ ...form, typeCustom: e.target.value })}
+                  onChange={(e) => { setForm({ ...form, typeCustom: e.target.value }); v.clearError('type') }}
+                  onBlur={v.handleBlur('type')}
+                  aria-label="Tipo de cliente personalizado"
                   placeholder="Escribe el tipo" />
               )}
+              {v.errorOf('type') && <p className="text-xs text-red-700 mt-0.5">{v.errorOf('type')}</p>}
             </div>
 
             <div className="sm:col-span-2">
-              <label className="form-label">Testimonio *</label>
-              <textarea className="input-field resize-none" rows={3} maxLength={MAX_TEXT}
-                value={form.text} onChange={(e) => setForm({ ...form, text: e.target.value })}
+              <label htmlFor="t-texto" className="form-label">Testimonio *</label>
+              <textarea id="t-texto" rows={3} maxLength={MAX_TEXT}
+                className={`input-field resize-none ${v.errorOf('text') ? 'border-red-400 focus:ring-red-300' : ''}`}
+                value={form.text}
+                onChange={(e) => { setForm({ ...form, text: e.target.value }); v.clearError('text') }}
+                onBlur={v.handleBlur('text')}
                 placeholder="Lo que dijo el cliente…" />
-              <p className="text-xs text-ink-muted-deep mt-1 text-right">{form.text.length}/{MAX_TEXT}</p>
+              <div className="flex justify-between gap-2 mt-1">
+                <p className="text-xs text-red-700">{v.errorOf('text')}</p>
+                <p className="text-xs text-ink-muted-deep text-right shrink-0">{form.text.length}/{MAX_TEXT}</p>
+              </div>
             </div>
 
             <div>

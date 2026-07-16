@@ -8,6 +8,7 @@ import { useState } from 'react'
 import { ICON_LABELS } from '@/lib/config'
 import { Icon } from '@/components/public/ServiceIcons'
 import { IconPicker } from '@/components/admin/IconPicker'
+import { useFieldValidation } from '@/hooks/useFieldValidation'
 
 export interface AdminCategory {
   id: string
@@ -27,6 +28,9 @@ interface FormState {
   order: number
 }
 
+// Validated on blur and on submit. Module-level so the hook keeps a stable ref.
+const CAT_FIELDS = ['name'] as const
+
 const EMPTY: FormState = { name: '', description: '', icon: 'promo', order: 0 }
 
 export default function CategoriesManager({
@@ -42,13 +46,19 @@ export default function CategoriesManager({
 }) {
   const [editing, setEditing] = useState<AdminCategory | null>(null)
   const [showForm, setShowForm] = useState(false)
+
   const [form, setForm] = useState<FormState>(EMPTY)
   const [saving, setSaving] = useState(false)
+
+  const v = useFieldValidation(CAT_FIELDS, (k) =>
+    k === 'name' && form.name.trim().length < 2 ? 'El nombre debe tener al menos 2 caracteres' : undefined
+  )
 
   function openNew() {
     setEditing(null)
     setForm({ ...EMPTY, order: (categories.at(-1)?.order ?? 0) + 1 })
     setShowForm(true)
+    v.reset()
     onError(null)
   }
 
@@ -56,11 +66,12 @@ export default function CategoriesManager({
     setEditing(cat)
     setForm({ name: cat.name, description: cat.description ?? '', icon: cat.icon, order: cat.order })
     setShowForm(true)
+    v.reset()
     onError(null)
   }
 
   async function handleSave() {
-    if (form.name.trim().length < 2) { onError('El nombre debe tener al menos 2 caracteres'); return }
+    if (Object.keys(v.validateAll()).length > 0) return
 
     setSaving(true)
     onError(null)
@@ -129,11 +140,14 @@ export default function CategoriesManager({
 
           <div className="grid grid-cols-1 gap-4 mb-4">
             <div>
-              <label className="form-label">Nombre *</label>
-              <input type="text" className="input-field"
+              <label htmlFor="cat-nombre" className="form-label">Nombre *</label>
+              <input id="cat-nombre" type="text"
+                className={`input-field ${v.errorOf('name') ? 'border-red-400 focus:ring-red-300' : ''}`}
                 value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                onChange={(e) => { setForm({ ...form, name: e.target.value }); v.clearError('name') }}
+                onBlur={v.handleBlur('name')}
                 placeholder="Ej: Uñas" />
+              {v.errorOf('name') && <p className="text-xs text-red-700 mt-0.5">{v.errorOf('name')}</p>}
             </div>
 
             <div>

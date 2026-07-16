@@ -10,6 +10,7 @@ import { useConfirm } from '@/components/ui/ConfirmDialog'
 import { usePermissionGuard, useCan } from '@/components/admin/usePermissionGuard'
 import { PAYMENT_METHOD_LABEL as METHOD_LABEL, EXPENSE_CATEGORY_LABEL as CAT_LABEL } from '@/lib/labels'
 import { formatPrice } from '@/lib/utils'
+import { useFieldValidation } from '@/hooks/useFieldValidation'
 
 const PER_PAGE = 10
 
@@ -50,6 +51,9 @@ function csvCell(value: string) {
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
 }
 
+// Validated on blur and on submit. Module-level so the hook keeps a stable ref.
+const EXPENSE_FIELDS = ['description', 'amount', 'date'] as const
+
 const EMPTY_FORM = { description: '', amount: '', date: new Date().toISOString().slice(0, 10), category: 'OTROS', notes: '' }
 
 // Small period-over-period indicator. For expenses a rise is bad → `invert`
@@ -86,6 +90,20 @@ export default function ContabilidadPage() {
   const [form, setForm]           = useState(EMPTY_FORM)
   const [saving, setSaving]       = useState(false)
   const [saveError, setSaveError] = useState('')
+
+  const v = useFieldValidation(EXPENSE_FIELDS, (k) => {
+    switch (k) {
+      case 'description':
+        return form.description.trim() ? undefined : 'La descripción es requerida'
+      case 'amount': {
+        const n = parseInt(form.amount)
+        if (!form.amount.trim()) return 'El monto es requerido'
+        return Number.isFinite(n) && n > 0 ? undefined : 'El monto debe ser mayor a 0'
+      }
+      case 'date':
+        return form.date ? undefined : 'La fecha es requerida'
+    }
+  })
 
   // Delete modal
   const [deleting, setDeleting]   = useState<string | null>(null)
@@ -124,6 +142,7 @@ export default function ContabilidadPage() {
 
   async function addExpense(e: React.FormEvent) {
     e.preventDefault()
+    if (Object.keys(v.validateAll()).length > 0) return
     setSaving(true); setSaveError('')
     const res = await fetch('/api/expenses', {
       method: 'POST',
@@ -133,7 +152,7 @@ export default function ContabilidadPage() {
     const j = await res.json()
     setSaving(false)
     if (!j.success) { setSaveError(j.error ?? 'Error al guardar'); return }
-    setForm(EMPTY_FORM)
+    setForm(EMPTY_FORM); v.reset()
     loadExpenses()
     loadSummary()
   }
@@ -315,27 +334,36 @@ export default function ContabilidadPage() {
         {can('contabilidad:editar') && (
         <div>
           <h2 className="text-lg font-serif text-ink mb-3">Registrar gasto</h2>
-          <form onSubmit={addExpense} className="bg-white rounded-xl border border-beige-dark p-5 space-y-3">
+          {/* noValidate: `required` alone hands this to the browser's native
+              bubble — generic, in the browser's locale, and not on the field.
+              Our own errors are inline and match the rest of the admin. */}
+          <form onSubmit={addExpense} noValidate className="bg-white rounded-xl border border-beige-dark p-5 space-y-3">
             <div>
-              <label className="form-label text-[10px]">Descripción *</label>
-              <input required value={form.description}
-                onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+              <label htmlFor="gasto-desc" className="form-label text-[10px]">Descripción *</label>
+              <input id="gasto-desc" value={form.description}
+                onChange={e => { setForm(f => ({ ...f, description: e.target.value })); v.clearError('description') }}
+                onBlur={v.handleBlur('description')}
                 placeholder="Ej: Esmaltes UV, bombillas, etc."
-                className="input-field w-full" />
+                className={`input-field w-full ${v.errorOf('description') ? 'border-red-400 focus:ring-red-300' : ''}`} />
+              {v.errorOf('description') && <p className="text-xs text-red-700 mt-0.5">{v.errorOf('description')}</p>}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="min-w-0">
-                <label className="form-label text-[10px]">Monto (COP) *</label>
-                <input required type="number" min="1" value={form.amount}
-                  onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
+                <label htmlFor="gasto-monto" className="form-label text-[10px]">Monto (COP) *</label>
+                <input id="gasto-monto" type="number" min="1" value={form.amount}
+                  onChange={e => { setForm(f => ({ ...f, amount: e.target.value })); v.clearError('amount') }}
+                  onBlur={v.handleBlur('amount')}
                   placeholder="0"
-                  className="input-field w-full min-w-0" />
+                  className={`input-field w-full min-w-0 ${v.errorOf('amount') ? 'border-red-400 focus:ring-red-300' : ''}`} />
+                {v.errorOf('amount') && <p className="text-xs text-red-700 mt-0.5">{v.errorOf('amount')}</p>}
               </div>
               <div className="min-w-0">
-                <label className="form-label text-[10px]">Fecha *</label>
-                <input required type="date" value={form.date}
-                  onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
-                  className="input-field w-full min-w-0" />
+                <label htmlFor="gasto-fecha" className="form-label text-[10px]">Fecha *</label>
+                <input id="gasto-fecha" type="date" value={form.date}
+                  onChange={e => { setForm(f => ({ ...f, date: e.target.value })); v.clearError('date') }}
+                  onBlur={v.handleBlur('date')}
+                  className={`input-field w-full min-w-0 ${v.errorOf('date') ? 'border-red-400 focus:ring-red-300' : ''}`} />
+                {v.errorOf('date') && <p className="text-xs text-red-700 mt-0.5">{v.errorOf('date')}</p>}
               </div>
             </div>
             <div>
