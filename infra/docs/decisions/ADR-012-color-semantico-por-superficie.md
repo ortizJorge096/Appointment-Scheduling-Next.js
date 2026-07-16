@@ -147,15 +147,40 @@ Dos reglas que salieron de arreglarlos:
 lo que uno debe poder salir tabulando. El admin tiene **dos** modales reales, no
 siete: contarlos antes de "unificarlos".
 
+## Contraste no textual (1.4.11)
+
+El texto (1.4.3) cubre un criterio; los controles y sus estados necesitan 3:1
+por 1.4.11. Medido sobre el render:
+
+- **Anillos de foco** — `gold-deep` (4.97) sobre claro, `gold` (6.39) sobre
+  ink. Pasan.
+- **Estados seleccionados** (día del calendario, chips) — se distinguen por
+  **relleno + texto**, no solo por el borde, así que el criterio se cumple por
+  otros medios aunque el borde de oro ronde 2.9.
+- **ToggleSwitch** — el estado *off* (`bg-beige-dark` sobre blanco) medía
+  **1.36:1**: un interruptor apagado invisible. Corregido con un borde
+  `ink-muted` (4.87) que delinea el track en ambos estados.
+
+**Bordes de input: corregidos a `ink-muted`.** `.input-field` usaba
+`border-beige-dark` — **1.36:1 sobre blanco, 1.14:1 sobre beige**. 1.4.11 *exime*
+el control identificado por otros medios (label, placeholder, foco), pero la
+decisión de producto pesó más que la excepción legal: en un móvil con reflejo, o
+en cuanto el campo tiene valor y ya no muestra placeholder, un borde a 1.36 no se
+ve — y un formulario cuyos campos no se ven es mal producto, por muy "suave" que
+sea. Los inputs viven sobre blanco *y* beige, y solo la zona de `ink-muted`
+(4.87 / 4.09) despeja 3:1 en ambas; ningún gris más claro pasa sobre beige.
+`input-dark` (login, sobre ink) pasó de `border-white/10` (1.31) a `/35` (3.21)
+por la misma razón. **No se inventó un token a medida** para ahorrar unos puntos
+de ratio: eso habría sido pulir el matiz en vez de resolver el problema.
+
 ## Deuda consciente
 
-- **Bordes de controles** (`border-red-200`, `border-red-300`) no se
-  auditaron contra el 3:1 de WCAG 1.4.11.
 - **Texto sobre fotos** (`HeroCarousel`, `NosotrosImage`) no es medible con
-  este método: el auditor no lee el píxel bajo la imagen.
-- **Foco y navegación por teclado** siguen sin auditar.
-- El toggle del menú (`Navbar`) no declara `type="button"`. No hay riesgo de
-  envío accidental —está fuera de cualquier `<form>`— pero conviene por higiene.
+  este método: el auditor no lee el píxel bajo la imagen. Requiere juicio
+  visual, no ratios.
+- **Navegación por teclado** está cubierta donde importa (trampa de foco en
+  modales, orden de tabulación del cajón móvil, anillos de foco en botones),
+  pero no hubo un barrido exhaustivo página por página.
 
 ## Cuándo reconsiderar
 

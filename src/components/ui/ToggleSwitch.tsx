@@ -36,7 +36,10 @@ export function ToggleSwitch({
         onClick={onChange}
         disabled={disabled}
         className={cn(
-          'w-11 h-6 rounded-full relative transition-colors shrink-0',
+          // border-ink-muted (4.87:1 on white) gives the track a visible boundary
+          // in both states — without it the off state (bg-beige-dark) is 1.36:1
+          // on a white card, i.e. an off switch you cannot see (WCAG 1.4.11).
+          'w-11 h-6 rounded-full relative transition-colors shrink-0 border border-ink-muted',
           checked ? 'bg-gold' : 'bg-beige-dark',
           disabled && 'opacity-60 cursor-not-allowed',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-deep',

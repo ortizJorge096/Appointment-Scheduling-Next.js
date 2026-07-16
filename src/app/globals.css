@@ -105,16 +105,22 @@
      routing the zoom can persist across navigations — looks like an unrelated
      layout bug on other pages. 16px+ disables that zoom. Reverts to text-sm
      at sm+ where it doesn't apply. */
+  /* border-ink-muted, not beige-dark: beige-dark is 1.36:1 on white and 1.14:1
+     on beige — a field you can't see once the placeholder is gone. Inputs sit on
+     both surfaces, and only ink-muted (4.87 / 4.09) clears 3:1 on both. Defined
+     fields beat a soft-but-invisible border. */
   .input-field {
-    @apply w-full bg-white border border-beige-dark text-ink rounded-lg
+    @apply w-full bg-white border border-ink-muted text-ink rounded-lg
            px-4 py-3 text-base sm:text-sm font-sans
            placeholder:text-ink-muted
            focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/15
            transition-all duration-150
            disabled:bg-beige disabled:cursor-not-allowed;
   }
+  /* border-white/35 (3.21:1 on ink), not /10 (1.31): same reason as input-field,
+     on the dark login surface. */
   .input-dark {
-    @apply w-full bg-white/5 border border-white/10 text-white rounded-lg
+    @apply w-full bg-white/5 border border-white/35 text-white rounded-lg
            px-4 py-3 text-base sm:text-sm font-sans placeholder:text-white/55
            focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20
            transition-all duration-150;
