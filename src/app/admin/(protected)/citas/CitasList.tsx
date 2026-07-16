@@ -227,8 +227,8 @@ export default function CitasList({
           </div>
 
           <div>
-            <label className="form-label text-[10px]">Origen</label>
-            <select value={filters.origin} onChange={(e) => patch({ origin: e.target.value })}
+            <label htmlFor="f-origen" className="form-label text-[10px]">Origen</label>
+            <select id="f-origen" value={filters.origin} onChange={(e) => patch({ origin: e.target.value })}
               className="input-field py-1.5 bg-white">
               <option value="">Todos</option>
               {ORIGIN_OPTIONS.map((o) => <option key={o} value={o}>{ORIGIN_LABELS[o]}</option>)}
@@ -236,8 +236,8 @@ export default function CitasList({
           </div>
 
           <div>
-            <label className="form-label text-[10px]">Ordenar</label>
-            <select value={filters.sort} onChange={(e) => patch({ sort: e.target.value })}
+            <label htmlFor="f-ordenar" className="form-label text-[10px]">Ordenar</label>
+            <select id="f-ordenar" value={filters.sort} onChange={(e) => patch({ sort: e.target.value })}
               className="input-field py-1.5 bg-white">
               {SORT_OPTIONS.map((o) => <option key={o} value={o}>{SORT_LABELS[o]}</option>)}
             </select>
