@@ -32,14 +32,25 @@ export function Modal({ open, onClose, title, label, maxWidth = 'max-w-md', chil
   const closeRef = useRef<HTMLButtonElement>(null)
   const restore  = useRef<HTMLElement | null>(null)
 
+  // Callers pass an inline arrow, so onClose has a new identity every render.
+  // Keeping it in a ref lets the effect depend on `open` alone: as a dependency
+  // it re-ran on every parent render and yanked focus back to the first control,
+  // which makes the form unusable the moment anything re-renders while typing.
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
+
   useEffect(() => {
     if (!open) return
     restore.current = document.activeElement as HTMLElement | null
 
-    // Visible focusables only — a hidden collapse would otherwise swallow the trap.
-    const focusables = () =>
-      Array.from(panelRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? [])
-        .filter((el) => el.offsetParent !== null)
+    // Prefer visible focusables so a collapsed section can't swallow the trap,
+    // but fall back to all of them: offsetParent is always null under jsdom,
+    // where there is no layout, and the filter would leave nothing to focus.
+    const focusables = () => {
+      const all = Array.from(panelRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? [])
+      const vis = all.filter((el) => el.offsetParent !== null)
+      return vis.length ? vis : all
+    }
 
     // Land on the first real control, not the header's close button: × comes
     // first in the DOM, and opening a form onto "exit" is a poor entry point.
@@ -50,7 +61,7 @@ export function Modal({ open, onClose, title, label, maxWidth = 'max-w-md', chil
     else panelRef.current?.focus()
 
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { onClose(); return }
+      if (e.key === 'Escape') { onCloseRef.current(); return }
       if (e.key !== 'Tab') return
       const els = focusables()
       if (els.length === 0) { e.preventDefault(); return }
@@ -69,7 +80,7 @@ export function Modal({ open, onClose, title, label, maxWidth = 'max-w-md', chil
       document.body.style.overflow = prevOverflow
       restore.current?.focus?.()
     }
-  }, [open, onClose])
+  }, [open])
 
   if (!open) return null
   // The panel caps its own height and scrolls internally, so a long form keeps
