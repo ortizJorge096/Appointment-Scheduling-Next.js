@@ -53,8 +53,10 @@ describe('CitaDetailPage — pago', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /marcar pagado/i }))
 
-    // Wait for React state to flush (the amount input should reflect the full price)
-    await screen.findByDisplayValue('35000')
+    // Wait for React state to flush (the amount input should reflect the full price).
+    // Generous timeout: findBy defaults to 1s, and the first render + state flush can
+    // exceed it on a loaded machine, which made this line flake intermittently.
+    await screen.findByDisplayValue('35000', {}, { timeout: 5000 })
 
     fireEvent.click(screen.getByRole('button', { name: /guardar pago/i }))
 

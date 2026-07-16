@@ -12,6 +12,7 @@ import { useConfirm } from '@/components/ui/ConfirmDialog'
 import { useToast } from '@/components/ui/Toast'
 import { PasswordInput } from '@/components/ui/PasswordInput'
 import { Modal } from '@/components/ui/Modal'
+import { SubmitButton } from '@/components/ui/SubmitButton'
 
 interface AdminRow {
   id: string
@@ -271,9 +272,9 @@ export default function UsuariosClient({
 
               <div className="flex gap-3 pt-1">
                 <button type="button" onClick={() => setModal(null)} className="btn-secondary flex-1">Cancelar</button>
-                <button type="submit" disabled={saving} className="btn-primary flex-1 disabled:opacity-50">
-                  {saving ? 'Guardando…' : modal.mode === 'create' ? 'Crear admin' : 'Guardar cambios'}
-                </button>
+                <SubmitButton type="submit" loading={saving} loadingLabel="Guardando…" className="btn-primary flex-1 disabled:opacity-50">
+                  {modal.mode === 'create' ? 'Crear admin' : 'Guardar cambios'}
+                </SubmitButton>
               </div>
             </form>
         </Modal>

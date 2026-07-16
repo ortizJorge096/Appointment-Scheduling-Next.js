@@ -13,6 +13,7 @@ import CategoriesManager, { type AdminCategory } from '@/components/admin/Catego
 import { PageHeader } from '@/components/ui/PageHeader'
 import { usePermissionGuard, useCan } from '@/components/admin/usePermissionGuard'
 import { useFieldValidation } from '@/hooks/useFieldValidation'
+import { SubmitButton } from '@/components/ui/SubmitButton'
 
 const PER_PAGE = 8
 
@@ -366,9 +367,9 @@ export default function ServiciosPage() {
               </div>
 
               <div className="flex gap-3 pt-2">
-                <button onClick={handleSave} disabled={saving} className="btn-primary">
-                  {saving ? 'Guardando...' : 'Guardar'}
-                </button>
+                <SubmitButton onClick={handleSave} loading={saving} loadingLabel="Guardando…" className="btn-primary">
+                  Guardar
+                </SubmitButton>
                 <button onClick={() => { v.reset(); setShowForm(false) }} className="btn-secondary">Cancelar</button>
               </div>
             </div>

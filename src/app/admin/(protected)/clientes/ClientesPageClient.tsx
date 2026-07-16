@@ -12,6 +12,7 @@ import { Modal } from '@/components/ui/Modal'
 import { useUrlFilters } from '@/hooks/useUrlFilters'
 import { isValidPhone } from '@/lib/utils'
 import { useFieldValidation } from '@/hooks/useFieldValidation'
+import { SubmitButton } from '@/components/ui/SubmitButton'
 
 const EMPTY_FORM = { name: '', email: '', phone: '', notes: '' }
 // Validated on blur and on submit, in display order. Module-level so the hook
@@ -286,9 +287,9 @@ export default function ClientesPageClient() {
                 <button type="button" onClick={() => setShowCreate(false)} className="btn-secondary flex-1">
                   Cancelar
                 </button>
-                <button type="submit" disabled={saving} className="btn-primary flex-1 disabled:opacity-50">
-                  {saving ? 'Guardando…' : 'Crear cliente'}
-                </button>
+                <SubmitButton type="submit" loading={saving} loadingLabel="Guardando…" className="btn-primary flex-1 disabled:opacity-50">
+                  Crear cliente
+                </SubmitButton>
               </div>
             </form>
       </Modal>

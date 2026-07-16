@@ -18,6 +18,7 @@ import { StatusBadge } from '@/components/ui/StatusBadge'
 import { PAYMENT_STATUS_LABEL, PAYMENT_METHOD_LABEL } from '@/lib/labels'
 import AdicionalesEditor, { type Adicional } from '@/components/admin/AdicionalesEditor'
 import type { AppointmentWithService, AppointmentStatus } from '@/types'
+import { SubmitButton } from '@/components/ui/SubmitButton'
 
 // Per-service discount + extras (keyed by AppointmentService id).
 interface LineExtraInput { description: string; amount: string }
@@ -698,10 +699,13 @@ export default function CitaDetailPage() {
           </div>
         </div>
 
-        <button type="submit" disabled={savingPay || orderDiscountTooBig}
+        {/* loading is only savingPay; orderDiscountTooBig disables without being
+            "busy", so it stays a plain disabled — aria-busy must not fire for it. */}
+        <SubmitButton type="submit" loading={savingPay} disabled={orderDiscountTooBig}
+          loadingLabel="Guardando…"
           className="btn-primary text-xs px-5 py-2.5 sm:py-2 mt-4 disabled:opacity-50">
-          {savingPay ? 'Guardando...' : 'Guardar pago'}
-        </button>
+          Guardar pago
+        </SubmitButton>
         <p className="text-[11px] text-ink-muted-deep mt-2">
           Con pago <strong>Pagado</strong> o <strong>Cortesía</strong>, la cita se marca como completada automáticamente. Un abono <strong>Parcial</strong> no la completa.
         </p>

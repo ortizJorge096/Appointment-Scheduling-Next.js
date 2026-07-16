@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react'
 import { usePermissionGuard } from '@/components/admin/usePermissionGuard'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { SubmitButton } from '@/components/ui/SubmitButton'
 
 interface Form {
   appointmentsCount: number
@@ -128,9 +129,9 @@ export default function SitioPage() {
           </div>
 
           <div className="flex gap-3 pt-6">
-            <button onClick={handleSave} disabled={saving} className="btn-primary">
-              {saving ? 'Guardando...' : 'Guardar'}
-            </button>
+            <SubmitButton onClick={handleSave} loading={saving} loadingLabel="Guardando…" className="btn-primary">
+              Guardar
+            </SubmitButton>
           </div>
         </div>
       )}
