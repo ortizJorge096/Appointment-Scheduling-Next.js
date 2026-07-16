@@ -61,15 +61,18 @@ export default function HeroCarousel({ images }: { images: string[] }) {
         </div>
       )}
 
-      {/* Dots — subtle, gold; 44px touch target on mobile */}
+      {/* Dots — 44px touch target on mobile. A soft dark shadow keeps them legible
+          over bright photos (skin, light nails), where white/55 on its own washed
+          out; the active dot is also a wider gold pill, so the current slide reads
+          by shape, not colour alone. */}
       {images.length > 1 && (
         <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex z-10">
           {images.map((_, i) => (
             <button key={i} type="button" aria-label={`Foto ${i + 1}`}
               onClick={() => setIndex(i)}
               className="grid place-items-center w-11 h-11 sm:w-6 sm:h-6">
-              <span className={`block rounded-full transition-all duration-300 ${
-                i === index ? 'bg-gold w-5 h-1.5' : 'bg-white/55 hover:bg-white/90 w-1.5 h-1.5'
+              <span className={`block rounded-full shadow-[0_1px_2px_rgba(0,0,0,0.6)] transition-all duration-300 ${
+                i === index ? 'bg-gold w-5 h-1.5' : 'bg-white/80 hover:bg-white w-1.5 h-1.5'
               }`} />
             </button>
           ))}
