@@ -191,6 +191,9 @@ export default function CitasList({
 
   const hasFilters = chips.length > 0 || filters.sort !== 'upcoming'
 
+  // Carry the active filters into each detail link so returning restores this view.
+  const detailQuery = buildQueryString(filters, page)
+
   return (
     <>
       {/* Filter bar */}
@@ -412,7 +415,7 @@ export default function CitasList({
                       </div>
                     </td>
                     <td className="px-5 py-3.5 text-right">
-                      <Link href={`/admin/citas/${appt.id}`}
+                      <Link href={`/admin/citas/${appt.id}${detailQuery ? `?from=${encodeURIComponent(detailQuery)}` : ''}`}
                         className="text-xs text-gold-deep group-hover:text-gold-dark transition-colors">
                         Ver →
                       </Link>
@@ -425,7 +428,7 @@ export default function CitasList({
             {/* Mobile cards */}
             <div className="md:hidden divide-y divide-beige-dark">
               {appointments.map((appt) => (
-                <Link key={appt.id} href={`/admin/citas/${appt.id}`}
+                <Link key={appt.id} href={`/admin/citas/${appt.id}${detailQuery ? `?from=${encodeURIComponent(detailQuery)}` : ''}`}
                   className="block px-4 py-3 hover:bg-beige transition-colors">
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-sm font-medium text-ink flex items-center gap-1.5">

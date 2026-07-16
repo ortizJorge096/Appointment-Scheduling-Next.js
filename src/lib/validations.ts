@@ -244,6 +244,10 @@ export const updateAppointmentSchema = z.object({
 
   // Per-service discount + extras. Keyed by AppointmentService id.
   services: z.array(updateServiceLineSchema).max(5).optional(),
+
+  // Add new service lines to an existing appointment (admin edit). Each id becomes
+  // an AppointmentService (price/name snapshot); total, duration and endTime grow.
+  addServiceIds: z.array(z.string().min(1)).max(10).optional(),
 }).superRefine(checkDiscount).superRefine(checkDiscountExclusivity)
 
 // ─────────────────────────────────────────
