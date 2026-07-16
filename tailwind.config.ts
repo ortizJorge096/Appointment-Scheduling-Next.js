@@ -33,6 +33,13 @@ const config: Config = {
           muted:        '#7A7060',
           'muted-deep': '#6E6656',
         },
+        // Warm light grays for muted text ON dark surfaces (cards on ink, navbar
+        // over the hero) — ink-muted is too dark to read there. Named on the
+        // cream family since that is what they read as against ink.
+        cream: {
+          DEFAULT: '#CFC6B4', // navbar links, section labels on ink
+          muted:   '#B7AE9C', // secondary copy on ink cards
+        },
       },
       fontFamily: {
         serif:  ['Cormorant Garamond', 'Georgia', 'serif'],

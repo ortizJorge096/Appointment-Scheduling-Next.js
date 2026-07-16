@@ -127,7 +127,7 @@ export default function ServicesGrid() {
 
                 <div>
                   <h3 className="font-serif text-2xl leading-tight text-white">Paquete VIP</h3>
-                  <p className="text-sm leading-relaxed mt-2 text-[#b7ae9c]">
+                  <p className="text-sm leading-relaxed mt-2 text-cream-muted">
                     Combina servicios y ahorra hasta 30%.
                   </p>
                 </div>
@@ -135,7 +135,7 @@ export default function ServicesGrid() {
                 <div className="flex items-end justify-between pt-4 mt-auto border-t border-[rgba(255,255,255,.08)]">
                   <div>
                     <p className="font-serif text-xl leading-none text-gold-light">Personalizado</p>
-                    <p className="text-[11px] mt-1.5 text-[#b7ae9c]">Reserva doble</p>
+                    <p className="text-[11px] mt-1.5 text-cream-muted">Reserva doble</p>
                   </div>
                   <Link href="/agendar?modo=vip"
                     className="text-xs tracking-widest uppercase font-semibold transition-colors text-gold-light hover:text-gold">

@@ -49,7 +49,7 @@ export default function Navbar() {
             <li key={s.anchor}>
               <Link href={navHref(s.anchor)}
                 className="text-[13px] font-semibold tracking-wide rounded-full px-4 py-2.5
-                           text-[#cfc6b4] hover:text-white transition-all duration-200">
+                           text-cream hover:text-white transition-all duration-200">
                 {s.label}
               </Link>
             </li>
@@ -78,7 +78,7 @@ export default function Navbar() {
         <div className="md:hidden bg-ink border-t border-white/10 px-6 py-6 flex flex-col gap-2">
           {SECTIONS.map((s) => (
             <Link key={s.anchor} href={navHref(s.anchor)}
-              className="text-sm text-[#cfc6b4] uppercase tracking-widest hover:text-white transition-colors px-4 py-2.5 rounded-full"
+              className="text-sm text-cream uppercase tracking-widest hover:text-white transition-colors px-4 py-2.5 rounded-full"
               onClick={() => setMenuOpen(false)}>
               {s.label}
             </Link>

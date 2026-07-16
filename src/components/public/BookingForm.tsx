@@ -657,7 +657,7 @@ export default function BookingForm() {
                     <Icon name="promo" className="w-7 h-7" />
                   </span>
                   <p className="font-serif text-xl text-white">Paquete VIP</p>
-                  <p className="text-sm text-[#b7ae9c] leading-snug mt-1.5">
+                  <p className="text-sm text-cream-muted leading-snug mt-1.5">
                     {VIP_BLURB}
                   </p>
                   <p className="text-[11px] tracking-widest uppercase text-gold-light font-semibold mt-3">
