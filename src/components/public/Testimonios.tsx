@@ -60,7 +60,7 @@ export default function Testimonios() {
                 <div className="text-gold-light tracking-[3px] mb-4" aria-hidden>
                   {'★'.repeat(t.stars)}
                 </div>
-                <p className="text-white/80 text-[15px] leading-relaxed mb-6">&ldquo;{t.text}&rdquo;</p>
+                <p className="text-white/80 text-base leading-relaxed mb-6">&ldquo;{t.text}&rdquo;</p>
                 <div className="flex items-center gap-3">
                   <span className="inline-flex items-center justify-center w-10 h-10 rounded-full
                                    bg-gradient-to-br from-gold-light to-gold text-ink font-serif font-semibold shrink-0">

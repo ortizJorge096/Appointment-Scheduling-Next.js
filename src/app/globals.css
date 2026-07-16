@@ -137,6 +137,14 @@
   .form-label {
     @apply block text-xs font-medium tracking-widest uppercase text-ink-muted-deep mb-2;
   }
+  /* Error state for .input-field / .select-field. red-600 (4.83:1), not red-400
+     (2.77): the error border must clear 3:1 AND be at least as prominent as the
+     resting ink-muted border (4.87) — a red-400 error read as *less* visible
+     than a normal field. Keeps the border red on focus so it doesn't revert to
+     gold while the error stands. */
+  .input-error {
+    @apply border-red-600 focus:border-red-600 focus:ring-red-600/25;
+  }
 
   /* ── Badges ── */
   .badge-pending   { @apply bg-amber-50   text-amber-700   text-xs px-3 py-1 font-medium rounded-full; }
@@ -167,7 +175,15 @@
     @apply font-serif uppercase tracking-[0.42em];
   }
 
-  /* ── Premium CTA (gold gradient, pill-shaped) ── */
+  /* ── Premium CTA (gold gradient, pill-shaped) ──
+     Button hierarchy — btn-cta and btn-primary are two tiers, not duplicates:
+       btn-cta     → the ONE hero action of a view (public "Agendar cita", the
+                     WhatsApp CTA on confirmation pages, a single "volver" on an
+                     admin error page). Gradient + shadow, meant to stand alone.
+       btn-primary → utility / form actions, often several per view (save, create,
+                     submit). Flat gold.
+     If a view has one dominant call to action, it's btn-cta; if it's a form or a
+     toolbar action, it's btn-primary. */
   .btn-cta {
     @apply inline-flex items-center justify-center gap-2 rounded-full
            px-8 py-3.5 text-xs font-semibold tracking-widest uppercase
@@ -208,7 +224,10 @@
   }
   .accent-top:hover::after { transform: scaleX(1); }
 
-  /* Centered eyebrow with lines on both sides (section headings) */
+  /* Centered eyebrow with a rule on BOTH sides (centered section headings).
+     Distinct from .section-tag, not a duplicate: section-tag has one leading
+     rule and reads left-aligned; this one is symmetric and centered. Two eyebrow
+     variants for two layouts. */
   .eyebrow-center {
     @apply inline-flex items-center gap-3 text-xs font-medium tracking-[0.28em]
            uppercase text-gold-deep

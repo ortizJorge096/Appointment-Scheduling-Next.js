@@ -1,7 +1,7 @@
 'use client'
 // src/components/public/BookingForm.tsx
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useId } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import DateTimePicker from './DateTimePicker'
 import { Icon } from './ServiceIcons'
@@ -138,6 +138,7 @@ export default function BookingForm() {
   // Tell the client as they leave each field. Waiting for "Confirmar" means
   // filling the whole form before learning the phone was wrong — on the step
   // that decides whether the booking happens at all.
+  const fieldId = useId()
   const v = useFieldValidation(CONFIRM_FIELDS, (k) => {
     switch (k) {
       case 'clientName':
@@ -572,7 +573,7 @@ export default function BookingForm() {
                     : 'bg-white border-beige-dark text-ink-muted'}`}>
                   {isDone ? '✓' : i + 1}
                 </div>
-                <span className={`text-[11px] mt-1.5 font-semibold hidden sm:block ${isActive ? 'text-ink' : 'text-ink-muted-deep'}`}>
+                <span className={`text-2xs mt-1.5 font-semibold hidden sm:block ${isActive ? 'text-ink' : 'text-ink-muted-deep'}`}>
                   {STEP_LABELS[s]}
                 </span>
               </div>
@@ -643,7 +644,7 @@ export default function BookingForm() {
                     <p className="text-sm text-ink-muted leading-snug mt-1.5">
                       {cat.description ?? ''}
                     </p>
-                    <p className="text-[11px] tracking-widest uppercase text-gold-dark font-semibold mt-3">
+                    <p className="text-2xs tracking-widest uppercase text-gold-dark font-semibold mt-3">
                       {count} servicio{count === 1 ? '' : 's'}
                     </p>
                   </button>
@@ -661,7 +662,7 @@ export default function BookingForm() {
                   <p className="text-sm text-cream-muted leading-snug mt-1.5">
                     {VIP_BLURB}
                   </p>
-                  <p className="text-[11px] tracking-widest uppercase text-gold-light font-semibold mt-3">
+                  <p className="text-2xs tracking-widest uppercase text-gold-light font-semibold mt-3">
                     Reserva doble
                   </p>
                 </button>
@@ -710,7 +711,7 @@ export default function BookingForm() {
             categoriesWithServices
               .map(({ cat }) => (
                 <div key={cat.id}>
-                  <p className="text-[11px] tracking-widest uppercase text-ink-muted font-semibold mb-2 mt-4">
+                  <p className="text-2xs tracking-widest uppercase text-ink-muted font-semibold mb-2 mt-4">
                     {cat.name}
                   </p>
                   {services.filter((svc) => svc.categoryId === cat.id).map((svc) => {
@@ -854,7 +855,7 @@ export default function BookingForm() {
                 </span>
                 <p className="font-medium text-ink">Primera disponible</p>
                 <p className="text-sm text-ink-muted mt-0.5">La hora más rápida</p>
-                <p className="text-[11px] tracking-widest uppercase text-gold-dark font-semibold mt-2">Recomendado</p>
+                <p className="text-2xs tracking-widest uppercase text-gold-dark font-semibold mt-2">Recomendado</p>
               </button>
             </div>
           )}
@@ -873,7 +874,7 @@ export default function BookingForm() {
           {isMulti ? (
             <div className="flex items-center justify-between bg-gold-pale/60 border border-gold/20 rounded-xl px-4 py-3 mb-6">
               <div className="min-w-0">
-                <p className="text-[10px] tracking-widest uppercase text-gold-dark mb-0.5">
+                <p className="text-2xs tracking-widest uppercase text-gold-dark mb-0.5">
                   Servicios elegidos
                 </p>
                 <p className="text-sm text-ink font-medium truncate">
@@ -889,7 +890,7 @@ export default function BookingForm() {
           ) : selectedService && (
             <div className="flex items-center justify-between bg-gold-pale/60 border border-gold/20 rounded-xl px-4 py-3 mb-6">
               <div className="min-w-0">
-                <p className="text-[10px] tracking-widest uppercase text-gold-dark mb-0.5">
+                <p className="text-2xs tracking-widest uppercase text-gold-dark mb-0.5">
                   Servicio elegido
                 </p>
                 <p className="text-sm text-ink font-medium truncate">
@@ -937,20 +938,20 @@ export default function BookingForm() {
 
           <div className="bg-white border border-beige-dark rounded-2xl p-6 shadow-sm">
             {summaryServices.length > 1 ? (
-              <div className="flex justify-between text-[15px] border-b border-dashed border-beige-deeper py-3">
+              <div className="flex justify-between text-base border-b border-dashed border-beige-deeper py-3">
                 <span className="text-ink-muted">Servicios</span>
                 <span className="font-serif text-ink font-semibold text-right max-w-[60%]">
                   {summaryServices.map((s) => s.name).join(' + ')}
                 </span>
               </div>
             ) : (
-              <div className="flex justify-between text-[15px] border-b border-dashed border-beige-deeper py-3">
+              <div className="flex justify-between text-base border-b border-dashed border-beige-deeper py-3">
                 <span className="text-ink-muted">Servicio</span>
                 <span className="font-serif text-ink font-semibold text-right max-w-[60%]">{summaryServices[0]?.name ?? ''}</span>
               </div>
             )}
             {effectiveShowProfessionalStep && (
-              <div className="flex justify-between text-[15px] border-b border-dashed border-beige-deeper py-3">
+              <div className="flex justify-between text-base border-b border-dashed border-beige-deeper py-3">
                 <span className="text-ink-muted">Profesional</span>
                 <span className="text-ink font-medium text-right max-w-[60%]">{selectedProfessional?.name ?? 'Primera disponible'}</span>
               </div>
@@ -960,17 +961,17 @@ export default function BookingForm() {
               { label: 'Hora',      value: form.startTime },
               { label: 'Duración',  value: `${summaryDuration} minutos` },
             ].map(({ label, value }) => (
-              <div key={label} className="flex justify-between text-[15px] border-b border-dashed border-beige-deeper py-3">
+              <div key={label} className="flex justify-between text-base border-b border-dashed border-beige-deeper py-3">
                 <span className="text-ink-muted">{label}</span>
                 <span className="text-ink font-medium text-right max-w-[60%] first-letter:uppercase">{value}</span>
               </div>
             ))}
-            <div className="flex justify-between text-[15px] border-b border-dashed border-beige-deeper py-3">
+            <div className="flex justify-between text-base border-b border-dashed border-beige-deeper py-3">
               <span className="text-ink-muted">Subtotal</span>
               <span className="text-ink font-medium">{formatPrice(subtotal)}</span>
             </div>
             {discountPercent > 0 && (
-              <div className="flex justify-between text-[15px] border-b border-dashed border-beige-deeper py-3">
+              <div className="flex justify-between text-base border-b border-dashed border-beige-deeper py-3">
                 <span className="text-gold-dark font-medium">Descuento VIP ({discountPercent}%)</span>
                 <span className="text-gold-dark font-medium">-{formatPrice(discountAmount)}</span>
               </div>
@@ -1001,8 +1002,9 @@ export default function BookingForm() {
             {/* Phone first: the phone IS the client's identity, so we ask it up
                 front and offer to recognize returning clients (with consent). */}
             <div>
-              <label className="form-label">Teléfono / WhatsApp <span className="text-red-700">*</span></label>
+              <label htmlFor={`${fieldId}-phone`} className="form-label">Teléfono / WhatsApp <span className="text-red-700">*</span></label>
               <input
+                id={`${fieldId}-phone`}
                 type="tel"
                 list="dl-phone"
                 className={inputClass(v.errorOf('clientPhone'))}
@@ -1011,9 +1013,11 @@ export default function BookingForm() {
                 onChange={(e) => updateForm('clientPhone', e.target.value)}
                 onBlur={v.handleBlur('clientPhone')}
                 autoComplete="tel"
+                aria-invalid={v.errorOf('clientPhone') ? true : undefined}
+                aria-describedby={v.errorOf('clientPhone') ? `${fieldId}-phone-err` : undefined}
               />
               {v.errorOf('clientPhone') && (
-                <p className="flex items-center gap-1.5 text-red-700 text-xs mt-1.5"><span>⚠</span> {v.errorOf('clientPhone')}</p>
+                <p id={`${fieldId}-phone-err`} className="flex items-center gap-1.5 text-red-700 text-xs mt-1.5"><span aria-hidden="true">⚠</span> {v.errorOf('clientPhone')}</p>
               )}
 
               {/* Returning-client recognition — consent-based, never auto-applied */}
@@ -1038,8 +1042,9 @@ export default function BookingForm() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="form-label">Nombre completo <span className="text-red-700">*</span></label>
+                <label htmlFor={`${fieldId}-name`} className="form-label">Nombre completo <span className="text-red-700">*</span></label>
                 <input
+                  id={`${fieldId}-name`}
                   type="text"
                   list="dl-name"
                   className={inputClass(v.errorOf('clientName'))}
@@ -1048,16 +1053,19 @@ export default function BookingForm() {
                   onChange={(e) => updateForm('clientName', e.target.value)}
                   onBlur={v.handleBlur('clientName')}
                   autoComplete="name"
+                  aria-invalid={v.errorOf('clientName') ? true : undefined}
+                  aria-describedby={v.errorOf('clientName') ? `${fieldId}-name-err` : undefined}
                 />
                 {v.errorOf('clientName') && (
-                  <p className="flex items-center gap-1.5 text-red-700 text-xs mt-1.5"><span>⚠</span> {v.errorOf('clientName')}</p>
+                  <p id={`${fieldId}-name-err`} className="flex items-center gap-1.5 text-red-700 text-xs mt-1.5"><span aria-hidden="true">⚠</span> {v.errorOf('clientName')}</p>
                 )}
               </div>
               <div>
-                <label className="form-label">
+                <label htmlFor={`${fieldId}-email`} className="form-label">
                   Email <span className="text-ink-muted/60 normal-case font-normal tracking-normal">(opcional)</span>
                 </label>
                 <input
+                  id={`${fieldId}-email`}
                   type="email"
                   list="dl-email"
                   className={inputClass(v.errorOf('clientEmail'))}
@@ -1066,11 +1074,13 @@ export default function BookingForm() {
                   onChange={(e) => updateForm('clientEmail', e.target.value)}
                   onBlur={v.handleBlur('clientEmail')}
                   autoComplete="email"
+                  aria-invalid={v.errorOf('clientEmail') ? true : undefined}
+                  aria-describedby={v.errorOf('clientEmail') ? `${fieldId}-email-err` : `${fieldId}-email-help`}
                 />
                 {v.errorOf('clientEmail') ? (
-                  <p className="flex items-center gap-1.5 text-red-700 text-xs mt-1.5"><span>⚠</span> {v.errorOf('clientEmail')}</p>
+                  <p id={`${fieldId}-email-err`} className="flex items-center gap-1.5 text-red-700 text-xs mt-1.5"><span aria-hidden="true">⚠</span> {v.errorOf('clientEmail')}</p>
                 ) : (
-                  <p className="text-xs text-ink-muted/60 mt-1.5">
+                  <p id={`${fieldId}-email-help`} className="text-xs text-ink-muted/60 mt-1.5">
                     Si lo proporcionas, recibirás confirmación y recordatorios automáticos de tu cita.
                   </p>
                 )}
@@ -1078,11 +1088,12 @@ export default function BookingForm() {
             </div>
 
             <div>
-              <label className="form-label">
+              <label htmlFor={`${fieldId}-notes`} className="form-label">
                 Notas adicionales{' '}
                 <span className="text-ink-muted/60 normal-case font-normal tracking-normal">(opcional)</span>
               </label>
               <textarea
+                id={`${fieldId}-notes`}
                 className="input-field resize-none"
                 rows={3}
                 placeholder="Ej: prefiero esmalte nude, tengo uñas acrílicas previas..."

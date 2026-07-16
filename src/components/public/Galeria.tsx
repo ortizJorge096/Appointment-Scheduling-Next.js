@@ -147,7 +147,7 @@ export default function Galeria() {
                 <div className="w-full h-full" style={{ background: PLACEHOLDER_GRADIENTS[i % PLACEHOLDER_GRADIENTS.length] }} />
                 <div className="absolute inset-0 bg-gradient-to-t from-ink/80 via-ink/20 to-transparent flex flex-col justify-end p-5">
                   <p className="logo-script text-gold-light text-2xl leading-none">{item.label}</p>
-                  <p className="text-white/70 text-[10px] mt-1.5 tracking-widest uppercase">{item.sub}</p>
+                  <p className="text-white/70 text-2xs mt-1.5 tracking-widest uppercase">{item.sub}</p>
                 </div>
               </div>
             ))}
@@ -304,10 +304,11 @@ function Lightbox({
             priority
           />
         </div>
-        {(image.title || image.category) && (
-          <figcaption className="text-center">
+        {(image.title || image.description || image.category) && (
+          <figcaption className="text-center max-w-lg px-4">
             {image.title && <p className="font-serif italic text-white text-lg leading-tight">{image.title}</p>}
-            {image.category && <p className="text-gold-light text-xs mt-1 tracking-widest uppercase">{image.category.name}</p>}
+            {image.description && <p className="text-white/70 text-sm mt-1.5 leading-relaxed">{image.description}</p>}
+            {image.category && <p className="text-gold-light text-xs mt-1.5 tracking-widest uppercase">{image.category.name}</p>}
           </figcaption>
         )}
       </figure>

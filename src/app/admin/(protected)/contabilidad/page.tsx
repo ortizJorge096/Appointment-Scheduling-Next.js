@@ -61,12 +61,12 @@ const EMPTY_FORM = { description: '', amount: '', date: new Date().toISOString()
 // flips the color semantics so "up" reads red instead of green.
 function DeltaBadge({ current, previous, invert = false }: { current: number; previous: number; invert?: boolean }) {
   const d = pctDelta(current, previous)
-  if (!d) return <span className="text-[11px] text-ink-muted-deep mt-1 block">— sin período anterior</span>
+  if (!d) return <span className="text-2xs text-ink-muted-deep mt-1 block">— sin período anterior</span>
   const good  = d.dir === 'flat' ? null : invert ? d.dir === 'down' : d.dir === 'up'
   const color = good === null ? 'text-ink-muted-deep' : good ? 'text-green-700' : 'text-red-700'
   const arrow = d.dir === 'up' ? '↑' : d.dir === 'down' ? '↓' : '→'
   return (
-    <span className={`text-[11px] mt-1 inline-flex items-center gap-1 ${color}`}>
+    <span className={`text-2xs mt-1 inline-flex items-center gap-1 ${color}`}>
       <span>{arrow} {Math.abs(d.pct)}%</span>
       <span className="text-ink-muted-deep">vs. anterior</span>
     </span>
@@ -220,12 +220,12 @@ export default function ContabilidadPage() {
       {/* Date filter */}
       <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-3 mb-6 items-end">
         <div className="min-w-0">
-          <label className="form-label text-[10px]">Desde</label>
+          <label className="form-label text-2xs">Desde</label>
           <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
             className="input-field w-full min-w-0" />
         </div>
         <div className="min-w-0">
-          <label className="form-label text-[10px]">Hasta</label>
+          <label className="form-label text-2xs">Hasta</label>
           <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
             className="input-field w-full min-w-0" />
         </div>
@@ -257,7 +257,7 @@ export default function ContabilidadPage() {
           <p className={`text-lg sm:text-xl font-serif font-light break-words ${netColor} ${loadingSum ? 'opacity-40' : ''}`}>
             {formatPrice(summary?.netProfit ?? 0)}
           </p>
-          <span className="text-[11px] text-ink-muted-deep mt-1 block">margen {summary?.marginPct ?? 0}%</span>
+          <span className="text-2xs text-ink-muted-deep mt-1 block">margen {summary?.marginPct ?? 0}%</span>
         </div>
 
         {/* Por cobrar */}
@@ -266,7 +266,7 @@ export default function ContabilidadPage() {
           <p className={`text-lg sm:text-xl font-serif font-light text-gold-dark break-words ${loadingSum ? 'opacity-40' : ''}`}>
             {formatPrice(summary?.receivable ?? 0)}
           </p>
-          <span className="text-[11px] text-ink-muted-deep mt-1 block">
+          <span className="text-2xs text-ink-muted-deep mt-1 block">
             {summary?.receivableCount ?? 0} {(summary?.receivableCount ?? 0) === 1 ? 'cita con saldo' : 'citas con saldo'}
           </span>
         </div>
@@ -340,35 +340,35 @@ export default function ContabilidadPage() {
               Our own errors are inline and match the rest of the admin. */}
           <form onSubmit={addExpense} noValidate className="bg-white rounded-xl border border-beige-dark p-5 space-y-3">
             <div>
-              <label htmlFor="gasto-desc" className="form-label text-[10px]">Descripción *</label>
+              <label htmlFor="gasto-desc" className="form-label text-2xs">Descripción *</label>
               <input id="gasto-desc" value={form.description}
                 onChange={e => { setForm(f => ({ ...f, description: e.target.value })); v.clearError('description') }}
                 onBlur={v.handleBlur('description')}
                 placeholder="Ej: Esmaltes UV, bombillas, etc."
-                className={`input-field w-full ${v.errorOf('description') ? 'border-red-400 focus:ring-red-300' : ''}`} />
+                className={`input-field w-full ${v.errorOf('description') ? 'input-error' : ''}`} />
               {v.errorOf('description') && <p className="text-xs text-red-700 mt-0.5">{v.errorOf('description')}</p>}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="min-w-0">
-                <label htmlFor="gasto-monto" className="form-label text-[10px]">Monto (COP) *</label>
+                <label htmlFor="gasto-monto" className="form-label text-2xs">Monto (COP) *</label>
                 <input id="gasto-monto" type="number" min="1" value={form.amount}
                   onChange={e => { setForm(f => ({ ...f, amount: e.target.value })); v.clearError('amount') }}
                   onBlur={v.handleBlur('amount')}
                   placeholder="0"
-                  className={`input-field w-full min-w-0 ${v.errorOf('amount') ? 'border-red-400 focus:ring-red-300' : ''}`} />
+                  className={`input-field w-full min-w-0 ${v.errorOf('amount') ? 'input-error' : ''}`} />
                 {v.errorOf('amount') && <p className="text-xs text-red-700 mt-0.5">{v.errorOf('amount')}</p>}
               </div>
               <div className="min-w-0">
-                <label htmlFor="gasto-fecha" className="form-label text-[10px]">Fecha *</label>
+                <label htmlFor="gasto-fecha" className="form-label text-2xs">Fecha *</label>
                 <input id="gasto-fecha" type="date" value={form.date}
                   onChange={e => { setForm(f => ({ ...f, date: e.target.value })); v.clearError('date') }}
                   onBlur={v.handleBlur('date')}
-                  className={`input-field w-full min-w-0 ${v.errorOf('date') ? 'border-red-400 focus:ring-red-300' : ''}`} />
+                  className={`input-field w-full min-w-0 ${v.errorOf('date') ? 'input-error' : ''}`} />
                 {v.errorOf('date') && <p className="text-xs text-red-700 mt-0.5">{v.errorOf('date')}</p>}
               </div>
             </div>
             <div>
-              <label className="form-label text-[10px]">Categoría</label>
+              <label className="form-label text-2xs">Categoría</label>
               <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
                 className="select-field w-full">
                 {EXPENSE_CATEGORIES.map(c => (
@@ -377,7 +377,7 @@ export default function ContabilidadPage() {
               </select>
             </div>
             <div>
-              <label className="form-label text-[10px]">Notas</label>
+              <label className="form-label text-2xs">Notas</label>
               <input value={form.notes}
                 onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
                 placeholder="Opcional"

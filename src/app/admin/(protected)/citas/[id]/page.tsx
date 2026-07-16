@@ -449,12 +449,12 @@ export default function CitaDetailPage() {
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="form-label text-[10px] !mb-1">Nueva fecha</label>
+                  <label className="form-label text-2xs !mb-1">Nueva fecha</label>
                   <input type="date" aria-label="Nueva fecha" value={schedDate} min={format(new Date(), 'yyyy-MM-dd')}
                     onChange={(e) => setSchedDate(e.target.value)} className="input-field w-full" />
                 </div>
                 <div>
-                  <label className="form-label text-[10px] !mb-1">Nueva hora</label>
+                  <label className="form-label text-2xs !mb-1">Nueva hora</label>
                   <input type="time" aria-label="Nueva hora" value={schedTime}
                     onChange={(e) => setSchedTime(e.target.value.slice(0, 5))} className="input-field w-full" />
                 </div>
@@ -466,7 +466,7 @@ export default function CitaDetailPage() {
                 <button onClick={() => { setEditSched(false); setSchedDate(format(new Date(appt.date), 'yyyy-MM-dd')); setSchedTime(appt.startTime) }}
                   className="btn-secondary text-xs px-4 py-2">Cancelar</button>
               </div>
-              <p className="text-[11px] text-ink-muted-deep">Se recalcula la hora de fin; si el cliente tiene email, se le notifica el cambio.</p>
+              <p className="text-2xs text-ink-muted-deep">Se recalcula la hora de fin; si el cliente tiene email, se le notifica el cambio.</p>
             </div>
           ) : (
             <>
@@ -706,7 +706,7 @@ export default function CitaDetailPage() {
           className="btn-primary text-xs px-5 py-2.5 sm:py-2 mt-4 disabled:opacity-50">
           Guardar pago
         </SubmitButton>
-        <p className="text-[11px] text-ink-muted-deep mt-2">
+        <p className="text-2xs text-ink-muted-deep mt-2">
           Con pago <strong>Pagado</strong> o <strong>Cortesía</strong>, la cita se marca como completada automáticamente. Un abono <strong>Parcial</strong> no la completa.
         </p>
       </form>

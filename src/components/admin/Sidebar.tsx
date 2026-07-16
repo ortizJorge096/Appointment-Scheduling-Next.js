@@ -102,7 +102,7 @@ export default function AdminSidebar() {
         <span className="flex-1">{item.label}</span>
         {badge !== null && (
           <span className="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5
-                           rounded-full bg-gold text-ink text-[11px] font-semibold">
+                           rounded-full bg-gold text-ink text-2xs font-semibold">
             {badge}
           </span>
         )}
@@ -123,10 +123,10 @@ export default function AdminSidebar() {
           type="button"
           onClick={() => toggleGroup(group.id)}
           aria-expanded={expanded}
-          className={`w-full flex items-center gap-2 px-3 mt-4 mb-1 text-[10px] tracking-widest uppercase
+          className={`w-full flex items-center gap-2 px-3 mt-4 mb-1 text-2xs tracking-widest uppercase
                       transition-colors ${hasActive ? 'text-gold' : 'text-white/55 hover:text-white/80'}`}
         >
-          <span aria-hidden="true" className={`text-[10px] leading-none transition-transform duration-200 ${expanded ? 'rotate-90' : ''}`}>▶</span>
+          <span aria-hidden="true" className={`text-2xs leading-none transition-transform duration-200 ${expanded ? 'rotate-90' : ''}`}>▶</span>
           <span className="flex-1 text-left">{group.label}</span>
         </button>
 
@@ -178,7 +178,7 @@ export default function AdminSidebar() {
               </p>
               <span className="logo-studio text-white/70 text-[0.5rem] mt-1 block">Beauty Studio</span>
             </Link>
-            <p className="text-[10px] text-white/50 mt-2 tracking-widest uppercase">Panel admin</p>
+            <p className="text-2xs text-white/50 mt-2 tracking-widest uppercase">Panel admin</p>
           </div>
           {/* Close button (mobile) */}
           <button onClick={() => setOpen(false)} aria-label="Cerrar menú"

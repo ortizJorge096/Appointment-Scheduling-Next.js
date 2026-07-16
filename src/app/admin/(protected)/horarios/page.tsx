@@ -193,7 +193,7 @@ export default function HorariosPage() {
 
                     {/* Optional lunch break — leave both empty for a continuous day */}
                     <div className="flex items-center gap-2 text-sm text-ink-muted-deep">
-                      <span className="text-[10px] uppercase tracking-wider text-ink-muted-deep min-w-[64px]">Descanso</span>
+                      <span className="text-2xs uppercase tracking-wider text-ink-muted-deep min-w-[64px]">Descanso</span>
                       <input type="time" value={sched.breakStart ?? ''} disabled={!sched.isActive}
                         onChange={(e) => updateSchedule(sched.dayOfWeek, 'breakStart', e.target.value)}
                         className="input-field py-1.5 w-24 sm:w-28" />
@@ -228,7 +228,7 @@ export default function HorariosPage() {
             {can('horarios:editar') && (
             <div className="px-4 sm:px-6 py-4 border-b border-beige-dark flex flex-wrap gap-3 items-end">
               <div>
-                <label className="form-label text-[10px]">Fecha</label>
+                <label className="form-label text-2xs">Fecha</label>
                 <input
                   type="date"
                   value={newBlock.date}
@@ -238,7 +238,7 @@ export default function HorariosPage() {
                 />
               </div>
               <div className="flex-1 min-w-[160px]">
-                <label className="form-label text-[10px]">Motivo (opcional)</label>
+                <label className="form-label text-2xs">Motivo (opcional)</label>
                 <input
                   type="text"
                   value={newBlock.reason}
