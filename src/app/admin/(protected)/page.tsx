@@ -19,6 +19,15 @@ export const dynamic = 'force-dynamic'
 // Order used for the status-distribution bars
 const STATUS_ORDER = ['CONFIRMED', 'PENDING', 'COMPLETED', 'NO_SHOW'] as const
 
+// Semantic bar colour per status so the distribution reads at a glance
+// (instead of every bar being the same gold).
+const STATUS_BAR: Record<string, string> = {
+  CONFIRMED: 'from-blue-300 to-blue-500',
+  PENDING:   'from-amber-300 to-amber-500',
+  COMPLETED: 'from-green-400 to-green-600',
+  NO_SHOW:   'from-red-300 to-red-500',
+}
+
 const PERIOD_DAYS = 14
 
 // Minimal shape shared by every priced-appointment query below.
@@ -134,7 +143,6 @@ export default async function DashboardPage() {
     bucket.count += 1
     if (a.status === 'COMPLETED') bucket.revenue += priceOf(a)
   }
-  const periodRevenue     = days.reduce((s, d) => s + d.revenue, 0)
   const periodTotal       = periodAppts.length
   const prevPeriodRevenue = completedRevenue(prevPeriodAppts as Array<Priced & { status: string }>)
   const prevPeriodTotal   = prevPeriodAppts.length
@@ -186,7 +194,7 @@ export default async function DashboardPage() {
                       <span className="text-ink-muted-deep">{n} · {pct}%</span>
                     </div>
                     <div className="h-2 rounded-full bg-beige overflow-hidden">
-                      <div className="h-full rounded-full bg-gradient-to-r from-gold-light to-gold"
+                      <div className={`h-full rounded-full bg-gradient-to-r ${STATUS_BAR[st] ?? 'from-gold-light to-gold'}`}
                         style={{ width: `${pct}%` }} />
                     </div>
                   </div>

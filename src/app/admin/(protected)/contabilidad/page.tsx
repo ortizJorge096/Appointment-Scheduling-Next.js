@@ -12,6 +12,7 @@ import { PAYMENT_METHOD_LABEL as METHOD_LABEL, EXPENSE_CATEGORY_LABEL as CAT_LAB
 import { formatPrice } from '@/lib/utils'
 import { useFieldValidation } from '@/hooks/useFieldValidation'
 import { SubmitButton } from '@/components/ui/SubmitButton'
+import { AccountingTrend, type TrendMonth } from '@/components/admin/AccountingTrend'
 
 const PER_PAGE = 10
 
@@ -24,6 +25,25 @@ function currentMonthRange() {
   const to   = new Date(now.getFullYear(), now.getMonth() + 1, 0)
   const fmt  = (d: Date) => d.toISOString().slice(0, 10)
   return { from: fmt(from), to: fmt(to) }
+}
+
+// Quick period presets — the date pickers stay for anything custom.
+type Preset = 'thisMonth' | 'lastMonth' | 'last30' | 'thisYear' | 'custom'
+const PRESETS: { key: Exclude<Preset, 'custom'>; label: string }[] = [
+  { key: 'thisMonth', label: 'Este mes' },
+  { key: 'lastMonth', label: 'Mes pasado' },
+  { key: 'last30',    label: 'Últimos 30' },
+  { key: 'thisYear',  label: 'Este año' },
+]
+function presetRange(p: Exclude<Preset, 'custom'>): { from: string; to: string } {
+  const now = new Date(), y = now.getFullYear(), m = now.getMonth()
+  const fmt = (d: Date) => d.toISOString().slice(0, 10)
+  switch (p) {
+    case 'thisMonth': return { from: fmt(new Date(y, m, 1)),     to: fmt(new Date(y, m + 1, 0)) }
+    case 'lastMonth': return { from: fmt(new Date(y, m - 1, 1)), to: fmt(new Date(y, m, 0)) }
+    case 'last30':    { const t = new Date(); const f = new Date(); f.setDate(f.getDate() - 29); return { from: fmt(f), to: fmt(t) } }
+    case 'thisYear':  return { from: fmt(new Date(y, 0, 1)),     to: fmt(new Date(y, 11, 31)) }
+  }
 }
 
 // Previous window of the SAME length, immediately before `from` — the baseline
@@ -80,9 +100,11 @@ export default function ContabilidadPage() {
   const { from: initFrom, to: initTo } = currentMonthRange()
   const [dateFrom, setDateFrom]   = useState(initFrom)
   const [dateTo, setDateTo]       = useState(initTo)
+  const [preset, setPreset]       = useState<Preset>('thisMonth')
 
   const [summary, setSummary]         = useState<AccountingSummary | null>(null)
   const [prevSummary, setPrevSummary] = useState<AccountingSummary | null>(null)
+  const [trend, setTrend]             = useState<TrendMonth[] | null>(null)
   const [expenses, setExpenses]   = useState<ExpenseSummary[]>([])
   const [loadingSum, setLoadingSum] = useState(true)
   const [loadingExp, setLoadingExp] = useState(true)
@@ -140,6 +162,16 @@ export default function ContabilidadPage() {
   }, [dateFrom, dateTo])
 
   useEffect(() => { loadSummary(); loadExpenses() }, [loadSummary, loadExpenses])
+
+  // The 6-month trend is independent of the selected period — load it once.
+  useEffect(() => {
+    fetch('/api/accounting/trend').then((r) => r.json()).then((j) => { if (j.success) setTrend(j.data) }).catch(() => {})
+  }, [])
+
+  function applyPreset(p: Exclude<Preset, 'custom'>) {
+    const r = presetRange(p)
+    setDateFrom(r.from); setDateTo(r.to); setPreset(p)
+  }
 
   async function addExpense(e: React.FormEvent) {
     e.preventDefault()
@@ -217,16 +249,26 @@ export default function ContabilidadPage() {
         )}
       </div>
 
-      {/* Date filter */}
+      {/* Period presets + custom date range */}
+      <div className="flex flex-wrap gap-1.5 mb-3">
+        {PRESETS.map((p) => (
+          <button key={p.key} type="button" onClick={() => applyPreset(p.key)}
+            className={`px-3 py-1.5 text-xs rounded-full border transition-colors ${
+              preset === p.key ? 'bg-ink border-ink text-white' : 'bg-white border-beige-dark text-ink-muted-deep hover:border-gold'
+            }`}>
+            {p.label}
+          </button>
+        ))}
+      </div>
       <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-3 mb-6 items-end">
         <div className="min-w-0">
           <label className="form-label text-2xs">Desde</label>
-          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+          <input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setPreset('custom') }}
             className="input-field w-full min-w-0" />
         </div>
         <div className="min-w-0">
           <label className="form-label text-2xs">Hasta</label>
-          <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+          <input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setPreset('custom') }}
             className="input-field w-full min-w-0" />
         </div>
       </div>
@@ -277,6 +319,8 @@ export default function ContabilidadPage() {
           {summary.paidCount} pagadas · {summary.pendingCount} sin pago · {summary.appointmentCount} total en el período
         </p>
       )}
+
+      {trend && <AccountingTrend months={trend} />}
 
       {/* Income breakdown by payment method */}
       {summary && summary.incomeByPaymentMethod.length > 0 && (
