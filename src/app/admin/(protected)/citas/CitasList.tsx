@@ -116,6 +116,7 @@ export default function CitasList({
   const [pagination, setPagination]     = useState<Pagination>(initialPagination)
   const [page, setPage]                 = useState(initialPagination.page)
   const [loading, setLoading]           = useState(false)
+  const [exportOpen, setExportOpen]     = useState(false)
   const [showMore, setShowMore]         = useState(
     !!(initialFilters.serviceId || initialFilters.categoryId ||
        initialFilters.amountMin || initialFilters.amountMax ||
@@ -174,6 +175,16 @@ export default function CitasList({
 
   function patch(p: Partial<CitasFilters>) { setFilters((f) => ({ ...f, ...p })); setPage(1) }
   function clearAll() { setFilters(EMPTY_FILTERS); setPage(1); setShowMore(false) }
+
+  // CSV export of the CURRENT filter (all matching rows, server-side). 'full' keeps
+  // client contact; 'accounting' drops it (data minimization). Same-origin GET
+  // download — the session cookie authorizes it.
+  function downloadExport(columns: 'full' | 'accounting') {
+    const q = buildQueryString(filters, 1) // page 1 → no page param; export every match
+    const url = `/api/appointments/export?${q ? q + '&' : ''}columns=${columns}`
+    const a = document.createElement('a'); a.href = url; a.click()
+    setExportOpen(false)
+  }
 
   // Active-filter chips (removable)
   const chips: { label: string; clear: () => void }[] = []
@@ -349,10 +360,39 @@ export default function CitasList({
         )}
       </div>
 
-      {/* Counter */}
-      <p className="text-xs text-ink-muted-deep mb-2 flex items-center gap-2">
-        {loading ? 'Buscando…' : `${pagination.total} cita${pagination.total === 1 ? '' : 's'} encontrada${pagination.total === 1 ? '' : 's'}`}
-      </p>
+      {/* Counter + export */}
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <p className="text-xs text-ink-muted-deep flex items-center gap-2">
+          {loading ? 'Buscando…' : `${pagination.total} cita${pagination.total === 1 ? '' : 's'} encontrada${pagination.total === 1 ? '' : 's'}`}
+        </p>
+        <div className="relative shrink-0">
+          <button type="button" onClick={() => setExportOpen((o) => !o)}
+            aria-haspopup="menu" aria-expanded={exportOpen}
+            className="inline-flex items-center gap-1.5 text-xs text-ink border border-beige-dark rounded-full px-3 py-1.5 hover:bg-beige/40 transition-colors">
+            <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+              <path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Exportar
+          </button>
+          {exportOpen && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setExportOpen(false)} aria-hidden="true" />
+              <div role="menu" className="absolute right-0 top-full mt-1 z-20 w-56 bg-white border border-beige-dark rounded-lg shadow-md overflow-hidden">
+                <button type="button" role="menuitem" onClick={() => downloadExport('full')}
+                  className="block w-full text-left px-3 py-2 hover:bg-beige transition-colors">
+                  <span className="text-xs text-ink font-medium">Completo</span>
+                  <span className="block text-2xs text-ink-muted-deep">Con teléfono y email · para respaldo</span>
+                </button>
+                <button type="button" role="menuitem" onClick={() => downloadExport('accounting')}
+                  className="block w-full text-left px-3 py-2 hover:bg-beige transition-colors border-t border-beige-dark">
+                  <span className="text-xs text-ink font-medium">Contable</span>
+                  <span className="block text-2xs text-ink-muted-deep">Sin datos de contacto · para el contador</span>
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
 
       {/* Results */}
       <div className={`bg-white rounded-xl border border-beige-dark overflow-x-auto transition-opacity ${loading ? 'opacity-60' : ''}`}>
