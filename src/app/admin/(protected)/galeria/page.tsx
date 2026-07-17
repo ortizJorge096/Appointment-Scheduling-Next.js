@@ -66,18 +66,22 @@ export default function GaleriaAdminPage() {
   const [editing, setEditing] = useState<string | null>(null)
   const [editForm, setEditForm] = useState<{ title: string; description: string; categoryId: string; focalPoint: string }>({ title: '', description: '', categoryId: '', focalPoint: 'center center' })
 
-  function load() {
+  async function load(): Promise<GalleryImage[]> {
     setLoading(true)
-    Promise.all([
-      fetch('/api/gallery?includeInactive=true').then((r) => r.json()),
-      fetch('/api/categories').then((r) => r.json()),
-    ])
-      .then(([galJson, catJson]) => {
-        if (galJson.success) setImages(galJson.data)
-        if (catJson.success) setCategories(catJson.data)
-      })
-      .catch(() => setError('Error al cargar la galería'))
-      .finally(() => setLoading(false))
+    try {
+      const [galJson, catJson] = await Promise.all([
+        fetch('/api/gallery?includeInactive=true').then((r) => r.json()),
+        fetch('/api/categories').then((r) => r.json()),
+      ])
+      if (catJson.success) setCategories(catJson.data)
+      if (galJson.success) { setImages(galJson.data); return galJson.data as GalleryImage[] }
+      return []
+    } catch {
+      setError('Error al cargar la galería')
+      return []
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => { load() }, [])
@@ -130,8 +134,19 @@ export default function GaleriaAdminPage() {
       const j2 = await r2.json()
       if (!j2.success) { setError(j2.error ?? 'Subió pero no se pudo registrar'); return }
 
-      flashSuccess('Imagen subida')
-      load()
+      // Open the new image's editor right away so the admin fills its info
+      // (title/description/category/focal) in the same flow, not hunting for it later.
+      flashSuccess('Imagen subida — agrega su información')
+      const fresh   = await load()
+      const created = j2.data
+      setPage(Math.max(1, Math.ceil(fresh.length / PAGE_SIZE))) // the new image sorts last
+      setEditing(created.id)
+      setEditForm({
+        title:       created.title ?? '',
+        description: created.description ?? '',
+        categoryId:  created.categoryId ?? '',
+        focalPoint:  created.focalPoint ?? 'center center',
+      })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error al subir')
     } finally {
