@@ -402,6 +402,22 @@ export const galleryUpdateSchema = z.object({
 })
 
 // ─────────────────────────────────────────
+// HERO (admin) — banner carousel images, no captions.
+// ─────────────────────────────────────────
+
+export const heroCreateSchema = z.object({
+  s3Key:      z.string().min(1).max(300),
+  focalPoint: focalPointSchema.optional(),
+})
+
+export const heroUpdateSchema = z.object({
+  s3Key:      z.string().min(1).max(300).optional(),
+  order:      z.number().int().min(0).optional(),
+  isActive:   z.boolean().optional(),
+  focalPoint: focalPointSchema.optional(),
+})
+
+// ─────────────────────────────────────────
 // TESTIMONIALS (admin)
 // ─────────────────────────────────────────
 

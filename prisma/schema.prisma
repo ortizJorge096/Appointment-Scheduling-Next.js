@@ -445,6 +445,26 @@ model GalleryImage {
 }
 
 // ─────────────────────────────────────────
+// HERO
+// Homepage banner carousel images — managed from the admin (S3 + DB) so they can
+// change without a rebuild. Distinct from GalleryImage (portfolio grid): fewer,
+// curated, no captions. Ordered by `order`; focalPoint drives the hard crop.
+// ─────────────────────────────────────────
+
+model HeroImage {
+  id         String   @id @default(cuid())
+  s3Key      String   @unique
+  order      Int      @default(0)
+  isActive   Boolean  @default(true)
+  // CSS object-position for the banner crop (the hero crops hard to a landscape).
+  focalPoint String   @default("center center")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  @@index([isActive])
+  @@map("hero_images")
+}
+
+// ─────────────────────────────────────────
 // TESTIMONIALS
 // Reviews shown on the landing page. Created by the admin (source ADMIN) or,
 // in the future, submitted by clients (source CLIENT) → left in PENDING for

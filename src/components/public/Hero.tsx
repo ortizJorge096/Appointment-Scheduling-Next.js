@@ -5,9 +5,11 @@ import HeroCarousel from './HeroCarousel'
 import HeroSocialProof from './HeroSocialProof'
 
 export default async function Hero() {
-  // Auto-discovered from /public/hero/. Falls back to the single hero image.
+  // Admin-managed (DB + S3), falling back to /public/hero, then the single config image.
   const found  = await listHeroImages()
-  const images = found.length ? found : (STUDIO.heroImage ? [STUDIO.heroImage] : [])
+  const images = found.length
+    ? found
+    : (STUDIO.heroImage ? [{ src: STUDIO.heroImage, focalPoint: 'center center' }] : [])
 
   return (
     <section className="relative min-h-screen bg-ink flex items-center overflow-hidden">

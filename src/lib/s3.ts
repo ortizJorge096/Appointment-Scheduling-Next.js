@@ -14,6 +14,7 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 // ── Constants ─────────────────────────────────────────────────
 const PRESIGN_EXPIRES_SEC = 60 * 5         // 5 minutes to upload
 export const GALLERY_PREFIX = 'gallery/'        // all gallery images live under this prefix
+export const HERO_PREFIX = 'hero/'              // homepage banner carousel images
 export const TESTIMONIAL_PREFIX = 'testimonios/' // testimonial work photos
 export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024  // 5 MB
 
@@ -98,6 +99,11 @@ export async function deleteObject(key: string): Promise<void> {
  */
 export function buildGalleryKey(id: string, originalFilename: string): string {
   return buildKey(GALLERY_PREFIX, id, originalFilename)
+}
+
+/** Builds a unique key under the hero prefix. */
+export function buildHeroKey(id: string, originalFilename: string): string {
+  return buildKey(HERO_PREFIX, id, originalFilename)
 }
 
 /** Builds a unique key under the testimonials prefix. */
