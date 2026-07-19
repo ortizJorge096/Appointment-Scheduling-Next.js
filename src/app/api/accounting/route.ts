@@ -7,6 +7,7 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentAdmin } from '@/lib/authz'
 import { hasPermission } from '@/lib/permissions'
 import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
+import { appointmentIncome, appointmentBalance } from '@/lib/accounting'
 import type { ApiResponse, AccountingSummary, CategoryBreakdown, PaymentMethodBreakdown, ExpenseCategory } from '@/types'
 
 export const dynamic = 'force-dynamic'
@@ -70,26 +71,15 @@ export async function GET(
     }
     type ExpRow = { amount: number; category: ExpenseCategory }
 
-    // Helper to get total price from appointment (supports multi-service)
-    function getTotalPrice(apt: AptRow): number {
-      if (apt.services && apt.services.length > 1) {
-        return apt.services.reduce((sum, s) => sum + s.price, 0)
-      }
-      return apt.service.price
-    }
-
-    // Income: amountPaid if recorded; else the discounted price (precioFinal)
-    // when a manual discount was applied; else the gross service price. Using
-    // precioFinal before the gross keeps a discount from inflating revenue.
-    const appointmentIncome = (appointments as AptRow[]).reduce((sum: number, apt: AptRow) => {
-      if (apt.paymentStatus === 'WAIVED') return sum
-      if (apt.paymentStatus === 'PENDING') return sum
-      return sum + (apt.amountPaid ?? apt.precioFinal ?? getTotalPrice(apt))
-    }, 0)
+    // Income & balance rules live in one place (src/lib/accounting) so this summary
+    // and the CSV export can never drift on what counts as collected or as owed.
+    const incomeFromAppointments = (appointments as AptRow[]).reduce(
+      (sum, apt) => sum + appointmentIncome(apt), 0,
+    )
 
     // Walk-in quick sales (no client/appointment) are collected income too.
     const quickSaleTotal = (quickSales as Array<{ amount: number }>).reduce((sum, q) => sum + q.amount, 0)
-    const totalIncome    = appointmentIncome + quickSaleTotal
+    const totalIncome    = incomeFromAppointments + quickSaleTotal
 
     const totalExpenses = (expenses as ExpRow[]).reduce((sum: number, e: ExpRow) => sum + e.amount, 0)
     const netProfit     = totalIncome - totalExpenses
@@ -97,14 +87,12 @@ export async function GET(
     const paidCount    = (appointments as AptRow[]).filter((a: AptRow) => a.paymentStatus === 'PAID').length
     const pendingCount = (appointments as AptRow[]).filter((a: AptRow) => a.paymentStatus === 'PENDING').length
 
-    // Outstanding balance still owed: PENDING owes the full expected value,
-    // PARTIAL owes the remainder after the recorded payment. PAID/WAIVED owe nothing.
+    // Outstanding balance still owed (see appointmentBalance): PENDING owes the full
+    // expected value, PARTIAL the remainder, PAID/WAIVED nothing.
     let receivable = 0
     let receivableCount = 0
     for (const apt of appointments as AptRow[]) {
-      if (apt.paymentStatus === 'PAID' || apt.paymentStatus === 'WAIVED') continue
-      const expected = apt.precioFinal ?? getTotalPrice(apt)
-      const balance  = apt.paymentStatus === 'PARTIAL' ? expected - (apt.amountPaid ?? 0) : expected
+      const balance = appointmentBalance(apt)
       if (balance > 0) {
         receivable += balance
         receivableCount += 1

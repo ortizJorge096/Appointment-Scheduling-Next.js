@@ -67,12 +67,6 @@ function pctDelta(current: number, previous: number): { pct: number; dir: 'up' |
   return { pct, dir: pct > 0 ? 'up' : pct < 0 ? 'down' : 'flat' }
 }
 
-// Quote a CSV cell only when it contains a comma, quote or newline.
-function csvCell(value: string) {
-  const s = String(value ?? '')
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
-}
-
 // Validated on blur and on submit. Module-level so the hook keeps a stable ref.
 const EXPENSE_FIELDS = ['description', 'amount', 'date'] as const
 
@@ -260,25 +254,12 @@ export default function ContabilidadPage() {
     loadSummary()
   }
 
-  // Export the period's expenses to CSV, client-side, from the loaded list.
+  // Download the period's full accounting statement (income + expenses + a summary)
+  // as CSV from the server, which reuses the same rules as the KPIs so the totals
+  // reconcile — and isn't capped at the 100 rows the lists load client-side.
   function exportCsv() {
-    const header = ['Fecha', 'Descripción', 'Categoría', 'Monto', 'Notas']
-    const rows = expenses.map(e => [
-      e.date.slice(0, 10),
-      e.description,
-      CAT_LABEL[e.category] ?? e.category,
-      String(e.amount),
-      e.notes ?? '',
-    ])
-    const csv = [header, ...rows].map(r => r.map(csvCell).join(',')).join('\r\n')
-    // BOM so Excel opens the accented UTF-8 correctly.
-    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `gastos-${dateFrom}_${dateTo}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
+    const qs = new URLSearchParams({ dateFrom, dateTo }).toString()
+    window.location.href = `/api/accounting/export?${qs}`
   }
 
   const netColor = (summary?.netProfit ?? 0) >= 0 ? 'text-green-700' : 'text-red-700'
@@ -293,8 +274,9 @@ export default function ContabilidadPage() {
           <h1 className="font-serif text-2xl sm:text-3xl text-ink font-light">Contabilidad</h1>
           <p className="text-sm text-ink-muted-deep mt-0.5">Ingresos, gastos y utilidad neta del período</p>
         </div>
-        {expenses.length > 0 && (
+        {summary && (summary.appointmentCount > 0 || quickSales.length > 0 || expenses.length > 0) && (
           <button onClick={exportCsv}
+            title="Descargar el estado del período: ingresos, gastos, ventas rápidas y resumen"
             className="shrink-0 min-h-11 inline-flex items-center gap-1.5 px-4 rounded-full border border-beige-dark text-sm text-ink hover:bg-beige/40 transition-colors">
             <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
               <path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16" strokeLinecap="round" strokeLinejoin="round" />
