@@ -25,9 +25,12 @@ const PUBLIC_ALLOWLIST = new Set([
 
 // A route is "guarded" if it imports an auth helper from @/lib/authz
 // (getCurrentAdmin / requireSuperAdmin / requirePermission) or reads the session
-// directly via getServerSession. Matching the import keeps this robust to any new
-// authz helper; the explicit names are belt-and-suspenders.
-const AUTH_MARKERS = /from '@\/lib\/authz'|getCurrentAdmin|requireSuperAdmin|requirePermission|getServerSession/
+// directly via getServerSession — OR, for the machine-to-machine cron endpoint,
+// it enforces the scheduler's shared secret (CRON_SECRET). It's guarded, just not
+// by a user session, so it belongs here rather than on the public allowlist.
+// Matching the import keeps this robust to any new authz helper; the explicit
+// names are belt-and-suspenders.
+const AUTH_MARKERS = /from '@\/lib\/authz'|getCurrentAdmin|requireSuperAdmin|requirePermission|getServerSession|CRON_SECRET/
 
 function routeFiles(dir: string): string[] {
   const out: string[] = []
