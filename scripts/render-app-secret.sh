@@ -9,7 +9,7 @@
 # public GOOGLE_* ids) lives in the ConfigMap via the kustomize overlay.
 #
 # Usage:
-#   render-app-secret.sh <namespace> <db_url_ssm> <nextauth_ssm> <google_key_ssm> <resend_key_ssm> [region]
+#   render-app-secret.sh <namespace> <db_url_ssm> <nextauth_ssm> <google_key_ssm> <resend_key_ssm> [region] [cron_secret_ssm]
 #
 # kubectl uses the ambient context: KUBECONFIG in user-data, ~/.kube/config on
 # the self-hosted runner.
@@ -21,6 +21,9 @@ NEXTAUTH_SSM="${3:?nextauth SSM parameter name required}"
 GOOGLE_KEY_SSM="${4:?google key SSM parameter name required}"
 RESEND_KEY_SSM="${5:?resend key SSM parameter name required}"
 REGION="${6:-us-east-1}"
+# Optional: SSM param holding the shared secret for the scheduled-jobs endpoint
+# (POST /api/cron). If unset, the endpoint stays locked (401) — fail-safe.
+CRON_SECRET_SSM="${7:-}"
 
 ssm() { aws ssm get-parameter --region "$REGION" --name "$1" --with-decryption --query 'Parameter.Value' --output text; }
 
@@ -30,6 +33,11 @@ NEXTAUTH_SECRET="$(ssm "$NEXTAUTH_SSM")"
 GOOGLE_PRIVATE_KEY="$(ssm "$GOOGLE_KEY_SSM" 2>/dev/null || true)"
 # The Resend API key may also be unset/placeholder — tolerate a read failure.
 RESEND_API_KEY="$(ssm "$RESEND_KEY_SSM" 2>/dev/null || true)"
+# Optional cron secret — only read when its SSM param name was provided.
+CRON_SECRET=""
+if [ -n "$CRON_SECRET_SSM" ]; then
+  CRON_SECRET="$(ssm "$CRON_SECRET_SSM" 2>/dev/null || true)"
+fi
 
 if [ -z "$DATABASE_URL" ] || [ -z "$NEXTAUTH_SECRET" ]; then
   echo "ERROR: missing required SSM secrets ($DB_URL_SSM / $NEXTAUTH_SSM)" >&2
@@ -65,6 +73,21 @@ case "$RESEND_API_KEY" in
     args+=(--from-literal=RESEND_API_KEY="$RESEND_API_KEY")
     ;;
 esac
+
+# CRON_SECRET secures the scheduled-jobs endpoint (/api/cron). Make it zero-touch:
+# prefer the SSM value; else reuse whatever is already in the Secret (so it does
+# NOT rotate on every deploy); else generate one. The app and the CronJob read the
+# same Secret key, so a generated value still matches — no manual step needed.
+case "$CRON_SECRET" in
+  "" | PLACEHOLDER* | None)
+    CRON_SECRET="$(kubectl -n "$NS" get secret appointment-scheduling-secret -o jsonpath='{.data.CRON_SECRET}' 2>/dev/null | base64 -d 2>/dev/null || true)"
+    ;;
+esac
+if [ -z "$CRON_SECRET" ]; then
+  CRON_SECRET="$(openssl rand -hex 32 2>/dev/null || head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+  echo "note: CRON_SECRET auto-generated (set ${CRON_SECRET_SSM:-an SSM param} for a managed value)" >&2
+fi
+args+=(--from-literal=CRON_SECRET="$CRON_SECRET")
 
 kubectl -n "$NS" create secret generic appointment-scheduling-secret \
   "${args[@]}" \
