@@ -16,12 +16,19 @@ describe('listHeroImages', () => {
 
   it('returns image files as /hero/ paths in natural (numeric) order', async () => {
     mockFiles(['10.jpg', '2.jpg', '1.jpg'])
-    expect(await listHeroImages()).toEqual(['/hero/1.jpg', '/hero/2.jpg', '/hero/10.jpg'])
+    expect(await listHeroImages()).toEqual([
+      { src: '/hero/1.jpg', focalPoint: 'center center' },
+      { src: '/hero/2.jpg', focalPoint: 'center center' },
+      { src: '/hero/10.jpg', focalPoint: 'center center' },
+    ])
   })
 
   it('filters out non-images, dotfiles and the video, case-insensitively', async () => {
     mockFiles(['1.jpg', 'hero-video.mp4', '.DS_Store', 'notes.txt', '2.PNG'])
-    expect(await listHeroImages()).toEqual(['/hero/1.jpg', '/hero/2.PNG'])
+    expect(await listHeroImages()).toEqual([
+      { src: '/hero/1.jpg', focalPoint: 'center center' },
+      { src: '/hero/2.PNG', focalPoint: 'center center' },
+    ])
   })
 
   it('returns [] when the folder is missing or unreadable', async () => {

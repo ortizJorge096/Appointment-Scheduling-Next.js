@@ -11,7 +11,7 @@ import { STUDIO } from '@/lib/config'
 
 const SLIDE_MS = 5000
 
-export default function HeroCarousel({ images }: { images: string[] }) {
+export default function HeroCarousel({ images }: { images: { src: string; focalPoint?: string }[] }) {
   const [index, setIndex] = useState(0)
   const [paused, setPaused] = useState(false)
   const [failed, setFailed] = useState<Record<number, boolean>>({})
@@ -34,15 +34,16 @@ export default function HeroCarousel({ images }: { images: string[] }) {
       {/* Fallback gradient — always behind the slides */}
       <div className="absolute inset-0" style={{ background: 'linear-gradient(160deg,var(--ink-soft) 0%,var(--ink) 60%,#0F0A05 100%)' }} />
 
-      {images.map((src, i) => (
+      {images.map((img, i) => (
         failed[i] ? null : (
-          <div key={src} className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${i === index ? 'opacity-100' : 'opacity-0'}`}>
+          <div key={img.src} className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${i === index ? 'opacity-100' : 'opacity-0'}`}>
             <Image
-              src={src}
+              src={img.src}
               alt={`${STUDIO.shortName} — ${STUDIO.tagline} ${i + 1}`}
               fill
               priority={i === 0}
               sizes="(max-width: 1024px) 100vw, 45vw"
+              style={{ objectPosition: img.focalPoint ?? 'center center' }}
               className={`object-cover ${i === index ? 'hero-kenburns' : ''}`}
               onError={() => setFailed((f) => ({ ...f, [i]: true }))}
             />

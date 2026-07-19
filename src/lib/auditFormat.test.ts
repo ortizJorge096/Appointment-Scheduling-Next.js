@@ -20,6 +20,13 @@ describe('formatValue', () => {
     expect(formatValue('name', '')).toBe('—')
     expect(formatValue('status', 'WEIRD')).toBe('WEIRD') // no crash on unmapped value
   })
+
+  it('translates weekdays and the testimonial-only status values', () => {
+    expect(formatValue('dayOfWeek', 'MONDAY')).toBe('Lunes')
+    expect(formatValue('status', 'APPROVED')).toBe('Aprobado')   // testimonial status
+    expect(formatValue('source', 'ADMIN')).toBe('Admin')          // testimonial source
+    expect(formatValue('showProfessionalStep', false)).toBe('No') // booking setting
+  })
 })
 
 describe('fieldLabel', () => {
@@ -27,6 +34,16 @@ describe('fieldLabel', () => {
     expect(fieldLabel('name')).toBe('Nombre')
     expect(fieldLabel('paymentStatus')).toBe('Estado de pago')
     expect(fieldLabel('somethingNew')).toBe('somethingNew')
+  })
+
+  it('maps the settings / schedule / catalog fields that used to render raw', () => {
+    expect(fieldLabel('maxAdvanceDays')).toBe('Anticipación máx. (días)')
+    expect(fieldLabel('showProfessionalStep')).toBe('Mostrar paso de profesional')
+    expect(fieldLabel('totalDurationMinutes')).toBe('Duración total (min)')
+    expect(fieldLabel('addedServices')).toBe('Servicios agregados')
+    expect(fieldLabel('extras')).toBe('Adicionales')
+    expect(fieldLabel('focalPoint')).toBe('Punto focal')
+    expect(fieldLabel('dayOfWeek')).toBe('Día')
   })
 })
 

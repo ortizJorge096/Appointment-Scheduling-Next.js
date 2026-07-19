@@ -1,0 +1,67 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: appointment-scheduling-cron
+  labels:
+    app.kubernetes.io/name: appointment-scheduling
+    app.kubernetes.io/component: cron
+spec:
+  # Daily housekeeping: day-before reminders, follow-ups and inactive-client
+  # archiving (all handled by POST /api/cron). The ASG scales to 0 overnight and
+  # the compute-scheduler brings the node up at 09:00 Bogotá, so run a bit after
+  # that. `timeZone` needs k8s 1.27+ — on older clusters drop it and use UTC
+  # (09:20 Bogotá = "20 14 * * *").
+  schedule: "20 9 * * *"
+  timeZone: America/Bogota
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 300
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: appointment-scheduling
+            app.kubernetes.io/component: cron
+        spec:
+          restartPolicy: Never
+          # Pod Security "restricted" compliance.
+          securityContext:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: curl
+              image: curlimages/curl:8.11.1
+              imagePullPolicy: IfNotPresent
+              env:
+                # Optional so a not-yet-wired secret doesn't crash the pod — the
+                # endpoint just returns 401 until CRON_SECRET is present (fail-safe).
+                - name: CRON_SECRET
+                  valueFrom:
+                    secretKeyRef:
+                      name: appointment-scheduling-secret
+                      key: CRON_SECRET
+                      optional: true
+              command:
+                - /bin/sh
+                - -c
+                - >
+                  curl -fsS -m 240 -X POST
+                  -H "Authorization: Bearer ${CRON_SECRET}"
+                  http://appointment-scheduling/api/cron
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 16Mi
+                limits:
+                  cpu: 100m
+                  memory: 64Mi

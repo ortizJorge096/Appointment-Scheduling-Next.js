@@ -19,6 +19,7 @@ resources:
   - traefik-error-pages.yaml
   - hpa.yaml
   - pdb.yaml
+  - cronjob.yaml
   - networkpolicy.yaml
 
 images:
