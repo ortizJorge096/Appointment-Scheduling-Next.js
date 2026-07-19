@@ -530,6 +530,16 @@ export const createExpenseSchema = z.object({
   notes:       z.string().max(500).optional(),
 })
 
+// Venta rápida / ingreso de mostrador (sin cliente ni cita).
+export const createQuickSaleSchema = z.object({
+  description:   z.string().min(2, 'La descripción es requerida').max(200),
+  amount:        z.number().int().positive('El monto debe ser mayor a 0'),
+  date:          dateString,
+  paymentMethod: z.nativeEnum(PaymentMethod).optional(),
+  serviceId:     z.string().min(1).optional(),
+  notes:         z.string().max(500).optional(),
+})
+
 export const updateExpenseSchema = createExpenseSchema.partial()
 
 // ─────────────────────────────────────────

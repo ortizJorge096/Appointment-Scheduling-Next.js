@@ -32,7 +32,7 @@ export async function GET(
   }
 
   try {
-    const [appointments, expenses] = await Promise.all([
+    const [appointments, expenses, quickSales] = await Promise.all([
       prisma.appointment.findMany({
         where: {
           date: Object.keys(dateFilter).length ? dateFilter : undefined,
@@ -53,6 +53,10 @@ export async function GET(
           date: Object.keys(dateFilter).length ? dateFilter : undefined,
         },
         select: { amount: true, category: true },
+      }),
+      prisma.quickSale.findMany({
+        where: { date: Object.keys(dateFilter).length ? dateFilter : undefined },
+        select: { amount: true, paymentMethod: true },
       }),
     ])
 
@@ -77,11 +81,15 @@ export async function GET(
     // Income: amountPaid if recorded; else the discounted price (precioFinal)
     // when a manual discount was applied; else the gross service price. Using
     // precioFinal before the gross keeps a discount from inflating revenue.
-    const totalIncome = (appointments as AptRow[]).reduce((sum: number, apt: AptRow) => {
+    const appointmentIncome = (appointments as AptRow[]).reduce((sum: number, apt: AptRow) => {
       if (apt.paymentStatus === 'WAIVED') return sum
       if (apt.paymentStatus === 'PENDING') return sum
       return sum + (apt.amountPaid ?? apt.precioFinal ?? getTotalPrice(apt))
     }, 0)
+
+    // Walk-in quick sales (no client/appointment) are collected income too.
+    const quickSaleTotal = (quickSales as Array<{ amount: number }>).reduce((sum, q) => sum + q.amount, 0)
+    const totalIncome    = appointmentIncome + quickSaleTotal
 
     const totalExpenses = (expenses as ExpRow[]).reduce((sum: number, e: ExpRow) => sum + e.amount, 0)
     const netProfit     = totalIncome - totalExpenses
@@ -121,6 +129,12 @@ export async function GET(
         methodMap.set(m, (methodMap.get(m) ?? 0) + apt.amountPaid)
       }
     }
+    for (const q of quickSales as Array<{ amount: number; paymentMethod: string | null }>) {
+      if (q.amount > 0) {
+        const m = q.paymentMethod ?? 'SIN_REGISTRAR'
+        methodMap.set(m, (methodMap.get(m) ?? 0) + q.amount)
+      }
+    }
     const incomeByPaymentMethod: PaymentMethodBreakdown[] = Array
       .from(methodMap, ([method, amount]) => ({ method: method as PaymentMethodBreakdown['method'], amount }))
       .sort((a, b) => b.amount - a.amount)
@@ -137,6 +151,7 @@ export async function GET(
         pendingCount,
         receivable,
         receivableCount,
+        quickSaleTotal,
         expensesByCategory,
         incomeByPaymentMethod,
       },

@@ -39,7 +39,7 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
   const to   = endOfMonth(now)
 
   try {
-    const [appts, expenses] = await Promise.all([
+    const [appts, expenses, quickSales] = await Promise.all([
       prisma.appointment.findMany({
         where: { date: { gte: from, lte: to }, status: { in: ['CONFIRMED', 'COMPLETED'] } },
         select: {
@@ -49,6 +49,10 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
       }),
       prisma.expense.findMany({
         where: { deletedAt: null, date: { gte: from, lte: to } },
+        select: { date: true, amount: true },
+      }),
+      prisma.quickSale.findMany({
+        where: { date: { gte: from, lte: to } },
         select: { date: true, amount: true },
       }),
     ])
@@ -66,6 +70,10 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
     for (const e of expenses) {
       const b = buckets.get(format(e.date, 'yyyy-MM'))
       if (b) b.expenses += e.amount
+    }
+    for (const q of quickSales) {
+      const b = buckets.get(format(q.date, 'yyyy-MM'))
+      if (b) b.income += q.amount
     }
 
     const months = Array.from(buckets.values()).map((b) => ({ ...b, profit: b.income - b.expenses }))

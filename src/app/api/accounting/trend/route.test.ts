@@ -4,7 +4,7 @@ import { NextRequest } from 'next/server'
 vi.mock('next-auth', () => ({ getServerSession: vi.fn() }))
 vi.mock('@/lib/auth', () => ({ authOptions: {} }))
 vi.mock('@/lib/prisma', () => ({
-  prisma: { appointment: { findMany: vi.fn() }, expense: { findMany: vi.fn() } },
+  prisma: { appointment: { findMany: vi.fn() }, expense: { findMany: vi.fn() }, quickSale: { findMany: vi.fn() } },
 }))
 vi.mock('@/lib/db-error', () => ({ isDbUnavailable: vi.fn(() => false), dbUnavailableResponse: vi.fn() }))
 
@@ -15,7 +15,7 @@ const { GET }              = await import('./route')
 function req(): NextRequest { return {} as unknown as NextRequest }
 
 describe('GET /api/accounting/trend', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => { vi.clearAllMocks(); vi.mocked(prisma.quickSale.findMany).mockResolvedValue([]) })
   afterEach(() => vi.useRealTimers())
 
   it('returns 401 when unauthenticated', async () => {

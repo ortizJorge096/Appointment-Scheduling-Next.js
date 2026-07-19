@@ -119,6 +119,7 @@ model Service {
   updatedAt       DateTime            @updatedAt
   appointments    Appointment[]
   appointmentServices AppointmentService[]
+  quickSales      QuickSale[]
   @@index([categoryId])
   @@index([deletedAt])
   @@map("services")
@@ -462,6 +463,30 @@ model HeroImage {
   updatedAt  DateTime @updatedAt
   @@index([isActive])
   @@map("hero_images")
+}
+
+// ─────────────────────────────────────────
+// QUICK SALES
+// Walk-in income with NO client and NO appointment (e.g. "retiro de uñas"): a
+// service rendered and paid on the spot. Deliberately kept out of Appointment
+// (no client to track, no schedule, no status lifecycle) and out of the client
+// registry, so neither gets polluted. Counts as income in accounting alongside
+// appointment revenue.
+// ─────────────────────────────────────────
+model QuickSale {
+  id            String         @id @default(cuid())
+  date          DateTime
+  amount        Int            // COP
+  paymentMethod PaymentMethod?
+  // Optional catalog reference; the label is snapshotted in `description` so the
+  // record survives a service rename/delete.
+  serviceId     String?
+  service       Service?       @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  description   String         // what was sold (catalog name snapshot or free text)
+  notes         String?
+  createdAt     DateTime       @default(now())
+  @@index([date])
+  @@map("quick_sales")
 }
 
 // ─────────────────────────────────────────
