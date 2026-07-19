@@ -9,6 +9,7 @@ import { es } from 'date-fns/locale'
 import { StatCard } from '@/components/ui/Card'
 import { DashboardChart } from '@/components/admin/DashboardChart'
 import { formatPrice } from '@/lib/utils'
+import { appointmentIncome, appointmentBalance, type AppointmentMoney } from '@/lib/accounting'
 import { STATUS_LABEL } from '@/lib/appointmentStatus'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { PageHeader } from '@/components/ui/PageHeader'
@@ -19,20 +20,27 @@ export const dynamic = 'force-dynamic'
 // Order used for the status-distribution bars
 const STATUS_ORDER = ['CONFIRMED', 'PENDING', 'COMPLETED', 'NO_SHOW'] as const
 
-const PERIOD_DAYS = 14
-
-// Minimal shape shared by every priced-appointment query below.
-type Priced = { service: { price: number }; services?: { price: number }[] }
-
-// Total price of an appointment (multi-service aware, using snapshot prices).
-function priceOf(a: Priced): number {
-  if (a.services && a.services.length > 1) return a.services.reduce((s, x) => s + x.price, 0)
-  return a.service.price
+// Semantic bar colour per status so the distribution reads at a glance
+// (instead of every bar being the same gold).
+const STATUS_BAR: Record<string, string> = {
+  CONFIRMED: 'from-blue-300 to-blue-500',
+  PENDING:   'from-amber-300 to-amber-500',
+  COMPLETED: 'from-green-400 to-green-600',
+  NO_SHOW:   'from-red-300 to-red-500',
 }
 
-// Revenue from the COMPLETED appointments in a list.
-function completedRevenue(list: Array<Priced & { status: string }>): number {
-  return list.filter((a) => a.status === 'COMPLETED').reduce((s, a) => s + priceOf(a), 0)
+const PERIOD_DAYS = 14
+
+// Collected income from a list of appointments, using the SAME rule as Contabilidad
+// (appointmentIncome in src/lib/accounting) over the accounting population
+// (CONFIRMED/COMPLETED) — so the dashboard's money matches the accounting screen
+// (a COMPLETED-but-unpaid or courtesy appointment is NOT revenue, a discount counts
+// at its snapshot, etc.). Walk-in quick sales are added on top by the caller.
+function incomeOf(list: Array<AppointmentMoney & { status: string }>): number {
+  return list.reduce(
+    (s, a) => (a.status === 'CONFIRMED' || a.status === 'COMPLETED' ? s + appointmentIncome(a) : s),
+    0,
+  )
 }
 
 // Period-over-period trend chip. A rise is good by default (revenue, volume);
@@ -66,6 +74,7 @@ export default async function DashboardPage() {
   const [
     todayAppointments, weekCount, prevWeekCount, pendingCount,
     periodAppts, prevPeriodAppts, yesterdayAppts, receivableAppts, topClients,
+    periodQuickSales, prevPeriodQuickSales,
   ] = await Promise.all([
     prisma.appointment.findMany({
       where: { date: { gte: todayStart, lte: todayEnd }, status: { not: 'CANCELLED' } },
@@ -78,20 +87,21 @@ export default async function DashboardPage() {
     prisma.appointment.count({ where: { date: { gte: weekStart, lte: weekEnd }, status: { not: 'CANCELLED' } } }),
     prisma.appointment.count({ where: { date: { gte: prevWeekStart, lte: prevWeekEnd }, status: { not: 'CANCELLED' } } }),
     prisma.appointment.count({ where: { status: 'PENDING' } }),
-    // Last PERIOD_DAYS for the chart (cancelled excluded)
+    // Last PERIOD_DAYS for the chart (cancelled excluded). Money fields so each
+    // day's revenue can use the same income rule as Contabilidad.
     prisma.appointment.findMany({
       where: { date: { gte: periodStart, lte: todayEnd }, status: { not: 'CANCELLED' } },
-      select: { date: true, status: true, service: { select: { price: true } }, services: { select: { price: true } } },
+      select: { date: true, status: true, paymentStatus: true, amountPaid: true, precioFinal: true, service: { select: { price: true } }, services: { select: { price: true } } },
     }),
     // The PERIOD_DAYS before that, for the period-over-period trend
     prisma.appointment.findMany({
       where: { date: { gte: prevPeriodStart, lte: prevPeriodEnd }, status: { not: 'CANCELLED' } },
-      select: { status: true, service: { select: { price: true } }, services: { select: { price: true } } },
+      select: { status: true, paymentStatus: true, amountPaid: true, precioFinal: true, service: { select: { price: true } }, services: { select: { price: true } } },
     }),
-    // Yesterday's completed appointments, to trend today's revenue
+    // Yesterday's income, to trend today's revenue (same population as accounting).
     prisma.appointment.findMany({
-      where: { date: { gte: ydayStart, lte: ydayEnd }, status: 'COMPLETED' },
-      select: { status: true, service: { select: { price: true } }, services: { select: { price: true } } },
+      where: { date: { gte: ydayStart, lte: ydayEnd }, status: { in: ['CONFIRMED', 'COMPLETED'] } },
+      select: { status: true, paymentStatus: true, amountPaid: true, precioFinal: true, service: { select: { price: true } }, services: { select: { price: true } } },
     }),
     // Outstanding: real appointments not fully paid → money still owed
     prisma.appointment.findMany({
@@ -104,17 +114,36 @@ export default async function DashboardPage() {
       take: 5,
       include: { _count: { select: { appointments: true } } },
     }),
+    // Walk-in quick sales for the chart period (bucketed by day below) and a summed
+    // total for the previous period — counter income, as Contabilidad counts it.
+    prisma.quickSale.findMany({
+      where: { date: { gte: periodStart, lte: todayEnd } },
+      select: { date: true, amount: true },
+    }),
+    prisma.quickSale.aggregate({
+      where: { date: { gte: prevPeriodStart, lte: prevPeriodEnd } },
+      _sum: { amount: true },
+    }),
   ])
 
-  const todayRevenue     = completedRevenue(todayAppointments as unknown as Array<Priced & { status: string }>)
-  const yesterdayRevenue = completedRevenue(yesterdayAppts as Array<Priced & { status: string }>)
-
-  // Receivable: PENDING owes the full expected value; PARTIAL owes the remainder.
-  let receivable = 0
-  for (const a of receivableAppts) {
-    const expected = a.precioFinal ?? priceOf(a)
-    receivable += a.paymentStatus === 'PARTIAL' ? Math.max(0, expected - (a.amountPaid ?? 0)) : expected
+  // Quick-sale income bucketed by day (today and yesterday fall inside the period).
+  const qsByDay = new Map<string, number>()
+  for (const q of periodQuickSales) {
+    const k = format(q.date, 'yyyy-MM-dd')
+    qsByDay.set(k, (qsByDay.get(k) ?? 0) + q.amount)
   }
+  const todayQS      = qsByDay.get(format(now, 'yyyy-MM-dd')) ?? 0
+  const yesterdayQS  = qsByDay.get(format(subDays(now, 1), 'yyyy-MM-dd')) ?? 0
+  const prevPeriodQS = prevPeriodQuickSales._sum.amount ?? 0
+
+  // Revenue uses the same income rule as Contabilidad + walk-in sales, so the two
+  // screens never disagree on "how much did we make".
+  const todayRevenue     = incomeOf(todayAppointments as unknown as Array<AppointmentMoney & { status: string }>) + todayQS
+  const yesterdayRevenue = incomeOf(yesterdayAppts as Array<AppointmentMoney & { status: string }>) + yesterdayQS
+
+  // Receivable = money still owed (same rule as accounting's appointmentBalance).
+  let receivable = 0
+  for (const a of receivableAppts) receivable += appointmentBalance(a)
 
   // ── Build per-day buckets for the bar chart ──
   const days = Array.from({ length: PERIOD_DAYS }, (_, i) => {
@@ -132,11 +161,16 @@ export default async function DashboardPage() {
     const bucket = byKey.get(format(a.date, 'yyyy-MM-dd'))
     if (!bucket) continue
     bucket.count += 1
-    if (a.status === 'COMPLETED') bucket.revenue += priceOf(a)
+    if (a.status === 'CONFIRMED' || a.status === 'COMPLETED') bucket.revenue += appointmentIncome(a)
   }
-  const periodRevenue     = days.reduce((s, d) => s + d.revenue, 0)
+  // Fold walk-in sales into each day's revenue (income, but not appointments — so
+  // they lift the revenue bars without inflating the citas count).
+  for (const [k, amount] of qsByDay) {
+    const bucket = byKey.get(k)
+    if (bucket) bucket.revenue += amount
+  }
   const periodTotal       = periodAppts.length
-  const prevPeriodRevenue = completedRevenue(prevPeriodAppts as Array<Priced & { status: string }>)
+  const prevPeriodRevenue = incomeOf(prevPeriodAppts as Array<AppointmentMoney & { status: string }>) + prevPeriodQS
   const prevPeriodTotal   = prevPeriodAppts.length
 
   // ── Status distribution over the period ──
@@ -186,7 +220,7 @@ export default async function DashboardPage() {
                       <span className="text-ink-muted-deep">{n} · {pct}%</span>
                     </div>
                     <div className="h-2 rounded-full bg-beige overflow-hidden">
-                      <div className="h-full rounded-full bg-gradient-to-r from-gold-light to-gold"
+                      <div className={`h-full rounded-full bg-gradient-to-r ${STATUS_BAR[st] ?? 'from-gold-light to-gold'}`}
                         style={{ width: `${pct}%` }} />
                     </div>
                   </div>

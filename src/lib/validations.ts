@@ -402,6 +402,22 @@ export const galleryUpdateSchema = z.object({
 })
 
 // ─────────────────────────────────────────
+// HERO (admin) — banner carousel images, no captions.
+// ─────────────────────────────────────────
+
+export const heroCreateSchema = z.object({
+  s3Key:      z.string().min(1).max(300),
+  focalPoint: focalPointSchema.optional(),
+})
+
+export const heroUpdateSchema = z.object({
+  s3Key:      z.string().min(1).max(300).optional(),
+  order:      z.number().int().min(0).optional(),
+  isActive:   z.boolean().optional(),
+  focalPoint: focalPointSchema.optional(),
+})
+
+// ─────────────────────────────────────────
 // TESTIMONIALS (admin)
 // ─────────────────────────────────────────
 
@@ -512,6 +528,16 @@ export const createExpenseSchema = z.object({
   date:        dateString,
   category:    z.nativeEnum(ExpenseCategory).optional(),
   notes:       z.string().max(500).optional(),
+})
+
+// Venta rápida / ingreso de mostrador (sin cliente ni cita).
+export const createQuickSaleSchema = z.object({
+  description:   z.string().min(2, 'La descripción es requerida').max(200),
+  amount:        z.number().int().positive('El monto debe ser mayor a 0'),
+  date:          dateString,
+  paymentMethod: z.nativeEnum(PaymentMethod).optional(),
+  serviceId:     z.string().min(1).optional(),
+  notes:         z.string().max(500).optional(),
 })
 
 export const updateExpenseSchema = createExpenseSchema.partial()

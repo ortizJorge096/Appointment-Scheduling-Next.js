@@ -7,6 +7,7 @@ vi.mock('@/lib/prisma', () => ({
   prisma: {
     appointment: { findMany: vi.fn() },
     expense:     { findMany: vi.fn() },
+    quickSale:   { findMany: vi.fn() },
   },
 }))
 vi.mock('@/lib/db-error', () => ({
@@ -20,7 +21,7 @@ const { GET }              = await import('./route')
 
 const MOCK_SESSION = { user: { id: 'admin-1', email: 'admin@test.com', role: 'SUPER_ADMIN' } }
 
-beforeEach(() => { vi.clearAllMocks() })
+beforeEach(() => { vi.clearAllMocks(); vi.mocked(prisma.quickSale.findMany).mockResolvedValue([]) })
 
 function makeGetRequest(params: Record<string, string> = {}): NextRequest {
   const url = new URL('http://localhost/api/accounting')
@@ -33,6 +34,25 @@ describe('GET /api/accounting', () => {
     vi.mocked(getServerSession).mockResolvedValue(null)
     const res = await GET(makeGetRequest())
     expect(res.status).toBe(401)
+  })
+
+  it('counts walk-in quick sales as income, alongside appointments', async () => {
+    vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
+    vi.mocked(prisma.appointment.findMany).mockResolvedValue([
+      { paymentStatus: 'PAID', amountPaid: 50000, paymentMethod: 'EFECTIVO', service: { price: 50000 } },
+    ] as never)
+    vi.mocked(prisma.expense.findMany).mockResolvedValue([])
+    vi.mocked(prisma.quickSale.findMany).mockResolvedValue([
+      { amount: 15000, paymentMethod: 'EFECTIVO' },
+      { amount: 10000, paymentMethod: null },
+    ] as never)
+
+    const json = await (await GET(makeGetRequest())).json()
+    expect(json.data.totalIncome).toBe(75000)     // 50000 cita + 15000 + 10000 ventas
+    expect(json.data.quickSaleTotal).toBe(25000)
+    // The EFECTIVO breakdown merges the appointment and the quick sale.
+    const efectivo = json.data.incomeByPaymentMethod.find((m: { method: string }) => m.method === 'EFECTIVO')
+    expect(efectivo.amount).toBe(65000)
   })
 
   it('returns zeroed summary when no data', async () => {

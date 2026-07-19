@@ -4,7 +4,7 @@
 // period-over-period deltas, outstanding receivables and an expense breakdown.
 
 import { useState, useEffect, useCallback } from 'react'
-import type { ExpenseSummary, AccountingSummary } from '@/types'
+import type { ExpenseSummary, AccountingSummary, QuickSaleSummary } from '@/types'
 import { Pagination } from '@/components/admin/Pagination'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
 import { usePermissionGuard, useCan } from '@/components/admin/usePermissionGuard'
@@ -12,10 +12,12 @@ import { PAYMENT_METHOD_LABEL as METHOD_LABEL, EXPENSE_CATEGORY_LABEL as CAT_LAB
 import { formatPrice } from '@/lib/utils'
 import { useFieldValidation } from '@/hooks/useFieldValidation'
 import { SubmitButton } from '@/components/ui/SubmitButton'
+import { AccountingTrend, type TrendMonth } from '@/components/admin/AccountingTrend'
 
 const PER_PAGE = 10
 
 const EXPENSE_CATEGORIES = ['INSUMOS', 'EQUIPOS', 'SERVICIOS', 'ARRIENDO', 'MARKETING', 'OTROS'] as const
+const PAYMENT_METHODS = ['EFECTIVO', 'TRANSFERENCIA', 'TARJETA', 'NEQUI', 'DAVIPLATA'] as const
 
 // Get first and last day of current month
 function currentMonthRange() {
@@ -24,6 +26,25 @@ function currentMonthRange() {
   const to   = new Date(now.getFullYear(), now.getMonth() + 1, 0)
   const fmt  = (d: Date) => d.toISOString().slice(0, 10)
   return { from: fmt(from), to: fmt(to) }
+}
+
+// Quick period presets — the date pickers stay for anything custom.
+type Preset = 'thisMonth' | 'lastMonth' | 'last30' | 'thisYear' | 'custom'
+const PRESETS: { key: Exclude<Preset, 'custom'>; label: string }[] = [
+  { key: 'thisMonth', label: 'Este mes' },
+  { key: 'lastMonth', label: 'Mes pasado' },
+  { key: 'last30',    label: 'Últimos 30' },
+  { key: 'thisYear',  label: 'Este año' },
+]
+function presetRange(p: Exclude<Preset, 'custom'>): { from: string; to: string } {
+  const now = new Date(), y = now.getFullYear(), m = now.getMonth()
+  const fmt = (d: Date) => d.toISOString().slice(0, 10)
+  switch (p) {
+    case 'thisMonth': return { from: fmt(new Date(y, m, 1)),     to: fmt(new Date(y, m + 1, 0)) }
+    case 'lastMonth': return { from: fmt(new Date(y, m - 1, 1)), to: fmt(new Date(y, m, 0)) }
+    case 'last30':    { const t = new Date(); const f = new Date(); f.setDate(f.getDate() - 29); return { from: fmt(f), to: fmt(t) } }
+    case 'thisYear':  return { from: fmt(new Date(y, 0, 1)),     to: fmt(new Date(y, 11, 31)) }
+  }
 }
 
 // Previous window of the SAME length, immediately before `from` — the baseline
@@ -44,12 +65,6 @@ function pctDelta(current: number, previous: number): { pct: number; dir: 'up' |
   if (previous <= 0) return null
   const pct = Math.round(((current - previous) / previous) * 100)
   return { pct, dir: pct > 0 ? 'up' : pct < 0 ? 'down' : 'flat' }
-}
-
-// Quote a CSV cell only when it contains a comma, quote or newline.
-function csvCell(value: string) {
-  const s = String(value ?? '')
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
 }
 
 // Validated on blur and on submit. Module-level so the hook keeps a stable ref.
@@ -80,12 +95,21 @@ export default function ContabilidadPage() {
   const { from: initFrom, to: initTo } = currentMonthRange()
   const [dateFrom, setDateFrom]   = useState(initFrom)
   const [dateTo, setDateTo]       = useState(initTo)
+  const [preset, setPreset]       = useState<Preset>('thisMonth')
 
   const [summary, setSummary]         = useState<AccountingSummary | null>(null)
   const [prevSummary, setPrevSummary] = useState<AccountingSummary | null>(null)
+  const [trend, setTrend]             = useState<TrendMonth[] | null>(null)
   const [expenses, setExpenses]   = useState<ExpenseSummary[]>([])
   const [loadingSum, setLoadingSum] = useState(true)
   const [loadingExp, setLoadingExp] = useState(true)
+
+  // Quick sales (walk-in income, no client/appointment)
+  const [quickSales, setQuickSales] = useState<QuickSaleSummary[]>([])
+  const [services, setServices]     = useState<{ id: string; name: string; price: number }[]>([])
+  const [qsForm, setQsForm]         = useState({ serviceId: '', description: '', amount: '', date: new Date().toISOString().slice(0, 10), paymentMethod: '', notes: '' })
+  const [qsSaving, setQsSaving]     = useState(false)
+  const [qsError, setQsError]       = useState('')
 
   // New expense form
   const [form, setForm]           = useState(EMPTY_FORM)
@@ -139,7 +163,65 @@ export default function ContabilidadPage() {
     setLoadingExp(false)
   }, [dateFrom, dateTo])
 
-  useEffect(() => { loadSummary(); loadExpenses() }, [loadSummary, loadExpenses])
+  const loadQuickSales = useCallback(async () => {
+    const p = new URLSearchParams({ dateFrom, dateTo, limit: '100' })
+    const res = await fetch(`/api/quick-sales?${p}`)
+    const j = await res.json()
+    if (j.success) setQuickSales(j.data.sales)
+  }, [dateFrom, dateTo])
+
+  useEffect(() => { loadSummary(); loadExpenses(); loadQuickSales() }, [loadSummary, loadExpenses, loadQuickSales])
+
+  // The 6-month trend is independent of the selected period — load it once.
+  useEffect(() => {
+    fetch('/api/accounting/trend').then((r) => r.json()).then((j) => { if (j.success) setTrend(j.data) }).catch(() => {})
+  }, [])
+
+  // Catalog services for the quick-sale picker (prefills the price).
+  useEffect(() => {
+    fetch('/api/services').then((r) => r.json()).then((j) => { if (j.success) setServices(j.data) }).catch(() => {})
+  }, [])
+
+  function applyPreset(p: Exclude<Preset, 'custom'>) {
+    const r = presetRange(p)
+    setDateFrom(r.from); setDateTo(r.to); setPreset(p)
+  }
+
+  function pickQsService(id: string) {
+    const s = services.find((x) => x.id === id)
+    setQsForm((f) => ({ ...f, serviceId: id, ...(s ? { description: s.name, amount: String(s.price) } : {}) }))
+  }
+
+  async function addQuickSale(e: React.FormEvent) {
+    e.preventDefault()
+    const amount = parseInt(qsForm.amount)
+    if (!qsForm.description.trim() || !(amount > 0) || !qsForm.date) { setQsError('Descripción, monto (>0) y fecha son requeridos'); return }
+    setQsSaving(true); setQsError('')
+    const res = await fetch('/api/quick-sales', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        description: qsForm.description.trim(),
+        amount,
+        date: qsForm.date,
+        ...(qsForm.paymentMethod ? { paymentMethod: qsForm.paymentMethod } : {}),
+        ...(qsForm.serviceId ? { serviceId: qsForm.serviceId } : {}),
+        ...(qsForm.notes.trim() ? { notes: qsForm.notes.trim() } : {}),
+      }),
+    })
+    const j = await res.json()
+    setQsSaving(false)
+    if (!j.success) { setQsError(j.error ?? 'Error al guardar'); return }
+    setQsForm({ serviceId: '', description: '', amount: '', date: new Date().toISOString().slice(0, 10), paymentMethod: '', notes: '' })
+    loadQuickSales(); loadSummary()
+  }
+
+  async function deleteQuickSale(id: string) {
+    const ok = await confirm({ message: 'Eliminar esta venta rápida. No se puede deshacer.', confirmLabel: 'Eliminar', danger: true })
+    if (!ok) return
+    await fetch(`/api/quick-sales/${id}`, { method: 'DELETE' })
+    loadQuickSales(); loadSummary()
+  }
 
   async function addExpense(e: React.FormEvent) {
     e.preventDefault()
@@ -172,25 +254,12 @@ export default function ContabilidadPage() {
     loadSummary()
   }
 
-  // Export the period's expenses to CSV, client-side, from the loaded list.
+  // Download the period's full accounting statement (income + expenses + a summary)
+  // as CSV from the server, which reuses the same rules as the KPIs so the totals
+  // reconcile — and isn't capped at the 100 rows the lists load client-side.
   function exportCsv() {
-    const header = ['Fecha', 'Descripción', 'Categoría', 'Monto', 'Notas']
-    const rows = expenses.map(e => [
-      e.date.slice(0, 10),
-      e.description,
-      CAT_LABEL[e.category] ?? e.category,
-      String(e.amount),
-      e.notes ?? '',
-    ])
-    const csv = [header, ...rows].map(r => r.map(csvCell).join(',')).join('\r\n')
-    // BOM so Excel opens the accented UTF-8 correctly.
-    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `gastos-${dateFrom}_${dateTo}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
+    const qs = new URLSearchParams({ dateFrom, dateTo }).toString()
+    window.location.href = `/api/accounting/export?${qs}`
   }
 
   const netColor = (summary?.netProfit ?? 0) >= 0 ? 'text-green-700' : 'text-red-700'
@@ -205,8 +274,9 @@ export default function ContabilidadPage() {
           <h1 className="font-serif text-2xl sm:text-3xl text-ink font-light">Contabilidad</h1>
           <p className="text-sm text-ink-muted-deep mt-0.5">Ingresos, gastos y utilidad neta del período</p>
         </div>
-        {expenses.length > 0 && (
+        {summary && (summary.appointmentCount > 0 || quickSales.length > 0 || expenses.length > 0) && (
           <button onClick={exportCsv}
+            title="Descargar el estado del período: ingresos, gastos, ventas rápidas y resumen"
             className="shrink-0 min-h-11 inline-flex items-center gap-1.5 px-4 rounded-full border border-beige-dark text-sm text-ink hover:bg-beige/40 transition-colors">
             <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
               <path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16" strokeLinecap="round" strokeLinejoin="round" />
@@ -217,16 +287,26 @@ export default function ContabilidadPage() {
         )}
       </div>
 
-      {/* Date filter */}
+      {/* Period presets + custom date range */}
+      <div className="flex flex-wrap gap-1.5 mb-3">
+        {PRESETS.map((p) => (
+          <button key={p.key} type="button" onClick={() => applyPreset(p.key)}
+            className={`px-3 py-1.5 text-xs rounded-full border transition-colors ${
+              preset === p.key ? 'bg-ink border-ink text-white' : 'bg-white border-beige-dark text-ink-muted-deep hover:border-gold'
+            }`}>
+            {p.label}
+          </button>
+        ))}
+      </div>
       <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-3 mb-6 items-end">
         <div className="min-w-0">
           <label className="form-label text-2xs">Desde</label>
-          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+          <input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setPreset('custom') }}
             className="input-field w-full min-w-0" />
         </div>
         <div className="min-w-0">
           <label className="form-label text-2xs">Hasta</label>
-          <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+          <input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setPreset('custom') }}
             className="input-field w-full min-w-0" />
         </div>
       </div>
@@ -240,6 +320,9 @@ export default function ContabilidadPage() {
             {formatPrice(summary?.totalIncome ?? 0)}
           </p>
           {summary && prevSummary && <DeltaBadge current={summary.totalIncome} previous={prevSummary.totalIncome} />}
+          {summary && summary.quickSaleTotal > 0 && (
+            <span className="text-2xs text-ink-muted-deep mt-0.5 block">incl. {formatPrice(summary.quickSaleTotal)} en ventas rápidas</span>
+          )}
         </div>
 
         {/* Gastos */}
@@ -277,6 +360,8 @@ export default function ContabilidadPage() {
           {summary.paidCount} pagadas · {summary.pendingCount} sin pago · {summary.appointmentCount} total en el período
         </p>
       )}
+
+      {trend && <AccountingTrend months={trend} />}
 
       {/* Income breakdown by payment method */}
       {summary && summary.incomeByPaymentMethod.length > 0 && (
@@ -329,6 +414,89 @@ export default function ContabilidadPage() {
           </div>
         </div>
       )}
+
+      {/* Ventas rápidas — ingreso de mostrador, sin cliente ni cita */}
+      <div className="grid md:grid-cols-2 gap-8 mb-8">
+        {can('contabilidad:editar') && (
+          <div>
+            <h2 className="text-lg font-serif text-ink mb-1">Venta rápida</h2>
+            <p className="text-xs text-ink-muted-deep mb-3">Un servicio cobrado sin cliente ni cita (ej. retiro de uñas). Suma a los ingresos.</p>
+            <form onSubmit={addQuickSale} noValidate className="bg-white rounded-xl border border-beige-dark p-5 space-y-3">
+              <div>
+                <label className="form-label text-2xs">Servicio del catálogo (opcional)</label>
+                <select value={qsForm.serviceId} onChange={(e) => pickQsService(e.target.value)} className="select-field w-full">
+                  <option value="">— Ninguno (texto libre) —</option>
+                  {services.map((s) => <option key={s.id} value={s.id}>{s.name} · {formatPrice(s.price)}</option>)}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="qs-desc" className="form-label text-2xs">Descripción *</label>
+                <input id="qs-desc" value={qsForm.description}
+                  onChange={(e) => setQsForm((f) => ({ ...f, description: e.target.value }))}
+                  placeholder="Ej: Retiro de uñas" className="input-field w-full" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="min-w-0">
+                  <label htmlFor="qs-monto" className="form-label text-2xs">Monto (COP) *</label>
+                  <input id="qs-monto" type="number" min="1" value={qsForm.amount}
+                    onChange={(e) => setQsForm((f) => ({ ...f, amount: e.target.value }))}
+                    placeholder="0" className="input-field w-full min-w-0" />
+                </div>
+                <div className="min-w-0">
+                  <label htmlFor="qs-fecha" className="form-label text-2xs">Fecha *</label>
+                  <input id="qs-fecha" type="date" value={qsForm.date}
+                    onChange={(e) => setQsForm((f) => ({ ...f, date: e.target.value }))}
+                    className="input-field w-full min-w-0" />
+                </div>
+              </div>
+              <div>
+                <label className="form-label text-2xs">Método de pago</label>
+                <select value={qsForm.paymentMethod} onChange={(e) => setQsForm((f) => ({ ...f, paymentMethod: e.target.value }))}
+                  className="select-field w-full">
+                  <option value="">— Sin registrar —</option>
+                  {PAYMENT_METHODS.map((m) => <option key={m} value={m}>{METHOD_LABEL[m] ?? m}</option>)}
+                </select>
+              </div>
+              {qsError && <p className="text-xs text-red-700">{qsError}</p>}
+              <SubmitButton type="submit" loading={qsSaving} loadingLabel="Guardando…"
+                className="btn-primary w-full disabled:opacity-50">
+                + Registrar venta
+              </SubmitButton>
+            </form>
+          </div>
+        )}
+
+        <div className={can('contabilidad:editar') ? '' : 'md:col-span-2'}>
+          <h2 className="text-lg font-serif text-ink mb-3">
+            Ventas rápidas del período
+            <span className="text-sm font-sans text-ink-muted-deep ml-2">({quickSales.length})</span>
+          </h2>
+          {quickSales.length === 0 ? (
+            <p className="text-sm text-ink-muted-deep">Sin ventas rápidas en este período.</p>
+          ) : (
+            <div className="space-y-2">
+              {quickSales.map((qs) => (
+                <div key={qs.id} className="bg-white rounded-xl border border-beige-dark px-4 py-3 flex items-center justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-ink truncate">{qs.description}</p>
+                    <p className="text-xs text-ink-muted-deep">
+                      {new Date(qs.date).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })}
+                      {qs.paymentMethod ? ` · ${METHOD_LABEL[qs.paymentMethod] ?? qs.paymentMethod}` : ''}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-sm font-medium text-green-700">{formatPrice(qs.amount)}</p>
+                    {can('contabilidad:editar') && (
+                      <button onClick={() => deleteQuickSale(qs.id)}
+                        className="btn-row-action text-xs text-ink-muted-deep hover:text-red-700 mt-0.5">Eliminar</button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
 
       <div className="grid md:grid-cols-2 gap-8">
         {/* Register expense — only for roles that can edit accounting (contabilidad:editar) */}

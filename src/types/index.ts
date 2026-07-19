@@ -206,6 +206,17 @@ export interface ExpenseSummary {
   createdAt: string
 }
 
+export interface QuickSaleSummary {
+  id: string
+  description: string
+  amount: number
+  date: string
+  paymentMethod: string | null
+  serviceId: string | null
+  notes: string | null
+  createdAt: string
+}
+
 export interface CreateExpenseInput {
   description: string
   amount: number
@@ -238,6 +249,7 @@ export interface AccountingSummary {
   pendingCount: number
   receivable: number          // outstanding amount still owed (PENDING + PARTIAL balance)
   receivableCount: number     // appointments with an outstanding balance
+  quickSaleTotal: number      // income from walk-in quick sales (no client/appointment)
   expensesByCategory: CategoryBreakdown[]
   incomeByPaymentMethod: PaymentMethodBreakdown[]
 }

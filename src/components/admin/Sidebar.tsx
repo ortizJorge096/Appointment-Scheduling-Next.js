@@ -28,6 +28,7 @@ const GROUPS: NavGroup[] = [
       { href: '/admin/profesionales', label: 'Profesionales', icon: '☆', perm: 'servicios:ver' },
       { href: '/admin/horarios',      label: 'Horarios',      icon: '◻', perm: 'horarios:ver' },
       { href: '/admin/galeria',       label: 'Galería',       icon: '◫', perm: 'galeria:ver' },
+      { href: '/admin/hero',          label: 'Hero',          icon: '▭', perm: 'galeria:ver' },
       { href: '/admin/testimonios',   label: 'Testimonios',   icon: '❝', perm: 'testimonios:ver' },
     ],
   },

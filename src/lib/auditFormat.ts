@@ -43,39 +43,66 @@ export const ACTION_EMOJI: Record<AuditAction, string> = {
 // Canonical field key → Spanish label. Unknown keys fall back to the raw key
 // (never crash on a field we haven't mapped yet).
 export const FIELD_LABELS: Record<string, string> = {
-  // Cliente
+  // Cliente / contacto
   name: 'Nombre', email: 'Email', phone: 'Teléfono', notes: 'Notas',
+  clientName: 'Cliente', clientEmail: 'Email', clientPhone: 'Teléfono', deletedAt: 'Archivado',
   // Cita
   status: 'Estado', date: 'Fecha', startTime: 'Hora', endTime: 'Hora de fin',
-  clientName: 'Cliente', service: 'Servicio', source: 'Origen', origin: 'Origen',
+  service: 'Servicio', serviceId: 'Servicio', professionalId: 'Profesional',
+  source: 'Origen', origin: 'Origen', reason: 'Motivo',
+  totalDurationMinutes: 'Duración total (min)', addedServices: 'Servicios agregados',
+  extras: 'Adicionales', discountPercent: 'Descuento VIP (%)',
   // Pago / descuento
   paymentStatus: 'Estado de pago', paymentMethod: 'Método de pago', amountPaid: 'Monto pagado',
   precioFinal: 'Precio final', descuentoTipo: 'Tipo de descuento', descuentoValor: 'Descuento',
-  descuentoMotivo: 'Motivo del descuento',
-  // Gasto
-  amount: 'Monto', category: 'Categoría', description: 'Descripción',
-  // Servicio / catálogo
+  descuentoMotivo: 'Motivo del descuento', paid: 'Pagada',
+  servicesSubtotal: 'Subtotal servicios', extrasTotal: 'Total adicionales',
+  discountTotal: 'Total descuento', perServiceDiscounts: 'Descuentos por servicio',
+  // Gasto / catálogo
+  amount: 'Monto', category: 'Categoría', categoryId: 'Categoría', description: 'Descripción',
   price: 'Precio', durationMinutes: 'Duración (min)', isActive: 'Activo', order: 'Orden',
-  icon: 'Icono', enabled: 'Activo', tiers: 'Tramos',
+  icon: 'Icono', enabled: 'Activo', tiers: 'Tramos', slug: 'Identificador',
+  // Profesional
+  specialty: 'Especialidad', reviewCount: 'N.º de reseñas', rating: 'Calificación',
+  // Testimonio
+  type: 'Tipo', text: 'Texto', stars: 'Estrellas', initials: 'Iniciales',
+  imageUrl: 'Imagen', imageKey: 'Imagen', rejectionReason: 'Motivo de rechazo', appointmentId: 'Cita',
+  // Galería / hero
+  title: 'Título', focalPoint: 'Punto focal', s3Key: 'Imagen',
+  // Horario
+  dayOfWeek: 'Día', breakStart: 'Inicio de descanso', breakEnd: 'Fin de descanso',
+  // Ajustes de reserva
+  showProfessionalStep: 'Mostrar paso de profesional', maxAdvanceDays: 'Anticipación máx. (días)',
   // Métricas del sitio
-  appointmentsCount: 'N.º de citas', clientsCount: 'N.º de clientes',
-  yearsExperience: 'Años de experiencia', rating: 'Calificación',
-  // Admins / metadata frecuente
-  role: 'Rol', changes: 'Cambios', mode: 'Modo', rowCount: 'Filas',
+  appointmentsCount: 'N.º de citas', clientsCount: 'N.º de clientes', yearsExperience: 'Años de experiencia',
+  // Usuarios / acceso
+  role: 'Rol', mustChangePassword: 'Forzar cambio de contraseña',
+  // Metadata frecuente
+  changes: 'Cambios', mode: 'Modo', rowCount: 'Filas', notifyClient: 'Notificar al cliente',
+  columns: 'Columnas', filters: 'Filtros', via: 'Vía',
 }
 
-// Fields whose value is an enum → the map that translates it.
+// Weekdays for schedule (Horario) audits.
+const DAY_LABEL: Record<string, string> = {
+  MONDAY: 'Lunes', TUESDAY: 'Martes', WEDNESDAY: 'Miércoles', THURSDAY: 'Jueves',
+  FRIDAY: 'Viernes', SATURDAY: 'Sábado', SUNDAY: 'Domingo',
+}
+
+// Fields whose value is an enum → the map that translates it. `status` and
+// `source` span more than one entity (appointments + testimonials), so their
+// maps are merged to cover every value either can take.
 const VALUE_LABELS: Record<string, Record<string, string>> = {
-  status:        STATUS_LABEL,
+  status:        { ...STATUS_LABEL, DRAFT: 'Borrador', APPROVED: 'Aprobado', REJECTED: 'Rechazado' },
   paymentStatus: PAYMENT_STATUS_LABEL,
   paymentMethod: PAYMENT_METHOD_LABEL,
-  source:        SOURCE_LABEL,
+  source:        { ...SOURCE_LABEL, ADMIN: 'Admin', CLIENT: 'Cliente' },
   origin:        ORIGIN_LABEL,
   category:      EXPENSE_CATEGORY_LABEL,
+  dayOfWeek:     DAY_LABEL,
 }
 
-const BOOL_FIELDS  = new Set(['isActive', 'enabled'])
-const MONEY_FIELDS = new Set(['amount', 'amountPaid', 'price', 'precioFinal'])
+const BOOL_FIELDS  = new Set(['isActive', 'enabled', 'showProfessionalStep', 'mustChangePassword', 'notifyClient', 'paid'])
+const MONEY_FIELDS = new Set(['amount', 'amountPaid', 'price', 'precioFinal', 'servicesSubtotal', 'extrasTotal', 'discountTotal'])
 
 /** Spanish label for a field key (falls back to the raw key). */
 export function fieldLabel(key: string): string {

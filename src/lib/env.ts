@@ -14,6 +14,9 @@ const envSchema = z.object({
   GOOGLE_CLIENT_EMAIL: z.string().email().optional(),
   GOOGLE_PRIVATE_KEY: z.string().optional(),
   GOOGLE_CALENDAR_ID: z.string().optional(),
+  // Shared secret the scheduler (k8s CronJob) sends to POST /api/cron. Unset =
+  // the cron endpoint stays locked (401), so it fails safe.
+  CRON_SECRET: z.string().optional(),
 }).superRefine((e, ctx) => {
   // Conditional requirements — a variable can be optional in isolation but
   // required once a feature that depends on it is turned on.
