@@ -119,11 +119,28 @@ module "s3_assets" {
   source          = "../../modules/s3-assets"
   bucket_name     = "${var.name_prefix}-assets"
   allowed_origins = local.app_cors_origins
+  public_prefixes = ["gallery/", "testimonios/", "hero/"]
   tags            = { Component = "storage" }
+}
+
+# The rds module gained `count` (ADR-013 teardown gate). Without this, Terraform
+# reads the pre-count state address (module.rds.*) as "destroy" and the new one
+# (module.rds[0].*) as "create" — i.e. it would destroy + recreate the prod DB.
+# `moved` MIGRATES the existing instance into index 0 instead. Harmless once the
+# state is already at [0] (the move becomes a no-op).
+moved {
+  from = module.rds
+  to   = module.rds[0]
 }
 
 module "rds" {
   source = "../../modules/rds-postgres"
+
+  # Gated (ADR-013) so the local prod DB can be torn down after migrating to an
+  # external cross-account DB. See enable_local_rds / external_database_url. The
+  # teardown honors db_skip_final_snapshot (false) → a FINAL SNAPSHOT is taken;
+  # flip db_deletion_protection=false first.
+  count = var.enable_local_rds ? 1 : 0
 
   name          = var.name_prefix
   vpc_id        = module.network.vpc_id
@@ -154,16 +171,30 @@ module "rds" {
   tags = { Component = "database" }
 }
 
+# External DATABASE_URL (cross-account prod DB, ADR-013). Published to the SAME SSM
+# path the app reads, but ONLY when set — so it never collides with the local
+# module's param (that one exists only while enable_local_rds = true). Cutover is a
+# two-step apply (tear down local first, then set this) to avoid a name clash.
+resource "aws_ssm_parameter" "database_url_external" {
+  count       = var.external_database_url != "" ? 1 : 0
+  name        = "/${var.name_prefix}/db/url"
+  description = "External DATABASE_URL (cross-account prod DB, ADR-013)."
+  type        = "SecureString"
+  value       = var.external_database_url
+  tags        = { Component = "database" }
+}
+
 # ─── Long-retention backups via AWS Backup (vault + daily/weekly/monthly) ──
 # Off (enable_aws_backup = false) — overkill for this site, and the vault's
 # snapshot storage is the only backup cost. The DB keeps 1-day free PITR above.
 # Set enable_aws_backup = true to bring back the 30/90/365-day vault.
 module "rds_backup" {
-  count  = var.enable_aws_backup ? 1 : 0
+  # No local RDS to back up once migrated to an external DB (ADR-013).
+  count  = (var.enable_aws_backup && var.enable_local_rds) ? 1 : 0
   source = "../../modules/rds-backup"
 
   name_prefix     = var.name_prefix
-  db_instance_arn = module.rds.db_instance_arn
+  db_instance_arn = module.rds[0].db_instance_arn
 
   # Bogotá UTC-5: 03:00 local = 08:00 UTC
   backup_window_utc = "0 8 * * ? *"
@@ -177,7 +208,9 @@ module "rds_backup" {
 
 # ─── k3s → RDS ingress (rule in environment to avoid cycle) ─────────────
 resource "aws_security_group_rule" "k3s_to_db" {
-  count = var.enable_ec2_k3s ? 1 : 0
+  # Only when BOTH the cluster and the LOCAL db exist (ADR-013): with an external
+  # DB there's no local SG to attach this to.
+  count = (var.enable_ec2_k3s && var.enable_local_rds) ? 1 : 0
 
   type                     = "ingress"
   description              = "Postgres 5432 from k3s SG"
@@ -185,7 +218,7 @@ resource "aws_security_group_rule" "k3s_to_db" {
   to_port                  = 5432
   protocol                 = "tcp"
   source_security_group_id = module.k3s[0].instance_security_group_id
-  security_group_id        = module.rds.db_security_group_id
+  security_group_id        = module.rds[0].db_security_group_id
 }
 
 module "k3s" {
@@ -213,7 +246,9 @@ module "k3s" {
   public_host   = var.app_host
   app_namespace = "appointment-scheduling"
 
-  database_url_ssm_parameter        = module.rds.database_url_ssm_parameter
+  # Local module's SSM param while the local DB exists; otherwise the fixed path
+  # the external param publishes to (ADR-013).
+  database_url_ssm_parameter        = var.enable_local_rds ? module.rds[0].database_url_ssm_parameter : "/${var.name_prefix}/db/url"
   nextauth_secret_ssm_parameter     = aws_ssm_parameter.nextauth_secret.name
   google_calendar_key_ssm_parameter = aws_ssm_parameter.google_calendar_key.name
   resend_api_key_ssm_parameter      = aws_ssm_parameter.resend_api_key.name
@@ -276,12 +311,13 @@ module "asg_scheduler" {
 # Off por defecto. Activar con enable_rds_scheduler = true.
 # TODO: parametrizar los horarios de apagado/encendido (hoy fijos en el módulo).
 module "rds_scheduler" {
-  count  = var.enable_rds_scheduler ? 1 : 0
+  # No local RDS to schedule once migrated to an external DB (ADR-013).
+  count  = (var.enable_rds_scheduler && var.enable_local_rds) ? 1 : 0
   source = "../../modules/rds-scheduler"
 
   name_prefix            = var.name_prefix
-  db_instance_identifier = module.rds.db_instance_identifier
-  db_instance_arn        = module.rds.db_instance_arn
+  db_instance_identifier = module.rds[0].db_instance_identifier
+  db_instance_arn        = module.rds[0].db_instance_arn
 
   # Horario parametrizado desde el ambiente (cron + timezone)
   stop_schedule     = var.rds_stop_schedule

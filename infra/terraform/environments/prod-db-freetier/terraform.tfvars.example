@@ -1,0 +1,13 @@
+# Copy to terraform.tfvars and fill in. This targets the SEPARATE free-tier account.
+aws_profile      = "freetier"          # AWS CLI profile with the free-tier account's credentials
+region           = "us-east-1"
+name             = "appointment-scheduling"
+
+# Both MUST be single-host /32 (the module rejects anything wider).
+operator_ip_cidr = "203.0.113.10/32"   # curl -s https://checkip.amazonaws.com  → append /32
+cluster_eip_cidr = "198.51.100.20/32"  # main account: `terraform output` → ec2-k3s public_ip → append /32
+
+engine_version   = "16.4"              # match (or exceed) the source DB major
+
+
+budget_alert_email = "tu-email@ejemplo.com"

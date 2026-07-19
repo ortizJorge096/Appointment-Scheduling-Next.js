@@ -19,6 +19,22 @@ variable "allowed_security_group_ids" {
   default     = []
 }
 
+variable "allowed_cidr_blocks" {
+  description = <<-EOT
+    CIDRs allowed to connect to Postgres (5432) — only meaningful when
+    publicly_accessible = true (cross-account / operator access). Keep these as
+    tight /32s (a single IP each), never a wide range. Empty = SG-only ingress.
+  EOT
+  type        = list(string)
+  default     = []
+
+  validation {
+    # Public Postgres exposure must be per-IP (ADR-013): reject anything wider.
+    condition     = alltrue([for c in var.allowed_cidr_blocks : endswith(c, "/32")])
+    error_message = "allowed_cidr_blocks must be single-host /32 CIDRs, never a range."
+  }
+}
+
 variable "engine_version" {
   description = "Postgres version."
   type        = string

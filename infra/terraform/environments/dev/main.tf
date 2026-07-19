@@ -123,6 +123,7 @@ module "s3_assets" {
   source          = "../../modules/s3-assets"
   bucket_name     = "${var.name_prefix}-assets"
   allowed_origins = local.app_cors_origins
+  public_prefixes = ["gallery/", "testimonios/", "hero/"]
   tags            = { Component = "storage" }
 }
 
