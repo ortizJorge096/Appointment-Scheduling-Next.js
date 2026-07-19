@@ -32,6 +32,10 @@ enable_aws_backup = false
 
 alarm_email = ""
 
+# Email para las alertas del budget de facturación de $15/mes (budget.tf). Vacío =
+# sin budget. El valor real va en terraform.tfvars (gitignored).
+budget_alert_email = "tu-email@ejemplo.com"
+
 github_token = ""
 
 # t3.medium NO es Free Tier (~$30/mes). Si quieres mantenerlo Free, ponlo en t3.micro
@@ -52,6 +56,19 @@ enable_emails  = true
 # Protección contra borrado accidental de la BD.
 db_deletion_protection = true
 db_skip_final_snapshot = false
+
+# ── Migración de la BD a otra cuenta (ADR-013) ──────────────────────────────
+# Operación normal: la BD vive en ESTA cuenta.
+enable_local_rds = true
+# external_database_url = ""   # SENSITIVE — el valor real va SOLO en terraform.tfvars (gitignored), no acá.
+#
+# Para mover la BD a otra cuenta NO las cambies todas de una acá: corré la secuencia
+# de 3 `terraform apply` del runbook con flags `-var` (son incrementales). Recién
+# DESPUÉS, persistí el estado durable en terraform.tfvars para que los apply futuros
+# no reviertan:
+#   enable_local_rds       = false
+#   db_deletion_protection = false
+#   external_database_url  = "postgresql://appsched:…@…freetier…:5432/appointment_scheduling?schema=public&sslmode=require"
 
 # RDS scheduler (apaga/enciende la BD por horario para ahorrar). Off por ahora;
 # ponlo en true cuando quieras activarlo. Horarios en cron + timezone:
