@@ -133,6 +133,29 @@ variable "db_skip_final_snapshot" {
   default = false
 }
 
+# ── Cross-account PROD DB (ADR-013) ─────────────────────────────────────
+variable "enable_local_rds" {
+  description = <<-EOT
+    Create the prod RDS in THIS account (true). Set false to tear it down once
+    migrated to an external DB — a FINAL SNAPSHOT is taken (db_skip_final_snapshot
+    is already false). First flip db_deletion_protection=false and apply, THEN set
+    this to false to destroy.
+  EOT
+  type        = bool
+  default     = true
+}
+
+variable "external_database_url" {
+  description = <<-EOT
+    Full DATABASE_URL of an external Postgres (the cross-account free-tier prod DB).
+    When set, it's published to SSM /<name>/db/url and the app uses it instead of the
+    local RDS. Pair with enable_local_rds=false. Leave empty for the normal setup.
+  EOT
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 # Long-retention AWS Backup vault (30/90/365 días). Off por elección del negocio
 # (es el único backup que cuesta): la BD conserva igual 1 día de point-in-time
 # recovery (gratis) vía RDS.

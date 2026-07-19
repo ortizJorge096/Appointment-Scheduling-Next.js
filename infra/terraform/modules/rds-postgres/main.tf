@@ -89,6 +89,21 @@ resource "aws_security_group_rule" "allow_postgres_from_app" {
   security_group_id        = aws_security_group.db.id
 }
 
+# Per-IP ingress for a publicly-accessible DB (ADR-013): cross-account cluster +
+# operator. Only populated when publicly_accessible = true; the variable enforces
+# /32 so this can never open the DB to a range.
+resource "aws_security_group_rule" "allow_postgres_from_cidr" {
+  for_each = { for cidr in var.allowed_cidr_blocks : cidr => cidr }
+
+  type              = "ingress"
+  description       = "Postgres from allowlisted host ${each.value}"
+  from_port         = 5432
+  to_port           = 5432
+  protocol          = "tcp"
+  cidr_blocks       = [each.value]
+  security_group_id = aws_security_group.db.id
+}
+
 # ─── Parameter group: enforce SSL ─────────────────────────────────────────
 resource "aws_db_parameter_group" "this" {
   name        = "${var.name}-pg"

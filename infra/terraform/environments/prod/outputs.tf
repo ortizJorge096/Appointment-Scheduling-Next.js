@@ -16,11 +16,12 @@ output "public_subnet_ids" {
 }
 
 output "db_endpoint" {
-  value = module.rds.db_endpoint
+  # null once migrated to an external DB (ADR-013).
+  value = var.enable_local_rds ? module.rds[0].db_endpoint : null
 }
 
 output "database_url_ssm_parameter" {
-  value = module.rds.database_url_ssm_parameter
+  value = var.enable_local_rds ? module.rds[0].database_url_ssm_parameter : "/${var.name_prefix}/db/url"
 }
 
 output "assets_bucket_name" {

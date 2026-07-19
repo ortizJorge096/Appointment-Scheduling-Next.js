@@ -31,7 +31,9 @@ export default function NosotrosImage() {
             fill
             className="object-cover object-top"
             sizes="(max-width: 1024px) 100vw, 50vw"
-            priority
+            // No `priority`: this is the below-the-fold "Nosotros" image. Priority made
+            // it eager-load and compete with the hero for the optimizer at first paint.
+            loading="lazy"
             onError={() => setError(true)}
           />
         )}
