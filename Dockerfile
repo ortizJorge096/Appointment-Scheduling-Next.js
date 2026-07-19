@@ -81,6 +81,14 @@ COPY --from=builder /app/node_modules/prisma      ./node_modules/prisma
 # (see k8s deployment), so we do NOT rely on the .bin/prisma symlink — Docker would
 # flatten it into a file and break its `require('../package.json')`.
 
+# ── sharp (image optimizer for /_next/image) ──
+# Native libvips optimizer. Without it Next falls back to a slow JS path (measured
+# 1–4s TTFB per image on this pod). Next's standalone tracing does not reliably
+# include the native binaries, so overlay sharp + its platform packages — built for
+# Alpine/musl in the builder, which matches this runner's base — explicitly.
+COPY --from=builder /app/node_modules/sharp ./node_modules/sharp
+COPY --from=builder /app/node_modules/@img  ./node_modules/@img
+
 USER nextjs
 
 EXPOSE 3000

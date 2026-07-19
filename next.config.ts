@@ -21,6 +21,13 @@ const nextConfig: NextConfig = {
         hostname: '**.amazonaws.com',
       },
     ],
+    // Cache each OPTIMIZED variant for a year instead of Next's 60s default. The
+    // hero/gallery S3 keys are immutable (a changed image = a new key = a new URL),
+    // so a long TTL never serves a stale image. Without this, `Cache-Control` was
+    // `max-age=60, must-revalidate` → every ~minute the first visitor re-triggered
+    // optimization of every image on the pod (measured TTFBs of 1–4s). Now the pod
+    // (and the browser) reuse the variant → cache HIT, TTFB ~0.
+    minimumCacheTTL: 31536000, // 1 year
   },
 
   // Security headers
