@@ -9,6 +9,7 @@ import { getCurrentAdmin } from '@/lib/authz'
 import { hasPermission } from '@/lib/permissions'
 import { prisma } from '@/lib/prisma'
 import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
+import { appointmentIncome, type AppointmentMoney } from '@/lib/accounting'
 import { startOfMonth, endOfMonth, subMonths, format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
@@ -16,18 +17,9 @@ export const dynamic = 'force-dynamic'
 
 const MONTHS = 6
 
-type Apt = {
-  date: Date; paymentStatus: string; amountPaid: number | null; precioFinal: number | null
-  service: { price: number }; services: { price: number }[]
-}
-
-// Same income rule as /api/accounting: WAIVED/PENDING count nothing; otherwise the
-// money actually recorded (amountPaid), else the discounted total, else gross.
-function income(a: Apt): number {
-  if (a.paymentStatus === 'WAIVED' || a.paymentStatus === 'PENDING') return 0
-  const gross = a.services && a.services.length > 1 ? a.services.reduce((s, x) => s + x.price, 0) : a.service.price
-  return a.amountPaid ?? a.precioFinal ?? gross
-}
+// Income uses the SHARED rule (src/lib/accounting) rather than a local copy — the
+// previous copy summed raw catalog prices and so ignored discounts and extras.
+type Apt = AppointmentMoney & { date: Date }
 
 export async function GET(_request: NextRequest): Promise<NextResponse> {
   const admin = await getCurrentAdmin()
@@ -44,7 +36,16 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
         where: { date: { gte: from, lte: to }, status: { in: ['CONFIRMED', 'COMPLETED'] } },
         select: {
           date: true, paymentStatus: true, amountPaid: true, precioFinal: true,
-          service: { select: { price: true } }, services: { select: { price: true } },
+          // Discounts + extras move the charge — see src/lib/accounting.
+          descuentoTipo: true, descuentoValor: true,
+          extras:   { select: { amount: true, appointmentServiceId: true } },
+          service:  { select: { price: true } },
+          services: {
+            select: {
+              price: true, descuentoTipo: true, descuentoValor: true,
+              extras: { select: { amount: true } },
+            },
+          },
         },
       }),
       prisma.expense.findMany({
@@ -65,7 +66,7 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
     }
     for (const a of appts as Apt[]) {
       const b = buckets.get(format(a.date, 'yyyy-MM'))
-      if (b) b.income += income(a)
+      if (b) b.income += appointmentIncome(a)
     }
     for (const e of expenses) {
       const b = buckets.get(format(e.date, 'yyyy-MM'))

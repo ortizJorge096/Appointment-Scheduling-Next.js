@@ -53,8 +53,18 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         take: MAX_ROWS,
         select: {
           date: true, paymentStatus: true, paymentMethod: true, amountPaid: true, precioFinal: true,
+          // Discounts (order-level and per line) and extras all move the charge —
+          // without these the total is the raw catalog sum. See src/lib/accounting.
+          descuentoTipo: true, descuentoValor: true,
+          extras:   { select: { amount: true, appointmentServiceId: true } },
           service:  { select: { name: true, price: true } },
-          services: { select: { price: true, service: { select: { name: true } } } },
+          services: {
+            select: {
+              price: true, descuentoTipo: true, descuentoValor: true,
+              extras:  { select: { amount: true } },
+              service: { select: { name: true } },
+            },
+          },
         },
       }),
       prisma.expense.findMany({

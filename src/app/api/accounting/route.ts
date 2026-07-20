@@ -7,7 +7,7 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentAdmin } from '@/lib/authz'
 import { hasPermission } from '@/lib/permissions'
 import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
-import { appointmentIncome, appointmentBalance } from '@/lib/accounting'
+import { appointmentIncome, appointmentBalance, type AppointmentMoney } from '@/lib/accounting'
 import type { ApiResponse, AccountingSummary, CategoryBreakdown, PaymentMethodBreakdown, ExpenseCategory } from '@/types'
 
 export const dynamic = 'force-dynamic'
@@ -44,8 +44,18 @@ export async function GET(
           paymentMethod: true,
           amountPaid: true,
           precioFinal: true,
-          service: { select: { price: true } },
-          services: { select: { price: true } },
+          // Discounts (order-level and per line) and extras all move the charge —
+          // without these the total is the raw catalog sum. See src/lib/accounting.
+          descuentoTipo: true,
+          descuentoValor: true,
+          extras:   { select: { amount: true, appointmentServiceId: true } },
+          service:  { select: { price: true } },
+          services: {
+            select: {
+              price: true, descuentoTipo: true, descuentoValor: true,
+              extras: { select: { amount: true } },
+            },
+          },
         },
       }),
       prisma.expense.findMany({
@@ -61,14 +71,9 @@ export async function GET(
       }),
     ])
 
-    type AptRow = {
-      paymentStatus: string
-      paymentMethod: string | null
-      amountPaid: number | null
-      precioFinal: number | null
-      service: { price: number }
-      services: Array<{ price: number }>
-    }
+    // Reuses the shared money shape so this route and src/lib/accounting can't drift
+    // on which fields the charge depends on; paymentMethod is only for the breakdown.
+    type AptRow = AppointmentMoney & { paymentMethod: string | null }
     type ExpRow = { amount: number; category: ExpenseCategory }
 
     // Income & balance rules live in one place (src/lib/accounting) so this summary
