@@ -9,7 +9,7 @@ import { es } from 'date-fns/locale'
 import { StatCard } from '@/components/ui/Card'
 import { DashboardChart } from '@/components/admin/DashboardChart'
 import { formatPrice } from '@/lib/utils'
-import { appointmentIncome, appointmentBalance, type AppointmentMoney } from '@/lib/accounting'
+import { appointmentIncome, appointmentBalance, appointmentCharge, type AppointmentMoney } from '@/lib/accounting'
 import { STATUS_LABEL } from '@/lib/appointmentStatus'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { PageHeader } from '@/components/ui/PageHeader'
@@ -79,8 +79,16 @@ export default async function DashboardPage() {
     prisma.appointment.findMany({
       where: { date: { gte: todayStart, lte: todayEnd }, status: { not: 'CANCELLED' } },
       include: {
+        // `include` already returns the appointment scalars (descuentoTipo/Valor), but
+        // the extras relations must be asked for explicitly or the charge ignores them.
+        extras:  { select: { amount: true, appointmentServiceId: true } },
         service: { select: { name: true, price: true, durationMinutes: true } },
-        services: { include: { service: { select: { name: true, price: true } } } },
+        services: {
+          include: {
+            service: { select: { name: true, price: true } },
+            extras:  { select: { amount: true } },
+          },
+        },
       },
       orderBy: { startTime: 'asc' },
     }),
@@ -91,22 +99,22 @@ export default async function DashboardPage() {
     // day's revenue can use the same income rule as Contabilidad.
     prisma.appointment.findMany({
       where: { date: { gte: periodStart, lte: todayEnd }, status: { not: 'CANCELLED' } },
-      select: { date: true, status: true, paymentStatus: true, amountPaid: true, precioFinal: true, service: { select: { price: true } }, services: { select: { price: true } } },
+      select: { date: true, status: true, paymentStatus: true, amountPaid: true, precioFinal: true, descuentoTipo: true, descuentoValor: true, extras: { select: { amount: true, appointmentServiceId: true } }, service: { select: { price: true } }, services: { select: { price: true, descuentoTipo: true, descuentoValor: true, extras: { select: { amount: true } } } } },
     }),
     // The PERIOD_DAYS before that, for the period-over-period trend
     prisma.appointment.findMany({
       where: { date: { gte: prevPeriodStart, lte: prevPeriodEnd }, status: { not: 'CANCELLED' } },
-      select: { status: true, paymentStatus: true, amountPaid: true, precioFinal: true, service: { select: { price: true } }, services: { select: { price: true } } },
+      select: { status: true, paymentStatus: true, amountPaid: true, precioFinal: true, descuentoTipo: true, descuentoValor: true, extras: { select: { amount: true, appointmentServiceId: true } }, service: { select: { price: true } }, services: { select: { price: true, descuentoTipo: true, descuentoValor: true, extras: { select: { amount: true } } } } },
     }),
     // Yesterday's income, to trend today's revenue (same population as accounting).
     prisma.appointment.findMany({
       where: { date: { gte: ydayStart, lte: ydayEnd }, status: { in: ['CONFIRMED', 'COMPLETED'] } },
-      select: { status: true, paymentStatus: true, amountPaid: true, precioFinal: true, service: { select: { price: true } }, services: { select: { price: true } } },
+      select: { status: true, paymentStatus: true, amountPaid: true, precioFinal: true, descuentoTipo: true, descuentoValor: true, extras: { select: { amount: true, appointmentServiceId: true } }, service: { select: { price: true } }, services: { select: { price: true, descuentoTipo: true, descuentoValor: true, extras: { select: { amount: true } } } } },
     }),
     // Outstanding: real appointments not fully paid → money still owed
     prisma.appointment.findMany({
       where: { status: { in: ['CONFIRMED', 'COMPLETED'] }, paymentStatus: { in: ['PENDING', 'PARTIAL'] } },
-      select: { paymentStatus: true, amountPaid: true, precioFinal: true, service: { select: { price: true } }, services: { select: { price: true } } },
+      select: { paymentStatus: true, amountPaid: true, precioFinal: true, descuentoTipo: true, descuentoValor: true, extras: { select: { amount: true, appointmentServiceId: true } }, service: { select: { price: true } }, services: { select: { price: true, descuentoTipo: true, descuentoValor: true, extras: { select: { amount: true } } } } },
     }),
     // Most frequent clients (by appointment count)
     prisma.client.findMany({
@@ -264,11 +272,8 @@ export default async function DashboardPage() {
                 </div>
                 <div className="flex items-center gap-4">
                   <p className="text-sm text-gold-deep hidden sm:block">
-                    {formatPrice(
-                      appt.services && appt.services.length > 1
-                        ? appt.services.reduce((sum, s) => sum + s.price, 0)
-                        : appt.service.price
-                    )}
+                    {/* The charge, not a raw catalog sum: discounts and extras move it. */}
+                    {formatPrice(appt.precioFinal ?? appointmentCharge(appt as unknown as AppointmentMoney))}
                   </p>
                   <StatusBadge status={appt.status} />
                   <span aria-hidden="true" className="text-gold-light group-hover:text-gold-deep transition-colors text-lg">›</span>

@@ -30,6 +30,11 @@ interface Appt {
   createdAt: string
   service: { name: string; price: number }
   services: { price: number; service: { name: string } }[]
+  /**
+   * Charge computed SERVER-SIDE (services + extras − discounts). Do not re-derive it
+   * from the catalog prices here: that ignored every discount and extra.
+   */
+  total: number
 }
 
 interface Pagination { total: number; page: number; limit: number; totalPages: number }
@@ -84,11 +89,6 @@ function serviceNames(a: Appt): string {
   return a.services && a.services.length > 1
     ? a.services.map((s) => s.service.name).join(' + ')
     : a.service.name
-}
-function serviceTotal(a: Appt): number {
-  return a.services && a.services.length > 1
-    ? a.services.reduce((sum, s) => sum + s.price, 0)
-    : a.service.price
 }
 
 // Small amber pill flagging an appointment that still owes money. Rendered next
@@ -442,7 +442,7 @@ export default function CitasList({
                       <p className="text-xs text-ink-muted-deep">{appt.clientPhone}</p>
                     </td>
                     <td className="px-5 py-3.5 text-ink-muted-deep">{serviceNames(appt)}</td>
-                    <td className="px-5 py-3.5 text-gold-deep hidden lg:table-cell">{formatPrice(serviceTotal(appt))}</td>
+                    <td className="px-5 py-3.5 text-gold-deep hidden lg:table-cell">{formatPrice(appt.total)}</td>
                     <td className="px-5 py-3.5 hidden lg:table-cell">
                       <span className="text-2xs tracking-wide uppercase bg-beige text-ink-muted-deep border border-beige-dark px-2 py-0.5 rounded-full">
                         {ORIGIN_LABELS[appt.origin] ?? appt.origin}
@@ -486,7 +486,7 @@ export default function CitasList({
                   </div>
                   <div className="flex items-center justify-between text-xs text-ink-muted-deep">
                     <span>{format(new Date(appt.date), 'd MMM', { locale: es })} · {appt.startTime}</span>
-                    <span className="text-gold-deep">{formatPrice(serviceTotal(appt))}</span>
+                    <span className="text-gold-deep">{formatPrice(appt.total)}</span>
                   </div>
                   <p className="text-xs text-ink-muted-deep mt-0.5">{serviceNames(appt)}</p>
                   <p className="text-2xs text-ink-muted-deep mt-0.5">

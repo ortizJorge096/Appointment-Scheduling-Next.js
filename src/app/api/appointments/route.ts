@@ -14,6 +14,7 @@ import { resolveOrCreateClient } from '@/lib/clients'
 import { audit, getClientIp, getUserAgent } from '@/lib/audit'
 import { createCalendarEvent } from '@/lib/calendar'
 import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
+import { appointmentCharge, type AppointmentMoney } from '@/lib/accounting'
 import { buildAppointmentListQuery } from '@/lib/appointmentList'
 import { normalizePhone } from '@/lib/utils'
 import { rateLimit } from '@/lib/rate-limit'
@@ -81,6 +82,10 @@ export async function GET(
       prisma.appointment.findMany({
         where,
         include: {
+          // Extras (appointment-level and per service line) are part of the charge —
+          // see src/lib/accounting. `include` gives the scalars (descuentoTipo/Valor)
+          // but these relations must be asked for explicitly.
+          extras: { select: { amount: true, appointmentServiceId: true } },
           service: {
             select: { id: true, name: true, price: true, durationMinutes: true },
           },
@@ -89,6 +94,7 @@ export async function GET(
               service: {
                 select: { id: true, name: true, price: true, durationMinutes: true },
               },
+              extras: { select: { amount: true } },
             },
           },
           professional: {
@@ -107,10 +113,19 @@ export async function GET(
     return NextResponse.json({ success: false, error: 'Error interno' }, { status: 500 })
   }
 
+  // The charge (services + extras − discounts) is computed HERE, once, server-side,
+  // so the list, the exports and Contabilidad all read the SAME number. The client
+  // used to re-derive it by summing raw catalog prices, which silently dropped every
+  // discount and every extra.
+  const appointmentsWithTotal = appointments.map((a) => ({
+    ...a,
+    total: a.precioFinal ?? appointmentCharge(a as unknown as AppointmentMoney),
+  }))
+
   return NextResponse.json({
     success: true,
     data: {
-      appointments,
+      appointments: appointmentsWithTotal,
       pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
     },
   })
