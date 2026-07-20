@@ -10,6 +10,8 @@ import { getCurrentAdmin } from '@/lib/authz'
 import { hasPermission } from '@/lib/permissions'
 import { prisma } from '@/lib/prisma'
 import { buildAppointmentListQuery } from '@/lib/appointmentList'
+import { appointmentCharge, type AppointmentMoney } from '@/lib/accounting'
+import type { DiscountKind } from '@/lib/discount'
 import { audit, getClientIp, getUserAgent } from '@/lib/audit'
 import { STATUS_LABEL, PAYMENT_STATUS_LABEL, PAYMENT_METHOD_LABEL, ORIGIN_LABEL } from '@/lib/labels'
 import { formatInTimeZone } from 'date-fns-tz'
@@ -24,19 +26,23 @@ function csvCell(value: unknown): string {
   return `"${s.replace(/"/g, '""')}"`
 }
 
-interface Row {
+// Extends the shared money shape so the exported "Total" is the SAME charge the
+// accounting screens use (discounts + extras included), not a raw catalog sum.
+type Row = Omit<AppointmentMoney, 'services'> & {
   date: Date; startTime: string; clientName: string; clientPhone: string; clientEmail: string | null
-  status: string; paymentStatus: string; paymentMethod: string | null
-  amountPaid: number | null; precioFinal: number | null; origin: string
+  status: string; paymentMethod: string | null; origin: string
   service: { name: string; price: number }
-  services: { price: number; service: { name: string } }[]
+  services: Array<{
+    price: number
+    descuentoTipo: DiscountKind | null
+    descuentoValor: number | null
+    extras: Array<{ amount: number }>
+    service: { name: string }
+  }>
 }
 
 function serviceNames(a: Row): string {
   return a.services && a.services.length > 1 ? a.services.map((s) => s.service.name).join(' + ') : a.service.name
-}
-function serviceTotal(a: Row): number {
-  return a.services && a.services.length > 1 ? a.services.reduce((sum, s) => sum + s.price, 0) : a.service.price
 }
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
@@ -73,8 +79,17 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     select: {
       date: true, startTime: true, clientName: true, clientPhone: true, clientEmail: true,
       status: true, paymentStatus: true, paymentMethod: true, amountPaid: true, precioFinal: true, origin: true,
+      // Discounts + extras move the charge — see src/lib/accounting.
+      descuentoTipo: true, descuentoValor: true,
+      extras:   { select: { amount: true, appointmentServiceId: true } },
       service:  { select: { name: true, price: true } },
-      services: { select: { price: true, service: { select: { name: true } } } },
+      services: {
+        select: {
+          price: true, descuentoTipo: true, descuentoValor: true,
+          extras:  { select: { amount: true } },
+          service: { select: { name: true } },
+        },
+      },
     },
   }) as unknown as Row[]
 
@@ -89,7 +104,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const estado = STATUS_LABEL[a.status] ?? a.status
     const pago   = PAYMENT_STATUS_LABEL[a.paymentStatus] ?? a.paymentStatus
     const metodo = a.paymentMethod ? (PAYMENT_METHOD_LABEL[a.paymentMethod] ?? a.paymentMethod) : ''
-    const total  = a.precioFinal ?? serviceTotal(a)
+    const total  = a.precioFinal ?? appointmentCharge(a)
     const cells = columns === 'accounting'
       ? [fecha, serviceNames(a), estado, pago, metodo, total, money(a.amountPaid)]
       : [fecha, a.startTime, a.clientName, a.clientPhone, a.clientEmail ?? '', serviceNames(a), estado, pago, metodo, total, money(a.amountPaid), ORIGIN_LABEL[a.origin] ?? a.origin]
