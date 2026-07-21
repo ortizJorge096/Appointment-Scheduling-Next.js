@@ -166,7 +166,7 @@ describe('GET /api/appointments', () => {
     )
   })
 
-  it('builds an OR free-text search (client, service, code)', async () => {
+  it('builds an OR free-text search (client name, phone, service, code)', async () => {
     vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
     vi.mocked(prisma.appointment.findMany).mockResolvedValue([])
     vi.mocked(prisma.appointment.count).mockResolvedValue(0)
@@ -176,7 +176,27 @@ describe('GET /api/appointments', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where = vi.mocked(prisma.appointment.findMany).mock.calls[0][0]!.where as any
     expect(Array.isArray(where.OR)).toBe(true)
-    expect(where.OR).toHaveLength(4)
+    // Assert WHICH fields the search covers rather than how many clauses there are —
+    // a count breaks whenever a searchable field is added, for the wrong reason.
+    const clauses = JSON.stringify(where.OR)
+    expect(clauses).toContain('clientName')
+    expect(clauses).toContain('clientPhone')
+    expect(clauses).toContain('serviceName')
+    expect(clauses).toContain('startsWith')
+    // Plain text carries no digits, so no phone-normalized clause is added.
+    expect(clauses).not.toContain('phoneNormalized')
+  })
+
+  it('a numeric search also matches the normalized phone', async () => {
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'a1', role: 'SUPER_ADMIN' } })
+    vi.mocked(prisma.appointment.findMany).mockResolvedValue([])
+    vi.mocked(prisma.appointment.count).mockResolvedValue(0)
+
+    await GET(makeGetRequest({ search: '300 123 4567' }))
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where = vi.mocked(prisma.appointment.findMany).mock.calls[0][0]!.where as any
+    expect(JSON.stringify(where.OR)).toContain('"phoneNormalized":{"contains":"3001234567"}')
   })
 
   it('scope=all removes the date window', async () => {
