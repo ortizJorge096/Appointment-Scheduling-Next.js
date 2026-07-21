@@ -115,21 +115,35 @@ export async function GET(
 
     // Income broken down by how it was received: sum amountPaid per paymentMethod.
     // Money recorded without a method lands in "SIN_REGISTRAR" so the totals reconcile.
-    const methodMap = new Map<string, number>()
+    // The two sources are kept apart: only the appointment half exists in the citas
+    // list, so the UI can show the composition and deep-link just that part instead
+    // of promising a drill-down whose total wouldn't match the figure clicked.
+    const aptByMethod = new Map<string, number>()
+    const qsByMethod  = new Map<string, number>()
     for (const apt of appointments as AptRow[]) {
       if (apt.amountPaid && apt.amountPaid > 0) {
         const m = apt.paymentMethod ?? 'SIN_REGISTRAR'
-        methodMap.set(m, (methodMap.get(m) ?? 0) + apt.amountPaid)
+        aptByMethod.set(m, (aptByMethod.get(m) ?? 0) + apt.amountPaid)
       }
     }
     for (const q of quickSales as Array<{ amount: number; paymentMethod: string | null }>) {
       if (q.amount > 0) {
         const m = q.paymentMethod ?? 'SIN_REGISTRAR'
-        methodMap.set(m, (methodMap.get(m) ?? 0) + q.amount)
+        qsByMethod.set(m, (qsByMethod.get(m) ?? 0) + q.amount)
       }
     }
     const incomeByPaymentMethod: PaymentMethodBreakdown[] = Array
-      .from(methodMap, ([method, amount]) => ({ method: method as PaymentMethodBreakdown['method'], amount }))
+      .from(new Set([...aptByMethod.keys(), ...qsByMethod.keys()]))
+      .map((method) => {
+        const fromAppointments = aptByMethod.get(method) ?? 0
+        const fromQuickSales   = qsByMethod.get(method)  ?? 0
+        return {
+          method: method as PaymentMethodBreakdown['method'],
+          amount: fromAppointments + fromQuickSales,
+          fromAppointments,
+          fromQuickSales,
+        }
+      })
       .sort((a, b) => b.amount - a.amount)
 
     return NextResponse.json({
