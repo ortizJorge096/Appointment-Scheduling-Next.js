@@ -236,7 +236,13 @@ export interface CategoryBreakdown {
 
 export interface PaymentMethodBreakdown {
   method: PaymentMethod | 'SIN_REGISTRAR'
+  /** Total received through this method: appointments + walk-in quick sales. */
   amount: number
+  // Kept split so the UI can show what the total is made of, and only deep-link the
+  // part that exists in the citas list — a drill-down that silently dropped the
+  // quick-sale half would never add up to the figure that was clicked.
+  fromAppointments: number
+  fromQuickSales: number
 }
 
 export interface AccountingSummary {

@@ -61,6 +61,33 @@ describe('buildAppointmentListQuery — payment', () => {
       .toEqual({ in: ['PENDING', 'PARTIAL'] })
   })
 
+  it("'pending' also excludes cancelled/no-show — a dead booking owes nothing", () => {
+    // Mirrors the dashboard's "Por cobrar" KPI (CONFIRMED/COMPLETED only), so the
+    // card and the list it links to show the same set.
+    expect(buildAppointmentListQuery({ payment: 'pending', today: TODAY }).where.status)
+      .toEqual({ in: ['CONFIRMED', 'COMPLETED'] })
+  })
+
+  it("an explicit status filter still wins over what 'pending' implies", () => {
+    expect(buildAppointmentListQuery({ payment: 'pending', status: 'COMPLETED', today: TODAY }).where.status)
+      .toBe('COMPLETED')
+  })
+
+  it('applies a valid PaymentMethod', () => {
+    expect(buildAppointmentListQuery({ paymentMethod: 'NEQUI', today: TODAY }).where.paymentMethod).toBe('NEQUI')
+  })
+
+  it('ignores an unknown or absent payment method', () => {
+    expect(buildAppointmentListQuery({ paymentMethod: 'BITCOIN', today: TODAY }).where.paymentMethod).toBeUndefined()
+    expect(buildAppointmentListQuery({ today: TODAY }).where.paymentMethod).toBeUndefined()
+  })
+
+  it('composes method with status — "paid with Nequi"', () => {
+    const { where } = buildAppointmentListQuery({ paymentMethod: 'NEQUI', payment: 'PAID', today: TODAY })
+    expect(where.paymentMethod).toBe('NEQUI')
+    expect(where.paymentStatus).toBe('PAID')
+  })
+
   it('an exact PaymentStatus narrows to just that one', () => {
     expect(buildAppointmentListQuery({ payment: 'PAID', today: TODAY }).where.paymentStatus).toBe('PAID')
   })
@@ -104,10 +131,30 @@ describe('buildAppointmentListQuery — free-text search', () => {
     const { where } = buildAppointmentListQuery({ search: 'CMQRF', today: TODAY })
     expect(where.OR).toEqual([
       { clientName: { contains: 'CMQRF', mode: 'insensitive' } },
+      { clientPhone: { contains: 'CMQRF', mode: 'insensitive' } },
       { service:  { name: { contains: 'CMQRF', mode: 'insensitive' } } },
       { services: { some: { serviceName: { contains: 'CMQRF', mode: 'insensitive' } } } },
       { id: { startsWith: 'cmqrf' } },
     ])
+  })
+
+  it('finds a phone whatever the formatting, via the normalized column', () => {
+    // The stored clientPhone may read "300 123 4567" while the user types it solid
+    // (or the reverse) — only the digits-vs-phoneNormalized match catches both.
+    for (const typed of ['3001234567', '300 123 4567', '+57 300-123-4567']) {
+      const { where } = buildAppointmentListQuery({ search: typed, today: TODAY })
+      expect(JSON.stringify(where.OR)).toContain('phoneNormalized')
+    }
+  })
+
+  it('matches a partial phone', () => {
+    const { where } = buildAppointmentListQuery({ search: '3001234', today: TODAY })
+    expect(where.OR).toContainEqual({ client: { phoneNormalized: { contains: '3001234' } } })
+  })
+
+  it('adds no phone clause for a text search (fewer than 3 digits)', () => {
+    expect(JSON.stringify(buildAppointmentListQuery({ search: 'Ana', today: TODAY }).where.OR))
+      .not.toContain('phoneNormalized')
   })
 
   it('ignores blank search', () => {

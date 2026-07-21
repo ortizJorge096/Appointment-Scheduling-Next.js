@@ -71,6 +71,12 @@ export default async function DashboardPage() {
   const prevPeriodStart = startOfDay(subDays(now, PERIOD_DAYS * 2 - 1))
   const prevPeriodEnd   = endOfDay(subDays(now, PERIOD_DAYS))
 
+  // yyyy-MM-dd keys for the stat-card deep links. Same formatting the day buckets
+  // use, and the same the citas/contabilidad date filters parse back.
+  const todayKey    = format(now,       'yyyy-MM-dd')
+  const weekFromKey = format(weekStart, 'yyyy-MM-dd')
+  const weekToKey   = format(weekEnd,   'yyyy-MM-dd')
+
   const [
     todayAppointments, weekCount, prevWeekCount, pendingCount,
     periodAppts, prevPeriodAppts, yesterdayAppts, receivableAppts, topClients,
@@ -194,16 +200,35 @@ export default async function DashboardPage() {
 
       {/* Stats — business metrics with period-over-period context */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-        <StatCard label="Citas hoy" value={todayAppointments.length} />
-        <StatCard label="Ingreso hoy" value={formatPrice(todayRevenue)}
-          hint={<Trend current={todayRevenue} previous={yesterdayRevenue} label="vs. ayer" />} />
-        <StatCard label="Esta semana" value={weekCount}
-          hint={<Trend current={weekCount} previous={prevWeekCount} label="vs. sem. pasada" />} />
-        <Link href="/admin/contabilidad" className="block h-full">
+        {/* Every metric links to the detail that produced it, carrying the same window
+            it was computed over. An explicit date range wins over `scope` in the query
+            builder, so these don't need one. */}
+        <Link href={`/admin/citas?dateFrom=${todayKey}&dateTo=${todayKey}`} className="block h-full">
+          <StatCard label="Citas hoy" value={todayAppointments.length} className="h-full" />
+        </Link>
+        {/* Money → Contabilidad, scoped to today (it reads the range off the URL). */}
+        <Link href={`/admin/contabilidad?dateFrom=${todayKey}&dateTo=${todayKey}`} className="block h-full">
+          <StatCard label="Ingreso hoy" value={formatPrice(todayRevenue)} className="h-full"
+            hint={<Trend current={todayRevenue} previous={yesterdayRevenue} label="vs. ayer" />} />
+        </Link>
+        <Link href={`/admin/citas?dateFrom=${weekFromKey}&dateTo=${weekToKey}`} className="block h-full">
+          <StatCard label="Esta semana" value={weekCount} className="h-full"
+            hint={<Trend current={weekCount} previous={prevWeekCount} label="vs. sem. pasada" />} />
+        </Link>
+        {/* Straight to the appointments that owe money, not to the accounting totals:
+            the question this card raises is "which ones?". `scope=all` is required —
+            the list defaults to upcoming, and most receivables are already past. */}
+        <Link href="/admin/citas?payment=pending&scope=all" className="block h-full">
           <StatCard label="Por cobrar" value={formatPrice(receivable)} accent className="h-full" />
         </Link>
-        <StatCard label="Pendientes" value={pendingCount} accent={pendingCount > 0}
-          className="col-span-2 lg:col-span-1" />
+        {/* Same idea as "Por cobrar": the count is only useful if you can act on it.
+            `scope=all` because pendingCount has no date filter — an unconfirmed
+            booking that already went by still counts, and hiding it would make the
+            card and the list disagree. The grid span moves to the Link, which is now
+            the grid child. */}
+        <Link href="/admin/citas?status=PENDING&scope=all" className="block h-full col-span-2 lg:col-span-1">
+          <StatCard label="Pendientes" value={pendingCount} accent={pendingCount > 0} className="h-full" />
+        </Link>
       </div>
 
       {/* Charts */}

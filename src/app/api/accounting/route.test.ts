@@ -53,6 +53,10 @@ describe('GET /api/accounting', () => {
     // The EFECTIVO breakdown merges the appointment and the quick sale.
     const efectivo = json.data.incomeByPaymentMethod.find((m: { method: string }) => m.method === 'EFECTIVO')
     expect(efectivo.amount).toBe(65000)
+    // …and the two sources stay distinguishable: only the citas half is reachable
+    // from the drill-down link, so the UI can say so instead of implying the total.
+    expect(efectivo.fromAppointments).toBe(50000)
+    expect(efectivo.fromQuickSales).toBe(15000)
   })
 
   it('returns zeroed summary when no data', async () => {
@@ -180,10 +184,12 @@ describe('GET /api/accounting', () => {
     const json = await res.json()
 
     // EFECTIVO 50000+20000=70000, NEQUI 30000, SIN_REGISTRAR 15000 — ordenado desc.
+    // Each entry keeps its two sources apart so the UI can show the composition and
+    // only deep-link the appointments half. No quick sales here → all from citas.
     expect(json.data.incomeByPaymentMethod).toEqual([
-      { method: 'EFECTIVO', amount: 70000 },
-      { method: 'NEQUI', amount: 30000 },
-      { method: 'SIN_REGISTRAR', amount: 15000 },
+      { method: 'EFECTIVO',      amount: 70000, fromAppointments: 70000, fromQuickSales: 0 },
+      { method: 'NEQUI',         amount: 30000, fromAppointments: 30000, fromQuickSales: 0 },
+      { method: 'SIN_REGISTRAR', amount: 15000, fromAppointments: 15000, fromQuickSales: 0 },
     ])
   })
 

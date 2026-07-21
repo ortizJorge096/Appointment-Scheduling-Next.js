@@ -4,6 +4,8 @@
 // period-over-period deltas, outstanding receivables and an expense breakdown.
 
 import { useState, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import type { ExpenseSummary, AccountingSummary, QuickSaleSummary } from '@/types'
 import { Pagination } from '@/components/admin/Pagination'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
@@ -92,10 +94,19 @@ export default function ContabilidadPage() {
   usePermissionGuard('contabilidad:ver')
   const confirm = useConfirm()
   const can = useCan()
+  // Deep link support: ?dateFrom=&dateTo= seed the period, so a metric elsewhere can
+  // open this page already scoped to what it was measuring (the dashboard's "Ingreso
+  // hoy" links here with today's range). No Suspense boundary needed — the
+  // (protected) layout reads the session server-side, so this route is never
+  // statically prerendered.
+  const searchParams = useSearchParams()
+  const urlFrom = searchParams.get('dateFrom')
+  const urlTo   = searchParams.get('dateTo')
+
   const { from: initFrom, to: initTo } = currentMonthRange()
-  const [dateFrom, setDateFrom]   = useState(initFrom)
-  const [dateTo, setDateTo]       = useState(initTo)
-  const [preset, setPreset]       = useState<Preset>('thisMonth')
+  const [dateFrom, setDateFrom]   = useState(urlFrom ?? initFrom)
+  const [dateTo, setDateTo]       = useState(urlTo ?? initTo)
+  const [preset, setPreset]       = useState<Preset>(urlFrom || urlTo ? 'custom' : 'thisMonth')
 
   const [summary, setSummary]         = useState<AccountingSummary | null>(null)
   const [prevSummary, setPrevSummary] = useState<AccountingSummary | null>(null)
@@ -373,15 +384,39 @@ export default function ContabilidadPage() {
           <div className="space-y-3">
             {summary.incomeByPaymentMethod.map(m => {
               const pct = receivedTotal > 0 ? Math.round((m.amount / receivedTotal) * 100) : 0
+              // Only the appointments half lives in the citas list, and only for a real
+              // method ('SIN_REGISTRAR' isn't a filter value). When a method mixes both
+              // sources the split is spelled out, so the link never looks like it should
+              // add up to the figure above it.
+              const canDrill = m.fromAppointments > 0 && m.method !== 'SIN_REGISTRAR'
+              const mixed    = m.fromAppointments > 0 && m.fromQuickSales > 0
               return (
-                <div key={m.method} className="flex items-center gap-3">
-                  <span className="w-16 sm:w-28 text-xs sm:text-sm text-ink-muted-deep shrink-0">{METHOD_LABEL[m.method] ?? m.method}</span>
-                  <div className="flex-1 h-2.5 rounded-full bg-beige overflow-hidden">
-                    <div className="h-full rounded-full bg-gradient-to-r from-green-400 to-green-600" style={{ width: `${pct}%` }} />
+                <div key={m.method}>
+                  <div className="flex items-center gap-3">
+                    <span className="w-16 sm:w-28 text-xs sm:text-sm text-ink-muted-deep shrink-0">{METHOD_LABEL[m.method] ?? m.method}</span>
+                    <div className="flex-1 h-2.5 rounded-full bg-beige overflow-hidden">
+                      <div className="h-full rounded-full bg-gradient-to-r from-green-400 to-green-600" style={{ width: `${pct}%` }} />
+                    </div>
+                    <span className="w-24 sm:w-36 text-right text-xs sm:text-sm text-ink shrink-0">
+                      <b className="font-medium">{formatPrice(m.amount)}</b> <span className="text-ink-muted-deep">· {pct}%</span>
+                    </span>
                   </div>
-                  <span className="w-24 sm:w-36 text-right text-xs sm:text-sm text-ink shrink-0">
-                    <b className="font-medium">{formatPrice(m.amount)}</b> <span className="text-ink-muted-deep">· {pct}%</span>
-                  </span>
+                  {(mixed || canDrill) && (
+                    <p className="pl-16 sm:pl-28 mt-1 flex flex-wrap items-center gap-x-2 text-2xs text-ink-muted-deep">
+                      {mixed && (
+                        <span>
+                          {formatPrice(m.fromAppointments)} en citas · {formatPrice(m.fromQuickSales)} en ventas rápidas
+                        </span>
+                      )}
+                      {canDrill && (
+                        <Link
+                          href={`/admin/citas?paymentMethod=${m.method}&dateFrom=${dateFrom}&dateTo=${dateTo}`}
+                          className="text-gold-deep hover:underline">
+                          ver las citas →
+                        </Link>
+                      )}
+                    </p>
+                  )}
                 </div>
               )
             })}

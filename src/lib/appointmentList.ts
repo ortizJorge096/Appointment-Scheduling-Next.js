@@ -22,6 +22,12 @@ export type Origin = (typeof ORIGIN_OPTIONS)[number]
 // PaymentStatus values are accepted too.
 export const PAYMENT_STATUSES = ['PENDING', 'PAID', 'PARTIAL', 'WAIVED'] as const
 
+// Payment-method filter — mirrors the PaymentMethod enum. Answers "which
+// appointments were charged through X", and combines with the other filters
+// (e.g. Nequi + this month, or Nequi + already paid).
+export const PAYMENT_METHODS = ['EFECTIVO', 'TRANSFERENCIA', 'TARJETA', 'NEQUI', 'DAVIPLATA'] as const
+export type PaymentMethod = (typeof PAYMENT_METHODS)[number]
+
 const APPOINTMENT_STATUSES = ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'NO_SHOW'] as const
 type KnownStatus = (typeof APPOINTMENT_STATUSES)[number]
 
@@ -55,6 +61,8 @@ export interface CitasQueryParams {
   origin?: string
   /** Payment filter. 'pending' = still owes (PENDING/PARTIAL); or an exact PaymentStatus. */
   payment?: string
+  /** Exact PaymentMethod. Appointments with no method recorded never match. */
+  paymentMethod?: string
   /** Free text: client name, service name, or code (id prefix). */
   search?: string
   serviceId?: string
@@ -97,8 +105,20 @@ export function buildAppointmentListQuery(params: CitasQueryParams): CitasQuery 
   // PaymentStatus value narrows to just that one.
   if (params.payment === 'pending') {
     where.paymentStatus = { in: ['PENDING', 'PARTIAL'] }
+    // "Still owes" only applies to a booking that happened or is going to: a
+    // cancelled or no-show appointment owes nothing. This mirrors the dashboard's
+    // "Por cobrar" KPI (which sums over CONFIRMED/COMPLETED), so the card and this
+    // list show the same set. An explicit status filter from the user still wins.
+    if (!where.status) where.status = { in: ['CONFIRMED', 'COMPLETED'] }
   } else if (params.payment && (PAYMENT_STATUSES as readonly string[]).includes(params.payment)) {
     where.paymentStatus = params.payment as (typeof PAYMENT_STATUSES)[number]
+  }
+
+  // Payment method — exact match, independent of the payment STATUS filter, so they
+  // compose (e.g. "paid with Nequi" = paymentMethod=NEQUI + payment=PAID). An
+  // appointment with no method recorded never matches a method filter.
+  if (params.paymentMethod && (PAYMENT_METHODS as readonly string[]).includes(params.paymentMethod)) {
+    where.paymentMethod = params.paymentMethod as PaymentMethod
   }
 
   // Date window. An explicit range always wins over the scope window.
@@ -138,11 +158,19 @@ export function buildAppointmentListQuery(params: CitasQueryParams): CitasQuery 
   // Free-text search: client name, service name (primary + snapshots), or the
   // appointment code (first chars of the id, shown uppercased in the detail).
   if (search) {
+    // Phones are stored twice: `clientPhone` keeps whatever formatting was typed,
+    // while the linked Client carries `phoneNormalized` (digits only, 57-prefixed).
+    // Matching the search term's digits against the normalized column is what makes
+    // "300 123 4567", "3001234567" and a partial "3001234" all find the same person.
+    const digits = search.replace(/\D/g, '')
     where.OR = [
       { clientName: { contains: search, mode: 'insensitive' } },
+      { clientPhone: { contains: search, mode: 'insensitive' } },
       { service:  { name: { contains: search, mode: 'insensitive' } } },
       { services: { some: { serviceName: { contains: search, mode: 'insensitive' } } } },
       { id: { startsWith: search.toLowerCase() } },
+      // 3+ digits: fewer would match almost every number.
+      ...(digits.length >= 3 ? [{ client: { phoneNormalized: { contains: digits } } }] : []),
     ]
   }
 

@@ -15,8 +15,8 @@ export const metadata: Metadata = { title: 'Citas' }
 export const dynamic = 'force-dynamic'
 
 interface SearchParams {
-  status?: string; scope?: string; origin?: string; payment?: string; search?: string
-  serviceId?: string; categoryId?: string; amountMin?: string; amountMax?: string
+  status?: string; scope?: string; origin?: string; payment?: string; paymentMethod?: string
+  search?: string; serviceId?: string; categoryId?: string; amountMin?: string; amountMax?: string
   dateFrom?: string; dateTo?: string; page?: string; sort?: string
 }
 
@@ -35,7 +35,8 @@ export default async function CitasPage({ searchParams }: { searchParams: Promis
   const today = formatInTimeZone(new Date(), 'America/Bogota', 'yyyy-MM-dd')
 
   const { where, orderBy } = buildAppointmentListQuery({
-    status: sp.status, scope: sp.scope, origin: sp.origin, payment: sp.payment, search: sp.search,
+    status: sp.status, scope: sp.scope, origin: sp.origin,
+    payment: sp.payment, paymentMethod: sp.paymentMethod, search: sp.search,
     serviceId: sp.serviceId, categoryId: sp.categoryId,
     amountMin: num(sp.amountMin), amountMax: num(sp.amountMax),
     dateFrom: sp.dateFrom, dateTo: sp.dateTo,
@@ -81,7 +82,8 @@ export default async function CitasPage({ searchParams }: { searchParams: Promis
     status:     sp.status     ?? '',
     scope:      sp.scope      ?? 'upcoming',
     origin:     sp.origin     ?? '',
-    payment:    sp.payment    ?? '',
+    payment:       sp.payment       ?? '',
+    paymentMethod: sp.paymentMethod ?? '',
     serviceId:  sp.serviceId  ?? '',
     categoryId: sp.categoryId ?? '',
     amountMin:  sp.amountMin  ?? '',
