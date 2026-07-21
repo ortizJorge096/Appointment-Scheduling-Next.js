@@ -3,16 +3,21 @@ import { NextRequest } from 'next/server'
 
 vi.mock('next-auth', () => ({ getServerSession: vi.fn() }))
 vi.mock('@/lib/auth',   () => ({ authOptions: {} }))
-vi.mock('@/lib/prisma', () => ({
-  prisma: {
-    client: {
-      findUnique: vi.fn(),
-      update:     vi.fn(),
-      delete:     vi.fn(),
+vi.mock('@/lib/prisma', () => {
+  // Defined inside the factory (vi.mock is hoisted) and reused as the transaction
+  // client, so assertions on prisma.client.update still see the calls the route
+  // makes through `tx`.
+  const client      = { findUnique: vi.fn(), update: vi.fn(), delete: vi.fn() }
+  const appointment = { updateMany: vi.fn() }
+  return {
+    prisma: {
+      client,
+      appointment,
+      auditLog: { create: vi.fn() },
+      $transaction: vi.fn((fn: (tx: unknown) => unknown) => fn({ client, appointment })),
     },
-    auditLog: { create: vi.fn() },
-  },
-}))
+  }
+})
 vi.mock('@/lib/db-error', () => ({
   isDbUnavailable:      vi.fn().mockReturnValue(false),
   dbUnavailableResponse: vi.fn(),
@@ -32,7 +37,11 @@ const MOCK_CLIENT = {
 
 const ctx = { params: Promise.resolve({ id: 'c1' }) }
 
-beforeEach(() => { vi.clearAllMocks() })
+beforeEach(() => {
+  vi.clearAllMocks()
+  // The route reads `.count` off the result, so it must always resolve to an object.
+  vi.mocked(prisma.appointment.updateMany).mockResolvedValue({ count: 0 } as never)
+})
 
 function makePatchRequest(body: unknown): NextRequest {
   return { json: () => Promise.resolve(body) } as unknown as NextRequest
@@ -90,6 +99,36 @@ describe('PATCH /api/clients/:id', () => {
 
     expect(res.status).toBe(200)
     expect(json.success).toBe(true)
+  })
+
+  it('syncs a renamed client onto their appointments (denormalized snapshot)', async () => {
+    vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
+    vi.mocked(prisma.client.findUnique).mockResolvedValue({
+      name: 'Ana López', email: 'ana@test.com', phone: '3001234567', notes: 'Alérgica al acrílico',
+    } as never)
+    vi.mocked(prisma.client.update).mockResolvedValue({ ...MOCK_CLIENT, name: 'Ana Lopez Ruiz' } as never)
+    vi.mocked(prisma.appointment.updateMany).mockResolvedValue({ count: 3 } as never)
+
+    const res = await PATCH(makePatchRequest({ name: 'Ana Lopez Ruiz' }), ctx)
+    expect(res.status).toBe(200)
+
+    // The citas list renders (and the admin search indexes) the denormalized
+    // clientName, so it has to follow the rename. Only the changed field is synced.
+    expect(prisma.appointment.updateMany).toHaveBeenCalledWith({
+      where: { clientId: 'c1' },
+      data:  { clientName: 'Ana Lopez Ruiz' },
+    })
+  })
+
+  it('leaves appointments alone when the contact data did not change', async () => {
+    vi.mocked(getServerSession).mockResolvedValue(MOCK_SESSION)
+    vi.mocked(prisma.client.findUnique).mockResolvedValue({
+      name: 'Ana López', email: 'ana@test.com', phone: '3001234567', notes: 'Alérgica al acrílico',
+    } as never)
+    vi.mocked(prisma.client.update).mockResolvedValue({ ...MOCK_CLIENT, notes: 'nueva nota' } as never)
+
+    await PATCH(makePatchRequest({ notes: 'nueva nota' }), ctx)
+    expect(prisma.appointment.updateMany).not.toHaveBeenCalled()
   })
 
   it('returns 404 when client not found (P2025)', async () => {

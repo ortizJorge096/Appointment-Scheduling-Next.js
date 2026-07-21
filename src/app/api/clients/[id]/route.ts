@@ -75,18 +75,42 @@ export async function PATCH(request: NextRequest, { params }: Ctx): Promise<Next
   })
 
   let client
+  let syncedAppointments = 0
   try {
-    client = await prisma.client.update({
-      where: { id },
-      data: {
-        ...(parsed.data.name  ? { name:  parsed.data.name.trim()  } : {}),
-        ...(parsed.data.email ? { email: parsed.data.email.toLowerCase().trim() } : {}),
-        ...(parsed.data.phone !== undefined ? { phone: parsed.data.phone?.trim() ?? null, phoneNormalized: normalizePhone(parsed.data.phone) } : {}),
-        ...(parsed.data.notes !== undefined ? { notes: parsed.data.notes?.trim() ?? null } : {}),
-        ...(parsed.data.archived !== undefined ? { deletedAt: parsed.data.archived ? new Date() : null } : {}),
-      },
-      include: { _count: { select: { appointments: true } } },
+    const result = await prisma.$transaction(async (tx) => {
+      const updated = await tx.client.update({
+        where: { id },
+        data: {
+          ...(parsed.data.name  ? { name:  parsed.data.name.trim()  } : {}),
+          ...(parsed.data.email ? { email: parsed.data.email.toLowerCase().trim() } : {}),
+          ...(parsed.data.phone !== undefined ? { phone: parsed.data.phone?.trim() ?? null, phoneNormalized: normalizePhone(parsed.data.phone) } : {}),
+          ...(parsed.data.notes !== undefined ? { notes: parsed.data.notes?.trim() ?? null } : {}),
+          ...(parsed.data.archived !== undefined ? { deletedAt: parsed.data.archived ? new Date() : null } : {}),
+        },
+        include: { _count: { select: { appointments: true } } },
+      })
+
+      // Appointments keep a denormalized copy of the client's contact data so the
+      // history survives if the client record is deleted. That copy must FOLLOW a
+      // correction here — otherwise the citas list keeps showing the old name, and
+      // the admin search (which runs on the denormalized clientName via its GIN
+      // trigram index) stops finding the client by their new name. Same transaction
+      // so the profile and its appointments can never drift apart.
+      const sync: { clientName?: string; clientEmail?: string | null; clientPhone?: string } = {}
+      if (prev) {
+        if (updated.name  !== prev.name)  sync.clientName  = updated.name
+        if (updated.email !== prev.email) sync.clientEmail = updated.email
+        // clientPhone is NOT nullable on the appointment — never blank out a snapshot.
+        if (updated.phone && updated.phone !== prev.phone) sync.clientPhone = updated.phone
+      }
+      const synced = Object.keys(sync).length > 0
+        ? (await tx.appointment.updateMany({ where: { clientId: id }, data: sync })).count
+        : 0
+
+      return { updated, synced }
     })
+    client = result.updated
+    syncedAppointments = result.synced
   } catch (err) {
     if (isDbUnavailable(err)) return dbUnavailableResponse()
     if ((err as { code?: string }).code === 'P2025') {
@@ -103,7 +127,9 @@ export async function PATCH(request: NextRequest, { params }: Ctx): Promise<Next
   const description =
     parsed.data.archived === true  ? `Admin archivó a ${client.name}` :
     parsed.data.archived === false ? `Admin reactivó a ${client.name}` :
-                                     `Admin editó los datos de ${client.name}`
+    syncedAppointments > 0
+      ? `Admin editó los datos de ${client.name} (sincronizó ${syncedAppointments} cita(s))`
+      : `Admin editó los datos de ${client.name}`
   await audit({
     action:    parsed.data.archived !== undefined ? 'STATUS_CHANGE' : 'UPDATE',
     entity:    'CLIENT',
@@ -115,6 +141,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx): Promise<Next
     description,
     before:    prev ?? undefined,
     after:     { name: client.name, email: client.email, phone: client.phone, notes: client.notes },
+    ...(syncedAppointments > 0 ? { metadata: { syncedAppointments } } : {}),
   })
 
   return NextResponse.json({ success: true, data: client })
