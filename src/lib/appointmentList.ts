@@ -22,6 +22,12 @@ export type Origin = (typeof ORIGIN_OPTIONS)[number]
 // PaymentStatus values are accepted too.
 export const PAYMENT_STATUSES = ['PENDING', 'PAID', 'PARTIAL', 'WAIVED'] as const
 
+// Payment-method filter — mirrors the PaymentMethod enum. Answers "which
+// appointments were charged through X", and combines with the other filters
+// (e.g. Nequi + this month, or Nequi + already paid).
+export const PAYMENT_METHODS = ['EFECTIVO', 'TRANSFERENCIA', 'TARJETA', 'NEQUI', 'DAVIPLATA'] as const
+export type PaymentMethod = (typeof PAYMENT_METHODS)[number]
+
 const APPOINTMENT_STATUSES = ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'NO_SHOW'] as const
 type KnownStatus = (typeof APPOINTMENT_STATUSES)[number]
 
@@ -55,6 +61,8 @@ export interface CitasQueryParams {
   origin?: string
   /** Payment filter. 'pending' = still owes (PENDING/PARTIAL); or an exact PaymentStatus. */
   payment?: string
+  /** Exact PaymentMethod. Appointments with no method recorded never match. */
+  paymentMethod?: string
   /** Free text: client name, service name, or code (id prefix). */
   search?: string
   serviceId?: string
@@ -104,6 +112,13 @@ export function buildAppointmentListQuery(params: CitasQueryParams): CitasQuery 
     if (!where.status) where.status = { in: ['CONFIRMED', 'COMPLETED'] }
   } else if (params.payment && (PAYMENT_STATUSES as readonly string[]).includes(params.payment)) {
     where.paymentStatus = params.payment as (typeof PAYMENT_STATUSES)[number]
+  }
+
+  // Payment method — exact match, independent of the payment STATUS filter, so they
+  // compose (e.g. "paid with Nequi" = paymentMethod=NEQUI + payment=PAID). An
+  // appointment with no method recorded never matches a method filter.
+  if (params.paymentMethod && (PAYMENT_METHODS as readonly string[]).includes(params.paymentMethod)) {
+    where.paymentMethod = params.paymentMethod as PaymentMethod
   }
 
   // Date window. An explicit range always wins over the scope window.

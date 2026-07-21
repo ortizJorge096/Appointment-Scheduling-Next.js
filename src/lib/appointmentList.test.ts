@@ -73,6 +73,21 @@ describe('buildAppointmentListQuery — payment', () => {
       .toBe('COMPLETED')
   })
 
+  it('applies a valid PaymentMethod', () => {
+    expect(buildAppointmentListQuery({ paymentMethod: 'NEQUI', today: TODAY }).where.paymentMethod).toBe('NEQUI')
+  })
+
+  it('ignores an unknown or absent payment method', () => {
+    expect(buildAppointmentListQuery({ paymentMethod: 'BITCOIN', today: TODAY }).where.paymentMethod).toBeUndefined()
+    expect(buildAppointmentListQuery({ today: TODAY }).where.paymentMethod).toBeUndefined()
+  })
+
+  it('composes method with status — "paid with Nequi"', () => {
+    const { where } = buildAppointmentListQuery({ paymentMethod: 'NEQUI', payment: 'PAID', today: TODAY })
+    expect(where.paymentMethod).toBe('NEQUI')
+    expect(where.paymentStatus).toBe('PAID')
+  })
+
   it('an exact PaymentStatus narrows to just that one', () => {
     expect(buildAppointmentListQuery({ payment: 'PAID', today: TODAY }).where.paymentStatus).toBe('PAID')
   })
