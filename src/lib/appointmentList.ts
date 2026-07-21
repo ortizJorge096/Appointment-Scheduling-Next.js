@@ -97,6 +97,11 @@ export function buildAppointmentListQuery(params: CitasQueryParams): CitasQuery 
   // PaymentStatus value narrows to just that one.
   if (params.payment === 'pending') {
     where.paymentStatus = { in: ['PENDING', 'PARTIAL'] }
+    // "Still owes" only applies to a booking that happened or is going to: a
+    // cancelled or no-show appointment owes nothing. This mirrors the dashboard's
+    // "Por cobrar" KPI (which sums over CONFIRMED/COMPLETED), so the card and this
+    // list show the same set. An explicit status filter from the user still wins.
+    if (!where.status) where.status = { in: ['CONFIRMED', 'COMPLETED'] }
   } else if (params.payment && (PAYMENT_STATUSES as readonly string[]).includes(params.payment)) {
     where.paymentStatus = params.payment as (typeof PAYMENT_STATUSES)[number]
   }

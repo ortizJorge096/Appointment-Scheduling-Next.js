@@ -61,6 +61,18 @@ describe('buildAppointmentListQuery — payment', () => {
       .toEqual({ in: ['PENDING', 'PARTIAL'] })
   })
 
+  it("'pending' also excludes cancelled/no-show — a dead booking owes nothing", () => {
+    // Mirrors the dashboard's "Por cobrar" KPI (CONFIRMED/COMPLETED only), so the
+    // card and the list it links to show the same set.
+    expect(buildAppointmentListQuery({ payment: 'pending', today: TODAY }).where.status)
+      .toEqual({ in: ['CONFIRMED', 'COMPLETED'] })
+  })
+
+  it("an explicit status filter still wins over what 'pending' implies", () => {
+    expect(buildAppointmentListQuery({ payment: 'pending', status: 'COMPLETED', today: TODAY }).where.status)
+      .toBe('COMPLETED')
+  })
+
   it('an exact PaymentStatus narrows to just that one', () => {
     expect(buildAppointmentListQuery({ payment: 'PAID', today: TODAY }).where.paymentStatus).toBe('PAID')
   })
