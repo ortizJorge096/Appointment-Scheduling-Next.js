@@ -17,6 +17,27 @@ export default function HeroCarousel({ images }: { images: { src: string; focalP
   const [failed, setFailed] = useState<Record<number, boolean>>({})
   const timer = useRef<ReturnType<typeof setInterval> | null>(null)
 
+  // Which slides are actually in the DOM. Stacking every slide (opacity 0) does NOT
+  // make next/image lazy-load them: they all sit in the viewport, so the browser
+  // fetched all of them on first paint — measured as 8 hero images optimized at once.
+  // Mount the current one plus the next (preloaded so the crossfade never flashes),
+  // and keep whatever has been mounted so later cycles don't refetch.
+  const [mounted, setMounted] = useState<Set<number>>(
+    () => new Set([0, 1].filter((i) => i < images.length)),
+  )
+
+  useEffect(() => {
+    setMounted((prev) => {
+      const next = (index + 1) % images.length
+      // Same reference when nothing changes → no re-render loop.
+      if (prev.has(index) && prev.has(next)) return prev
+      const s = new Set(prev)
+      s.add(index)
+      s.add(next)
+      return s
+    })
+  }, [index, images.length])
+
   useEffect(() => {
     if (paused || images.length <= 1) return
     timer.current = setInterval(() => setIndex((i) => (i + 1) % images.length), SLIDE_MS)
@@ -35,7 +56,7 @@ export default function HeroCarousel({ images }: { images: { src: string; focalP
       <div className="absolute inset-0" style={{ background: 'linear-gradient(160deg,var(--ink-soft) 0%,var(--ink) 60%,#0F0A05 100%)' }} />
 
       {images.map((img, i) => (
-        failed[i] ? null : (
+        failed[i] || !mounted.has(i) ? null : (
           <div key={img.src} className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${i === index ? 'opacity-100' : 'opacity-0'}`}>
             <Image
               src={img.src}
