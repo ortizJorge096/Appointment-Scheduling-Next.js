@@ -12,7 +12,8 @@ import { es } from 'date-fns/locale'
 import { formatPrice, formatRequestedAt } from '@/lib/utils'
 import { STATUS_LABEL } from '@/lib/appointmentStatus'
 import { StatusBadge } from '@/components/ui/StatusBadge'
-import { SCOPE_OPTIONS, SORT_OPTIONS, ORIGIN_OPTIONS } from '@/lib/appointmentList'
+import { SCOPE_OPTIONS, SORT_OPTIONS, ORIGIN_OPTIONS, PAYMENT_METHODS } from '@/lib/appointmentList'
+import { PAYMENT_METHOD_LABEL } from '@/lib/labels'
 
 interface ServiceLite  { id: string; name: string }
 interface CategoryLite { id: string; name: string }
@@ -45,6 +46,7 @@ export interface CitasFilters {
   scope: string
   origin: string   // '' = todos
   payment: string  // '' = todos · 'pending' = por cobrar · 'PAID' = pagadas
+  paymentMethod: string // '' = todos · EFECTIVO | TRANSFERENCIA | TARJETA | NEQUI | DAVIPLATA
   serviceId: string
   categoryId: string
   amountMin: string
@@ -55,7 +57,7 @@ export interface CitasFilters {
 }
 
 const EMPTY_FILTERS: CitasFilters = {
-  search: '', status: '', scope: 'upcoming', origin: '', payment: '',
+  search: '', status: '', scope: 'upcoming', origin: '', payment: '', paymentMethod: '',
   serviceId: '', categoryId: '', amountMin: '', amountMax: '',
   dateFrom: '', dateTo: '', sort: 'upcoming',
 }
@@ -74,6 +76,7 @@ function buildQueryString(f: CitasFilters, page: number): string {
   if (f.scope && f.scope !== 'upcoming') p.set('scope', f.scope)
   if (f.origin)                       p.set('origin', f.origin)
   if (f.payment)                      p.set('payment', f.payment)
+  if (f.paymentMethod)                p.set('paymentMethod', f.paymentMethod)
   if (f.serviceId)                    p.set('serviceId', f.serviceId)
   if (f.categoryId)                   p.set('categoryId', f.categoryId)
   if (f.amountMin)                    p.set('amountMin', f.amountMin)
@@ -119,6 +122,7 @@ export default function CitasList({
   const [exportOpen, setExportOpen]     = useState(false)
   const [showMore, setShowMore]         = useState(
     !!(initialFilters.serviceId || initialFilters.categoryId ||
+       initialFilters.paymentMethod ||
        initialFilters.amountMin || initialFilters.amountMax ||
        initialFilters.dateFrom  || initialFilters.dateTo),
   )
@@ -193,6 +197,7 @@ export default function CitasList({
   if (filters.scope !== 'upcoming') chips.push({ label: `Ver: ${SCOPE_LABELS[filters.scope]}`, clear: () => patch({ scope: 'upcoming' }) })
   if (filters.origin)            chips.push({ label: `Origen: ${ORIGIN_LABELS[filters.origin]}`, clear: () => patch({ origin: '' }) })
   if (filters.payment)           chips.push({ label: filters.payment === 'pending' ? 'Pendiente de pago' : 'Pagadas', clear: () => patch({ payment: '' }) })
+  if (filters.paymentMethod)     chips.push({ label: `Pago: ${PAYMENT_METHOD_LABEL[filters.paymentMethod] ?? filters.paymentMethod}`, clear: () => patch({ paymentMethod: '' }) })
   if (filters.serviceId)         chips.push({ label: services.find((s) => s.id === filters.serviceId)?.name ?? 'Servicio', clear: () => patch({ serviceId: '' }) })
   if (filters.categoryId)        chips.push({ label: categories.find((c) => c.id === filters.categoryId)?.name ?? 'Categoría', clear: () => patch({ categoryId: '' }) })
   if (filters.amountMin || filters.amountMax)
@@ -314,6 +319,16 @@ export default function CitasList({
                 className="input-field py-1.5 bg-white">
                 <option value="">Todas</option>
                 {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+            <div>
+              {/* Combines with the payment-status buttons above: "pagadas con Nequi"
+                  is paymentMethod=NEQUI + payment=PAID. */}
+              <label className="form-label text-2xs">Método de pago</label>
+              <select value={filters.paymentMethod} onChange={(e) => patch({ paymentMethod: e.target.value })}
+                className="input-field py-1.5 bg-white">
+                <option value="">Todos</option>
+                {PAYMENT_METHODS.map((m) => <option key={m} value={m}>{PAYMENT_METHOD_LABEL[m] ?? m}</option>)}
               </select>
             </div>
             <div>
