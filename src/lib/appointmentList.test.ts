@@ -131,10 +131,30 @@ describe('buildAppointmentListQuery — free-text search', () => {
     const { where } = buildAppointmentListQuery({ search: 'CMQRF', today: TODAY })
     expect(where.OR).toEqual([
       { clientName: { contains: 'CMQRF', mode: 'insensitive' } },
+      { clientPhone: { contains: 'CMQRF', mode: 'insensitive' } },
       { service:  { name: { contains: 'CMQRF', mode: 'insensitive' } } },
       { services: { some: { serviceName: { contains: 'CMQRF', mode: 'insensitive' } } } },
       { id: { startsWith: 'cmqrf' } },
     ])
+  })
+
+  it('finds a phone whatever the formatting, via the normalized column', () => {
+    // The stored clientPhone may read "300 123 4567" while the user types it solid
+    // (or the reverse) — only the digits-vs-phoneNormalized match catches both.
+    for (const typed of ['3001234567', '300 123 4567', '+57 300-123-4567']) {
+      const { where } = buildAppointmentListQuery({ search: typed, today: TODAY })
+      expect(JSON.stringify(where.OR)).toContain('phoneNormalized')
+    }
+  })
+
+  it('matches a partial phone', () => {
+    const { where } = buildAppointmentListQuery({ search: '3001234', today: TODAY })
+    expect(where.OR).toContainEqual({ client: { phoneNormalized: { contains: '3001234' } } })
+  })
+
+  it('adds no phone clause for a text search (fewer than 3 digits)', () => {
+    expect(JSON.stringify(buildAppointmentListQuery({ search: 'Ana', today: TODAY }).where.OR))
+      .not.toContain('phoneNormalized')
   })
 
   it('ignores blank search', () => {

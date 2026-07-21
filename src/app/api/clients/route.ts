@@ -21,6 +21,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   const { searchParams } = new URL(request.url)
   const search = searchParams.get('search')?.trim() ?? ''
+  // Digits of whatever was typed — lets a phone search ignore formatting.
+  const searchDigits = search.replace(/\D/g, '')
   const page   = Math.max(1, parseInt(searchParams.get('page')  ?? '1'))
   const limit  = Math.min(50, parseInt(searchParams.get('limit') ?? '20'))
 
@@ -34,6 +36,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
             { name:  { contains: search, mode: 'insensitive' as const } },
             { email: { contains: search, mode: 'insensitive' as const } },
             { phone: { contains: search, mode: 'insensitive' as const } },
+            // `phone` keeps whatever formatting was typed ("300 123 4567"), so a
+            // raw `contains` misses the same number written differently. Match the
+            // search term's digits against phoneNormalized (digits only, 57-prefixed)
+            // so any formatting — and a partial number — finds the client. Needs 3+
+            // digits: fewer would match nearly everyone.
+            ...(searchDigits.length >= 3
+              ? [{ phoneNormalized: { contains: searchDigits } }]
+              : []),
           ],
         }
       : {}),

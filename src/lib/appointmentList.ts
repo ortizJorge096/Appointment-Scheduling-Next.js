@@ -158,11 +158,19 @@ export function buildAppointmentListQuery(params: CitasQueryParams): CitasQuery 
   // Free-text search: client name, service name (primary + snapshots), or the
   // appointment code (first chars of the id, shown uppercased in the detail).
   if (search) {
+    // Phones are stored twice: `clientPhone` keeps whatever formatting was typed,
+    // while the linked Client carries `phoneNormalized` (digits only, 57-prefixed).
+    // Matching the search term's digits against the normalized column is what makes
+    // "300 123 4567", "3001234567" and a partial "3001234" all find the same person.
+    const digits = search.replace(/\D/g, '')
     where.OR = [
       { clientName: { contains: search, mode: 'insensitive' } },
+      { clientPhone: { contains: search, mode: 'insensitive' } },
       { service:  { name: { contains: search, mode: 'insensitive' } } },
       { services: { some: { serviceName: { contains: search, mode: 'insensitive' } } } },
       { id: { startsWith: search.toLowerCase() } },
+      // 3+ digits: fewer would match almost every number.
+      ...(digits.length >= 3 ? [{ client: { phoneNormalized: { contains: digits } } }] : []),
     ]
   }
 
