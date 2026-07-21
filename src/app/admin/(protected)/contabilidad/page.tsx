@@ -4,6 +4,7 @@
 // period-over-period deltas, outstanding receivables and an expense breakdown.
 
 import { useState, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'next/navigation'
 import type { ExpenseSummary, AccountingSummary, QuickSaleSummary } from '@/types'
 import { Pagination } from '@/components/admin/Pagination'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
@@ -92,10 +93,19 @@ export default function ContabilidadPage() {
   usePermissionGuard('contabilidad:ver')
   const confirm = useConfirm()
   const can = useCan()
+  // Deep link support: ?dateFrom=&dateTo= seed the period, so a metric elsewhere can
+  // open this page already scoped to what it was measuring (the dashboard's "Ingreso
+  // hoy" links here with today's range). No Suspense boundary needed — the
+  // (protected) layout reads the session server-side, so this route is never
+  // statically prerendered.
+  const searchParams = useSearchParams()
+  const urlFrom = searchParams.get('dateFrom')
+  const urlTo   = searchParams.get('dateTo')
+
   const { from: initFrom, to: initTo } = currentMonthRange()
-  const [dateFrom, setDateFrom]   = useState(initFrom)
-  const [dateTo, setDateTo]       = useState(initTo)
-  const [preset, setPreset]       = useState<Preset>('thisMonth')
+  const [dateFrom, setDateFrom]   = useState(urlFrom ?? initFrom)
+  const [dateTo, setDateTo]       = useState(urlTo ?? initTo)
+  const [preset, setPreset]       = useState<Preset>(urlFrom || urlTo ? 'custom' : 'thisMonth')
 
   const [summary, setSummary]         = useState<AccountingSummary | null>(null)
   const [prevSummary, setPrevSummary] = useState<AccountingSummary | null>(null)
