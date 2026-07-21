@@ -131,8 +131,21 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
+            # Next writes every optimized image variant to .next/cache/images. With
+            # readOnlyRootFilesystem above, those writes fail silently and the pod
+            # re-optimizes on EVERY request — measured ~1s per hero image, forever,
+            # with x-nextjs-cache: MISS 5/5. This mount is what makes the cache (and
+            # minimumCacheTTL in next.config) actually do something.
+            - name: next-cache
+              mountPath: /app/.next/cache
       volumes:
         - name: tmp
           emptyDir:
             sizeLimit: 100Mi
+        # Per-pod and lost on restart: each replica warms its own cache, and a deploy
+        # resets it. That's fine for a variant that's cheap to rebuild once — a cache
+        # shared across replicas would need a CDN in front of the optimizer.
+        - name: next-cache
+          emptyDir:
+            sizeLimit: 512Mi
       terminationGracePeriodSeconds: 30
