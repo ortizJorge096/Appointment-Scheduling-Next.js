@@ -261,49 +261,6 @@ export async function sendReminderEmail(
   })
 }
 
-// ─── Reminder email — 2 hours before ───────────────────────────
-// No cancel link here: by this point the 24h cancellation window has
-// already closed, so we point them to WhatsApp instead.
-export async function sendReminder2hEmail(
-  appointment: AppointmentWithService
-): Promise<void> {
-  const { clientName, clientEmail, service, services, date, startTime } = appointment
-
-  const isMultiService = services && services.length > 1
-  const serviceName = isMultiService ? services!.map((s) => s.service.name).join(' + ') : service.name
-
-  const content = `
-    <h1 style="margin:0 0 8px;font-size:28px;font-weight:300;color:#1A1209;">
-      Tu cita es en 2 horas
-    </h1>
-    <p style="margin:0 0 32px;color:#7A7060;font-size:15px;line-height:1.7;">
-      Hola ${clientName}, ¡te esperamos pronto!
-    </p>
-    <table width="100%" cellpadding="0" cellspacing="0"
-      style="background:#FAF7EE;padding:24px;margin-bottom:32px;">
-      <tr>
-        <td style="padding:8px 0;color:#7A7060;font-size:13px;width:40%;">Servicio${isMultiService ? 's' : ''}</td>
-        <td style="padding:8px 0;color:#1A1209;font-size:14px;font-weight:600;">${serviceName}</td>
-      </tr>
-      <tr>
-        <td style="padding:8px 0;color:#7A7060;font-size:13px;border-top:1px solid #E8DCC4;">Cuándo</td>
-        <td style="padding:8px 0;color:#B8932A;font-size:14px;font-weight:600;border-top:1px solid #E8DCC4;">
-          ${formatDate(date, startTime)}
-        </td>
-      </tr>
-    </table>
-    <p style="color:#7A7060;font-size:14px;">
-      Recuerda llegar 5 minutos antes. Si tienes algún inconveniente de último momento,
-      escríbenos por <a href="${WHATSAPP_URL}" style="color:#B8932A;text-decoration:underline;">WhatsApp</a>.
-    </p>`
-
-  await sendEmail({
-    to:      clientEmail,
-    subject: `Tu cita de ${serviceName} es en 2 horas · ${STUDIO.name}`,
-    html:    baseTemplate(content),
-  })
-}
-
 // ─── Follow-up email — sent the day after a completed appointment ─
 export async function sendFollowUpEmail(
   appointment: AppointmentWithService

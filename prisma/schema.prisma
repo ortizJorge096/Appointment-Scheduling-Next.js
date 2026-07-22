@@ -254,7 +254,6 @@ model Appointment {
   calendarEventId    String?
   confirmationSentAt DateTime?
   reminderSentAt     DateTime?
-  reminder2hSentAt   DateTime?
   followUpSentAt     DateTime?
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
