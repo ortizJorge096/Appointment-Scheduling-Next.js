@@ -13,14 +13,16 @@ import { useUrlFilters } from '@/hooks/useUrlFilters'
 import { isValidPhone } from '@/lib/utils'
 import { useFieldValidation } from '@/hooks/useFieldValidation'
 import { SubmitButton } from '@/components/ui/SubmitButton'
+import { useCan } from '@/components/admin/usePermissionGuard'
 
 const EMPTY_FORM = { name: '', email: '', phone: '', notes: '' }
 // Validated on blur and on submit, in display order. Module-level so the hook
-// keeps a stable reference; the ids match `new-client-<key>` for error focusing.
+// keeps a stable reference; the ids match `client-form-<key>` for error focusing.
 const VALIDATED_FIELDS = ['name', 'email', 'phone'] as const
 
 export default function ClientesPageClient() {
   const { searchParams, setParams } = useUrlFilters()
+  const can = useCan()
 
   // The URL is the source of truth for page/search — survives refresh and
   // back/forward navigation.
@@ -33,8 +35,9 @@ export default function ClientesPageClient() {
   const [loading, setLoading]   = useState(true)
   const [searchInput, setSearchInput] = useState(query) // controlled text field
 
-  // Create-client modal state
-  const [showCreate, setShowCreate] = useState(false)
+  // Client modal — shared by create (editingId === null) and edit (editingId set).
+  const [showModal, setShowModal]   = useState(false)
+  const [editingId, setEditingId]   = useState<string | null>(null)
   const [form, setForm]             = useState(EMPTY_FORM)
   const [saving, setSaving]         = useState(false)
   const [formError, setFormError]   = useState('')
@@ -87,33 +90,57 @@ export default function ClientesPageClient() {
 
   const totalPages = Math.ceil(total / 20)
 
-  async function createClient(e: React.FormEvent) {
+  function openCreate() {
+    setForm(EMPTY_FORM); setFormError(''); v.reset()
+    setEditingId(null); setShowModal(true)
+  }
+
+  // Prefilled from the row already in memory — the list returns name/email/phone/notes,
+  // so editing needs no extra fetch.
+  function openEdit(c: ClientSummary) {
+    setForm({ name: c.name, email: c.email ?? '', phone: c.phone ?? '', notes: c.notes ?? '' })
+    setFormError(''); v.reset()
+    setEditingId(c.id); setShowModal(true)
+  }
+
+  function closeModal() {
+    setShowModal(false); setEditingId(null)
+  }
+
+  async function submitClient(e: React.FormEvent) {
     e.preventDefault()
     const errs = v.validateAll()
     if (Object.keys(errs).length > 0) {
       const first = v.firstErrorKey(errs)
-      if (first) document.getElementById(`new-client-${first}`)?.focus()
+      if (first) document.getElementById(`client-form-${first}`)?.focus()
       return
     }
 
+    const isEdit = editingId !== null
     setSaving(true); setFormError('')
     try {
-      const res = await fetch('/api/clients', {
-        method: 'POST',
+      const res = await fetch(isEdit ? `/api/clients/${editingId}` : '/api/clients', {
+        method: isEdit ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name:  form.name.trim(),
-          email: form.email.trim(),
-          phone: form.phone.trim(),
-          notes: form.notes.trim() || undefined,
+          email: form.email.trim() || undefined,
+          phone: form.phone.trim() || undefined,
+          // Empty notes clears them when editing; on create we omit the field so the
+          // column stays null, matching the previous create behaviour.
+          notes: form.notes.trim() || (isEdit ? '' : undefined),
         }),
       })
       const json = await res.json()
-      if (!json.success) { setFormError(json.error ?? 'No se pudo crear el cliente'); return }
-      setShowCreate(false)
+      if (!json.success) {
+        setFormError(json.error ?? (isEdit ? 'No se pudo guardar el cliente' : 'No se pudo crear el cliente'))
+        return
+      }
+      closeModal()
       setForm(EMPTY_FORM)
       v.reset()
-      setParams({ page: null })
+      // A new client lands on page 1 (newest-first); an edit keeps the current page.
+      if (!isEdit) setParams({ page: null })
       await load()
     } catch {
       setFormError('Error de conexión. Intenta de nuevo.')
@@ -130,8 +157,7 @@ export default function ClientesPageClient() {
         title="Clientes"
         subtitle={`${total} cliente${total !== 1 ? 's' : ''} ${archived ? `archivado${total !== 1 ? 's' : ''}` : `registrado${total !== 1 ? 's' : ''}`}`}
         actions={
-          <button onClick={() => { setForm(EMPTY_FORM); setFormError(''); v.reset(); setShowCreate(true) }}
-            className="btn-primary text-sm">
+          <button onClick={openCreate} className="btn-primary text-sm">
             + Nuevo
           </button>
         }
@@ -174,8 +200,7 @@ export default function ClientesPageClient() {
               : archived ? 'No hay clientes archivados.'
               : 'Aún no hay clientes registrados.'}
             action={!query && !archived ? (
-              <button onClick={() => { setForm(EMPTY_FORM); setFormError(''); v.reset(); setShowCreate(true) }}
-                className="btn-primary text-sm">
+              <button onClick={openCreate} className="btn-primary text-sm">
                 + Crear el primero
               </button>
             ) : undefined}
@@ -209,6 +234,15 @@ export default function ClientesPageClient() {
                       {new Date(c.createdAt).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}
                     </td>
                     <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                      {can('clientes:editar') && (
+                        <>
+                          <button onClick={() => openEdit(c)}
+                            className="btn-row-action text-xs text-gold-deep hover:underline">
+                            Editar
+                          </button>
+                          <span className="text-beige-dark mx-2">·</span>
+                        </>
+                      )}
                       <Link href={`/admin/clientes/${c.id}`}
                         className="text-xs text-gold-deep hover:underline">
                         Ver historial →
@@ -219,20 +253,31 @@ export default function ClientesPageClient() {
               </tbody>
             </table>
 
-            {/* Mobile cards */}
+            {/* Mobile cards. The Link wraps only the body so the "Editar" button can
+                sit alongside it without nesting a <button> inside an <a>. */}
             <div className="md:hidden divide-y divide-beige-dark/60">
               {clients.map(c => (
-                <Link key={c.id} href={`/admin/clientes/${c.id}`}
-                  className="block px-4 py-3 hover:bg-beige/20 transition-colors">
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="text-sm font-medium text-ink">{c.name}</p>
-                    <span className="inline-block bg-gold/10 text-gold-dark text-xs font-medium px-2 py-0.5 rounded-full">
-                      {c._count.appointments} citas
-                    </span>
-                  </div>
-                  <p className="text-xs text-ink-muted-deep">{c.email}</p>
-                  {c.phone && <p className="text-xs text-ink-muted-deep">{c.phone}</p>}
-                </Link>
+                <div key={c.id}>
+                  <Link href={`/admin/clientes/${c.id}`}
+                    className="block px-4 pt-3 pb-2 hover:bg-beige/20 transition-colors">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-sm font-medium text-ink">{c.name}</p>
+                      <span className="inline-block bg-gold/10 text-gold-dark text-xs font-medium px-2 py-0.5 rounded-full">
+                        {c._count.appointments} citas
+                      </span>
+                    </div>
+                    <p className="text-xs text-ink-muted-deep">{c.email}</p>
+                    {c.phone && <p className="text-xs text-ink-muted-deep">{c.phone}</p>}
+                  </Link>
+                  {can('clientes:editar') && (
+                    <div className="px-4 pb-3">
+                      <button onClick={() => openEdit(c)}
+                        className="text-xs text-gold-deep hover:underline">
+                        Editar
+                      </button>
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           </>
@@ -241,12 +286,12 @@ export default function ClientesPageClient() {
 
       <Pagination page={page} totalPages={totalPages} onPage={(p) => setParams({ page: String(p) })} />
 
-      {/* Create-client modal */}
-      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Nuevo cliente">
-            <form onSubmit={createClient} noValidate className="px-6 py-5 space-y-4">
+      {/* Client modal — create or edit, driven by editingId */}
+      <Modal open={showModal} onClose={closeModal} title={editingId ? 'Editar cliente' : 'Nuevo cliente'}>
+            <form onSubmit={submitClient} noValidate className="px-6 py-5 space-y-4">
               <div>
-                <label htmlFor="new-client-name" className="form-label">Nombre completo <span className="text-red-700">*</span></label>
-                <input id="new-client-name" value={form.name}
+                <label htmlFor="client-form-name" className="form-label">Nombre completo <span className="text-red-700">*</span></label>
+                <input id="client-form-name" value={form.name}
                   onChange={e => { setForm(f => ({ ...f, name: e.target.value })); v.clearError('name') }}
                   onBlur={v.handleBlur('name')}
                   placeholder="Ana García"
@@ -254,8 +299,8 @@ export default function ClientesPageClient() {
                 {v.errorOf('name') && <p className="text-xs text-red-700 mt-0.5">{v.errorOf('name')}</p>}
               </div>
               <div>
-                <label htmlFor="new-client-email" className="form-label">Email <span className="text-ink-muted-deep normal-case font-normal tracking-normal">(opcional)</span></label>
-                <input id="new-client-email" type="email" value={form.email}
+                <label htmlFor="client-form-email" className="form-label">Email <span className="text-ink-muted-deep normal-case font-normal tracking-normal">(opcional)</span></label>
+                <input id="client-form-email" type="email" value={form.email}
                   onChange={e => { setForm(f => ({ ...f, email: e.target.value })); v.clearError('email') }}
                   onBlur={v.handleBlur('email')}
                   placeholder="ana@ejemplo.com"
@@ -263,8 +308,8 @@ export default function ClientesPageClient() {
                 {v.errorOf('email') && <p className="text-xs text-red-700 mt-0.5">{v.errorOf('email')}</p>}
               </div>
               <div>
-                <label htmlFor="new-client-phone" className="form-label">Teléfono <span className="text-red-700">*</span></label>
-                <input id="new-client-phone" value={form.phone}
+                <label htmlFor="client-form-phone" className="form-label">Teléfono <span className="text-red-700">*</span></label>
+                <input id="client-form-phone" value={form.phone}
                   onChange={e => { setForm(f => ({ ...f, phone: e.target.value })); v.clearError('phone') }}
                   onBlur={v.handleBlur('phone')}
                   placeholder="3001234567"
@@ -284,11 +329,11 @@ export default function ClientesPageClient() {
               )}
 
               <div className="flex gap-3 pt-1">
-                <button type="button" onClick={() => setShowCreate(false)} className="btn-secondary flex-1">
+                <button type="button" onClick={closeModal} className="btn-secondary flex-1">
                   Cancelar
                 </button>
                 <SubmitButton type="submit" loading={saving} loadingLabel="Guardando…" className="btn-primary flex-1 disabled:opacity-50">
-                  Crear cliente
+                  {editingId ? 'Guardar cambios' : 'Crear cliente'}
                 </SubmitButton>
               </div>
             </form>
