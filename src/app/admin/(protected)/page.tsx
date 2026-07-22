@@ -80,7 +80,7 @@ export default async function DashboardPage() {
   const [
     todayAppointments, weekCount, prevWeekCount, pendingCount,
     periodAppts, prevPeriodAppts, yesterdayAppts, receivableAppts, topClients,
-    periodQuickSales, prevPeriodQuickSales,
+    periodQuickSales, prevPeriodQuickSales, toCloseCount,
   ] = await Promise.all([
     prisma.appointment.findMany({
       where: { date: { gte: todayStart, lte: todayEnd }, status: { not: 'CANCELLED' } },
@@ -138,6 +138,11 @@ export default async function DashboardPage() {
       where: { date: { gte: prevPeriodStart, lte: prevPeriodEnd } },
       _sum: { amount: true },
     }),
+    // Past appointments still CONFIRMED = they happened (or were due) but were never
+    // closed out (completed/paid, or marked no-show), so they rot as phantom
+    // receivables. Surface them so the admin resolves them. Past PENDING is already
+    // on the "Pendientes" card, so this targets the CONFIRMED gap specifically.
+    prisma.appointment.count({ where: { date: { lt: todayStart }, status: 'CONFIRMED' } }),
   ])
 
   // Quick-sale income bucketed by day (today and yesterday fall inside the period).
@@ -199,7 +204,7 @@ export default async function DashboardPage() {
       <PageHeader className="mb-8" eyebrow={format(now, "EEEE d 'de' MMMM", { locale: es })} title="Dashboard" />
 
       {/* Stats — business metrics with period-over-period context */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
         {/* Every metric links to the detail that produced it, carrying the same window
             it was computed over. An explicit date range wins over `scope` in the query
             builder, so these don't need one. */}
@@ -224,10 +229,14 @@ export default async function DashboardPage() {
         {/* Same idea as "Por cobrar": the count is only useful if you can act on it.
             `scope=all` because pendingCount has no date filter — an unconfirmed
             booking that already went by still counts, and hiding it would make the
-            card and the list disagree. The grid span moves to the Link, which is now
-            the grid child. */}
-        <Link href="/admin/citas?status=PENDING&scope=all" className="block h-full col-span-2 lg:col-span-1">
+            card and the list disagree. */}
+        <Link href="/admin/citas?status=PENDING&scope=all" className="block h-full">
           <StatCard label="Pendientes" value={pendingCount} accent={pendingCount > 0} className="h-full" />
+        </Link>
+        {/* Past appointments still CONFIRMED — they happened but were never closed out.
+            Deep-links to exactly that set via the existing scope=past + status filters. */}
+        <Link href="/admin/citas?scope=past&status=CONFIRMED" className="block h-full">
+          <StatCard label="Por cerrar" value={toCloseCount} accent={toCloseCount > 0} className="h-full" />
         </Link>
       </div>
 
