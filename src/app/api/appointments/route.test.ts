@@ -45,12 +45,20 @@ vi.mock('@/lib/audit', () => ({
 vi.mock('@/lib/rate-limit', () => ({
   rateLimit: vi.fn().mockResolvedValue({ ok: true, remaining: 5 }),
 }))
+// VIP discount + client resolution only matter inside the create transaction. Default
+// to NO discount so the other tests are unaffected; the VIP test overrides it per-call.
+vi.mock('@/lib/vip', () => ({
+  getVipSettings:         vi.fn().mockResolvedValue({}),
+  resolveDiscountPercent: vi.fn(() => 0),
+}))
+vi.mock('@/lib/clients', () => ({ resolveOrCreateClient: vi.fn().mockResolvedValue('client-1') }))
 
 const { getServerSession } = await import('next-auth')
 const { prisma }           = await import('@/lib/prisma')
 const { isSlotAvailable }  = await import('@/lib/availability')
 const { audit }            = await import('@/lib/audit')
 const { rateLimit }        = await import('@/lib/rate-limit')
+const { resolveDiscountPercent } = await import('@/lib/vip')
 
 const MOCK_SERVICE = { id: 's1', name: 'Manicura', price: 35000, durationMinutes: 45 }
 
@@ -273,6 +281,32 @@ describe('POST /api/appointments', () => {
     expect(audit).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'CREATE', entity: 'APPOINTMENT', actorType: 'CLIENT' }),
     )
+  })
+
+  it('persists a VIP discount as a real order-level discount, not just the % field', async () => {
+    vi.mocked(prisma.service.findMany).mockResolvedValue([MOCK_SERVICE]) // price 35000
+    vi.mocked(isSlotAvailable).mockResolvedValue(true)
+    // Force a discount for this booking; the route must turn it into a real charge.
+    vi.mocked(resolveDiscountPercent).mockReturnValueOnce(10)
+
+    const createSpy = vi.fn().mockResolvedValue(MOCK_APPOINTMENT)
+    vi.mocked(prisma.$transaction).mockImplementation(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      async (cb: any) => cb({
+        appointment:  { findMany: vi.fn().mockResolvedValue([]), create: createSpy },
+        professional: { findMany: vi.fn().mockResolvedValue([]) },
+      }),
+    )
+
+    const res = await POST(makePostRequest(VALID_BODY, '2.2.2.8'))
+    expect(res.status).toBe(201)
+
+    // The % becomes descuentoTipo/Valor so the SHARED charge math applies it, and
+    // precioFinal snapshots the discounted total the client was quoted (35000 − 10%).
+    const data = createSpy.mock.calls[0][0].data
+    expect(data.descuentoTipo).toBe('PORCENTAJE')
+    expect(data.descuentoValor).toBe(10)
+    expect(data.precioFinal).toBe(31500)
   })
 
   it('creates appointment without email (email optional)', async () => {

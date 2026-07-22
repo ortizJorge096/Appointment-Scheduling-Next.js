@@ -39,6 +39,47 @@ function resolvedParams<T>(value: T): Promise<T> {
   return Object.assign(Promise.resolve(value), { status: 'fulfilled', value })
 }
 
+describe('ClienteDetailPage — precio con descuento en el historial', () => {
+  beforeEach(() => { vi.clearAllMocks() })
+
+  // Completed-but-unpaid appointment with a 15000 per-line discount. With amountPaid
+  // null the row must fall to the RECOMPUTED charge (50000), never the gross catalog
+  // price (65000) — the bug this fix closes.
+  const DISCOUNTED_CLIENT = {
+    id: 'c1', name: 'Ana Descuento', email: null, phone: '3001112233', notes: null,
+    createdAt: '2026-06-01T10:00:00.000Z', deletedAt: null,
+    _count: { appointments: 1 },
+    appointments: [{
+      id: 'a1', date: '2026-06-10T10:00:00.000Z', startTime: '10:00', endTime: '11:00',
+      status: 'COMPLETED', paymentStatus: 'PENDING', amountPaid: null, precioFinal: null,
+      descuentoTipo: null, descuentoValor: null,
+      service: { id: 's1', name: 'Manicura', price: 65000, durationMinutes: 60 },
+      services: [{
+        id: 'as1', serviceId: 's1', price: 65000,
+        descuentoTipo: 'VALOR_FIJO', descuentoValor: 15000,
+        service: { id: 's1', name: 'Manicura', price: 65000, durationMinutes: 60 },
+      }],
+    }],
+  }
+
+  it('muestra el cargo con descuento (50.000), no el bruto (65.000)', async () => {
+    global.fetch = vi.fn(() =>
+      Promise.resolve({ json: () => Promise.resolve({ success: true, data: DISCOUNTED_CLIENT }) }),
+    ) as unknown as typeof fetch
+
+    render(
+      <Suspense fallback={<div>cargando</div>}>
+        <ClienteDetailPage params={resolvedParams({ id: 'c1' })} />
+      </Suspense>,
+    )
+
+    await screen.findByRole('heading', { name: 'Ana Descuento' })
+
+    expect(screen.getByText(/50\.000/)).toBeInTheDocument()
+    expect(screen.queryByText(/65\.000/)).not.toBeInTheDocument()
+  })
+})
+
 describe('ClienteDetailPage — editar un cliente sin email', () => {
   beforeEach(() => { vi.clearAllMocks() })
 

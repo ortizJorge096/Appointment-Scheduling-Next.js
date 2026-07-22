@@ -15,6 +15,7 @@ import { audit, getClientIp, getUserAgent } from '@/lib/audit'
 import { createCalendarEvent } from '@/lib/calendar'
 import { isDbUnavailable, dbUnavailableResponse } from '@/lib/db-error'
 import { appointmentCharge, type AppointmentMoney } from '@/lib/accounting'
+import { computeFinalPrice } from '@/lib/discount'
 import { buildAppointmentListQuery } from '@/lib/appointmentList'
 import { normalizePhone } from '@/lib/utils'
 import { rateLimit } from '@/lib/rate-limit'
@@ -265,6 +266,13 @@ export async function POST(
   // VIP discount: 2+ services (any category) unlock a tiered discount, parametrized in the DB
   const vipSettings = await getVipSettings()
   const discountPercent = resolveDiscountPercent(allServiceIds.length, vipSettings)
+  // A VIP package discount has to become a REAL order-level discount on the row.
+  // Storing only `discountPercent` (informational) left the charge math to recompute
+  // from gross, so accounting, the client history and the confirmation all showed the
+  // full price the client was never quoted. precioFinal matches the booking form's total
+  // (computeFinalPrice rounds identically to the summary the client confirmed).
+  const vipSubtotal    = services.reduce((sum, s) => sum + s.price, 0)
+  const vipPrecioFinal = discountPercent > 0 ? computeFinalPrice(vipSubtotal, 'PORCENTAJE', discountPercent) : null
 
   // Preliminary check (valid schedule, not in the past, open day, not blocked)
   let available
@@ -351,6 +359,14 @@ export async function POST(
           serviceId,
           totalDurationMinutes: computedDuration,
           discountPercent,
+          // Persist the VIP discount as a real order-level discount + precioFinal so the
+          // shared charge math honors it everywhere (see the note above the computation).
+          ...(discountPercent > 0 && vipPrecioFinal != null ? {
+            descuentoTipo:   'PORCENTAJE' as const,
+            descuentoValor:  discountPercent,
+            descuentoMotivo: 'Descuento VIP',
+            precioFinal:     vipPrecioFinal,
+          } : {}),
           // VIP = multi-service package; otherwise a normal public self-booking.
           origin: allServiceIds.length > 1 ? 'VIP' : 'PUBLIC',
           professionalId: assignedProfessionalId,
