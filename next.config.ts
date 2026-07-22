@@ -40,8 +40,11 @@ const nextConfig: NextConfig = {
     // Only relax script-src in development — prod stays strict.
     const isDev = process.env.NODE_ENV !== 'production'
     // Google Analytics 4 loads gtag.js from googletagmanager and may pull the
-    // measurement library from google-analytics.
-    const scriptSrc = `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''} https://www.googletagmanager.com https://www.google-analytics.com`
+    // measurement library from google-analytics. Cloudflare injects its cookieless
+    // RUM beacon (static.cloudflareinsights.com) at the edge — the CF proxy already
+    // terminates our TLS and serves the HTML, so it's inside the trust boundary
+    // already; allowing its beacon buys real Core Web Vitals from visitors.
+    const scriptSrc = `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''} https://www.googletagmanager.com https://www.google-analytics.com https://static.cloudflareinsights.com`
     return [
       {
         source: '/(.*)',
@@ -63,9 +66,11 @@ const nextConfig: NextConfig = {
               // GA4 may fire pixel/beacon requests as images.
               `img-src 'self' data: blob: https://${s3Host} https://www.google-analytics.com https://stats.g.doubleclick.net`,
               "font-src 'self' data: https://fonts.gstatic.com",
-              // connect-src must include S3 for the admin's presigned PUT, and the
-              // GA4 collect endpoints (incl. regionalized *.google-analytics.com).
-              `connect-src 'self' https://${s3Host} https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://stats.g.doubleclick.net`,
+              // connect-src must include S3 for the admin's presigned PUT, the GA4
+              // collect endpoints (incl. regionalized *.google-analytics.com), and
+              // the Cloudflare RUM beacon target (it POSTs to cloudflareinsights.com
+              // /cdn-cgi/rum — the apex, not the static.* host that serves the script).
+              `connect-src 'self' https://${s3Host} https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://stats.g.doubleclick.net https://cloudflareinsights.com`,
               "object-src 'none'",
               "frame-ancestors 'none'",
               // Allow the embedded Google Maps iframe in the "Visítanos" section
