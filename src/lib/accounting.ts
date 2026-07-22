@@ -35,6 +35,50 @@ export interface AppointmentMoney {
 }
 
 /**
+ * Looser shape for the DISPLAY surfaces (appointment lists, client history,
+ * confirmation page/email). Those carry the view type `AppointmentWithService`,
+ * whose money fields are optional and which doesn't split extras per line. The
+ * strict `AppointmentMoney` above is kept required ON PURPOSE so a server query
+ * that forgets a `select` fails to compile — this adapter is the one place that
+ * bridges the two, so display code never re-implements the gross-sum-minus-discount
+ * math by hand (which is exactly how the discount got dropped in the first place).
+ */
+export interface AppointmentMoneyInput {
+  paymentStatus: string
+  amountPaid?: number | null
+  precioFinal?: number | null
+  descuentoTipo?: DiscountKind | null
+  descuentoValor?: number | null
+  extras?: Array<{ amount: number; appointmentServiceId?: string | null }> | null
+  service: { price: number }
+  services?: Array<{
+    price: number
+    descuentoTipo?: DiscountKind | null
+    descuentoValor?: number | null
+    extras?: Array<{ amount: number }> | null
+  }> | null
+}
+
+/** Normalize a display-shaped appointment into the strict `AppointmentMoney`. */
+export function toAppointmentMoney(a: AppointmentMoneyInput): AppointmentMoney {
+  return {
+    paymentStatus:  a.paymentStatus,
+    amountPaid:     a.amountPaid ?? null,
+    precioFinal:    a.precioFinal ?? null,
+    descuentoTipo:  a.descuentoTipo ?? null,
+    descuentoValor: a.descuentoValor ?? null,
+    extras:  (a.extras ?? []).map((e) => ({ amount: e.amount, appointmentServiceId: e.appointmentServiceId ?? null })),
+    service: { price: a.service.price },
+    services: (a.services ?? []).map((s) => ({
+      price:          s.price,
+      descuentoTipo:  s.descuentoTipo ?? null,
+      descuentoValor: s.descuentoValor ?? null,
+      extras:         (s.extras ?? []).map((e) => ({ amount: e.amount })),
+    })),
+  }
+}
+
+/**
  * Sum of service prices (before extras and discounts):
  *   - Multi-service → sum of `services[].price`
  *   - Legacy single-service fallback → `service.price`

@@ -6,6 +6,7 @@ import { Resend } from 'resend'
 import { STUDIO, WHATSAPP_URL, INSTAGRAM_URL } from './config'
 import { audit } from './audit'
 import { formatPrice } from './utils'
+import { appointmentCharge, toAppointmentMoney } from './accounting'
 import type { AppointmentWithService } from '../types'
 
 // ─────────────────────────────────────────────────────────────
@@ -94,7 +95,8 @@ export async function sendConfirmationEmail(
   const isMultiService = services && services.length > 1
   const serviceName = isMultiService ? services!.map((s) => s.service.name).join(' + ') : service.name
   const serviceDuration = totalDurationMinutes || service.durationMinutes
-  const servicePrice = isMultiService ? services!.reduce((sum, s) => sum + s.price, 0) : service.price
+  // Charge with discounts applied, not a plain sum of catalog prices.
+  const servicePrice = appointmentCharge(toAppointmentMoney(appointment))
 
   const content = `
     <h1 style="margin:0 0 8px;font-size:28px;font-weight:300;color:#1A1209;">
@@ -347,7 +349,8 @@ export async function sendAdminNewBookingEmail(
 
   const isMultiService = services && services.length > 1
   const serviceName = isMultiService ? services!.map((s) => s.service.name).join(' + ') : service.name
-  const servicePrice = isMultiService ? services!.reduce((sum, s) => sum + s.price, 0) : service.price
+  // Charge with discounts applied, not a plain sum of catalog prices.
+  const servicePrice = appointmentCharge(toAppointmentMoney(appointment))
   const detailUrl = `${appUrl()}/admin/citas/${id}`
 
   const content = `

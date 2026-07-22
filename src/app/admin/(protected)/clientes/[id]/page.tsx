@@ -8,6 +8,7 @@ import { StatusBadge, PaymentBadge } from '@/components/ui/StatusBadge'
 import type { AppointmentWithService } from '@/types'
 import { usePermissionGuard, useCan } from '@/components/admin/usePermissionGuard'
 import { formatPrice } from '@/lib/utils'
+import { appointmentCharge, toAppointmentMoney } from '@/lib/accounting'
 import { SubmitButton } from '@/components/ui/SubmitButton'
 
 
@@ -149,17 +150,15 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
   if (loading) return <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto text-ink-muted-deep">Cargando…</div>
   if (!client) return <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto text-ink-muted-deep">Cliente no encontrado.</div>
 
-  // Helper to get total price from appointment (supports multi-service)
-  function getTotalPrice(a: AppointmentWithService): number {
-    if (a.services && a.services.length > 1) {
-      return a.services.reduce((sum, s) => sum + s.price, 0)
-    }
-    return a.service.price
-  }
+  // Charge for one appointment, discounts included. Falls back to the computed
+  // charge only when nothing was actually paid — a plain sum of service prices
+  // would ignore per-line/order discounts (that was the bug).
+  const appointmentTotal = (a: AppointmentWithService): number =>
+    a.amountPaid ?? appointmentCharge(toAppointmentMoney(a))
 
   const totalSpent = client.appointments
     .filter(a => ['PAID', 'PARTIAL'].includes(a.paymentStatus))
-    .reduce((sum, a) => sum + (a.amountPaid ?? getTotalPrice(a)), 0)
+    .reduce((sum, a) => sum + appointmentTotal(a), 0)
 
   const completed = client.appointments.filter(a => a.status === 'COMPLETED').length
 
@@ -283,7 +282,7 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
                 <div className="text-right">
                   <PaymentBadge status={apt.paymentStatus} className="text-sm" />
                   <p className="text-xs text-ink-muted-deep">
-                    {formatPrice(apt.amountPaid ?? getTotalPrice(apt))}
+                    {formatPrice(appointmentTotal(apt))}
                   </p>
                 </div>
                 <Link href={`/admin/citas/${apt.id}`}

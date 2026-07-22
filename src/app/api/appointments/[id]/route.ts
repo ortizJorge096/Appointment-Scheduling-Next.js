@@ -67,10 +67,12 @@ export async function GET(
     return NextResponse.json({ success: true, data: { ...appointment, cancellable } })
   }
 
-  const { clientName, clientEmail, service, services, date, startTime, endTime, status } = appointment
+  // precioFinal is the client's own final (discounted) price — safe to expose and
+  // needed so the confirmation page shows the discounted total, not the gross sum.
+  const { clientName, clientEmail, service, services, date, startTime, endTime, status, precioFinal } = appointment
   return NextResponse.json({
     success: true,
-    data: { id, clientName, clientEmail, service, services, date, startTime, endTime, status, cancellable },
+    data: { id, clientName, clientEmail, service, services, date, startTime, endTime, status, precioFinal, cancellable },
   })
 }
 

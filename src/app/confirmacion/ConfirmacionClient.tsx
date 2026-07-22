@@ -9,6 +9,7 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { WHATSAPP_URL } from '@/lib/config'
 import { formatPrice } from '@/lib/utils'
+import { appointmentServiceTotal, toAppointmentMoney } from '@/lib/accounting'
 import type { AppointmentWithService } from '@/types'
 
 export default function ConfirmacionClient() {
@@ -122,10 +123,11 @@ export default function ConfirmacionClient() {
             { label: 'Fecha',    value: dateFormatted },
             { label: 'Hora',     value: appointment.startTime },
             { label: 'Duración', value: `${appointment.totalDurationMinutes || appointment.service.durationMinutes} min` },
+            // Prefer the discounted snapshot; else the service total. Public bookings
+            // carry no discount, so this equals the sum today — but it won't silently
+            // show gross if a discount ever reaches this surface.
             { label: 'Valor',    value: formatPrice(
-              appointment.services && appointment.services.length > 1
-                ? appointment.services.reduce((sum, s) => sum + s.price, 0)
-                : appointment.service.price
+              appointment.precioFinal ?? appointmentServiceTotal(toAppointmentMoney(appointment))
             )},
           ].map(({ label, value }) => (
             <div key={label}

@@ -1,7 +1,8 @@
 // src/lib/accounting.test.ts
 import {
   appointmentIncome, appointmentBalance, appointmentCharge, appointmentServiceTotal,
-  type AppointmentMoney,
+  toAppointmentMoney,
+  type AppointmentMoney, type AppointmentMoneyInput,
 } from './accounting'
 
 type Line = AppointmentMoney['services'][number]
@@ -70,6 +71,47 @@ describe('appointmentCharge', () => {
 
   it('falls back to the single service price for a legacy appointment with no lines', () => {
     expect(appointmentCharge(apt({ paymentStatus: 'PAID', service: { price: 45000 } }))).toBe(45000)
+  })
+})
+
+describe('toAppointmentMoney (adapter for the display surfaces)', () => {
+  // The client history, confirmation page and emails carry AppointmentWithService,
+  // whose money fields are optional and which omits per-line extras. The adapter
+  // normalizes that into the strict shape so the SAME discount math runs everywhere
+  // instead of each screen re-summing catalog prices (which dropped the discount).
+  it('feeds a per-line discount through to the charge (view shape → 50000, not 65000)', () => {
+    const view: AppointmentMoneyInput = {
+      paymentStatus: 'PAID',
+      service: { price: 65000 },
+      services: [{ price: 65000, descuentoTipo: 'VALOR_FIJO', descuentoValor: 15000 }],
+    }
+    expect(appointmentCharge(toAppointmentMoney(view))).toBe(50000)
+  })
+
+  it('applies an order-level discount from the view shape', () => {
+    const view: AppointmentMoneyInput = {
+      paymentStatus: 'PENDING',
+      service: { price: 50000 },
+      services: [{ price: 50000 }],
+      descuentoTipo: 'PORCENTAJE', descuentoValor: 10,
+    }
+    expect(appointmentCharge(toAppointmentMoney(view))).toBe(45000)
+  })
+
+  it('tolerates the optional/missing money fields the view type leaves out', () => {
+    // A plain legacy row: no precioFinal, no descuento*, no extras, no service lines.
+    const money = toAppointmentMoney({ paymentStatus: 'CONFIRMED', service: { price: 40000 } })
+    expect(money.precioFinal).toBeNull()
+    expect(money.descuentoTipo).toBeNull()
+    expect(money.extras).toEqual([])
+    expect(money.services).toEqual([])
+    expect(appointmentCharge(money)).toBe(40000)
+  })
+
+  it('normalizes null services/extras to empty arrays', () => {
+    const money = toAppointmentMoney({ paymentStatus: 'PAID', service: { price: 30000 }, services: null, extras: null })
+    expect(money.services).toEqual([])
+    expect(appointmentServiceTotal(money)).toBe(30000)
   })
 })
 
