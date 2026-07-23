@@ -446,15 +446,15 @@ export default function CitasList({
                     </td>
                     <td className="px-5 py-3.5 text-ink-muted-deep font-mono text-xs">{appt.startTime}</td>
                     <td className="px-5 py-3.5">
-                      <p className="text-ink font-medium flex items-center gap-1.5">
-                        {appt.clientName}
+                      <p className="text-ink font-medium">{appt.clientName}</p>
+                      <p className="text-xs text-ink-muted-deep flex items-center gap-1.5">
+                        {appt.clientPhone}
                         {!appt.clientEmail && (
                           <span className="text-2xs tracking-wide uppercase bg-beige text-ink-muted-deep border border-beige-dark px-1.5 py-0.5 rounded-full">
                             sin correo
                           </span>
                         )}
                       </p>
-                      <p className="text-xs text-ink-muted-deep">{appt.clientPhone}</p>
                     </td>
                     <td className="px-5 py-3.5 text-ink-muted-deep">{serviceNames(appt)}</td>
                     <td className="px-5 py-3.5 text-gold-deep hidden lg:table-cell">{formatPrice(appt.total)}</td>
@@ -486,21 +486,21 @@ export default function CitasList({
                 <Link key={appt.id} href={`/admin/citas/${appt.id}${detailQuery ? `?from=${encodeURIComponent(detailQuery)}` : ''}`}
                   className="block px-4 py-3 hover:bg-beige transition-colors">
                   <div className="flex items-center justify-between mb-1">
-                    <p className="text-sm font-medium text-ink flex items-center gap-1.5">
-                      {appt.clientName}
-                      {!appt.clientEmail && (
-                        <span className="text-2xs tracking-wide uppercase bg-beige text-ink-muted-deep border border-beige-dark px-1.5 py-0.5 rounded-full">
-                          sin correo
-                        </span>
-                      )}
-                    </p>
+                    <p className="text-sm font-medium text-ink">{appt.clientName}</p>
                     <div className="flex flex-col items-end gap-1">
                       <StatusBadge status={appt.status} />
                       <PaymentPill paymentStatus={appt.paymentStatus} />
                     </div>
                   </div>
                   <div className="flex items-center justify-between text-xs text-ink-muted-deep">
-                    <span>{format(new Date(appt.date), 'd MMM', { locale: es })} · {appt.startTime}</span>
+                    <span className="flex items-center gap-1.5">
+                      {format(new Date(appt.date), 'd MMM', { locale: es })} · {appt.startTime}
+                      {!appt.clientEmail && (
+                        <span className="text-2xs tracking-wide uppercase bg-beige text-ink-muted-deep border border-beige-dark px-1.5 py-0.5 rounded-full">
+                          sin correo
+                        </span>
+                      )}
+                    </span>
                     <span className="text-gold-deep">{formatPrice(appt.total)}</span>
                   </div>
                   <p className="text-xs text-ink-muted-deep mt-0.5">{serviceNames(appt)}</p>
