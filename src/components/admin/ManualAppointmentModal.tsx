@@ -9,6 +9,7 @@ import AdicionalesEditor, { type Adicional } from './AdicionalesEditor'
 import { useCan } from './usePermissionGuard'
 import { Modal } from '@/components/ui/Modal'
 import { SubmitButton } from '@/components/ui/SubmitButton'
+import type { TimeSlot } from '@/types'
 
 interface Service { id: string; name: string; price: number; durationMinutes: number; category?: { id: string; name: string; order: number } | null }
 
@@ -67,6 +68,18 @@ function nowHHMM() {
   const d = new Date()
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
+// Times offered in the "Cita pasada" dropdown: 07:00–20:45 every 15 min (wide enough
+// for any backfill). For a past charge dated today, only elapsed times make sense.
+function pastTimeOptions(isToday: boolean): string[] {
+  const now = nowHHMM()
+  const out: string[] = []
+  for (let m = 7 * 60; m <= 20 * 60 + 45; m += 15) {
+    const hhmm = `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
+    if (isToday && hhmm > now) break
+    out.push(hhmm)
+  }
+  return out
+}
 
 export default function ManualAppointmentModal() {
   const can = useCan()
@@ -90,6 +103,11 @@ export default function ManualAppointmentModal() {
   const [saving, setSaving]     = useState(false)
   const [apiError, setApiError] = useState('')
   const [success, setSuccess]   = useState('')
+  // Time picking for "Cita próxima": real available slots (like the public flow),
+  // with an "otra hora" escape hatch that forces an arbitrary time.
+  const [slots, setSlots]               = useState<TimeSlot[]>([])
+  const [slotsLoading, setSlotsLoading] = useState(false)
+  const [showFreeTime, setShowFreeTime] = useState(false)
 
   const emailInputRef = useRef<HTMLInputElement>(null)
 
@@ -108,6 +126,26 @@ export default function ManualAppointmentModal() {
       setLines({}); setDiscountScope('none'); setPaid(true); setPayMethod('')
     }
   }, [open, loadServices])
+
+  // Fetch real available slots for the picked date (próxima only) — same endpoint as
+  // the public flow, so the admin taps a free time instead of fighting the native spinner.
+  useEffect(() => {
+    if (!open || form.mode !== 'UPCOMING' || !form.date || form.serviceIds.length === 0) {
+      setSlots([])
+      return
+    }
+    const duration = form.serviceIds.reduce((t, id) => t + (services.find((s) => s.id === id)?.durationMinutes ?? 0), 0)
+    if (duration <= 0) { setSlots([]); return }
+    let cancelled = false
+    setSlotsLoading(true)
+    fetch(`/api/availability?date=${form.date}&durationMinutes=${duration}`)
+      .then((r) => r.json())
+      .then((j) => { if (!cancelled) setSlots(j.success ? j.data.slots : []) })
+      .catch(() => { if (!cancelled) setSlots([]) })
+      .finally(() => { if (!cancelled) setSlotsLoading(false) })
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, form.mode, form.date, form.serviceIds, services])
 
   function pickClient(c: ClientHit) {
     setForm(f => ({ ...f, clientName: c.name, clientEmail: c.email ?? '', clientPhone: c.phone ?? '' }))
@@ -261,6 +299,7 @@ export default function ManualAppointmentModal() {
 
     setSuccess(isPast ? 'Cita registrada correctamente ✓' : 'Cita creada correctamente ✓')
     setForm(EMPTY)
+    setShowFreeTime(false)
     setPayMethod('')
     setPaid(true)
     setExtras([])
@@ -284,8 +323,9 @@ export default function ManualAppointmentModal() {
   // Switching modes resets date/time so a value valid in one mode can't linger
   // as invalid in the other (past window vs. today-onwards).
   function selectMode(mode: 'UPCOMING' | 'PAST') {
-    setForm(f => ({ ...f, mode, date: '', startTime: '' }))
+    setForm(f => ({ ...f, mode, date: '', startTime: '', skipAvailabilityCheck: false }))
     setFieldErrors(fe => ({ ...fe, date: undefined, startTime: undefined }))
+    setShowFreeTime(false)
   }
 
   // Toggle a service in/out of the selection; drop its per-service line on removal.
@@ -344,6 +384,7 @@ export default function ManualAppointmentModal() {
   const selectedServices = form.serviceIds
     .map((id) => services.find((s) => s.id === id))
     .filter((s): s is Service => Boolean(s))
+  const availableSlots = slots.filter((s) => s.available)
   const svcQuery = serviceQuery.trim().toLowerCase()
   const filteredServices = svcQuery
     ? services.filter((s) => s.name.toLowerCase().includes(svcQuery))
@@ -552,15 +593,21 @@ export default function ManualAppointmentModal() {
                     )}
                     <Err k="serviceIds" />
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-3">
                     <div>
                       <label className="form-label">
                         Fecha <span className="text-red-700">*</span>
                       </label>
-                      <input type="date" value={form.date} onChange={field('date')} onBlur={handleBlur('date')}
+                      <input type="date" value={form.date}
                         aria-label="Fecha"
                         min={form.mode === 'PAST' ? minManualDate() : today()}
                         max={form.mode === 'PAST' ? today() : undefined}
+                        onChange={(e) => {
+                          setForm(f => ({ ...f, date: e.target.value, startTime: '' }))
+                          setShowFreeTime(false)
+                          if (fieldErrors.date) setFieldErrors(fe => ({ ...fe, date: undefined }))
+                        }}
+                        onBlur={handleBlur('date')}
                         className={`input-field w-full ${touched.date && fieldErrors.date ? 'border-red-400' : ''}`} />
                       <p className="text-2xs text-ink-muted-deep mt-1">
                         {form.mode === 'PAST'
@@ -573,15 +620,64 @@ export default function ManualAppointmentModal() {
                       <label className="form-label">
                         Hora <span className="text-red-700">*</span>
                       </label>
-                      <input type="time" value={form.startTime}
-                        aria-label="Hora"
-                        max={form.mode === 'PAST' && form.date === today() ? nowHHMM() : undefined}
-                        onChange={e => {
-                          setForm(f => ({ ...f, startTime: e.target.value.slice(0, 5) }))
-                          if (fieldErrors.startTime) setFieldErrors(fe => ({ ...fe, startTime: undefined }))
-                        }}
-                        onBlur={handleBlur('startTime')}
-                        className={`input-field w-full ${touched.startTime && fieldErrors.startTime ? 'border-red-400' : ''}`} />
+
+                      {/* Cita pasada: menú de horas (no hay "disponibilidad" en el pasado). */}
+                      {form.mode === 'PAST' ? (
+                        <select value={form.startTime} onChange={field('startTime')} onBlur={handleBlur('startTime')}
+                          aria-label="Hora"
+                          className={`input-field w-full ${touched.startTime && fieldErrors.startTime ? 'border-red-400' : ''}`}>
+                          <option value="">Elige la hora…</option>
+                          {pastTimeOptions(form.date === today()).map((t) => (
+                            <option key={t} value={t}>{t}</option>
+                          ))}
+                        </select>
+                      ) : !form.date || form.serviceIds.length === 0 ? (
+                        <p className="text-2xs text-ink-muted-deep py-2">Elige fecha y servicio(s) para ver los horarios.</p>
+                      ) : showFreeTime ? (
+                        /* "otra hora": input libre — fuerza la disponibilidad. */
+                        <div className="flex items-center gap-2">
+                          <input type="time" value={form.startTime} aria-label="Hora"
+                            onChange={(e) => {
+                              setForm(f => ({ ...f, startTime: e.target.value.slice(0, 5) }))
+                              if (fieldErrors.startTime) setFieldErrors(fe => ({ ...fe, startTime: undefined }))
+                            }}
+                            className={`input-field w-auto ${touched.startTime && fieldErrors.startTime ? 'border-red-400' : ''}`} />
+                          <button type="button"
+                            onClick={() => { setShowFreeTime(false); setForm(f => ({ ...f, skipAvailabilityCheck: false, startTime: '' })) }}
+                            className="text-2xs text-ink-muted-deep hover:text-gold-deep underline">
+                            volver a horarios
+                          </button>
+                        </div>
+                      ) : slotsLoading ? (
+                        <p className="text-2xs text-ink-muted-deep py-2">Cargando horarios…</p>
+                      ) : availableSlots.length > 0 ? (
+                        <div className="grid grid-cols-4 gap-2">
+                          {availableSlots.map((slot) => (
+                            <button key={slot.startTime} type="button"
+                              onClick={() => {
+                                setForm(f => ({ ...f, startTime: slot.startTime, skipAvailabilityCheck: false }))
+                                if (fieldErrors.startTime) setFieldErrors(fe => ({ ...fe, startTime: undefined }))
+                              }}
+                              className={`py-2 text-sm rounded-lg border transition-colors ${
+                                form.startTime === slot.startTime
+                                  ? 'bg-gold border-gold text-ink font-medium'
+                                  : 'bg-white border-beige-dark text-ink-muted-deep hover:border-gold hover:text-gold-deep'}`}>
+                              {slot.startTime}
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-2xs text-amber-700 py-2">Sin cupos disponibles ese día.</p>
+                      )}
+
+                      {/* Escape hatch (solo próxima): elegir cualquier hora, forzando disponibilidad. */}
+                      {form.mode === 'UPCOMING' && !showFreeTime && !!form.date && form.serviceIds.length > 0 && (
+                        <button type="button"
+                          onClick={() => { setShowFreeTime(true); setForm(f => ({ ...f, skipAvailabilityCheck: true, startTime: '' })) }}
+                          className="mt-2 text-xs text-gold-deep hover:underline">
+                          + otra hora (forzar horario)
+                        </button>
+                      )}
                       <Err k="startTime" />
                     </div>
                   </div>
@@ -759,16 +855,6 @@ export default function ManualAppointmentModal() {
                   placeholder="Preferencias, alergias, observaciones..."
                   rows={2} className="input-field w-full resize-none" />
               </div>
-
-              {/* Forzar horario — solo aplica a "Cita próxima" (una pasada no valida horario) */}
-              {form.mode === 'UPCOMING' && (
-                <label className="flex items-start gap-2 text-sm text-ink-muted-deep cursor-pointer">
-                  <input type="checkbox" checked={form.skipAvailabilityCheck}
-                    onChange={e => setForm(f => ({ ...f, skipAvailabilityCheck: e.target.checked }))}
-                    className="mt-0.5 rounded border-beige-dark text-gold-deep focus:ring-gold/40" />
-                  <span>Forzar (ignorar horario y disponibilidad)</span>
-                </label>
-              )}
 
               {apiError && (
                 <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2 rounded-lg">
