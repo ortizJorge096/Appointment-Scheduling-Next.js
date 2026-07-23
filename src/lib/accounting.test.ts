@@ -113,6 +113,32 @@ describe('toAppointmentMoney (adapter for the display surfaces)', () => {
     expect(money.services).toEqual([])
     expect(appointmentServiceTotal(money)).toBe(30000)
   })
+
+  it('routes a per-line extra (flat, tagged by appointmentServiceId) into its line, counted once', () => {
+    // The view shape carries extras flat; the adapter must attach a line's extra to
+    // that line so appointmentCharge counts it once — the client history was dropping it.
+    const view: AppointmentMoneyInput = {
+      paymentStatus: 'PENDING',
+      service: { price: 50000 },
+      services: [{ id: 'as1', price: 50000 }],
+      extras: [{ amount: 8000, appointmentServiceId: 'as1' }],
+    }
+    const money = toAppointmentMoney(view)
+    expect(money.services[0].extras).toEqual([{ amount: 8000 }])
+    expect(appointmentCharge(money)).toBe(58000) // 50000 + 8000, once
+  })
+
+  it('keeps a general (untagged) extra at the appointment level', () => {
+    const view: AppointmentMoneyInput = {
+      paymentStatus: 'PENDING',
+      service: { price: 50000 },
+      services: [{ id: 'as1', price: 50000 }],
+      extras: [{ amount: 5000, appointmentServiceId: null }],
+    }
+    const money = toAppointmentMoney(view)
+    expect(money.services[0].extras).toEqual([]) // not attached to the line
+    expect(appointmentCharge(money)).toBe(55000) // 50000 + 5000 general
+  })
 })
 
 describe('appointmentIncome', () => {

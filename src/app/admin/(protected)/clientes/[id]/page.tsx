@@ -150,11 +150,12 @@ export default function ClienteDetailPage({ params }: { params: Promise<{ id: st
   if (loading) return <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto text-ink-muted-deep">Cargando…</div>
   if (!client) return <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto text-ink-muted-deep">Cliente no encontrado.</div>
 
-  // Charge for one appointment, discounts included. Falls back to the computed
-  // charge only when nothing was actually paid — a plain sum of service prices
-  // would ignore per-line/order discounts (that was the bug).
+  // What this appointment charged, mirroring the citas list/detail so the number
+  // never disagrees between screens: the amount actually paid, else the discounted
+  // snapshot, else a recompute (discounts + adicionales included). A plain sum of
+  // service prices would drop both — that was the bug.
   const appointmentTotal = (a: AppointmentWithService): number =>
-    a.amountPaid ?? appointmentCharge(toAppointmentMoney(a))
+    a.amountPaid ?? a.precioFinal ?? appointmentCharge(toAppointmentMoney(a))
 
   const totalSpent = client.appointments
     .filter(a => ['PAID', 'PARTIAL'].includes(a.paymentStatus))

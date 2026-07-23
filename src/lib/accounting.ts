@@ -49,31 +49,37 @@ export interface AppointmentMoneyInput {
   precioFinal?: number | null
   descuentoTipo?: DiscountKind | null
   descuentoValor?: number | null
+  /** Flat extras: general ones have a null appointmentServiceId; a line's extra
+   *  carries the AppointmentService id (matched to `services[].id` below). */
   extras?: Array<{ amount: number; appointmentServiceId?: string | null }> | null
   service: { price: number }
   services?: Array<{
+    id?: string
     price: number
     descuentoTipo?: DiscountKind | null
     descuentoValor?: number | null
-    extras?: Array<{ amount: number }> | null
   }> | null
 }
 
 /** Normalize a display-shaped appointment into the strict `AppointmentMoney`. */
 export function toAppointmentMoney(a: AppointmentMoneyInput): AppointmentMoney {
+  const allExtras = (a.extras ?? []).map((e) => ({ amount: e.amount, appointmentServiceId: e.appointmentServiceId ?? null }))
   return {
     paymentStatus:  a.paymentStatus,
     amountPaid:     a.amountPaid ?? null,
     precioFinal:    a.precioFinal ?? null,
     descuentoTipo:  a.descuentoTipo ?? null,
     descuentoValor: a.descuentoValor ?? null,
-    extras:  (a.extras ?? []).map((e) => ({ amount: e.amount, appointmentServiceId: e.appointmentServiceId ?? null })),
+    extras:  allExtras,
     service: { price: a.service.price },
     services: (a.services ?? []).map((s) => ({
       price:          s.price,
       descuentoTipo:  s.descuentoTipo ?? null,
       descuentoValor: s.descuentoValor ?? null,
-      extras:         (s.extras ?? []).map((e) => ({ amount: e.amount })),
+      // The view shape carries extras flat, not nested per line — so a line's extras
+      // are the flat ones tagged with its id. General (untagged) extras stay at the
+      // appointment level in `extras` above; appointmentCharge counts each exactly once.
+      extras: allExtras.filter((e) => e.appointmentServiceId != null && e.appointmentServiceId === s.id).map((e) => ({ amount: e.amount })),
     })),
   }
 }

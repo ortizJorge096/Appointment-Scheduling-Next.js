@@ -36,6 +36,10 @@ export async function GET(_req: NextRequest, { params }: Ctx): Promise<NextRespo
                 service: { select: { id: true, name: true, price: true, durationMinutes: true } },
               },
             },
+            // Extras move the charge; without them the history total would drop the
+            // adicionales and disagree with the appointment detail. appointmentServiceId
+            // lets toAppointmentMoney route each one into its line.
+            extras: { select: { amount: true, appointmentServiceId: true } },
           },
           orderBy: [{ date: 'desc' }, { startTime: 'desc' }],
         },

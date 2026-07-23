@@ -67,12 +67,14 @@ export async function GET(
     return NextResponse.json({ success: true, data: { ...appointment, cancellable } })
   }
 
-  // precioFinal is the client's own final (discounted) price — safe to expose and
-  // needed so the confirmation page shows the discounted total, not the gross sum.
-  const { clientName, clientEmail, service, services, date, startTime, endTime, status, precioFinal } = appointment
+  // The public (confirmation/cancellation) payload needs a couple of derived fields
+  // beyond the raw relations: precioFinal (the client's own final discounted price)
+  // and totalDurationMinutes (the whole booking's length — without it a multi-service
+  // booking shows only the primary service's duration, e.g. 60 min for a 150 min VIP).
+  const { clientName, clientEmail, service, services, date, startTime, endTime, status, precioFinal, totalDurationMinutes } = appointment
   return NextResponse.json({
     success: true,
-    data: { id, clientName, clientEmail, service, services, date, startTime, endTime, status, precioFinal, cancellable },
+    data: { id, clientName, clientEmail, service, services, date, startTime, endTime, status, precioFinal, totalDurationMinutes, cancellable },
   })
 }
 
